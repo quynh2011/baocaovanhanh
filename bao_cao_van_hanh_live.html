@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo Cáo Vận Hành Tuần — GHN (Live)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ghn-orange:#F15A22;--ghn-orange-dark:#C9420D;--ghn-orange-light:#FEF0EB;
+  --ghn-blue:#0063AA;--ghn-blue-dark:#004A82;--ghn-blue-light:#E6F0FA;
+  --bg:#FAF9F7;--surface:#FFF;--border:#E8E5DF;--border-strong:#CCC9C0;
+  --text:#1A1917;--muted:#6B6860;--hint:#9E9B93;
+  --up:#D94A10;--dn:#0F6E56;--warn:#8B6B00;
+  --accent:#0063AA;--accent-light:#E6F0FA;
+  --gxt-bg:#FEF0EB;--gxt-border:#F9C4A8;--gxt-text:#8B2C00;
+  --total:#F0EDE8;--week-sep:#D4D0C8;--week-div:#B0ABA0;
+  --green-cell:#EAF3DE;--red-cell:#FEF2F2;--yellow-cell:#FEFCE8;
+  --header:#0063AA;--header-line:rgba(255,255,255,.18);
+  --f:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace
+}
+body{font-family:var(--f);background:var(--bg);color:var(--text);line-height:1.5;overflow-x:hidden}
+.page{max-width:1340px;margin:0 auto;padding:32px 28px 80px}
+.report-header{border-bottom:3px solid var(--ghn-orange);padding-bottom:16px;margin-bottom:24px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.report-header h1{font-size:25px;font-weight:700;letter-spacing:-0.02em}
+.report-header .meta{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right;line-height:1.8}
+.report-header h1 .rh-tag{font-size:13px;color:var(--ghn-orange);font-family:var(--mono);font-weight:600}
+.refresh-btn,.export-btn{font-family:var(--mono);font-size:11.5px;background:var(--ghn-blue);color:#fff;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;margin-top:6px;margin-left:6px}
+.refresh-btn:hover,.export-btn:hover{background:var(--ghn-blue-dark)}
+.export-btn{background:var(--ghn-orange)}
+.export-btn:hover{background:var(--ghn-orange-dark)}
+/* nút mục lục nổi, cố định góc trên-phải màn hình dù cuộn trang tới đâu */
+.toc-fab{position:fixed;top:18px;right:18px;z-index:1000;background:var(--ghn-blue);color:#fff;border:none;border-radius:24px;padding:10px 16px;font-family:var(--f);font-weight:600;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28);display:flex;align-items:center;gap:6px}
+.toc-fab:hover{background:var(--ghn-blue-dark)}
+.toc-panel{position:fixed;top:64px;right:18px;z-index:1000;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 26px rgba(0,0,0,.2);padding:12px 14px;max-height:75vh;overflow-y:auto;min-width:230px;display:none}
+.toc-panel.open{display:block}
+.toc-panel-title{font-family:var(--mono);font-size:10.5px;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.toc-panel a{display:flex;align-items:center;gap:8px;padding:6px 5px;color:var(--text);text-decoration:none;font-size:13px;font-weight:500;border-radius:6px}
+.toc-panel a:hover{background:var(--bg)}
+.toc-panel a .tnum{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;background:var(--accent-light);color:var(--accent);font-family:var(--mono);font-size:10px;font-weight:600;flex-shrink:0}
+.toc-panel a.toc-top{border-bottom:1px solid var(--border);margin-bottom:4px;padding-bottom:8px}
+/* ----- responsive: điện thoại ----- */
+@media (max-width:640px){
+  .page{padding:16px 10px 60px}
+  .report-header{align-items:flex-start}
+  .report-header h1{font-size:19px}
+  .report-header .meta{text-align:left;font-size:11px}
+  .summary-grid{grid-template-columns:1fr}
+  .toc-fab{top:10px;right:10px;padding:8px 11px;font-size:12px}
+  .toc-panel{top:52px;right:10px;left:10px;min-width:0}
+  .part-banner{padding:11px 14px;margin:22px 0 6px}
+  .part-banner .pb-title{font-size:14px}
+  table{font-size:11px}
+  td,th{padding:4px 5px}
+  .toc{display:none} /* đã có nút mục lục nổi thay thế, ẩn bảng mục lục tĩnh cho đỡ chật màn hình nhỏ */
+}
+.summary-banner{background:linear-gradient(135deg,#0063AA 0%,#004A82 55%,#C9420D 100%);color:#fff;border-radius:12px;padding:18px 22px;margin-bottom:16px}
+.sb-title{font-size:18px;font-weight:700}
+.sb-sub{font-family:var(--mono);font-size:12px;opacity:.85;margin-top:3px}
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:30px}
+.sg-group{background:var(--surface);border:0.5px solid var(--border);border-radius:11px;padding:12px 12px 10px}
+.sg-green{border-top:3px solid #1D9E75}.sg-yellow{border-top:3px solid #EAB308}.sg-red{border-top:3px solid #E24B4A}
+.sg-label{font-size:12px;font-weight:700;margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.sg-green .sg-label{color:#0F6E56}.sg-yellow .sg-label{color:#8B6B00}.sg-red .sg-label{color:#C04A1A}
+.sg-empty{font-size:11.5px;color:var(--hint);padding:6px 0}
+.sg-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.sg-card{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2px;aspect-ratio:1/1;text-decoration:none;color:var(--text);border-radius:9px;padding:8px 5px;border:1px solid transparent}
+.sg-card.green{background:#F0FDF4;border-color:#BFEAD3}.sg-card.yellow{background:var(--yellow-cell);border-color:#F5E19C}.sg-card.red{background:var(--red-cell);border-color:#F5C2C2}
+.sgc-name{font-size:10px;font-weight:600;line-height:1.25;word-break:break-word;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sgc-val{font-size:16px;font-weight:700;font-family:var(--mono);letter-spacing:-.02em}
+.sgc-thresh{font-size:8.5px;font-family:var(--mono);color:var(--hint)}
+.empty-note{background:var(--surface);border:1px dashed var(--border-strong);border-radius:10px;padding:16px;margin-bottom:26px;font-size:13px;color:var(--muted)}
+.toc{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:16px 20px 8px;margin-bottom:26px}
+.toc-gh{font-family:var(--mono);font-size:11px;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+.toc a{display:inline-flex;align-items:center;gap:6px;margin:0 16px 6px 0;color:var(--text);text-decoration:none;font-size:13px;font-weight:500}
+.toc a .tnum{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;background:var(--accent-light);color:var(--accent);font-family:var(--mono);font-size:10px;font-weight:600}
+.toc a:hover{color:var(--accent)}
+.part-banner{display:flex;align-items:baseline;gap:14px;margin:34px 0 6px;padding:13px 18px;background:var(--accent);border-radius:9px;scroll-margin-top:10px;cursor:pointer;user-select:none}
+.part-banner .pb-num{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.65);font-weight:600;letter-spacing:.08em}
+.part-banner .pb-title{color:#fff;font-size:16px;font-weight:600;flex:1}
+.part-banner .collapse-arrow{color:#fff;font-size:13px;transition:transform .2s ease}
+.part-banner.collapsed .collapse-arrow{transform:rotate(-90deg)}
+.metric-body{overflow:hidden;max-height:99999px}
+.metric-body.hidden{max-height:0!important;margin:0!important;padding:0!important;border:0!important}
+.trend-chart-wrap{padding:12px 14px 8px}
+.trend-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;font-size:11px;font-family:var(--mono);color:var(--muted)}
+.trend-legend .lg-item{display:inline-flex;align-items:center;gap:5px}
+.trend-legend .lg-dot{width:9px;height:9px;border-radius:2px;display:inline-block;flex-shrink:0}
+.chart-toggle-btn{font-family:var(--mono);font-size:11px;background:var(--surface);border:1px solid var(--border-strong);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer}
+.chart-toggle-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.comment{margin:8px 14px 16px;padding:10px 14px;border-radius:6px;font-size:12.5px;line-height:1.6}
+.comment .aline{margin-top:5px}
+.comment .aline:first-of-type{margin-top:7px}
+.comment.red{background:var(--red-cell);border-left:3px solid #E24B4A}
+.comment.green{background:#F0FDF4;border-left:3px solid #1D9E75}
+.comment.yellow{background:var(--yellow-cell);border-left:3px solid #EAB308}
+.block-header{display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:600;margin:18px 0 8px;padding:6px 0 6px 12px;border-left:4px solid var(--ghn-orange)}
+.block-header .bh-num{background:var(--ghn-orange);color:#fff;font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px}
+.subsection-title{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;margin:14px 0 7px}
+.subsection-title .sub-num{background:var(--accent-light);color:var(--accent);border:1px solid var(--accent);font-family:var(--mono);font-size:10px;font-weight:600;padding:1px 6px;border-radius:5px}
+.section-label{font-size:13px;font-weight:600;margin:14px 0 7px;padding-left:10px;border-left:3px solid var(--ghn-orange)}
+.opr-note{background:var(--ghn-orange-light);border:1px solid var(--gxt-border);border-radius:10px;padding:13px 17px;margin:8px 0 12px}
+.opr-note-title{font-size:12px;font-weight:700;color:var(--ghn-orange-dark);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;font-family:var(--mono)}
+.opr-note-body p{font-size:12.5px;color:var(--text);margin-bottom:9px;line-height:1.6}
+.opr-sla-grid{display:flex;gap:10px;flex-wrap:wrap}
+.opr-sla-card{flex:1;min-width:180px;background:var(--surface);border:0.5px solid var(--border);border-radius:8px;padding:9px 12px}
+.opr-sla-kh{font-size:11.5px;font-weight:700;color:var(--accent)}
+.opr-sla-target{font-size:11px;color:var(--muted);margin:3px 0;font-family:var(--mono)}
+.opr-target-val{color:var(--ghn-orange-dark);font-weight:700}
+.opr-sla-rule{font-size:11px;color:var(--muted);line-height:1.55}
+.section-sub{font-size:12.5px;color:var(--muted);margin-bottom:12px;font-family:var(--mono)}
+.tbl-wrap{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr:first-child th{background:var(--header);color:#FFF;font-size:10px;font-weight:600;font-family:var(--mono);text-align:center;padding:7px 6px;border-right:2px solid rgba(255,255,255,.28);letter-spacing:.03em;white-space:nowrap}
+thead tr:first-child th:first-child{text-align:left;padding-left:14px;border-right:2px solid rgba(255,255,255,.4)}
+thead tr.subhead th{background:#F0EEE9;font-size:10px;font-weight:500;color:var(--muted);font-family:var(--mono);text-align:right;padding:5px 7px;border-bottom:1px solid var(--border-strong);border-right:0.5px solid var(--border);white-space:nowrap}
+thead tr.subhead th:first-child:not(.wsep){text-align:left;padding-left:14px}
+thead tr.subhead th.wsep{border-left:2px solid var(--week-div);border-right:0.5px solid var(--border)}
+td{padding:5px 7px;text-align:right;border-bottom:0.5px solid var(--border);white-space:nowrap;font-family:var(--mono);font-size:12px}
+td:first-child{text-align:left;font-family:var(--f);font-weight:500;font-size:12.5px;padding-left:14px;border-right:1px solid var(--border-strong)}
+td.pct{color:var(--muted);font-size:11px}
+td.wsep,td.wfirst{border-left:2px solid var(--week-div);border-right:none}
+tr.group-row td{background:var(--ghn-blue-light);color:var(--ghn-blue-dark);font-weight:700;text-align:left}
+tr.total-row td{background:var(--total);font-weight:600;border-top:1px solid var(--border-strong);border-bottom:none;font-family:var(--mono)}
+tr.total-row td:first-child{font-family:var(--f)}
+tr.grand-row td{background:#EDE7DC;font-weight:700;border-top:2px solid var(--border-strong)}
+tr:hover td{background:#F7F5F0}
+tr.total-row:hover td{background:var(--total)}
+.up{color:var(--up);font-weight:600}.dn{color:var(--dn);font-weight:600}
+.mut{color:var(--hint)}
+td.delta{text-align:center!important}
+thead th.cdelta{text-align:center}
+td.good{background:var(--green-cell);color:#0F6E56;font-weight:600}
+td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
+.report-footer{border-top:0.5px solid var(--border);padding-top:16px;margin-top:40px;display:flex;justify-content:space-between;font-size:11px;color:var(--hint);font-family:var(--mono)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.leg{display:flex;align-items:center;gap:5px}
+.leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+#errBanner{display:none;background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;white-space:pre-wrap}
+#loadingNote{font-family:var(--mono);font-size:12.5px;color:var(--muted);padding:10px 0}
+</style>
+</head>
+<body>
+<button class="toc-fab" id="tocFab" onclick="toggleTocPanel()">☰ Mục lục</button>
+<div class="toc-panel" id="tocPanel">
+  <div class="toc-panel-title">Chuyển nhanh</div>
+  <a href="#top" class="toc-top" onclick="closeTocPanel()">🏠 Tổng quan (đầu trang)</a>
+  <a href="#scorecard" onclick="closeTocPanel()"><span class="tnum">0</span>Scorecard</a>
+  <a href="#opr" onclick="closeTocPanel()"><span class="tnum">1</span>OPR</a>
+  <a href="#odr" onclick="closeTocPanel()"><span class="tnum">2</span>ODR</a>
+  <a href="#fd" onclick="closeTocPanel()"><span class="tnum">3</span>FD</a>
+  <a href="#rotlc" onclick="closeTocPanel()"><span class="tnum">4</span>RớtLC</a>
+  <a href="#bl36h" onclick="closeTocPanel()"><span class="tnum">5</span>BL LC &gt;36H</a>
+  <a href="#gtc" onclick="closeTocPanel()"><span class="tnum">6</span>GTC</a>
+  <a href="#blgiao120" onclick="closeTocPanel()"><span class="tnum">7</span>BL Giao &gt;120H</a>
+  <a href="#bltra48h" onclick="closeTocPanel()"><span class="tnum">8</span>BL LC Trả &gt;48H</a>
+  <a href="#bltra120h" onclick="closeTocPanel()"><span class="tnum">9</span>BL Trả &gt;120H</a>
+  <a href="#ktccho" onclick="closeTocPanel()"><span class="tnum">10</span>KTC Chờ nhập</a>
+  <a href="#ktcnhapxuat" onclick="closeTocPanel()"><span class="tnum">11</span>KTC Nhập→Xuất</a>
+  <a href="#ktcton24h" onclick="closeTocPanel()"><span class="tnum">12</span>KTC Tồn &gt;24H</a>
+</div>
+<div class="page">
+  <div class="report-header" id="top">
+    <div>
+      <h1>Báo Cáo Vận Hành Tuần <span class="rh-tag" id="weekTag">Live</span></h1>
+      <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px" id="subtitleLine">12 chỉ số vận hành</div>
+    </div>
+    <div class="meta">Modify by - Pham Van Quynh - DBB Live Report<br>Cập nhật lúc: <span id="updatedAt">—</span><br><button class="refresh-btn" onclick="location.reload()">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
+  </div>
+
+  <div id="errBanner"></div>
+  <div id="loadingNote">Đang tải dữ liệu từ Google Sheet…</div>
+
+  <div id="summaryBannerWrap"></div>
+
+  <div class="toc">
+    <div class="toc-gh">Mục lục</div>
+    <div>
+      <a href="#scorecard"><span class="tnum">0</span>Scorecard</a>
+      <a href="#opr"><span class="tnum">1</span>OPR</a>
+      <a href="#odr"><span class="tnum">2</span>ODR</a>
+      <a href="#fd"><span class="tnum">3</span>FD</a>
+      <a href="#rotlc"><span class="tnum">4</span>RớtLC</a>
+      <a href="#bl36h"><span class="tnum">5</span>BL LC &gt;36H</a>
+      <a href="#gtc"><span class="tnum">6</span>GTC</a>
+      <a href="#blgiao120"><span class="tnum">7</span>BL Giao &gt;120H</a>
+      <a href="#bltra48h"><span class="tnum">8</span>BL LC Trả &gt;48H</a>
+      <a href="#bltra120h"><span class="tnum">9</span>BL Trả &gt;120H</a>
+      <a href="#ktccho"><span class="tnum">10</span>KTC Chờ nhập</a>
+      <a href="#ktcnhapxuat"><span class="tnum">11</span>KTC Nhập→Xuất</a>
+      <a href="#ktcton24h"><span class="tnum">12</span>KTC Tồn &gt;24H</a>
+    </div>
+  </div>
+
+  <div id="reportBody"></div>
+
+  <div class="report-footer">
+    <div class="legend">
+      <div class="leg"><span class="leg-dot" style="background:var(--green-cell)"></span>Đạt target</div>
+      <div class="leg"><span class="leg-dot" style="background:var(--red-cell)"></span>Chưa đạt target</div>
+      <div class="leg">▲/▼ = xu hướng so kỳ trước (xanh = cải thiện, đỏ = xấu đi)</div>
+    </div>
+    <div>Modify by - Pham Van Quynh - DBB Live Report</div>
+  </div>
+</div>
+
+<script id="mainScript">
+const SHEET_ID = "1j3KarXqurcP0GxPE3A4qSxVXs2nfkUM87QscsY5_DtU";
+const SHEET_NAMES = ['01_Scorecard','02_OPR','03_ODR','04_FD','05_RotLC','06_BL_LC_36H','07_GTC',
+  '08_BL_Giao_120H','09_BL_LC_Tra_48H','10_BL_Tra_120H','11_KTC_ChoNhap','12_KTC_NhapXuat','13_KTC_Ton24H'];
+
+function showError(msg){
+  const b = document.getElementById('errBanner');
+  b.style.display = 'block';
+  b.textContent += (b.textContent ? '\n' : '') + msg;
+}
+window.onerror = function(msg, src, line){ showError('Lỗi JS: '+msg+' (dòng '+line+')'); return false; };
+window.addEventListener('unhandledrejection', e => showError('Lỗi bất đồng bộ: '+(e.reason && e.reason.message || e.reason)));
+function safeRun(label, fn){ try { fn(); } catch(e){ showError('Lỗi ở bước "'+label+'": '+e.message); console.error(label, e); } }
+
+// ---------- fetch (với retry + giãn cách để tránh lỗi tải đồng loạt) ----------
+let jsonpCounter = 0;
+function fetchSheetJSONPOnce(sheetName, timeoutMs){
+  return new Promise((resolve, reject) => {
+    const cbName = 'gvizCb_' + (jsonpCounter++) + '_' + Date.now();
+    const scriptId = 'sc_' + cbName;
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return; done = true;
+      cleanup();
+      reject(new Error('Timeout tải sheet "'+sheetName+'"'));
+    }, timeoutMs);
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[cbName];
+      const el = document.getElementById(scriptId);
+      if (el) el.remove();
+    }
+    window[cbName] = function(resp){
+      if (done) return; done = true;
+      cleanup();
+      if (!resp || !resp.table) { reject(new Error('Không có dữ liệu cho sheet "'+sheetName+'"')); return; }
+      resolve(resp.table);
+    };
+    const url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json;responseHandler:' + cbName +
+      '&sheet=' + encodeURIComponent(sheetName) + '&_=' + Date.now();
+    const s = document.createElement('script');
+    s.id = scriptId; s.src = url;
+    s.onerror = () => { if (done) return; done = true; cleanup(); reject(new Error('Không tải được sheet "'+sheetName+'" (kiểm tra tên tab / quyền chia sẻ public)')); };
+    document.head.appendChild(s);
+  });
+}
+function delay(ms){ return new Promise(r => setTimeout(r, ms)); }
+async function fetchSheetJSONP(sheetName, attempts){
+  attempts = attempts || 3;
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fetchSheetJSONPOnce(sheetName, 12000 + i*4000);
+    } catch (e) {
+      lastErr = e;
+      if (i < attempts - 1) await delay(600 + i*700);
+    }
+  }
+  throw lastErr;
+}
+
+// ---------- basic helpers ----------
+function cell(row, idx){
+  if (!row || !row.c || idx >= row.c.length) return null;
+  const c = row.c[idx];
+  if (!c || c.v === null || c.v === undefined || c.v === '') return null;
+  return c.v;
+}
+function rawCell0(row){ // raw (untrimmed) text of column 0, used to detect leading-space nested dividers
+  if (!row || !row.c || !row.c[0] || row.c[0].v === null || row.c[0].v === undefined) return '';
+  return String(row.c[0].v);
+}
+function colLabel(table, idx){
+  if (!table.cols || idx >= table.cols.length || !table.cols[idx]) return '';
+  return table.cols[idx].label || '';
+}
+function firstToken(s, fallback){
+  const t = String(s||'').trim();
+  if (!t) return fallback;
+  return t.split(/\s+/)[0];
+}
+function normPct(v){ if (v === null || v === undefined) return null; const n = Number(v); if (isNaN(n)) return null; return Math.abs(n) > 1.5 ? n/100 : n; }
+function fmtNum(v){ return (v === null || v === undefined) ? '–' : Math.round(v).toLocaleString('vi-VN'); }
+function fmtPct(v, d=1){ return (v === null || v === undefined) ? '–' : (v*100).toFixed(d) + '%'; }
+function fmtMin(v){ return (v === null || v === undefined) ? '–' : (Math.round(v*10)/10).toLocaleString('vi-VN') + ' p'; }
+function classFor(v, target, dir){
+  if (v === null || v === undefined || target === null || target === undefined || isNaN(target)) return '';
+  return dir === 'ge' ? (v >= target ? 'good' : 'bad') : (v <= target ? 'good' : 'bad');
+}
+function isTotalLabel(s){ return s !== null && s !== undefined && (String(s).indexOf('Tổng ') === 0 || String(s) === 'Grand Total'); }
+function isGrandLabel(s){ return s === 'Grand Total'; }
+function esc(s){ return String(s === null || s === undefined ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// escape để nhét an toàn vào TRONG một HTML attribute có dấu ngoặc kép (ví dụ onchange="...")
+function attrEsc(s){ return String(s === null || s === undefined ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ---------- thu gọn / mở rộng từng phần lớn ----------
+function toggleSection(headerEl){
+  headerEl.classList.toggle('collapsed');
+  const body = headerEl.nextElementSibling;
+  if (body) body.classList.toggle('hidden');
+}
+
+// ---------- nút mục lục nổi (cố định góc trên-phải, không trôi theo cuộn trang) ----------
+function toggleTocPanel(){
+  const el = document.getElementById('tocPanel');
+  if (el) el.classList.toggle('open');
+}
+function closeTocPanel(){
+  const el = document.getElementById('tocPanel');
+  if (el) el.classList.remove('open');
+}
+document.addEventListener('click', function(e){
+  const panel = document.getElementById('tocPanel'), btn = document.getElementById('tocFab');
+  if (!panel || !btn || !panel.classList.contains('open')) return;
+  if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.remove('open');
+});
+
+// ---------- xuất file HTML tĩnh để gửi người khác đọc (không cần quyền truy cập Google Sheet) ----------
+// Nguyên lý: đóng gói lại đúng HTML đang hiển thị (đã có đủ số liệu) + trạng thái các biểu đồ (CHART_STORE/CHART_STATE)
+// thành 1 file độc lập; khi mở file đó, cùng 1 đoạn script này chạy lại nhưng thấy có sẵn window.__STATIC_SNAPSHOT__
+// nên bỏ qua bước tải dữ liệu (main()) và chỉ "hồi phục" lại trạng thái biểu đồ — mọi tương tác (thu gọn, đổi
+// chế độ biểu đồ, tick từng AM/Vùng) vẫn hoạt động bình thường vì HTML + toàn bộ hàm JS đều được giữ nguyên.
+function hydrateFromSnapshot(snap){
+  Object.keys(snap.chartStore||{}).forEach(id => { CHART_STORE[id] = snap.chartStore[id]; });
+  Object.keys(snap.chartState||{}).forEach(id => {
+    const s = snap.chartState[id];
+    CHART_STATE[id] = { mode: s.mode, hidden: new Set(s.hidden||[]) };
+  });
+  const ln = document.getElementById('loadingNote'); if (ln) ln.style.display = 'none';
+  const wt = document.getElementById('weekTag'); if (wt) wt.textContent = 'Bản xuất tĩnh';
+  const ua = document.getElementById('updatedAt'); if (ua) ua.textContent = (snap.exportedAt || '') + ' (bản xuất tĩnh, không tự cập nhật)';
+}
+function exportStaticHtml(){
+  try {
+    const chartStore = {}, chartState = {};
+    Object.keys(CHART_STORE).forEach(id => { chartStore[id] = CHART_STORE[id]; });
+    Object.keys(CHART_STATE).forEach(id => { chartState[id] = { mode: CHART_STATE[id].mode, hidden: Array.from(CHART_STATE[id].hidden) }; });
+    const exportedAt = new Date().toLocaleString('vi-VN');
+    const snapshot = { chartStore, chartState, exportedAt };
+    const pageEl = document.querySelector('.page');
+    const tocFabEl = document.getElementById('tocFab');
+    const tocPanelEl = document.getElementById('tocPanel');
+    const mainScriptEl = document.getElementById('mainScript');
+    if (!pageEl) throw new Error('Không tìm thấy nội dung báo cáo để xuất');
+    if (!mainScriptEl) throw new Error('Không tìm thấy mã script chính để nhúng vào file xuất');
+    const pageHtml = pageEl.outerHTML;
+    const fabHtml = tocFabEl ? tocFabEl.outerHTML : '';
+    const panelHtml = tocPanelEl ? tocPanelEl.outerHTML : '';
+    const scriptSrc = mainScriptEl.textContent || '';
+    const styleEl = document.querySelector('style');
+    const fontLinkEl = document.querySelector('link[href*="fonts.googleapis"]');
+    // viết tay phần <head> thay vì sao chép nguyên trạng — đảm bảo chắc chắn có đúng thẻ viewport/charset
+    // (đây chính là nguyên nhân file xuất ra bị tràn viền/phải zoom trên điện thoại ở lần trước: nếu quá trình
+    // sao chép head bị thiếu/sai thẻ viewport, điện thoại sẽ coi trang là trang desktop rộng ~980px rồi tự zoom)
+    const headExtras =
+      '<meta charset="UTF-8">' +
+      '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">' +
+      '<title>Báo Cáo Vận Hành Tuần — GHN (Bản xuất tĩnh)</title>' +
+      (fontLinkEl ? fontLinkEl.outerHTML : '') +
+      (styleEl ? styleEl.outerHTML : '');
+    const snapJson = JSON.stringify(snapshot).replace(/</g, '\\u003c');
+    const html = '<!DOCTYPE html>\n<html lang="vi">\n<head>\n' + headExtras + '\n</head>\n<body>\n' +
+      fabHtml + '\n' + panelHtml + '\n' + pageHtml +
+      '\n<script>window.__STATIC_SNAPSHOT__ = ' + snapJson + ';<\/script>' +
+      '\n<script id="mainScript">' + scriptSrc + '<\/script>\n</body>\n</html>';
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bao_cao_van_hanh_tuan_' + new Date().toISOString().slice(0,10) + '.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } catch (e) {
+    showError('Lỗi xuất file: ' + e.message);
+  }
+}
+
+// ---------- biểu đồ trend đường (SVG thuần, không phụ thuộc CDN) ----------
+function smoothPathD(points){
+  if (points.length === 0) return '';
+  if (points.length === 1) return 'M'+points[0][0]+','+points[0][1];
+  let d = 'M'+points[0][0].toFixed(1)+','+points[0][1].toFixed(1);
+  for (let i = 0; i < points.length-1; i++) {
+    const p0 = points[i-1] || points[i];
+    const p1 = points[i];
+    const p2 = points[i+1];
+    const p3 = points[i+2] || p2;
+    const cp1x = p1[0] + (p2[0]-p0[0])/6, cp1y = p1[1] + (p2[1]-p0[1])/6;
+    const cp2x = p2[0] - (p3[0]-p1[0])/6, cp2y = p2[1] - (p3[1]-p1[1])/6;
+    d += ' C'+cp1x.toFixed(1)+','+cp1y.toFixed(1)+' '+cp2x.toFixed(1)+','+cp2y.toFixed(1)+' '+p2[0].toFixed(1)+','+p2[1].toFixed(1);
+  }
+  return d;
+}
+const CHART_COLORS = ['#0063AA','#F15A22','#1D9E75','#8B6B00','#7B4FA6','#C04A1A','#0F6E56','#3B7DD8','#A63603','#556B2F','#B0413E','#2E86AB'];
+let CHART_SEQ = 0;
+const CHART_STORE = {};  // chartId -> {group, weekLabels, entityLabel}
+const CHART_STATE = {};  // chartId -> {mode:'total'|'detail', hidden:Set}
+
+// entityLabel: chữ mô tả 1 dòng chi tiết là gì (Vùng/AM/Khách hàng/KTC...) để đặt tên nút bấm cho đúng ngữ cảnh
+function chartContainerHtml(group, weekLabels, entityLabel){
+  if (!weekLabels || weekLabels.length < 2) return '';
+  const id = 'ch' + (CHART_SEQ++);
+  CHART_STORE[id] = { group, weekLabels, entityLabel };
+  CHART_STATE[id] = { mode: 'detail', hidden: new Set() };
+  return '<div class="tbl-wrap trend-chart-wrap" id="chartwrap-'+id+'">' + renderChartInner(id) + '</div>';
+}
+function chartValOf(rec, wk){ return wk.pct !== undefined ? wk.pct : wk.val; }
+function renderChartInner(id){
+  const st = CHART_STORE[id], state = CHART_STATE[id];
+  if (!st) return '';
+  const { group, weekLabels, entityLabel } = st;
+  const detailRows = group.rows.filter(r => !r.isTotalRow && !r.isGrand);
+  const totalRec = group.rows.find(r => r.isGrand) || group.rows.find(r => r.isTotalRow);
+  const colorFor = (label) => CHART_COLORS[Math.max(0, detailRows.findIndex(r => r.label === label)) % CHART_COLORS.length];
+
+  let head = '<div style="display:flex;gap:8px;margin-bottom:2px;flex-wrap:wrap">';
+  head += '<button type="button" class="chart-toggle-btn'+(state.mode==='total'?' active':'')+'" onclick="setChartMode(\''+id+'\',\'total\')">Xu hướng chung (Tổng/Grand Total)</button>';
+  head += '<button type="button" class="chart-toggle-btn'+(state.mode==='detail'?' active':'')+'" onclick="setChartMode(\''+id+'\',\'detail\')">Xu hướng từng '+esc(entityLabel)+' ('+detailRows.length+')</button>';
+  head += '</div>';
+
+  let lines;
+  if (state.mode === 'total') {
+    lines = totalRec ? [{ rec: totalRec, color: '#0063AA' }] : [];
+  } else {
+    lines = detailRows.filter(r => !state.hidden.has(r.label)).map(r => ({ rec: r, color: colorFor(r.label) }));
+  }
+
+  let body;
+  if (state.mode === 'total' && !totalRec) {
+    body = '<div class="mut" style="font-size:12px;padding:10px 0">Nhóm này chưa có dòng Tổng/Grand Total để hiển thị.</div>';
+  } else {
+    body = renderChartSVG(lines, weekLabels);
+  }
+
+  let legend = '<div class="trend-legend">';
+  if (state.mode === 'detail') {
+    const allChecked = detailRows.length > 0 && detailRows.every(r => !state.hidden.has(r.label));
+    if (detailRows.length > 1) {
+      legend += '<label class="lg-item" style="cursor:pointer;font-weight:700;border-right:1px solid var(--border);padding-right:10px;margin-right:2px"><input type="checkbox" '+(allChecked?'checked':'')+' onchange="toggleAllChartLines(\''+id+'\', this)" style="margin:0 4px 0 0">Chọn tất cả</label>';
+    }
+    detailRows.forEach(r => {
+      const checked = !state.hidden.has(r.label);
+      legend += '<label class="lg-item" style="cursor:pointer"><input type="checkbox" '+(checked?'checked':'')+' onchange="toggleChartLine(\''+id+'\', this, '+attrEsc(JSON.stringify(r.label))+')" style="margin:0 4px 0 0"><span class="lg-dot" style="background:'+colorFor(r.label)+'"></span>'+esc(r.label)+'</label>';
+    });
+  } else if (totalRec) {
+    legend += '<span class="lg-item"><span class="lg-dot" style="background:#0063AA"></span>'+esc(totalRec.label)+'</span>';
+  }
+  legend += '</div>';
+
+  return head + body + legend;
+}
+function renderChartSVG(lines, weekLabels){
+  if (!lines.length) return '<div class="mut" style="font-size:12px;padding:10px 0">Không có dòng nào được chọn để vẽ.</div>';
+  let vals = [];
+  lines.forEach(({rec}) => rec.weeks.forEach(wk => { const v = chartValOf(rec, wk); if (v !== null && v !== undefined) vals.push(v); }));
+  if (vals.length < 2) return '<div class="mut" style="font-size:12px;padding:10px 0">Chưa đủ dữ liệu để vẽ trend.</div>';
+  let lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+  if (lo === hi) { lo -= Math.abs(lo*0.1)||0.05; hi += Math.abs(hi*0.1)||0.05; }
+  const padv = (hi-lo)*0.15; lo -= padv; hi += padv;
+  const W = 780, H = 190, padL = 8, padR = 8, padT = 12, padB = 22;
+  const n = weekLabels.length;
+  const xFor = i => padL + (W-padL-padR) * (i/(n-1));
+  const yFor = v => padT + (H-padT-padB) * (1 - (v-lo)/(hi-lo));
+  let svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:170px;display:block" preserveAspectRatio="none">';
+  for (let i=0;i<n;i++) svg += '<text x="'+xFor(i).toFixed(0)+'" y="'+(H-6)+'" font-size="9" fill="#9E9B93" text-anchor="middle" font-family="monospace">'+esc(weekLabels[i])+'</text>';
+  lines.forEach(({rec, color}) => {
+    const pts = [];
+    rec.weeks.forEach((wk,i) => { const v = chartValOf(rec, wk); if (v !== null && v !== undefined) pts.push([xFor(i), yFor(v)]); });
+    if (pts.length < 2) return;
+    const isPctMetric = rec.weeks[0].pct !== undefined;
+    const titleTxt = esc(rec.label) + ' — ' + weekLabels.map((w,i)=>{ const wk=rec.weeks[i]; const v=chartValOf(rec,wk); return w+': '+(v===null||v===undefined?'–':(isPctMetric?(v*100).toFixed(1)+'%':v));}).join(', ');
+    svg += '<path d="'+smoothPathD(pts)+'" fill="none" stroke="'+color+'" stroke-width="2" opacity="0.92"><title>'+titleTxt+'</title></path>';
+    pts.forEach(p => { svg += '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2.4" fill="'+color+'"></circle>'; });
+  });
+  svg += '</svg>';
+  return svg;
+}
+function setChartMode(id, mode){
+  CHART_STATE[id].mode = mode;
+  const el = document.getElementById('chartwrap-'+id);
+  if (el) el.innerHTML = renderChartInner(id);
+}
+function toggleChartLine(id, checkboxEl, label){
+  const state = CHART_STATE[id];
+  if (checkboxEl.checked) state.hidden.delete(label); else state.hidden.add(label);
+  const el = document.getElementById('chartwrap-'+id);
+  if (el) el.innerHTML = renderChartInner(id);
+}
+function toggleAllChartLines(id, checkboxEl){
+  const state = CHART_STATE[id], st = CHART_STORE[id];
+  if (!state || !st) return;
+  const detailRows = st.group.rows.filter(r => !r.isTotalRow && !r.isGrand);
+  if (checkboxEl.checked) state.hidden.clear();
+  else detailRows.forEach(r => state.hidden.add(r.label));
+  const el = document.getElementById('chartwrap-'+id);
+  if (el) el.innerHTML = renderChartInner(id);
+}
+
+// ---------- nhận xét tự động dưới mỗi bảng (đạt target = xanh, chưa đạt = đỏ) ----------
+function buildGroupAnalysis(group, dir){
+  const rows = group.rows.filter(r => !r.isTotalRow && !r.isGrand);
+  if (!rows.length) return '';
+  const withVal = rows.map(r => {
+    const wk = r.weeks[r.weeks.length-1];
+    const v = chartValOf(r, wk);
+    return { r, v };
+  }).filter(x => x.v !== null && x.v !== undefined);
+  if (!withVal.length) return '';
+  const isPctMetric = withVal[0].r.weeks[0].pct !== undefined;
+  const fmtV = v => isPctMetric ? fmtPct(v) : fmtMin(v);
+  const fmtGap = v => isPctMetric ? Math.abs(v*100).toFixed(1)+'pp' : Math.abs(v).toFixed(1)+' p';
+  // gap: khoảng cách tới target THEO ĐÚNG hướng tốt/xấu — dương = đạt (dư ra bấy nhiêu), âm = chưa đạt (thiếu bấy nhiêu)
+  const scoredRows = withVal.map(x => {
+    const hasTarget = x.r.target !== null && x.r.target !== undefined && !isNaN(x.r.target);
+    const gap = hasTarget ? (dir==='ge' ? x.v-x.r.target : x.r.target-x.v) : null;
+    return Object.assign({}, x, { gap, status: gap===null ? null : (gap>=0?'good':'bad') });
+  });
+  const good = scoredRows.filter(x => x.status==='good');
+  const bad = scoredRows.filter(x => x.status==='bad').sort((a,b) => a.gap-b.gap); // thiếu nhiều nhất lên đầu
+  const sorted = withVal.slice().sort((a,b) => dir==='ge' ? b.v-a.v : a.v-b.v);
+  const best = sorted[0], worst = sorted[sorted.length-1];
+
+  let parts = [];
+  parts.push('<b>'+good.length+'/'+withVal.length+'</b> đạt target ở kỳ mới nhất');
+  if (best) parts.push('tốt nhất: <b>'+esc(best.r.label)+'</b> ('+fmtV(best.v)+')');
+  // liệt kê CỤ THỂ ai/vùng nào chưa đạt kèm mức thiếu hụt — để quy trách nhiệm rõ ràng, không chỉ nêu 1 người tệ nhất
+  if (bad.length) {
+    const maxShow = 5;
+    const badList = bad.slice(0, maxShow).map(x => esc(x.r.label)+' ('+fmtV(x.v)+', thiếu '+fmtGap(x.gap)+')').join(', ');
+    parts.push('<b>chưa đạt ('+bad.length+')</b>: '+badList+(bad.length>maxShow ? ' và '+(bad.length-maxShow)+' khác' : ''));
+  } else if (worst && (!best || worst.r.label !== best.r.label)) {
+    parts.push('kém nhất: <b>'+esc(worst.r.label)+'</b> ('+fmtV(worst.v)+')');
+  }
+  // nếu 1 đối tượng chiếm phần lớn phần "chưa đạt" (VD >50% số dòng chưa đạt) -> gọi thẳng đây là vấn đề tập trung
+  if (bad.length >= 2 && bad.length === withVal.length) {
+    parts.push('<b>toàn bộ đối tượng trong nhóm đều chưa đạt target</b> — cần rà soát nguyên nhân chung, không phải vấn đề riêng lẻ');
+  }
+  const totalRec = group.rows.find(r => r.isGrand) || group.rows.find(r => r.isTotalRow);
+  if (totalRec) {
+    const n = totalRec.weeks.length;
+    if (n >= 2) {
+      const curr = chartValOf(totalRec, totalRec.weeks[n-1]), prev = chartValOf(totalRec, totalRec.weeks[n-2]);
+      if (curr !== null && prev !== null && curr !== undefined && prev !== undefined) {
+        const diff = curr - prev;
+        const isGoodTrend = dir === 'ge' ? diff > 0 : diff < 0;
+        const eps = isPctMetric ? 0.0005 : 0.05;
+        const dirTxt = Math.abs(diff) < eps ? 'đi ngang so kỳ trước' : (isGoodTrend ? 'cải thiện so kỳ trước' : 'xấu đi so kỳ trước');
+        // xu hướng NHIỀU kỳ (không chỉ so kỳ liền trước) — phân biệt vấn đề dai dẳng hay chỉ 1 kỳ bất thường
+        const allVals = totalRec.weeks.map(wk => chartValOf(totalRec, wk));
+        const td = trendDescriptor(allVals, dir, isPctMetric);
+        const trendTxt = td ? (dirTxt + '; xét cả '+allVals.length+' kỳ thì ' + td.text + ' (' + allVals.filter(v=>v!==null&&v!==undefined).map(fmtV).join(' → ') + ')') : dirTxt;
+        parts.push('<b>'+esc(totalRec.label)+'</b> đang <b>'+trendTxt+'</b>');
+      }
+    }
+  }
+  const ratio = good.length / withVal.length;
+  const cls = ratio >= 0.7 ? 'green' : (ratio <= 0.3 ? 'red' : 'yellow');
+  return '<div class="comment '+cls+'">'+parts.join(' · ')+'.</div>';
+}
+
+// ---------- generic divider-driven parsers (không phụ thuộc danh sách Vùng/KH/KTC cố định) ----------
+// Cấu trúc chung: mỗi sheet có các "dòng chia nhóm" (target/giá trị rỗng, chỉ có nhãn ở cột đầu) xen giữa các dòng dữ liệu.
+// Parser đi tuần tự theo đúng thứ tự dòng trong sheet, dùng chính các dòng chia nhóm đó để xác định group — nên
+// đổi tên Vùng thành AM, gộp/tách nhóm, đổi nhãn tuần... đều tự phản ánh mà không cần sửa code.
+
+function extractSwallowedFirstLabel(table, prefix){
+  // Gviz gộp dòng chia-nhóm ĐẦU TIÊN (ngay sau 2 dòng header) vào table.cols thay vì table.rows
+  // (vì dòng đó cũng chỉ có chữ ở cột đầu, trông giống header). Khôi phục lại nhãn đó từ table.cols[0].label,
+  // bằng cách cắt bỏ phần tiêu đề cột cố định (VD "Khách hàng", "Vùng"...) ở đầu chuỗi.
+  const raw = colLabel(table, 0);
+  if (!raw) return '';
+  if (prefix && raw.indexOf(prefix) === 0) return raw.slice(prefix.length).trim();
+  return '';
+}
+// cắt bỏ các CỘT thừa ở cuối bảng — cột hoàn toàn không có tiêu đề VÀ không có dữ liệu ở bất kỳ dòng nào.
+// Tránh trường hợp Google Sheet có sẵn thêm cột định dạng trống phía sau (VD dư ra "Kỳ 7/8/9" toàn dấu –),
+// khiến weeksCount tính dư ra. Cắt theo TỔNG SỐ CỘT (không theo vị trí tuần) để không bao giờ nhầm sang
+// cột cố định thật sự (như cột Δ) — vì cột Δ luôn có tiêu đề nên vòng lặp sẽ tự dừng đúng chỗ.
+function effectiveNcols(table, rawNcols){
+  let n = rawNcols;
+  while (n > 0) {
+    const idx = n - 1;
+    const label = colLabel(table, idx).trim();
+    if (label) break; // cột cuối cùng còn lại có tiêu đề thật -> dừng cắt
+    let hasData = false;
+    (table.rows||[]).forEach(row => {
+      if (hasData) return;
+      if (cell(row, idx) !== null) hasData = true;
+    });
+    if (hasData) break; // không có tiêu đề nhưng CÓ dữ liệu -> giữ lại cho an toàn
+    n--;
+  }
+  return n;
+}
+function parseGroupedSheet(table, opt){
+  // opt: {targetIdx, dimIdxs:[..], weekStartIdx, weekStep, weeksCountFixedCols, singleValue, dim1HeaderPrefix}
+  const rawNcols = table.cols ? table.cols.length : (table.rows && table.rows[0] ? table.rows[0].c.length : 0);
+  const ncols = effectiveNcols(table, rawNcols);
+  const weeksCount = Math.max(0, Math.floor((ncols - opt.fixedCols) / opt.weekStep));
+  const weekLabels = [];
+  for (let w = 0; w < weeksCount; w++) {
+    weekLabels.push(firstToken(colLabel(table, opt.weekStartIdx + w*opt.weekStep), 'Kỳ ' + (w+1)));
+  }
+  // đọc ĐÚNG tiêu đề cột con (VD "Đơn"/"%OnT", "Vol LấyTC"/"%Rớt", "% Vol"/"%FD"...) trực tiếp từ sheet —
+  // không đoán/hardcode — để tự nhận ra khi cột "vol" thực ra là % (VD user đổi "Đơn" thành "% Vol")
+  let volLabel = null, pctLabel = null, volIsPct = false;
+  if (!opt.singleValue && weeksCount > 0) {
+    const raw1 = colLabel(table, opt.weekStartIdx).trim();
+    const wkTok = firstToken(raw1, '');
+    const sub1 = (wkTok && raw1.indexOf(wkTok) === 0) ? raw1.slice(wkTok.length).trim() : raw1;
+    const sub2 = colLabel(table, opt.weekStartIdx + 1).trim();
+    volLabel = sub1 || 'Vol';
+    pctLabel = sub2 || '%';
+    volIsPct = sub1.indexOf('%') !== -1;
+  }
+  const groups = [];
+  let topLabel = opt.dim1HeaderPrefix ? extractSwallowedFirstLabel(table, opt.dim1HeaderPrefix) : '';
+  let current = null;
+  (table.rows||[]).forEach(row => {
+    const targetRaw = cell(row, opt.targetIdx);
+    const target = opt.targetIsPct ? normPct(targetRaw) : targetRaw;
+    if (target === null || target === undefined) {
+      const raw = rawCell0(row);
+      const isNested = /^\s/.test(raw);
+      const trimmed = raw.trim();
+      if (!trimmed) return; // dòng hoàn toàn trống, bỏ qua
+      if (!isNested) { topLabel = trimmed; current = null; }
+      else { current = { label: topLabel ? (topLabel + ' — ' + trimmed) : trimmed, rows: [] }; groups.push(current); }
+      return;
+    }
+    const dims = opt.dimIdxs.map(i => cell(row, i));
+    const weeks = [];
+    for (let w = 0; w < weeksCount; w++) {
+      if (opt.singleValue) weeks.push({ val: cell(row, opt.weekStartIdx + w*opt.weekStep) });
+      else {
+        const rawVol = cell(row, opt.weekStartIdx + w*opt.weekStep);
+        weeks.push({ vol: volIsPct ? normPct(rawVol) : rawVol, pct: normPct(cell(row, opt.weekStartIdx + w*opt.weekStep + 1)) });
+      }
+    }
+    const label = dims.length > 1 ? dims[dims.length-1] : dims[0];
+    const rec = { dims, dim1: dims[0], dim2: dims.length>1?dims[1]:undefined, label, target, weeks,
+      trip: opt.tripIdx !== undefined ? cell(row, opt.tripIdx) : undefined,
+      isTotalRow: isTotalLabel(label), isGrand: isGrandLabel(label) };
+    if (!current) { current = { label: topLabel, rows: [] }; groups.push(current); }
+    current.rows.push(rec);
+  });
+  // bỏ các group rỗng (divider không có dòng dữ liệu nào theo sau, ví dụ divider cấp 1 của GTC đã được nối vào divider cấp 2)
+  return { weeksCount, weekLabels, volLabel, pctLabel, volIsPct, groups: groups.filter(g => g.rows.length > 0) };
+}
+
+function parseExtra2(table, dim1HeaderPrefix){ // 02_OPR,03_ODR,04_FD,07_GTC : dim1,dim2,target,tuần...,delta
+  return parseGroupedSheet(table, { targetIdx: 2, targetIsPct: true, dimIdxs: [0,1], weekStartIdx: 3, weekStep: 2, fixedCols: 4, dim1HeaderPrefix });
+}
+function parseExtra1(table, dim1HeaderPrefix){ // 05,06,08,09,10,13 : dim1,target,tuần...,delta
+  return parseGroupedSheet(table, { targetIdx: 1, targetIsPct: true, dimIdxs: [0], weekStartIdx: 2, weekStep: 2, fixedCols: 3, dim1HeaderPrefix });
+}
+function parseKTCP90(table){ // 11 : dim1,target,tuần(đơn),delta,trip — trip nằm ngay sau cột delta
+  const rawNcols = table.cols ? table.cols.length : (table.rows && table.rows[0] ? table.rows[0].c.length : 0);
+  const ncols = effectiveNcols(table, rawNcols);
+  const weeksCount = Math.max(0, ncols - 4);
+  const res = parseGroupedSheet(table, { targetIdx: 1, targetIsPct: false, dimIdxs: [0], weekStartIdx: 2, weekStep: 1, fixedCols: 4, singleValue: true, tripIdx: 2 + weeksCount + 1 });
+  return res;
+}
+function parseKTCTuyen(table){ // 12 : tuyen,ktc,target(chuỗi),tuần(đơn),delta,trip
+  const rawNcols = table.cols ? table.cols.length : (table.rows && table.rows[0] ? table.rows[0].c.length : 0);
+  const ncols = effectiveNcols(table, rawNcols);
+  const weeksCount = Math.max(0, ncols - 5);
+  return parseGroupedSheet(table, { targetIdx: 2, targetIsPct: false, dimIdxs: [0,1], weekStartIdx: 3, weekStep: 1, fixedCols: 5, singleValue: true, tripIdx: 3 + weeksCount + 1, dim1HeaderPrefix: 'Tuyến' });
+}
+
+function parseScorecard(table){
+  const METRICS = [
+    {key:'slLay',label:'SL lấy'}, {key:'slGiao',label:'SL giao'},
+    {key:'oprShopee',label:'OPR Shopee',target:0.90,dir:'ge'},{key:'oprBulky',label:'OPR Bulky',target:0.90,dir:'ge'},
+    {key:'oprTTS',label:'OPR TTS',target:0.80,dir:'ge'},{key:'oprSME',label:'OPR SME',target:0.90,dir:'ge'},
+    {key:'odrShopee',label:'ODR Shopee',target:0.90,dir:'ge'},{key:'odrBulky',label:'ODR Bulky',target:0.90,dir:'ge'},
+    {key:'odrTTS',label:'ODR TTS',target:0.96,dir:'ge'},{key:'odrSME',label:'ODR SME',target:0.90,dir:'ge'},
+    {key:'fd',label:'FD',target:0.03,dir:'le'},{key:'rotlc',label:'RớtLC',target:0.02,dir:'le'},
+    {key:'gtc',label:'GTC',target:0.65,dir:'ge'},{key:'blGiao120',label:'BL Giao>120H',target:0.02,dir:'le'},
+    {key:'blTra120',label:'BL Trả>120H',target:0.02,dir:'le'}
+  ];
+  const groups = [];
+  const groupMap = {};
+  (table.rows||[]).forEach(row => {
+    const dim1 = cell(row,0), dim2 = cell(row,1);
+    if (dim2 === null) return;
+    const rec = {dim1, dim2, m:{}};
+    METRICS.forEach((mDef, i) => {
+      const isPctMetric = mDef.target !== undefined;
+      const w25raw = cell(row, 2+i*2), w24raw = cell(row, 2+i*2+1);
+      rec.m[mDef.key] = { w25: isPctMetric ? normPct(w25raw) : w25raw, w24: isPctMetric ? normPct(w24raw) : w24raw };
+    });
+    rec.isTotalRow = isTotalLabel(dim2);
+    const gKey = dim1 === null ? '(khác)' : String(dim1);
+    if (!groupMap[gKey]) { groupMap[gKey] = {label: gKey, rows: []}; groups.push(groupMap[gKey]); groupMap[gKey]._key = gKey; }
+    groupMap[gKey].rows.push(rec);
+  });
+  return { groups, METRICS };
+}
+
+// ---------- sắp xếp: tệ nhất (theo tuần mới nhất) lên trên, tốt nhất xuống dưới; dòng Tổng/Grand Total luôn giữ ở cuối ----------
+function sortRowsForDisplay(rows, dir){
+  if (!dir) return rows; // không có hướng tốt/xấu rõ ràng (VD KTC Nhập→Xuất) -> giữ nguyên thứ tự sheet
+  const totals = rows.filter(r => r.isTotalRow || r.isGrand);
+  const detail = rows.filter(r => !r.isTotalRow && !r.isGrand);
+  const valOf = r => { const wk = r.weeks[r.weeks.length-1]; return chartValOf(r, wk); };
+  detail.sort((a,b) => {
+    const va = valOf(a), vb = valOf(b);
+    const aMissing = va === null || va === undefined, bMissing = vb === null || vb === undefined;
+    if (aMissing && bMissing) return 0;
+    if (aMissing) return 1; // dòng thiếu dữ liệu đẩy xuống cuối (trước dòng Tổng)
+    if (bMissing) return -1;
+    return dir === 'ge' ? (va - vb) : (vb - va); // ge: thấp (tệ) trước; le: cao (tệ) trước
+  });
+  return detail.concat(totals);
+}
+
+// ---------- render helpers ----------
+function weekTds(rec, dir, volIsPct){
+  let html = '';
+  rec.weeks.forEach((wk, i) => {
+    const isLast = i === rec.weeks.length-1;
+    const wfirst = i>0 ? ' wfirst' : '';
+    if (wk.pct !== undefined) {
+      const volStr = volIsPct ? fmtPct(wk.vol) : fmtNum(wk.vol);
+      html += '<td class="'+wfirst+(volIsPct?' pct':'')+'">'+volStr+'</td>';
+      const cls = isLast ? classFor(wk.pct, rec.target, dir) : 'pct';
+      html += '<td class="'+cls+'">'+fmtPct(wk.pct)+'</td>';
+    } else {
+      const cls = isLast ? classFor(wk.val, rec.target, dir) : '';
+      html += '<td class="'+wfirst+' '+cls+'">'+fmtMin(wk.val)+'</td>';
+    }
+  });
+  return html;
+}
+function deltaForRec(rec, dir){
+  const n = rec.weeks.length;
+  if (n < 2) return '<td class="delta mut">–</td>';
+  const curr = rec.weeks[n-1].pct !== undefined ? rec.weeks[n-1].pct : rec.weeks[n-1].val;
+  const prev = rec.weeks[n-2].pct !== undefined ? rec.weeks[n-2].pct : rec.weeks[n-2].val;
+  const isPctMetric = rec.weeks[n-1].pct !== undefined;
+  if (curr === null || prev === null || curr === undefined || prev === undefined) return '<td class="delta mut">–</td>';
+  const diff = curr - prev;
+  const dispDiff = isPctMetric ? Math.abs(diff*100).toFixed(1)+'pp' : Math.abs(diff).toFixed(1)+' p';
+  if (Math.abs(diff) < (isPctMetric ? 0.0005 : 0.05)) return '<td class="delta mut">— 0.0'+(isPctMetric?'pp':' p')+'</td>';
+  const arrow = diff > 0 ? '▲' : '▼';
+  const isGood = dir === 'ge' ? diff > 0 : diff < 0;
+  const cls = isGood ? 'dn' : 'up';
+  return '<td class="delta"><span class="'+cls+'">'+arrow+' '+dispDiff+'</span></td>';
+}
+function arrowSpanInline(curr, prev, dir){
+  if (curr === null || prev === null || curr === undefined || prev === undefined) return '';
+  const diff = curr - prev;
+  if (Math.abs(diff) < 0.0005) return '';
+  const arrow = diff > 0 ? '▲' : '▼';
+  const isGood = dir === 'ge' ? diff > 0 : diff < 0;
+  const cls = isGood ? 'dn' : 'up';
+  return ' <span class="'+cls+'" style="font-size:8px">'+arrow+'</span>';
+}
+function rowHtml(label, rec, dir, opts){
+  opts = opts || {};
+  const rowClass = opts.rowClass ? ' class="'+opts.rowClass+'"' : '';
+  return '<tr'+rowClass+'><td>'+esc(label)+'</td>'+weekTds(rec, dir, opts.volIsPct)+deltaForRec(rec, dir)+(opts.extraCell||'')+'</tr>';
+}
+function theadHtmlDyn(firstColLabel, volLabel, pctLabel, weekLabels, deltaLabel, extraColLabel){
+  let h1 = '<tr><th rowspan="2">'+esc(firstColLabel)+'</th>';
+  let h2 = '<tr class="subhead">';
+  weekLabels.forEach((w,i) => {
+    h1 += '<th colspan="2" class="'+(i>0?'wsep':'')+'">'+esc(w)+'</th>';
+    h2 += '<th class="'+(i>0?'wsep':'')+'">'+esc(volLabel)+'</th><th>'+esc(pctLabel)+'</th>';
+  });
+  h1 += '<th rowspan="2" class="cdelta">'+esc(deltaLabel)+'</th>';
+  if (extraColLabel) h1 += '<th rowspan="2">'+esc(extraColLabel)+'</th>';
+  h2 += '</tr>';
+  return '<thead>'+h1+'</tr>'+h2+'</thead>';
+}
+function theadSingleHtmlDyn(firstColLabel, valLabel, weekLabels, deltaLabel, extraColLabel){
+  let h1 = '<tr><th rowspan="2">'+esc(firstColLabel)+'</th>';
+  let h2 = '<tr class="subhead">';
+  weekLabels.forEach((w,i) => {
+    h1 += '<th class="'+(i>0?'wsep':'')+'">'+esc(w)+'</th>';
+    h2 += '<th class="'+(i>0?'wsep':'')+'">'+esc(valLabel)+'</th>';
+  });
+  h1 += '<th rowspan="2" class="cdelta">'+esc(deltaLabel)+'</th>';
+  if (extraColLabel) h1 += '<th rowspan="2">'+esc(extraColLabel)+'</th>';
+  h2 += '</tr>';
+  return '<thead>'+h1+'</tr>'+h2+'</thead>';
+}
+function shareCell(rec, groupRows, isPctMetric, volIsPct){
+  if (rec.isTotalRow || rec.isGrand) return '<td class="mut">–</td>';
+  const last = rec.weeks[rec.weeks.length-1];
+  const v = isPctMetric ? last.vol : last.val;
+  if (v === null || v === undefined) return '<td class="mut">–</td>';
+  // nếu cột "vol" của sheet vốn ĐÃ là % chia sẻ sẵn (VD "% Vol"), dùng thẳng giá trị đó làm Tỷ trọng,
+  // không cộng dồn lại (cộng % của các dòng không có ý nghĩa toán học đúng)
+  if (volIsPct) return '<td>'+(v*100).toFixed(1)+'%</td>';
+  let sum = 0, any = false;
+  groupRows.forEach(r => {
+    if (r.isTotalRow || r.isGrand) return;
+    const rl = r.weeks[r.weeks.length-1];
+    const rv = isPctMetric ? rl.vol : rl.val;
+    if (rv !== null && rv !== undefined) { sum += rv; any = true; }
+  });
+  if (!any || sum <= 0) return '<td class="mut">–</td>';
+  return '<td>'+(v/sum*100).toFixed(1)+'%</td>';
+}
+
+// Bảng vol+pct theo tuần, tự nhận nhóm theo divider trong sheet (KHÔNG còn phụ thuộc danh sách Vùng/KH cố định)
+// nhãn cột con (VD "Đơn"/"%OnT" hay "% Vol"/"%FD") và kiểu dữ liệu cột đầu (số hay %) đọc trực tiếp từ parsed,
+// không hardcode — tự đúng dù user đổi cấu trúc cột trong sheet
+function renderParsedVolPct(parsed, dir, firstColLabel, withShare){
+  const volLabel = parsed.volLabel || 'Vol', pctLabel = parsed.pctLabel || '%', volIsPct = !!parsed.volIsPct;
+  let out = '';
+  parsed.groups.forEach((gOrig, gi) => {
+    const g = { label: gOrig.label, rows: sortRowsForDisplay(gOrig.rows, dir) };
+    const colCount = 1 + parsed.weeksCount*2 + 1 + (withShare?1:0);
+    let body = '';
+    g.rows.forEach(rec => {
+      const rowClass = rec.isGrand ? 'grand-row' : (rec.isTotalRow ? 'total-row' : '');
+      const extra = withShare ? shareCell(rec, g.rows, true, volIsPct) : '';
+      body += rowHtml(rec.label, rec, dir, {rowClass, extraCell: extra, volIsPct});
+    });
+    out += '<div class="tbl-wrap"><table>'+theadHtmlDyn(firstColLabel, volLabel, pctLabel, parsed.weekLabels, 'Δ (kỳ mới nhất)', withShare?'Tỷ trọng':null)+'<tbody>'+body+'</tbody></table></div>';
+    out += chartContainerHtml(g, parsed.weekLabels, firstColLabel);
+    out += buildGroupAnalysis(g, dir);
+  });
+  return out;
+}
+// Bảng giá trị đơn (KTC) theo tuần, tự nhận nhóm theo divider
+function renderParsedSingle(parsed, dir, firstColLabel, valLabel){
+  let out = '';
+  parsed.groups.forEach(gOrig => {
+    const g = { label: gOrig.label, rows: sortRowsForDisplay(gOrig.rows, dir) };
+    let body = '';
+    g.rows.forEach(rec => {
+      const rowClass = rec.isTotalRow ? 'total-row' : '';
+      const extra = rec.trip !== undefined ? '<td>'+fmtNum(rec.trip)+'</td>' : '';
+      body += rowHtml(rec.label, rec, dir, {rowClass, extraCell: extra});
+    });
+    out += '<div class="tbl-wrap"><table>'+theadSingleHtmlDyn(firstColLabel, valLabel, parsed.weekLabels, 'Δ', g.rows[0] && g.rows[0].trip!==undefined ? 'Tổng trip' : null)+'<tbody>'+body+'</tbody></table></div>';
+    out += chartContainerHtml(g, parsed.weekLabels, firstColLabel);
+    if (dir) out += buildGroupAnalysis(g, dir);
+  });
+  return out;
+}
+// banner có thể click để thu gọn/mở rộng toàn bộ nội dung phần đó — trả về phần mở đầu, nhớ đóng bằng '</div>'
+function partBanner(id, num, title){
+  return '<div class="part-banner" id="'+id+'" onclick="toggleSection(this)"><span class="pb-num">'+num+'</span><span class="pb-title">'+title+'</span><span class="collapse-arrow">▾</span></div><div class="metric-body">';
+}
+function groupHeadingHtml(label, num, isSubsection, fallback){
+  const text = (label && label.length) ? label : (fallback || ('Nhóm ' + num));
+  return isSubsection
+    ? '<div class="subsection-title"><span class="sub-num">'+num+'</span> '+esc(text)+'</div>'
+    : '<div class="block-header"><span class="bh-num">'+num+'</span> '+esc(text)+'</div>';
+}
+// render đầy đủ 1 phần (nhiều group), mỗi group có heading riêng lấy đúng nhãn user đặt trong sheet
+function renderSectionVolPct(parsed, dir, numPrefix, firstColLabel){
+  let out = '';
+  parsed.groups.forEach((g, gi) => {
+    const num = numPrefix + '.' + (gi+1);
+    out += groupHeadingHtml(g.label, num, gi>0);
+    out += renderParsedVolPct({weeksCount: parsed.weeksCount, weekLabels: parsed.weekLabels, volLabel: parsed.volLabel, pctLabel: parsed.pctLabel, volIsPct: parsed.volIsPct, groups:[g]}, dir, firstColLabel, true);
+  });
+  return out;
+}
+
+// ---------- Scorecard (tự nhận nhóm theo cột "Nhóm", không cố định Vùng) ----------
+function renderScorecard(sc){
+  const M = sc.METRICS;
+  const nonMetricCols = 3; // Vùng/AM + SL lấy + SL giao
+  let h1 = '<tr><th rowspan="2">Đối tượng</th><th rowspan="2">SL lấy</th><th rowspan="2">SL giao</th>' +
+    '<th colspan="4" class="wsep">OPR %OnT theo KH</th><th colspan="4" class="wsep">ODR theo KH</th>' +
+    '<th rowspan="2" class="wsep">FD</th><th rowspan="2">RớtLC</th><th rowspan="2">GTC</th>' +
+    '<th rowspan="2">BL Giao&gt;120H</th><th rowspan="2">BL Trả&gt;120H</th><th rowspan="2">#đỏ</th></tr>';
+  let h2 = '<tr class="subhead"><th class="wsep">Shopee</th><th>Bulky</th><th>TTS</th><th>SME</th>' +
+    '<th class="wsep">Shopee</th><th>Bulky</th><th>TTS</th><th>SME</th></tr>';
+  function metricCell(rec, key, isFirst){
+    const mDef = M.find(m=>m.key===key);
+    const v = rec.m[key];
+    const cls = classFor(v.w25, mDef.target, mDef.dir);
+    return '<td class="'+(isFirst?'wfirst ':'')+cls+'">'+fmtPct(v.w25)+arrowSpanInline(v.w25, v.w24, mDef.dir)+'</td>';
+  }
+  function countRed(rec){
+    let n = 0;
+    M.forEach(m => { if (m.target !== undefined) { const cls = classFor(rec.m[m.key].w25, m.target, m.dir); if (cls==='bad') n++; } });
+    return n;
+  }
+  function metricsRowHtml(rec, rowClassAttr){
+    let row = '<tr'+rowClassAttr+'><td>'+esc(rec.dim2)+'</td><td>'+fmtNum(rec.m.slLay.w25)+'</td><td>'+fmtNum(rec.m.slGiao.w25)+'</td>';
+    row += metricCell(rec,'oprShopee',true)+metricCell(rec,'oprBulky')+metricCell(rec,'oprTTS')+metricCell(rec,'oprSME');
+    row += metricCell(rec,'odrShopee',true)+metricCell(rec,'odrBulky')+metricCell(rec,'odrTTS')+metricCell(rec,'odrSME');
+    row += metricCell(rec,'fd',true)+metricCell(rec,'rotlc')+metricCell(rec,'gtc')+metricCell(rec,'blGiao120')+metricCell(rec,'blTra120');
+    row += '<td><b>'+countRed(rec)+'</b></td></tr>';
+    return row;
+  }
+  let body = '';
+  sc.groups.forEach(g => {
+    body += '<tr class="group-row"><td colspan="17">'+esc(g.label)+'</td></tr>';
+    // sắp theo #đỏ giảm dần — ai nhiều chỉ số chưa đạt (đỏ) nhất lên trên; dòng Tổng/Grand Total luôn giữ ở cuối
+    const totals = g.rows.filter(r => r.isTotalRow);
+    const detail = g.rows.filter(r => !r.isTotalRow).slice().sort((a,b) => countRed(b) - countRed(a));
+    detail.concat(totals).forEach(rec => {
+      body += metricsRowHtml(rec, rec.isTotalRow ? ' class="total-row"' : '');
+    });
+  });
+  if (!body) body = '<tr><td colspan="17" class="mut" style="text-align:center">Chưa có dữ liệu trong tab 01_Scorecard</td></tr>';
+  return '<div class="tbl-wrap"><table><thead>'+h1+h2+'</thead><tbody>'+body+'</tbody></table></div>';
+}
+
+// ---------- formula note boxes (tĩnh, theo đúng công thức trong mẫu W25) ----------
+const NOTES = {
+  opr: `<div class="opr-note"><div class="opr-note-title">Công thức và cách đo</div><div class="opr-note-body">
+  <p>Mỗi nhóm khách hàng có SLA (cam kết thời gian lấy hàng) riêng. OPR đo riêng theo SLA từng nhóm. %toàn quốc & Grand Total = bình quân có trọng số đơn (Σ đơn ontime ÷ Σ đơn).</p>
+  <div class="opr-sla-grid">
+  <div class="opr-sla-card"><div class="opr-sla-kh">Shopee · Shopee Bulky · SME</div><div class="opr-sla-target">Target <span class="opr-target-val">90%</span></div><div class="opr-sla-rule">Đơn tạo trước 19:00 → lấy hàng trong ngày</div></div>
+  <div class="opr-sla-card"><div class="opr-sla-kh">TTS</div><div class="opr-sla-target">Target <span class="opr-target-val">80%</span></div><div class="opr-sla-rule">Tạo trước 9:00 → lấy trước 12:00 trưa; 9:00–19:00 → lấy trong ngày; sau 19:00 → lấy trước 12:00 hôm sau</div></div>
+  </div></div></div>`,
+  odr: `<div class="opr-note"><div class="opr-note-title">Công thức và cách đo</div><div class="opr-note-body">
+  <p>ODR (On-time Delivery Rate) đo tỷ lệ đơn giao đúng hạn theo SLA từng khách hàng.</p>
+  <div class="opr-sla-grid">
+  <div class="opr-sla-card"><div class="opr-sla-kh">Shopee · Bulky · SME</div><div class="opr-sla-target">Target <span class="opr-target-val">≥ 90%</span></div><div class="opr-sla-rule">Đơn giao đúng hạn theo SLA</div></div>
+  <div class="opr-sla-card"><div class="opr-sla-kh">TTS</div><div class="opr-sla-target">Target <span class="opr-target-val">≥ 96%</span></div><div class="opr-sla-rule">Đơn giao đúng hạn theo SLA TTS</div></div>
+  </div></div></div>`,
+  fd: `<div class="opr-note"><div class="opr-note-title">Công thức và cách đo</div><div class="opr-note-body">
+  <p>FD (Failed Delivery Rate) = Số đơn giao thất bại ÷ Tổng đơn cần giao × 100%. Thấp là tốt.</p>
+  <div class="opr-sla-grid">
+  <div class="opr-sla-card"><div class="opr-sla-kh">Shopee/Bulky/SME</div><div class="opr-sla-target">Target <span class="opr-target-val">≤ 3%</span></div><div class="opr-sla-rule">%FD = Đơn thất bại ÷ Tổng đơn cần giao</div></div>
+  <div class="opr-sla-card"><div class="opr-sla-kh">TTS</div><div class="opr-sla-target">Target <span class="opr-target-val">≤ 4.5%</span></div><div class="opr-sla-rule">Áp cho đơn COD</div></div>
+  </div></div></div>`,
+  rotlc: `<div class="opr-note"><div class="opr-note-title">Công thức và cách đo</div><div class="opr-note-body">
+  <p>%RớtLC = Đơn lấy thành công nhưng chưa xuất khỏi kho đúng hạn ÷ Tổng đơn lấy thành công × 100%. Thấp là tốt. Target ≤ 2%.</p></div></div>`,
+  bl36h: `<div class="opr-note"><div class="opr-note-title">Công thức và cách đo</div><div class="opr-note-body">
+  <p>%&gt;36H = Số đơn tồn trong luân chuyển quá 36 giờ ÷ Tổng backlog luân chuyển × 100%. Snapshot cuối tuần. Target ≤ 2%.</p></div></div>`,
+  gtc: `<div class="opr-note"><div class="opr-note-title">Công thức và cách đo</div><div class="opr-note-body">
+  <p>%GTC = Số đơn giao thành công ÷ Số đơn cần giao × 100%. Cao là tốt. Target ≥ 65%. Tất cả = Ca 1 + Ca 2 + Hàng tồn.</p></div></div>`,
+  blgiao120: `<div class="opr-note"><div class="opr-note-title">Công thức và cách đo</div><div class="opr-note-body">
+  <p>%&gt;120H = Số đơn tồn trong giao hàng quá 120 giờ (5 ngày) ÷ Tổng backlog giao × 100%. Target ≤ 2%.</p></div></div>`,
+  bltra48h: `<div class="opr-note"><div class="opr-note-title">Công thức và cách đo</div><div class="opr-note-body">
+  <p>%&gt;48H = Số đơn hoàn trả tồn trong luân chuyển quá 48 giờ ÷ Tổng backlog LC trả × 100%. Snapshot cuối tuần. Target ≤ 2%.</p></div></div>`,
+  bltra120h: `<div class="opr-note"><div class="opr-note-title">Công thức và cách đo</div><div class="opr-note-body">
+  <p>%&gt;120H (trả) = Số đơn hoàn trả tồn quá 120 giờ trong khâu giao trả về người gửi ÷ Tổng backlog trả × 100%. Target ≤ 2%.</p></div></div>`,
+  ktccho: `<div class="opr-note"><div class="opr-note-title">Công thức và cách đo</div><div class="opr-note-body">
+  <p>Leadtime chờ nhập = Thời gian xe chờ tại cổng KTC đến khi được nhập kho (phút). Dùng P90. Target ≤ 15 phút. Dòng "Cả nước" là P90 toàn hệ thống, nhập tay riêng.</p></div></div>`,
+  ktcnhapxuat: `<div class="opr-note"><div class="opr-note-title">Công thức và cách đo</div><div class="opr-note-body">
+  <p>Leadtime nhập→xuất = Thời gian từ khi đơn được nhập vào KTC đến khi xuất đi (phút), P90. Đo theo 3 tuyến: Nội tỉnh / Nội vùng.</p></div></div>`,
+  ktcton24h: `<div class="opr-note"><div class="opr-note-title">Công thức và cách đo</div><div class="opr-note-body">
+  <p>%Tồn xuất &gt;24H = Số đơn tồn tại KTC chờ xuất quá 24 giờ ÷ Tổng đơn tồn × 100%. Target ≤ 2%.</p></div></div>`
+};
+
+// ---------- summary banner (lấy từ group ĐẦU TIÊN của mỗi chỉ số + các dòng "Grand Total"/"Cả nước" nếu có) ----------
+function lastWeekOf(rec){ return rec.weeks[rec.weeks.length-1]; }
+function findByLabel(parsed, label){
+  for (const g of parsed.groups) for (const r of g.rows) if (r.label === label) return r;
+  return null;
+}
+// ---------- cấu hình DUY NHẤT cho toàn bộ chỉ số dạng vol+pct theo tuần ----------
+// Đây là nơi DUY NHẤT khai báo mỗi chỉ số (num/tiêu đề dùng khi render section, dir/tên dùng khi tổng hợp
+// tổng quan + nhận định). Thêm 1 chỉ số mới ở đây sẽ tự động xuất hiện đầy đủ ở: phần chi tiết, banner tổng quan,
+// và nhận định điểm sáng/cần cải thiện — không cần sửa nhiều chỗ như trước (đây chính là lỗi khiến GTC/BL36H
+// từng bị thiếu trong banner tổng quan dù đã có trong phần chi tiết: 2 danh sách hardcode riêng biệt bị lệch nhau).
+const METRIC_META = [
+  { key:'opr', dir:'ge', unit:'pct', num:'1', title:'OPR — %Ontime lấy hàng', firstColLabel:'Đối tượng', shortName:'OPR' },
+  { key:'odr', dir:'ge', unit:'pct', num:'2', title:'ODR — %Ontime giao hàng', firstColLabel:'Đối tượng', shortName:'ODR' },
+  { key:'fd', dir:'le', unit:'pct', num:'3', title:'FD — %Giao thất bại', firstColLabel:'Đối tượng', shortName:'FD' },
+  { key:'rotlc', dir:'le', unit:'pct', num:'4', title:'%RớtLC — Rớt luân chuyển', firstColLabel:'Vùng', shortName:'RớtLC' },
+  { key:'bl36h', dir:'le', unit:'pct', num:'5', title:'%&gt;36H — Backlog luân chuyển', firstColLabel:'Vùng', shortName:'BL LC>36H' },
+  { key:'gtc', dir:'ge', unit:'pct', num:'6', title:'%GTC — Giao thành công', firstColLabel:'Vùng', shortName:'GTC' },
+  { key:'blgiao120', dir:'le', unit:'pct', num:'7', title:'%&gt;120H — Backlog giao', firstColLabel:'Vùng', shortName:'BL Giao>120H' },
+  { key:'bltra48h', dir:'le', unit:'pct', num:'8', title:'%&gt;48H — Backlog luân chuyển trả', firstColLabel:'Vùng', shortName:'BL LC Trả>48H' },
+  { key:'bltra120h', dir:'le', unit:'pct', num:'9', title:'%&gt;120H — Backlog trả', firstColLabel:'Vùng', shortName:'BL Trả>120H' },
+  { key:'ktcton24h', dir:'le', unit:'pct', num:'12', title:'KTC — %Tồn xuất &gt;24H', firstColLabel:'KTC', shortName:'KTC Tồn>24H', summaryCaNuoc:true }
+];
+
+// ---------- nhận xét tổng quan (điểm sáng / điểm cần cải thiện) cho TOÀN BỘ chỉ số, đặt ở đầu báo cáo ----------
+function collectMetricPoints(data){
+  // lấy dòng đại diện (Grand Total / Tổng / Cả nước, hoặc dòng cuối cùng nếu không có) của MỖI nhóm trong MỖI chỉ số
+  const points = [];
+  function addFromParsed(parsed, dir, unit, namePrefix, anchor){
+    (parsed.groups||[]).forEach(g => {
+      const rec = g.rows.find(r=>r.isGrand) || g.rows.find(r=>r.isTotalRow) || g.rows[g.rows.length-1];
+      if (!rec) return;
+      const n = rec.weeks.length;
+      if (n < 2) return;
+      const curr = chartValOf(rec, rec.weeks[n-1]);
+      const prev = chartValOf(rec, rec.weeks[n-2]);
+      if (curr === null || curr === undefined || prev === null || prev === undefined) return;
+      const name = namePrefix + (g.label ? ' — ' + g.label : '');
+      // tìm đối tượng (AM/vùng) kém nhất trong CHÍNH nhóm này ở kỳ mới nhất, để quy trách nhiệm cụ thể thay vì chỉ nêu tên chỉ số chung chung
+      const detailRows = g.rows.filter(r => !r.isTotalRow && !r.isGrand);
+      let worstNote = null;
+      if (detailRows.length > 1) {
+        const withVal = detailRows.map(r => ({ r, v: chartValOf(r, r.weeks[r.weeks.length-1]) })).filter(x => x.v !== null && x.v !== undefined);
+        if (withVal.length) {
+          const sorted = withVal.slice().sort((a,b) => dir==='ge' ? a.v-b.v : b.v-a.v);
+          worstNote = { label: sorted[0].r.label, v: sorted[0].v };
+        }
+      }
+      const allVals = rec.weeks.map(wk => chartValOf(rec, wk));
+      points.push({ name, dir, unit, curr, prev, target: rec.target, anchor, worstNote, allVals });
+    });
+  }
+  METRIC_META.forEach(m => addFromParsed(data[m.key], m.dir, m.unit, m.shortName, '#'+m.key));
+  addFromParsed(data.ktccho, 'le', 'min', 'KTC Chờ nhập', '#ktccho');
+  return points;
+}
+// mô tả xu hướng qua NHIỀU tuần (không chỉ so 2 tuần gần nhất) — dùng chung cho cả nhận định từng bảng và tổng quan
+function trendDescriptor(vals, dir, isPctMetric){
+  const clean = vals.filter(v => v !== null && v !== undefined);
+  if (clean.length < 3) return null;
+  const eps = isPctMetric ? 0.0008 : 0.3;
+  const diffs = [];
+  for (let i = 1; i < clean.length; i++) diffs.push(clean[i] - clean[i-1]);
+  const up = diffs.filter(d => d > eps).length, down = diffs.filter(d => d < -eps).length;
+  const improving = dir === 'ge' ? up : down;
+  const worsening = dir === 'ge' ? down : up;
+  if (worsening === 0 && improving > 0) return { text: 'cải thiện liên tục qua các kỳ gần đây', cls: 'good' };
+  if (improving === 0 && worsening > 0) return { text: 'xấu đi liên tục qua các kỳ gần đây', cls: 'bad' };
+  if (improving > worsening) return { text: 'nhìn chung cải thiện dù còn dao động', cls: 'good' };
+  if (worsening > improving) return { text: 'nhìn chung xấu đi dù còn dao động', cls: 'bad' };
+  return { text: 'đi ngang', cls: 'flat' };
+}
+function fmtPointVal(p, v){ return p.unit === 'min' ? (Math.round(v*10)/10).toLocaleString('vi-VN')+' p' : (v*100).toFixed(1)+'%'; }
+function buildOverviewAnalysis(data){
+  const points = collectMetricPoints(data);
+  if (!points.length) return '';
+  const scored = points.map(p => {
+    const diff = p.curr - p.prev;
+    const isPctMetric = p.unit !== 'min';
+    const eps = isPctMetric ? 0.0005 : 0.05;
+    const flat = Math.abs(diff) < eps;
+    const goodTrend = !flat && (p.dir === 'ge' ? diff > 0 : diff < 0);
+    const badTrend = !flat && !goodTrend;
+    const missed = (p.target !== null && p.target !== undefined && !isNaN(p.target))
+      ? (p.dir === 'ge' ? p.curr < p.target : p.curr > p.target) : false;
+    return Object.assign({}, p, { diff, isPctMetric, flat, goodTrend, badTrend, missed });
+  });
+  function phrase(p){
+    const dirWord = p.curr > p.prev ? { v: 'tăng', to: 'lên' } : (p.curr < p.prev ? { v: 'giảm', to: 'xuống' } : null);
+    let base = esc(p.name) + ' ' + (dirWord ? (dirWord.v + ' từ ' + fmtPointVal(p, p.prev) + ' ' + dirWord.to + ' ' + fmtPointVal(p, p.curr)) : ('đi ngang ở ' + fmtPointVal(p, p.curr)));
+    base += (p.missed ? ' (chưa đạt target)' : '');
+    // quy trách nhiệm cụ thể: nêu tên AM/vùng kém nhất TRONG chính nhóm đó ở kỳ mới nhất
+    if (p.worstNote && p.worstNote.label && p.worstNote.label !== p.name) {
+      base += ' — kém nhất trong nhóm: <b>' + esc(p.worstNote.label) + '</b> (' + fmtPointVal(p, p.worstNote.v) + ')';
+    }
+    // xu hướng nhiều kỳ (không chỉ so kỳ liền trước) để thấy đây là vấn đề dai dẳng hay chỉ 1 kỳ bất thường
+    const td = trendDescriptor(p.allVals, p.dir, p.isPctMetric);
+    if (td) base += ' · ' + td.text;
+    return base;
+  }
+  // điểm sáng — ưu tiên 1: đang cải thiện rõ rệt (mức cải thiện lớn nhất trước)
+  let highlights = scored.filter(p => p.goodTrend).sort((a,b) => Math.abs(b.diff) - Math.abs(a.diff)).slice(0,6);
+  // nếu không đủ tin "đang cải thiện" (VD toàn bộ đang đi ngang/xấu đi), vẫn cần có điểm sáng:
+  // bổ sung các chỉ số đang ĐẠT target với biên độ an toàn nhất, để luôn phản ánh "cái gì đang ổn"
+  if (highlights.length < 4) {
+    const already = new Set(highlights.map(p => p.name));
+    // chỉ bổ sung các điểm ĐANG ỔN ĐỊNH/đi ngang và đạt target — loại trừ badTrend để tránh 1 chỉ số vừa lên
+    // "Điểm sáng" (vì vẫn đạt target) vừa lên "Điểm cần cải thiện" (vì đang xấu đi), gây mâu thuẫn khó hiểu
+    const metWell = scored
+      .filter(p => !already.has(p.name) && !p.missed && !p.badTrend && p.target !== null && p.target !== undefined && !isNaN(p.target))
+      .map(p => Object.assign({}, p, { margin: p.dir === 'ge' ? (p.curr - p.target) : (p.target - p.curr) }))
+      .filter(p => p.margin > 0)
+      .sort((a,b) => b.margin - a.margin);
+    for (const p of metWell) {
+      if (highlights.length >= 6) break;
+      highlights.push(p);
+    }
+  }
+  // điểm cần cải thiện: ưu tiên vừa xấu đi vừa chưa đạt target, sau đó tới xấu đi, sau đó tới chưa đạt target (dù đi ngang)
+  const lowlightPool = scored.filter(p => p.badTrend || p.missed);
+  const lowlights = lowlightPool.sort((a,b) => {
+    const score = x => (x.missed?2:0) + (x.badTrend?1:0);
+    const s = score(b) - score(a);
+    return s !== 0 ? s : Math.abs(b.diff) - Math.abs(a.diff);
+  }).slice(0,6);
+  if (!highlights.length && !lowlights.length) return '';
+  let html = '<div style="margin-top:14px">';
+  if (highlights.length) {
+    html += '<div class="comment green"><b>🟢 Điểm sáng ('+highlights.length+'):</b>' + highlights.map(p=>'<div class="aline">• '+phrase(p)+'</div>').join('') + '</div>';
+  }
+  if (lowlights.length) {
+    html += '<div class="comment red"><b>🔴 Điểm cần cải thiện ('+lowlights.length+'):</b>' + lowlights.map(p=>'<div class="aline">• '+phrase(p)+'</div>').join('') + '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+// tỷ lệ "đạt được bao nhiêu so với target" theo đúng hướng tốt/xấu (ge: val/target; le: target/val) —
+// dùng để xác định "gần đạt" (>=90% mục tiêu nhưng chưa đạt hẳn), không phụ thuộc đơn vị (%, phút...)
+function achievementRatio(val, target, dir){
+  if (dir === 'ge') { if (!(target > 0)) return val >= target ? 1 : 0; return val/target; }
+  return (val > 0) ? target/val : (val <= target ? 1 : 0);
+}
+// Tìm bộ weekLabels đầy đủ nhất trong toàn bộ dữ liệu (dùng METRIC_META làm nguồn duy nhất) để suy ra
+// số tuần và khoảng tuần (từ tuần nào tới tuần nào) hiển thị động, không hardcode.
+function getWeekRangeInfo(data){
+  let best = null;
+  METRIC_META.forEach(m => {
+    const p = data[m.key];
+    if (p && p.weekLabels && p.weekLabels.length && (!best || p.weekLabels.length > best.length)) best = p.weekLabels;
+  });
+  if (!best || !best.length) return null;
+  return { count: best.length, from: best[0], to: best[best.length-1], latest: best[best.length-1] };
+}
+function buildSummaryBanner(data){
+  const cards = [];
+  function push(name, val, target, dir, unit, anchor){
+    if (val === null || val === undefined || target === null || target === undefined) return;
+    const ok = dir==='ge'? val>=target : val<=target;
+    const ratio = achievementRatio(val, target, dir);
+    const status = ok ? 'ok' : (ratio >= 0.9 ? 'near' : 'bad');
+    cards.push({name, val, target, dir, unit: unit||'pct', anchor: anchor||'#scorecard', ok, status});
+  }
+  // Duyệt qua CHÍNH XÁC danh sách METRIC_META (nguồn cấu hình duy nhất, dùng chung với phần render chi tiết) —
+  // đảm bảo KHÔNG BAO GIỜ có chỉ số nào "có dữ liệu nhưng thiếu trong tổng quan" như trước đây (GTC/BL36H từng
+  // bị bỏ sót vì có 1 danh sách hardcode riêng ở đây không khớp danh sách render). Tự chọn cách hiển thị theo
+  // quy mô nhóm đầu tiên: nhóm nhỏ (VD 4-5 loại khách hàng cố định) → hiện từng dòng; nhóm lớn (nhiều vùng/AM)
+  // → chỉ hiện dòng Tổng/Grand Total để tổng quan không bị rối.
+  METRIC_META.forEach(m => {
+    const parsed = data[m.key];
+    if (!parsed || !parsed.groups.length) return;
+    if (m.summaryCaNuoc) {
+      const rec = findByLabel(parsed, 'Cả nước');
+      if (rec) push(m.shortName+' (Cả nước)', lastWeekOf(rec).pct, rec.target, m.dir, null, '#'+m.key);
+      return;
+    }
+    const g0 = parsed.groups[0];
+    const detailRows = g0.rows.filter(r => !r.isTotalRow && !r.isGrand);
+    const totalRec = g0.rows.find(r=>r.isGrand) || g0.rows.find(r=>r.isTotalRow);
+    if (detailRows.length > 0 && detailRows.length <= 6) {
+      detailRows.forEach(rec => push(m.shortName+' '+rec.label, lastWeekOf(rec).pct, rec.target, m.dir, null, '#'+m.key));
+    } else if (totalRec) {
+      push(m.shortName+' ('+(totalRec.label||'Toàn hệ thống')+')', lastWeekOf(totalRec).pct, totalRec.target, m.dir, null, '#'+m.key);
+    } else if (detailRows.length) {
+      detailRows.forEach(rec => push(m.shortName+' '+rec.label, lastWeekOf(rec).pct, rec.target, m.dir, null, '#'+m.key));
+    }
+  });
+  // KTC Chờ nhập: đơn vị phút riêng + render qua renderParsedSingle (không nằm trong METRIC_META) nên xử lý tay
+  const ktcChoCaNuoc = findByLabel(data.ktccho, 'Cả nước');
+  if (ktcChoCaNuoc) push('KTC Chờ nhập (Cả nước)', lastWeekOf(ktcChoCaNuoc).val, ktcChoCaNuoc.target, 'le', 'min', '#ktccho');
+
+  const wrap = document.getElementById('summaryBannerWrap');
+  if (cards.length === 0) {
+    wrap.innerHTML = '<div class="empty-note">Chưa có dữ liệu (hoặc chưa có ô Target hợp lệ) trong Google Sheet — điền số liệu vào các tab rồi bấm "Làm mới dữ liệu" để báo cáo tự cập nhật.</div>';
+    return;
+  }
+  const good = cards.filter(c=>c.status==='ok'), near = cards.filter(c=>c.status==='near'), bad = cards.filter(c=>c.status==='bad');
+  function cardHtml(c){
+    const valStr = c.unit==='min' ? fmtMin(c.val) : fmtPct(c.val);
+    const thStr = c.unit==='min' ? (c.dir==='ge'?'≥ ':'≤ ')+c.target+' phút' : (c.dir==='ge'?'≥ ':'≤ ')+(c.target*100).toFixed(1)+'%';
+    const cls = c.status==='ok' ? 'green' : (c.status==='near' ? 'yellow' : 'red');
+    return '<a href="'+c.anchor+'" class="sg-card '+cls+'" title="'+attrEsc(c.name+' — Target '+thStr)+'"><div class="sgc-name">'+esc(c.name)+'</div><div class="sgc-val">'+valStr+'</div><div class="sgc-thresh">'+esc(thStr)+'</div></a>';
+  }
+  function groupHtml(cls, icon, label, arr){
+    return '<div class="sg-group '+cls+'"><div class="sg-label">'+icon+' '+label+' ('+arr.length+')</div>' +
+      (arr.length ? '<div class="sg-cards">'+arr.map(cardHtml).join('')+'</div>' : '<div class="sg-empty">Không có chỉ số nào</div>') +
+      '</div>';
+  }
+  const wkInfo = getWeekRangeInfo(data);
+  const bannerTitle = wkInfo ? ('📊 Tổng quan tuần ' + esc(wkInfo.latest)) : '📊 Tổng quan kỳ mới nhất';
+  wrap.innerHTML = '<div class="summary-banner"><div class="sb-title">'+bannerTitle+'</div>' +
+    '<div class="sb-sub">'+cards.length+' chỉ số có dữ liệu · '+good.length+' đạt target · '+near.length+' gần đạt · '+bad.length+' chưa đạt</div></div>' +
+    '<div class="summary-grid">' +
+    groupHtml('sg-green', '🟢', 'Đạt target', good) +
+    groupHtml('sg-yellow', '🟡', 'Gần đạt (≥90% mục tiêu)', near) +
+    groupHtml('sg-red', '🔴', 'Chưa đạt', bad) +
+    '</div>' +
+    buildOverviewAnalysis(data);
+}
+
+// ---------- main ----------
+async function main(){
+  const tables = {};
+  // giãn cách nhẹ giữa các request để tránh bắn 13 request cùng lúc gây lỗi tải đồng loạt
+  const promises = SHEET_NAMES.map((n, i) => delay(i*180).then(() => fetchSheetJSONP(n)));
+  const results = await Promise.allSettled(promises);
+  results.forEach((r,i) => {
+    if (r.status === 'fulfilled') tables[SHEET_NAMES[i]] = r.value;
+    else showError('Không tải được tab "'+SHEET_NAMES[i]+'": '+r.reason.message);
+  });
+  document.getElementById('loadingNote').style.display = 'none';
+  document.getElementById('updatedAt').textContent = new Date().toLocaleString('vi-VN');
+
+  const data = {
+    scorecard: tables['01_Scorecard'] ? parseScorecard(tables['01_Scorecard']) : {groups:[],METRICS:[]},
+    opr: tables['02_OPR'] ? parseExtra2(tables['02_OPR'], 'Khách hàng') : {weeksCount:0,weekLabels:[],groups:[]},
+    odr: tables['03_ODR'] ? parseExtra2(tables['03_ODR'], 'Khách hàng') : {weeksCount:0,weekLabels:[],groups:[]},
+    fd: tables['04_FD'] ? parseExtra2(tables['04_FD'], 'Khách hàng') : {weeksCount:0,weekLabels:[],groups:[]},
+    rotlc: tables['05_RotLC'] ? parseExtra1(tables['05_RotLC'], 'Vùng') : {weeksCount:0,weekLabels:[],groups:[]},
+    bl36h: tables['06_BL_LC_36H'] ? parseExtra1(tables['06_BL_LC_36H'], 'Vùng') : {weeksCount:0,weekLabels:[],groups:[]},
+    gtc: tables['07_GTC'] ? parseExtra2(tables['07_GTC'], 'Loại hàng') : {weeksCount:0,weekLabels:[],groups:[]},
+    blgiao120: tables['08_BL_Giao_120H'] ? parseExtra1(tables['08_BL_Giao_120H'], 'Vùng') : {weeksCount:0,weekLabels:[],groups:[]},
+    bltra48h: tables['09_BL_LC_Tra_48H'] ? parseExtra1(tables['09_BL_LC_Tra_48H'], 'Vùng') : {weeksCount:0,weekLabels:[],groups:[]},
+    bltra120h: tables['10_BL_Tra_120H'] ? parseExtra1(tables['10_BL_Tra_120H'], 'Vùng') : {weeksCount:0,weekLabels:[],groups:[]},
+    ktccho: tables['11_KTC_ChoNhap'] ? parseKTCP90(tables['11_KTC_ChoNhap']) : {weeksCount:0,weekLabels:[],groups:[]},
+    ktcnhapxuat: tables['12_KTC_NhapXuat'] ? parseKTCTuyen(tables['12_KTC_NhapXuat']) : {weeksCount:0,weekLabels:[],groups:[]},
+    ktcton24h: tables['13_KTC_Ton24H'] ? parseExtra1(tables['13_KTC_Ton24H'], 'KTC') : {weeksCount:0,weekLabels:[],groups:[]}
+  };
+
+  safeRun('subtitle tuần', () => {
+    const subEl = document.getElementById('subtitleLine');
+    if (!subEl) return;
+    const wkInfo = getWeekRangeInfo(data);
+    subEl.textContent = wkInfo
+      ? '12 chỉ số vận hành · ' + wkInfo.count + ' tuần (từ ' + wkInfo.from + ' đến ' + wkInfo.to + ')'
+      : '12 chỉ số vận hành';
+  });
+  safeRun('summary banner', () => buildSummaryBanner(data));
+
+  let out = '';
+  safeRun('scorecard', () => {
+    out += partBanner('scorecard', '0', '🗺️ Scorecard');
+    out += renderScorecard(data.scorecard);
+    out += '</div>';
+  });
+  // 9 chỉ số đầu (OPR..BL Trả>120H) đều cùng 1 khuôn dạng vol+pct theo tuần — render bằng vòng lặp qua
+  // METRIC_META duy nhất (xem định nghĩa phía trên) thay vì lặp lại 9 khối gần giống hệt nhau như trước.
+  // Muốn thêm chỉ số mới dạng này: chỉ cần thêm 1 dòng vào METRIC_META, KHÔNG cần sửa gì ở đây.
+  METRIC_META.filter(m => m.key !== 'ktcton24h').forEach(m => {
+    safeRun(m.key, () => {
+      out += partBanner(m.key, m.num, m.title);
+      out += NOTES[m.key];
+      out += renderSectionVolPct(data[m.key], m.dir, m.num, m.firstColLabel);
+      out += '</div>';
+    });
+  });
+  safeRun('ktccho', () => {
+    out += partBanner('ktccho', '10', 'KTC — Leadtime chờ nhập');
+    out += NOTES.ktccho;
+    (data.ktccho.groups.length ? data.ktccho.groups : [{label:'', rows:[]}]).forEach((g,i) => {
+      out += groupHeadingHtml(g.label, '10.'+(i+1), i>0, 'Theo KTC');
+      out += renderParsedSingle({weeksCount:data.ktccho.weeksCount, weekLabels:data.ktccho.weekLabels, groups:[g]}, 'le', 'KTC', 'P90 phút');
+    });
+    out += '</div>';
+  });
+  safeRun('ktcnhapxuat', () => {
+    out += partBanner('ktcnhapxuat', '11', 'KTC — Leadtime nhập→xuất');
+    out += NOTES.ktcnhapxuat;
+    data.ktcnhapxuat.groups.forEach((g,i) => {
+      out += groupHeadingHtml(g.label, '11.'+(i+1), true, 'Tuyến '+(i+1));
+      out += renderParsedSingle({weeksCount:data.ktcnhapxuat.weeksCount, weekLabels:data.ktcnhapxuat.weekLabels, groups:[g]}, null, 'KTC', 'P90 phút');
+    });
+    out += '</div>';
+  });
+  const ktcton24hMeta = METRIC_META.find(m => m.key === 'ktcton24h');
+  safeRun('ktcton24h', () => {
+    out += partBanner(ktcton24hMeta.key, ktcton24hMeta.num, ktcton24hMeta.title);
+    out += NOTES[ktcton24hMeta.key];
+    out += renderSectionVolPct(data[ktcton24hMeta.key], ktcton24hMeta.dir, ktcton24hMeta.num, ktcton24hMeta.firstColLabel);
+    out += '</div>';
+  });
+
+  document.getElementById('reportBody').innerHTML = out;
+}
+if (window.__STATIC_SNAPSHOT__) {
+  // đây là file đã được xuất ra qua nút "Xuất file HTML" — HTML đã có sẵn đầy đủ số liệu, chỉ cần
+  // hồi phục trạng thái biểu đồ, KHÔNG gọi main() (không cần và không nên tải lại từ Google Sheet)
+  hydrateFromSnapshot(window.__STATIC_SNAPSHOT__);
+} else {
+  main().catch(e => { document.getElementById('loadingNote').style.display='none'; showError('Lỗi tổng thể: '+e.message); });
+}
+</script>
+</body>
+</html>
