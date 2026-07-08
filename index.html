@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Báo Cáo Vận Hành Tuần — GHN (Live) 🔴 </title>
+<title>Báo Cáo Vận Hành Tuần — GHN (Live)</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -137,9 +137,168 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
 #errBanner{display:none;background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;white-space:pre-wrap}
 #loadingNote{font-family:var(--mono);font-size:12.5px;color:var(--muted);padding:10px 0}
+
+/* ================= MÀN HÌNH ĐĂNG NHẬP (macOS style) ================= */
+#loginScreen{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#F15A22 0%,#C9420D 28%,#0063AA 72%,#004A82 100%);
+  background-size:200% 200%;animation:loginBgShift 18s ease infinite;overflow:auto;padding:24px}
+@keyframes loginBgShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+#loginScreen::before{content:'';position:absolute;inset:0;backdrop-filter:blur(60px);background:rgba(0,0,0,.08)}
+.login-card{position:relative;z-index:1;width:100%;max-width:360px;background:rgba(255,255,255,.86);backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid rgba(255,255,255,.5);border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.15);
+  padding:36px 32px 28px;text-align:center;animation:loginCardIn .35s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes loginCardIn{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.login-logo{width:64px;height:64px;border-radius:16px;background:linear-gradient(160deg,var(--ghn-orange),var(--ghn-orange-dark));
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 20px rgba(193,66,13,.35);position:relative;overflow:hidden}
+.login-logo::after{content:'';position:absolute;top:-10px;left:-10px;width:36px;height:36px;background:rgba(255,255,255,.22);border-radius:50%;transform:rotate(20deg)}
+.login-logo span{color:#fff;font-family:var(--f);font-weight:700;font-size:19px;letter-spacing:-.02em;position:relative}
+.login-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:2px}
+.login-sub{font-size:12px;color:var(--muted);margin-bottom:22px;font-family:var(--mono)}
+.login-field{margin-bottom:11px;text-align:left}
+.login-field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600}
+.login-field input{width:100%;padding:10px 13px;border-radius:10px;border:1px solid var(--border-strong);background:rgba(255,255,255,.9);
+  font-family:var(--f);font-size:13.5px;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
+.login-field input:focus{border-color:var(--ghn-blue);box-shadow:0 0 0 3px rgba(0,99,170,.15)}
+.login-btn{width:100%;padding:11px;border:none;border-radius:11px;background:var(--ghn-blue);color:#fff;font-family:var(--f);
+  font-weight:700;font-size:13.5px;cursor:pointer;margin-top:6px;transition:background .15s,transform .1s}
+.login-btn:hover{background:var(--ghn-blue-dark)}
+.login-btn:active{transform:scale(.98)}
+.login-btn[disabled]{opacity:.6;cursor:default}
+.login-btn.secondary{background:transparent;color:var(--ghn-blue);border:1px solid var(--border-strong)}
+.login-btn.secondary:hover{background:var(--ghn-blue-light)}
+.login-link{display:inline-block;margin-top:14px;font-size:12px;color:var(--ghn-blue);cursor:pointer;text-decoration:none;font-weight:600}
+.login-link:hover{text-decoration:underline}
+.login-error{background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;font-size:12px;padding:8px 11px;border-radius:8px;margin-bottom:12px;text-align:left;display:none}
+.login-notice{background:var(--ghn-blue-light);border:1px solid #BFDCF2;color:var(--ghn-blue-dark);font-size:12px;padding:8px 11px;border-radius:8px;margin-bottom:12px;text-align:left;display:none}
+.login-step{display:none}
+.login-step.active{display:block}
+.login-back{font-size:11.5px;color:var(--muted);cursor:pointer;text-align:left;margin-bottom:12px;font-weight:600}
+.login-back:hover{color:var(--text)}
+
+/* menu người dùng góc trên phải khi đã đăng nhập */
+.user-menu{position:fixed;top:18px;right:150px;z-index:1000}
+.user-menu-btn{background:rgba(255,255,255,.9);border:1px solid var(--border-strong);border-radius:24px;padding:8px 14px 8px 8px;
+  display:flex;align-items:center;gap:8px;cursor:pointer;font-family:var(--f);font-size:12.5px;font-weight:600;color:var(--text);box-shadow:0 4px 14px rgba(0,0,0,.1)}
+.user-menu-avatar{width:24px;height:24px;border-radius:50%;background:var(--ghn-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.user-menu-panel{display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 12px 30px rgba(0,0,0,.18);min-width:200px;overflow:hidden}
+.user-menu-panel.open{display:block}
+.user-menu-info{padding:12px 14px;border-bottom:1px solid var(--border);font-size:11.5px;color:var(--muted)}
+.user-menu-info b{display:block;font-size:13px;color:var(--text);font-weight:700;margin-bottom:1px}
+.user-menu-item{padding:10px 14px;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:7px}
+.user-menu-item:hover{background:var(--bg)}
+
+/* modal đổi mật khẩu (khi đã đăng nhập) */
+.modal-overlay{position:fixed;inset:0;background:rgba(20,18,15,.45);z-index:4000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-card{background:#fff;border-radius:16px;max-width:360px;width:100%;padding:26px 26px 22px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.modal-card h3{font-size:15px;margin-bottom:16px}
+.modal-close-x{position:absolute}
+@media (max-width:640px){
+  .login-card{padding:28px 22px 22px}
+  .user-menu{right:66px;top:12px}
+  .user-menu-btn span.umb-name{display:none}
+}
 </style>
 </head>
 <body>
+
+<!-- ================= MÀN HÌNH ĐĂNG NHẬP ================= -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo"><span>GHN</span></div>
+
+    <!-- Bước 1: đăng nhập -->
+    <div class="login-step active" id="stepLogin">
+      <div class="login-title">Báo Cáo Vận Hành Tuần</div>
+      <div class="login-sub">Đăng nhập bằng email @ghn.vn</div>
+      <div class="login-error" id="loginError"></div>
+      <div class="login-field">
+        <label>Email công ty</label>
+        <input type="email" id="loginEmail" placeholder="ten.nhanvien@ghn.vn" autocomplete="username">
+      </div>
+      <div class="login-field">
+        <label>Mật khẩu</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleLoginClick()">
+      </div>
+      <button class="login-btn" id="loginBtn" onclick="handleLoginClick()">Đăng nhập</button>
+      <a class="login-link" onclick="showLoginStep('stepForgotEmail')">Quên mật khẩu?</a>
+    </div>
+
+    <!-- Bước 2: quên mật khẩu - nhập email -->
+    <div class="login-step" id="stepForgotEmail">
+      <div class="login-back" onclick="showLoginStep('stepLogin')">← Quay lại đăng nhập</div>
+      <div class="login-title">Quên mật khẩu</div>
+      <div class="login-sub">Nhập email @ghn.vn để nhận mã xác nhận</div>
+      <div class="login-error" id="forgotError"></div>
+      <div class="login-notice" id="forgotNotice"></div>
+      <div class="login-field">
+        <label>Email công ty</label>
+        <input type="email" id="forgotEmail" placeholder="ten.nhanvien@ghn.vn" autocomplete="username" onkeydown="if(event.key==='Enter')handleRequestResetClick()">
+      </div>
+      <button class="login-btn" id="forgotBtn" onclick="handleRequestResetClick()">Gửi mã xác nhận</button>
+    </div>
+
+    <!-- Bước 3: nhập OTP + mật khẩu mới -->
+    <div class="login-step" id="stepResetPassword">
+      <div class="login-back" onclick="showLoginStep('stepForgotEmail')">← Nhập lại email</div>
+      <div class="login-title">Đặt mật khẩu mới</div>
+      <div class="login-sub" id="resetSub">Mã xác nhận đã gửi tới email của bạn</div>
+      <div class="login-error" id="resetError"></div>
+      <div class="login-field">
+        <label>Mã xác nhận (OTP, 6 số)</label>
+        <input type="text" id="resetOtp" placeholder="123456" inputmode="numeric" maxlength="6">
+      </div>
+      <div class="login-field">
+        <label>Mật khẩu mới (tối thiểu 8 ký tự)</label>
+        <input type="password" id="resetNewPassword" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div class="login-field">
+        <label>Nhập lại mật khẩu mới</label>
+        <input type="password" id="resetNewPassword2" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')handleResetPasswordClick()">
+      </div>
+      <button class="login-btn" id="resetBtn" onclick="handleResetPasswordClick()">Đặt mật khẩu mới</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MENU NGƯỜI DÙNG (khi đã đăng nhập) ================= -->
+<div class="user-menu" id="userMenu" style="display:none">
+  <div class="user-menu-btn" onclick="toggleUserMenu()">
+    <span class="user-menu-avatar" id="userAvatar">?</span>
+    <span class="umb-name" id="userMenuName">—</span>
+  </div>
+  <div class="user-menu-panel" id="userMenuPanel">
+    <div class="user-menu-info"><b id="userMenuFullName">—</b><span id="userMenuEmail">—</span></div>
+    <div class="user-menu-item" onclick="openChangePasswordModal()">🔑 Đổi mật khẩu</div>
+    <div class="user-menu-item" onclick="handleLogoutClick()">🚪 Đăng xuất</div>
+  </div>
+</div>
+
+<!-- ================= MODAL ĐỔI MẬT KHẨU ================= -->
+<div class="modal-overlay" id="changePasswordModal">
+  <div class="modal-card">
+    <h3>Đổi mật khẩu</h3>
+    <div class="login-error" id="changePwError"></div>
+    <div class="login-notice" id="changePwNotice"></div>
+    <div class="login-field">
+      <label>Mật khẩu hiện tại</label>
+      <input type="password" id="cpOld" autocomplete="current-password">
+    </div>
+    <div class="login-field">
+      <label>Mật khẩu mới (tối thiểu 8 ký tự)</label>
+      <input type="password" id="cpNew" autocomplete="new-password">
+    </div>
+    <div class="login-field">
+      <label>Nhập lại mật khẩu mới</label>
+      <input type="password" id="cpNew2" autocomplete="new-password">
+    </div>
+    <button class="login-btn" onclick="handleChangePasswordClick()">Cập nhật mật khẩu</button>
+    <button class="login-btn secondary" style="margin-top:8px" onclick="closeChangePasswordModal()">Huỷ</button>
+  </div>
+</div>
+
+<div id="appRoot" style="display:none">
 <button class="toc-fab" id="tocFab" onclick="toggleTocPanel()">☰ Mục lục</button>
 <div class="toc-panel" id="tocPanel">
   <div class="toc-panel-title">Chuyển nhanh</div>
@@ -202,11 +361,192 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     <div>Modify by - Pham Van Quynh - DBB Live Report</div>
   </div>
 </div>
+</div><!-- /#appRoot -->
 
 <script id="mainScript">
 const SHEET_ID = "1j3KarXqurcP0GxPE3A4qSxVXs2nfkUM87QscsY5_DtU";
 const SHEET_NAMES = ['01_Scorecard','02_OPR','03_ODR','04_FD','05_RotLC','06_BL_LC_36H','07_GTC',
   '08_BL_Giao_120H','09_BL_LC_Tra_48H','10_BL_Tra_120H','11_KTC_ChoNhap','12_KTC_NhapXuat','13_KTC_Ton24H'];
+
+// ================= XÁC THỰC (đăng nhập / phân quyền / đổi mật khẩu) =================
+// URL Web App của Google Apps Script (Deploy > New deployment > Web app). Dán URL dạng
+// https://script.google.com/macros/s/XXXXXXXX/exec vào đây sau khi deploy Code.gs.
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx_H_2yTY9WPxmr-mzxAl3rLCYStN5MWWTxqPrOwTDH86Diz5_8mf_CUTlz8RlDganrRQ/exec";
+const SESSION_KEY = 'ghn_report_session_v1';
+
+const AUTH = {
+  session: null,
+  load(){
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (!s || !s.token || !s.exp || s.exp < Date.now()) { localStorage.removeItem(SESSION_KEY); return null; }
+      this.session = s;
+      return s;
+    } catch(e){ return null; }
+  },
+  save(s){ this.session = s; localStorage.setItem(SESSION_KEY, JSON.stringify(s)); },
+  clear(){ this.session = null; localStorage.removeItem(SESSION_KEY); }
+};
+
+// gọi backend Apps Script — dùng Content-Type: text/plain để trình duyệt không gửi preflight
+// OPTIONS (Apps Script Web App không tự xử lý OPTIONS), đây là cách chuẩn khi gọi Apps Script
+// từ 1 domain khác (ở đây là từ Vercel).
+async function callBackend(action, payload){
+  if (!APPS_SCRIPT_URL) throw new Error('Chưa cấu hình APPS_SCRIPT_URL trong file báo cáo (xem hướng dẫn deploy Code.gs).');
+  const body = Object.assign({ action }, payload || {});
+  const resp = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) throw new Error('Backend trả lỗi HTTP ' + resp.status);
+  const json = await resp.json();
+  return json;
+}
+
+function showLoginStep(stepId){
+  document.querySelectorAll('.login-step').forEach(el => el.classList.remove('active'));
+  document.getElementById(stepId).classList.add('active');
+  ['loginError','forgotError','resetError'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display='none'; });
+  const notice = document.getElementById('forgotNotice'); if (notice) notice.style.display = 'none';
+}
+function showLoginError(id, msg){ const el = document.getElementById(id); el.textContent = msg; el.style.display = 'block'; }
+function setBtnLoading(id, loading, labelBusy, labelIdle){
+  const b = document.getElementById(id); if (!b) return;
+  b.disabled = loading; b.textContent = loading ? labelBusy : labelIdle;
+}
+const LOGIN_ERR_MSG = {
+  invalid_email_domain: 'Email phải là địa chỉ công ty dạng @ghn.vn',
+  account_not_found: 'Không tìm thấy tài khoản với email này',
+  account_inactive: 'Tài khoản chưa được cấp quyền truy cập (Active = FALSE) — liên hệ quản trị viên',
+  account_locked: 'Tài khoản tạm khoá do đăng nhập sai quá nhiều lần, thử lại sau ít phút',
+  wrong_password: 'Sai mật khẩu',
+  otp_invalid: 'Mã xác nhận không đúng',
+  otp_expired: 'Mã xác nhận đã hết hạn, vui lòng gửi lại',
+  password_too_short: 'Mật khẩu phải có tối thiểu 8 ký tự',
+  old_password_incorrect: 'Mật khẩu hiện tại không đúng',
+  server_error: 'Lỗi hệ thống, thử lại sau'
+};
+function errMsg(code){ return LOGIN_ERR_MSG[code] || ('Có lỗi xảy ra (' + code + ')'); }
+
+async function handleLoginClick(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) { showLoginError('loginError', 'Nhập đầy đủ email và mật khẩu'); return; }
+  setBtnLoading('loginBtn', true, 'Đang đăng nhập…', 'Đăng nhập');
+  try {
+    const res = await callBackend('login', { email, password });
+    if (!res.ok) { showLoginError('loginError', errMsg(res.error)); return; }
+    AUTH.save({ token: res.token, email: res.email, name: res.name, role: res.role, exp: Date.now() + 8*60*60*1000 });
+    enterApp(res);
+  } catch(e) {
+    showLoginError('loginError', 'Không kết nối được máy chủ: ' + e.message);
+  } finally {
+    setBtnLoading('loginBtn', false, 'Đang đăng nhập…', 'Đăng nhập');
+  }
+}
+
+async function handleRequestResetClick(){
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) { showLoginError('forgotError', 'Nhập email công ty'); return; }
+  setBtnLoading('forgotBtn', true, 'Đang gửi…', 'Gửi mã xác nhận');
+  try {
+    const res = await callBackend('requestPasswordReset', { email });
+    if (!res.ok) { showLoginError('forgotError', errMsg(res.error)); return; }
+    document.getElementById('resetSub').textContent = 'Mã xác nhận đã gửi tới ' + email;
+    document.getElementById('resetOtp').value = '';
+    document.getElementById('resetNewPassword').value = '';
+    document.getElementById('resetNewPassword2').value = '';
+    window.__resetEmail = email;
+    showLoginStep('stepResetPassword');
+  } catch(e) {
+    showLoginError('forgotError', 'Không kết nối được máy chủ: ' + e.message);
+  } finally {
+    setBtnLoading('forgotBtn', false, 'Đang gửi…', 'Gửi mã xác nhận');
+  }
+}
+
+async function handleResetPasswordClick(){
+  const email = window.__resetEmail;
+  const otp = document.getElementById('resetOtp').value.trim();
+  const p1 = document.getElementById('resetNewPassword').value;
+  const p2 = document.getElementById('resetNewPassword2').value;
+  if (!otp) { showLoginError('resetError', 'Nhập mã xác nhận'); return; }
+  if (p1.length < 8) { showLoginError('resetError', errMsg('password_too_short')); return; }
+  if (p1 !== p2) { showLoginError('resetError', 'Mật khẩu nhập lại không khớp'); return; }
+  setBtnLoading('resetBtn', true, 'Đang xử lý…', 'Đặt mật khẩu mới');
+  try {
+    const res = await callBackend('resetPassword', { email, otp, newPassword: p1 });
+    if (!res.ok) { showLoginError('resetError', errMsg(res.error)); return; }
+    showLoginStep('stepLogin');
+    document.getElementById('loginEmail').value = email;
+    document.getElementById('loginPassword').value = '';
+    showLoginError('loginError', 'Đổi mật khẩu thành công — đăng nhập lại với mật khẩu mới.');
+    document.getElementById('loginError').style.background = '#EAF3DE';
+    document.getElementById('loginError').style.color = '#0F6E56';
+    document.getElementById('loginError').style.borderColor = '#CFE6BE';
+  } catch(e) {
+    showLoginError('resetError', 'Không kết nối được máy chủ: ' + e.message);
+  } finally {
+    setBtnLoading('resetBtn', false, 'Đang xử lý…', 'Đặt mật khẩu mới');
+  }
+}
+
+function toggleUserMenu(){ document.getElementById('userMenuPanel').classList.toggle('open'); }
+document.addEventListener('click', function(e){
+  const panel = document.getElementById('userMenuPanel'), btn = document.querySelector('.user-menu-btn');
+  if (!panel || !panel.classList.contains('open')) return;
+  if (!panel.contains(e.target) && btn && !btn.contains(e.target)) panel.classList.remove('open');
+});
+
+function openChangePasswordModal(){
+  document.getElementById('userMenuPanel').classList.remove('open');
+  document.getElementById('cpOld').value = '';
+  document.getElementById('cpNew').value = '';
+  document.getElementById('cpNew2').value = '';
+  document.getElementById('changePwError').style.display = 'none';
+  document.getElementById('changePwNotice').style.display = 'none';
+  document.getElementById('changePasswordModal').classList.add('open');
+}
+function closeChangePasswordModal(){ document.getElementById('changePasswordModal').classList.remove('open'); }
+async function handleChangePasswordClick(){
+  const oldPassword = document.getElementById('cpOld').value;
+  const p1 = document.getElementById('cpNew').value;
+  const p2 = document.getElementById('cpNew2').value;
+  if (!oldPassword) { showLoginError('changePwError', 'Nhập mật khẩu hiện tại'); return; }
+  if (p1.length < 8) { showLoginError('changePwError', errMsg('password_too_short')); return; }
+  if (p1 !== p2) { showLoginError('changePwError', 'Mật khẩu nhập lại không khớp'); return; }
+  try {
+    const res = await callBackend('changePassword', { token: AUTH.session.token, oldPassword, newPassword: p1 });
+    if (!res.ok) { showLoginError('changePwError', errMsg(res.error)); return; }
+    const n = document.getElementById('changePwNotice'); n.textContent = 'Đổi mật khẩu thành công.'; n.style.display = 'block';
+    setTimeout(closeChangePasswordModal, 1200);
+  } catch(e) {
+    showLoginError('changePwError', 'Không kết nối được máy chủ: ' + e.message);
+  }
+}
+
+function handleLogoutClick(){
+  AUTH.clear();
+  location.reload();
+}
+
+function enterApp(user){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appRoot').style.display = '';
+  document.getElementById('userMenu').style.display = '';
+  document.getElementById('userAvatar').textContent = (user.name || user.email || '?').trim().charAt(0).toUpperCase();
+  document.getElementById('userMenuName').textContent = user.name || user.email;
+  document.getElementById('userMenuFullName').textContent = user.name || '(chưa có tên)';
+  document.getElementById('userMenuEmail').textContent = user.email;
+  // Nút "Xuất file HTML" đóng gói toàn bộ dữ liệu ra 1 file mở được mà không cần đăng nhập —
+  // để tránh vô hiệu hoá mục đích kiểm soát truy cập, chỉ Admin mới thấy nút này.
+  const exportBtn = document.querySelector('.export-btn');
+  if (exportBtn) exportBtn.style.display = (user.role === 'Admin') ? '' : 'none';
+  main().catch(e => { document.getElementById('loadingNote').style.display='none'; showError('Lỗi tổng thể: '+e.message); });
+}
 
 function showError(msg){
   const b = document.getElementById('errBanner');
@@ -217,52 +557,8 @@ window.onerror = function(msg, src, line){ showError('Lỗi JS: '+msg+' (dòng '
 window.addEventListener('unhandledrejection', e => showError('Lỗi bất đồng bộ: '+(e.reason && e.reason.message || e.reason)));
 function safeRun(label, fn){ try { fn(); } catch(e){ showError('Lỗi ở bước "'+label+'": '+e.message); console.error(label, e); } }
 
-// ---------- fetch (với retry + giãn cách để tránh lỗi tải đồng loạt) ----------
-let jsonpCounter = 0;
-function fetchSheetJSONPOnce(sheetName, timeoutMs){
-  return new Promise((resolve, reject) => {
-    const cbName = 'gvizCb_' + (jsonpCounter++) + '_' + Date.now();
-    const scriptId = 'sc_' + cbName;
-    let done = false;
-    const timer = setTimeout(() => {
-      if (done) return; done = true;
-      cleanup();
-      reject(new Error('Timeout tải sheet "'+sheetName+'"'));
-    }, timeoutMs);
-    function cleanup(){
-      clearTimeout(timer);
-      delete window[cbName];
-      const el = document.getElementById(scriptId);
-      if (el) el.remove();
-    }
-    window[cbName] = function(resp){
-      if (done) return; done = true;
-      cleanup();
-      if (!resp || !resp.table) { reject(new Error('Không có dữ liệu cho sheet "'+sheetName+'"')); return; }
-      resolve(resp.table);
-    };
-    const url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json;responseHandler:' + cbName +
-      '&sheet=' + encodeURIComponent(sheetName) + '&_=' + Date.now();
-    const s = document.createElement('script');
-    s.id = scriptId; s.src = url;
-    s.onerror = () => { if (done) return; done = true; cleanup(); reject(new Error('Không tải được sheet "'+sheetName+'" (kiểm tra tên tab / quyền chia sẻ public)')); };
-    document.head.appendChild(s);
-  });
-}
-function delay(ms){ return new Promise(r => setTimeout(r, ms)); }
-async function fetchSheetJSONP(sheetName, attempts){
-  attempts = attempts || 3;
-  let lastErr;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      return await fetchSheetJSONPOnce(sheetName, 12000 + i*4000);
-    } catch (e) {
-      lastErr = e;
-      if (i < attempts - 1) await delay(600 + i*700);
-    }
-  }
-  throw lastErr;
-}
+// ---------- (đã bỏ fetch JSONP trực tiếp Google Sheet — dữ liệu giờ đọc qua callBackend('getReportData', ...) ở trên,
+// chỉ trả về khi có session token hợp lệ; xem AUTH/callBackend phía đầu file) ----------
 
 // ---------- basic helpers ----------
 function cell(row, idx){
@@ -1175,14 +1471,30 @@ function buildSummaryBanner(data){
 
 // ---------- main ----------
 async function main(){
+  // Dữ liệu vận hành giờ được đọc qua Apps Script backend (đã xác thực bằng session token),
+  // KHÔNG còn fetch trực tiếp Google Sheet qua link public nữa (xem callBackend/AUTH ở trên).
+  // Backend trả về đúng khuôn dạng {cols, rows} như gviz cũ nên toàn bộ hàm parse/render phía
+  // dưới giữ nguyên không đổi.
   const tables = {};
-  // giãn cách nhẹ giữa các request để tránh bắn 13 request cùng lúc gây lỗi tải đồng loạt
-  const promises = SHEET_NAMES.map((n, i) => delay(i*180).then(() => fetchSheetJSONP(n)));
-  const results = await Promise.allSettled(promises);
-  results.forEach((r,i) => {
-    if (r.status === 'fulfilled') tables[SHEET_NAMES[i]] = r.value;
-    else showError('Không tải được tab "'+SHEET_NAMES[i]+'": '+r.reason.message);
-  });
+  try {
+    const res = await callBackend('getReportData', { token: AUTH.session.token });
+    if (!res.ok) {
+      if (res.error === 'session_expired' || res.error === 'account_inactive') {
+        AUTH.clear();
+        document.getElementById('appRoot').style.display = 'none';
+        document.getElementById('userMenu').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'flex';
+        showLoginStep('stepLogin');
+        showLoginError('loginError', res.error === 'account_inactive' ? errMsg('account_inactive') : 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.');
+        return;
+      }
+      showError('Không tải được dữ liệu: ' + errMsg(res.error));
+    } else {
+      Object.assign(tables, res.tables);
+    }
+  } catch (e) {
+    showError('Không kết nối được máy chủ dữ liệu: ' + e.message);
+  }
   document.getElementById('loadingNote').style.display = 'none';
   document.getElementById('updatedAt').textContent = new Date().toLocaleString('vi-VN');
 
@@ -1258,11 +1570,19 @@ async function main(){
   document.getElementById('reportBody').innerHTML = out;
 }
 if (window.__STATIC_SNAPSHOT__) {
-  // đây là file đã được xuất ra qua nút "Xuất file HTML" — HTML đã có sẵn đầy đủ số liệu, chỉ cần
-  // hồi phục trạng thái biểu đồ, KHÔNG gọi main() (không cần và không nên tải lại từ Google Sheet)
+  // Đây là file đã được xuất ra qua nút "Xuất file HTML" (chỉ Admin mới thấy nút này) — HTML đã có
+  // sẵn đầy đủ số liệu ngay trong file, không cần đăng nhập lại để xem bản xuất tĩnh này, chỉ cần
+  // hồi phục trạng thái biểu đồ, KHÔNG gọi main() (không cần và không nên tải lại từ Google Sheet).
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appRoot').style.display = '';
   hydrateFromSnapshot(window.__STATIC_SNAPSHOT__);
 } else {
-  main().catch(e => { document.getElementById('loadingNote').style.display='none'; showError('Lỗi tổng thể: '+e.message); });
+  // Có phiên đăng nhập hợp lệ còn hạn trong trình duyệt (localStorage) thì vào thẳng, không bắt
+  // gõ lại mật khẩu mỗi lần mở trang; nếu không thì giữ nguyên màn hình đăng nhập (đã hiện sẵn).
+  const existing = AUTH.load();
+  if (existing) {
+    enterApp(existing);
+  }
 }
 </script>
 </body>
