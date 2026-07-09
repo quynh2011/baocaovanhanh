@@ -1638,15 +1638,48 @@ function parseKDTable(table){
   return { weekly, monthly };
 }
 
-function renderKDMiniChart(labels, series, colors){
+// % thời gian đã trôi qua của kỳ ĐANG CHẠY DỞ (tuần/tháng hiện tại), dùng để chiếu ("run-rate") ra kết quả
+// dự kiến cả kỳ từ số liệu mới nhập được tới hôm nay. Tuần tính theo lịch ISO (Thứ 2 = ngày 1 của tuần).
+// >=1 nghĩa là kỳ đã trôi qua hết (không cần chiếu nữa, để nguyên số thật).
+function kdProjectionRatio(periodType){
+  const today = new Date();
+  if (periodType === 'tuần') {
+    const wd = today.getDay(); // 0=CN..6=T7
+    const iso = wd === 0 ? 7 : wd; // T2=1 .. CN=7
+    return iso >= 7 ? 1 : 7/iso;
+  }
+  const dom = today.getDate();
+  const dim = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
+  return dom >= dim ? 1 : dim/dom;
+}
+// periodType: 'tuần' | 'tháng' | falsy — khi có, tự tính và vẽ thêm 1 điểm/đoạn nét đứt "dự kiến hết kỳ" cho
+// ĐIỂM CUỐI CÙNG của chuỗi 2026 (đúng kỳ đang chạy dở, đã được đánh dấu "HIỆN TẠI" ở bảng bên dưới) — chiếu
+// theo tốc độ trung bình từ đầu kỳ tới hiện tại (run-rate), KHÔNG phải suy diễn xu hướng nhiều kỳ trước đó.
+function renderKDMiniChart(labels, series, colors, periodType){
   const vals = [];
   series.forEach(s => s.vals.forEach(v => { if (v !== null && v !== undefined) vals.push(v); }));
   if (vals.length < 2) return '<div class="mut" style="font-size:12px;padding:10px 0">Chưa đủ dữ liệu.</div>';
+
+  // tính điểm dự kiến TRƯỚC khi xác định lo/hi, để trục Y tự co giãn vừa khít bao gồm cả điểm dự kiến —
+  // tránh trường hợp điểm dự kiến bị kẹp/cắt xén ở rìa trên/dưới biểu đồ.
+  let proj = null;
+  if (periodType && series.length >= 2) {
+    const s26 = series[1].vals;
+    let li = -1;
+    for (let i = s26.length-1; i >= 0; i--) { if (s26[i] !== null && s26[i] !== undefined) { li = i; break; } }
+    if (li >= 0) {
+      const actual = s26[li];
+      const ratio = kdProjectionRatio(periodType);
+      if (ratio > 1.02) { proj = { idx: li, actual, value: actual*ratio }; vals.push(proj.value); }
+    }
+  }
+
   let lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
   if (lo === hi) { lo -= Math.abs(lo*0.1)||1; hi += Math.abs(hi*0.1)||1; }
   const padv = (hi-lo)*0.3; lo -= padv; hi += padv;
   const n = labels.length;
-  const W = 620, H = 210, padL = 10, padR = 10, padT = 26, padB = 24;
+  const W = 620, H = 210, padT = 26, padB = 24;
+  const padL = 10, padR = proj ? 96 : 10; // cần thêm khoảng trống bên phải cho điểm + nhãn "dự kiến"
   const xFor = i => padL + (W-padL-padR) * (n<=1 ? 0.5 : i/(n-1));
   const yFor = v => padT + (H-padT-padB) * (1 - (v-lo)/(hi-lo));
   let svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:210px;display:block" preserveAspectRatio="none">';
@@ -1667,6 +1700,16 @@ function renderKDMiniChart(labels, series, colors){
       svg += '<text x="'+tx.toFixed(1)+'" y="'+(y-9).toFixed(1)+'" font-size="10" font-weight="700" fill="'+colors[si]+'" text-anchor="'+anchor+'" font-family="IBM Plex Mono, monospace">'+esc(fmtKD(v))+'</text>';
     });
   });
+  if (proj) {
+    const col = colors[1];
+    const x0 = xFor(proj.idx), y0 = yFor(proj.actual);
+    const stepX = n > 1 ? (W-padL-padR)/(n-1) : 50;
+    const x1 = x0 + stepX*0.9, y1 = yFor(proj.value);
+    svg += '<line x1="'+x0.toFixed(1)+'" y1="'+y0.toFixed(1)+'" x2="'+x1.toFixed(1)+'" y2="'+y1.toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="4,3" opacity="0.75"/>';
+    svg += '<circle cx="'+x1.toFixed(1)+'" cy="'+y1.toFixed(1)+'" r="3.6" fill="#fff" stroke="'+col+'" stroke-width="2"/>';
+    svg += '<text x="'+x1.toFixed(1)+'" y="'+(y1-9).toFixed(1)+'" font-size="10" font-weight="700" fill="'+col+'" text-anchor="start" font-family="IBM Plex Mono, monospace">'+esc(fmtKD(proj.value))+'</text>';
+    svg += '<text x="'+x1.toFixed(1)+'" y="'+(y1+14).toFixed(1)+'" font-size="8.5" fill="'+col+'" text-anchor="start" font-family="IBM Plex Mono, monospace" font-style="italic" opacity="0.85">dự kiến hết kỳ</text>';
+  }
   svg += '</svg>';
   return svg;
 }
@@ -1720,15 +1763,20 @@ function kdPeriodTable(period, periodLabel){
     const color = flat ? '#8B6B00' : (good ? '#0F6E56' : '#C0392B');
     return '<span style="color:'+color+';font-weight:700">'+(flat?'—':(good?'▲':'▼'))+' '+fmtKDPct(p)+'</span>';
   }
+  // kỳ mới nhất (HIỆN TẠI) thường chưa hết kỳ — chiếu thêm 1 giá trị "dự kiến hết kỳ" bằng đúng công thức
+  // run-rate dùng cho đường nét đứt trên biểu đồ (kdProjectionRatio), hiển thị ngay dưới số thật trong bảng.
+  const projRatio = kdProjectionRatio(periodLabel);
   let rows = '';
   for (let i = 0; i < n; i++) {
     const v25 = y25[i], v26 = y26[i];
     if ((v25 === null || v25 === undefined) && (v26 === null || v26 === undefined)) continue;
     const isLatest = i === latestIdx;
+    const showProj = isLatest && v26 !== null && v26 !== undefined && projRatio > 1.02;
+    const v26Cell = fmtKD(v26) + (showProj ? '<div style="font-size:9.5px;font-weight:600;color:#F15A22;font-style:italic">≈ '+fmtKD(v26*projRatio)+' dự kiến</div>' : '');
     rows += '<tr'+(isLatest ? ' style="background:#FFF3EA"' : '')+'>' +
       '<td style="'+(isLatest?'font-weight:700;color:#C0431A':'')+'">'+esc(labels[i])+(isLatest ? ' <span style="font-size:9.5px;font-weight:700;color:#F15A22;font-family:var(--mono)">● HIỆN TẠI</span>' : '')+'</td>' +
       '<td>'+fmtKD(v25)+'</td>' +
-      '<td style="'+(isLatest?'font-weight:700':'')+'">'+fmtKD(v26)+'</td>' +
+      '<td style="'+(isLatest?'font-weight:700':'')+'">'+v26Cell+'</td>' +
       '<td>'+deltaSpan(v26, v25)+'</td>' +
       '<td>'+deltaSpan(v26, i > 0 ? y26[i-1] : null)+'</td>' +
       '</tr>';
@@ -1824,16 +1872,17 @@ function renderKDBlock(kd, title){
   let out = '<div class="block-header">'+esc(title)+'</div>';
   out += '<div class="tbl-wrap" style="padding:16px 18px">';
   out += buildKDBlockOverview(kd);
-  out += '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px">';
+  out += '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:6px">';
   out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[0]+'"></span>2025</span>';
   out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[1]+'"></span>2026</span>';
+  out += '<span class="mut" style="font-size:11px;font-style:italic">- - - nét đứt = dự kiến hết kỳ hiện tại (chiếu theo tốc độ trung bình từ đầu kỳ tới hôm nay)</span>';
   out += '</div>';
   out += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">';
   out += '<div><div class="mut" style="font-size:11px;font-family:var(--mono);margin-bottom:4px">THEO TUẦN</div>' +
-    renderKDMiniChart(kd.weekly.labels, [{vals:kd.weekly.y2025},{vals:kd.weekly.y2026}], colors) +
+    renderKDMiniChart(kd.weekly.labels, [{vals:kd.weekly.y2025},{vals:kd.weekly.y2026}], colors, 'tuần') +
     buildKDPeriodAnalysis(kd.weekly, 'tuần') + '</div>';
   out += '<div><div class="mut" style="font-size:11px;font-family:var(--mono);margin-bottom:4px">THEO THÁNG</div>' +
-    renderKDMiniChart(kd.monthly.labels, [{vals:kd.monthly.y2025},{vals:kd.monthly.y2026}], colors) +
+    renderKDMiniChart(kd.monthly.labels, [{vals:kd.monthly.y2025},{vals:kd.monthly.y2026}], colors, 'tháng') +
     buildKDPeriodAnalysis(kd.monthly, 'tháng') + '</div>';
   out += '</div></div>';
   return out;
