@@ -137,6 +137,13 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
 #errBanner{display:none;background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;white-space:pre-wrap}
 #loadingNote{font-family:var(--mono);font-size:12.5px;color:var(--muted);padding:10px 0}
+/* thanh tiến trình % khi tải dữ liệu — màu xanh (--dn) đồng bộ với quy ước "tăng/tốt = xanh" của cả báo cáo */
+.load-progress{display:flex;align-items:center;gap:10px;padding:10px 0;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.load-progress-track{position:relative;flex:0 0 200px;height:7px;border-radius:5px;background:var(--green-cell);overflow:hidden}
+.load-progress-fill{position:absolute;left:0;top:0;bottom:0;width:2%;border-radius:5px;background:var(--dn);
+  transition:width .35s ease;animation:loadPulse 1.3s ease-in-out infinite}
+.load-progress-pct{font-weight:700;color:var(--dn);min-width:32px}
+@keyframes loadPulse{0%,100%{opacity:1}50%{opacity:.55}}
 
 /* ================= MÀN HÌNH ĐĂNG NHẬP (macOS style) ================= */
 #loginScreen{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;
@@ -411,7 +418,11 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
   </div>
 
   <div id="errBanner"></div>
-  <div id="loadingNote">Đang tải dữ liệu từ Google Sheet…</div>
+  <div id="loadingNote" class="load-progress">
+    <span>Đang tải dữ liệu từ Google Sheet…</span>
+    <span class="load-progress-track"><span class="load-progress-fill" id="loadingFill"></span></span>
+    <span class="load-progress-pct" id="loadingPct">0%</span>
+  </div>
 
   <div id="summaryBannerWrap"></div>
 
@@ -465,7 +476,11 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
       </div>
     </div>
     <div id="kdErrBanner"></div>
-    <div id="kdLoadingNote" style="font-family:var(--mono);font-size:12.5px;color:var(--muted);padding:10px 0">Đang tải dữ liệu…</div>
+    <div id="kdLoadingNote" class="load-progress">
+      <span>Đang tải dữ liệu…</span>
+      <span class="load-progress-track"><span class="load-progress-fill" id="kdLoadingFill"></span></span>
+      <span class="load-progress-pct" id="kdLoadingPct">0%</span>
+    </div>
     <div id="kdBody"></div>
   </div>
 </div>
@@ -555,6 +570,30 @@ function showLoginError(id, msg){ const el = document.getElementById(id); el.tex
 function setBtnLoading(id, loading, labelBusy, labelIdle){
   const b = document.getElementById(id); if (!b) return;
   b.disabled = loading; b.textContent = loading ? labelBusy : labelIdle;
+}
+// thanh tiến trình % giả lập khi tải dữ liệu — chỉ có 1 request duy nhất tới backend (không có tiến trình
+// thật theo từng phần), nên mô phỏng chạy nhanh lúc đầu rồi chậm dần, dừng ở 90% chờ, đủ để người dùng cảm
+// giác đang có việc diễn ra thay vì nhìn dòng chữ tĩnh — xong thật thì nhảy lên 100% rồi mờ dần biến mất.
+function startFakeProgress(fillId, pctId){
+  const fillEl = document.getElementById(fillId), pctEl = document.getElementById(pctId);
+  let pct = 0, stopped = false;
+  const timer = setInterval(() => {
+    if (stopped) return;
+    const step = Math.max(0.4, (90 - pct) * 0.07);
+    pct = Math.min(90, pct + step);
+    if (fillEl) fillEl.style.width = pct.toFixed(0) + '%';
+    if (pctEl) pctEl.textContent = pct.toFixed(0) + '%';
+  }, 180);
+  return {
+    finish(wrapId){
+      stopped = true;
+      clearInterval(timer);
+      if (fillEl) fillEl.style.width = '100%';
+      if (pctEl) pctEl.textContent = '100%';
+      const wrap = wrapId ? document.getElementById(wrapId) : null;
+      if (wrap) { setTimeout(() => { wrap.style.transition = 'opacity .3s ease'; wrap.style.opacity = '0'; setTimeout(() => { wrap.style.display = 'none'; }, 300); }, 250); }
+    }
+  };
 }
 const LOGIN_ERR_MSG = {
   invalid_email_domain: 'Email phải là địa chỉ công ty dạng @ghn.vn',
@@ -2007,9 +2046,10 @@ function renderKDBlock(kd, title){
 async function loadKinhDoanh(){
   if (kdLoaded) return;
   kdLoaded = true;
+  const kdProgress = startFakeProgress('kdLoadingFill', 'kdLoadingPct');
   try {
     const res = await callBackend('getReportData', { token: AUTH.session.token });
-    document.getElementById('kdLoadingNote').style.display = 'none';
+    kdProgress.finish('kdLoadingNote');
     if (!res.ok) {
       document.getElementById('kdErrBanner').innerHTML = '<div style="background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">Không tải được dữ liệu Kinh doanh: '+esc(errMsg(res.error))+'</div>';
       return;
@@ -2022,7 +2062,7 @@ async function loadKinhDoanh(){
     });
     document.getElementById('kdBody').innerHTML = out;
   } catch(e) {
-    document.getElementById('kdLoadingNote').style.display = 'none';
+    kdProgress.finish('kdLoadingNote');
     document.getElementById('kdErrBanner').innerHTML = '<div style="background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">Lỗi tải Kinh doanh: '+esc(e.message)+'</div>';
   }
 }
@@ -2070,10 +2110,12 @@ async function main(){
   // Backend trả về đúng khuôn dạng {cols, rows} như gviz cũ nên toàn bộ hàm parse/render phía
   // dưới giữ nguyên không đổi.
   const tables = {};
+  const loadProgress = startFakeProgress('loadingFill', 'loadingPct');
   try {
     const res = await callBackend('getReportData', { token: AUTH.session.token });
     if (!res.ok) {
       if (res.error === 'session_expired' || res.error === 'account_inactive') {
+        loadProgress.finish();
         AUTH.clear();
         document.getElementById('appRoot').style.display = 'none';
         document.getElementById('userMenu').style.display = 'none';
@@ -2089,7 +2131,7 @@ async function main(){
   } catch (e) {
     showError('Không kết nối được máy chủ dữ liệu: ' + e.message);
   }
-  document.getElementById('loadingNote').style.display = 'none';
+  loadProgress.finish('loadingNote');
   document.getElementById('updatedAt').textContent = new Date().toLocaleString('vi-VN');
 
   const data = {
