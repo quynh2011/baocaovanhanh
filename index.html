@@ -1639,17 +1639,20 @@ function parseKDTable(table){
 }
 
 // % thời gian đã trôi qua của kỳ ĐANG CHẠY DỞ (tuần/tháng hiện tại), dùng để chiếu ("run-rate") ra kết quả
-// dự kiến cả kỳ từ số liệu mới nhập được tới hôm nay. Tuần tính theo lịch ISO (Thứ 2 = ngày 1 của tuần).
-// >=1 nghĩa là kỳ đã trôi qua hết (không cần chiếu nữa, để nguyên số thật).
+// dự kiến cả kỳ. Số liệu vận hành luôn có độ trễ 1 ngày (số ghi nhận "hôm nay" trong sheet thực chất là số
+// chốt của HÔM QUA — hôm nay chưa qua nên chưa có số), nên mốc tính "đã trôi qua bao nhiêu" phải lấy theo
+// hôm qua, không phải hôm nay — nếu không sẽ chiếu dư ra 1 ngày không có thật, làm số dự kiến bị lệch.
+// Tuần tính theo lịch ISO (Thứ 2 = ngày 1 của tuần). >=1 nghĩa là kỳ đã trôi qua hết (để nguyên số thật).
 function kdProjectionRatio(periodType){
-  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
   if (periodType === 'tuần') {
-    const wd = today.getDay(); // 0=CN..6=T7
+    const wd = yesterday.getDay(); // 0=CN..6=T7
     const iso = wd === 0 ? 7 : wd; // T2=1 .. CN=7
     return iso >= 7 ? 1 : 7/iso;
   }
-  const dom = today.getDate();
-  const dim = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
+  const dom = yesterday.getDate();
+  const dim = new Date(yesterday.getFullYear(), yesterday.getMonth()+1, 0).getDate();
   return dom >= dim ? 1 : dim/dom;
 }
 // periodType: 'tuần' | 'tháng' | falsy — khi có, tự tính và vẽ thêm 1 điểm/đoạn nét đứt "dự kiến hết kỳ" cho
