@@ -1657,9 +1657,14 @@ function renderKDMiniChart(labels, series, colors){
     if (pts.length < 2) return;
     const d = smoothPathD(pts.map(p=>[p[0],p[1]]));
     svg += '<path d="'+d+'" fill="none" stroke="'+colors[si]+'" stroke-width="2.2"/>';
-    pts.forEach(([x,y,v]) => {
+    // điểm đầu/cuối neo lệch vào trong (start/end) thay vì "middle" — vì số giờ hiển thị 2 chữ số thập phân
+    // (VD 437,75k) rộng hơn hẳn trước đây (VD 438k), neo giữa sẽ bị tràn ra ngoài viewBox ở 2 mép biểu đồ.
+    pts.forEach(([x,y,v], idx) => {
+      const isFirst = idx === 0, isLast = idx === pts.length - 1;
+      const anchor = isFirst ? 'start' : (isLast ? 'end' : 'middle');
+      const tx = isFirst ? x + 4 : (isLast ? x - 4 : x);
       svg += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.2" fill="'+colors[si]+'"/>';
-      svg += '<text x="'+x.toFixed(1)+'" y="'+(y-9).toFixed(1)+'" font-size="10" font-weight="700" fill="'+colors[si]+'" text-anchor="middle" font-family="IBM Plex Mono, monospace">'+esc(fmtKD(v))+'</text>';
+      svg += '<text x="'+tx.toFixed(1)+'" y="'+(y-9).toFixed(1)+'" font-size="10" font-weight="700" fill="'+colors[si]+'" text-anchor="'+anchor+'" font-family="IBM Plex Mono, monospace">'+esc(fmtKD(v))+'</text>';
     });
   });
   svg += '</svg>';
