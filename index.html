@@ -724,8 +724,11 @@ async function refreshOnlineUsers(){
     if (res.ok) renderOnlineUsers(res.users);
   } catch (e) {}
 }
-function startPresenceTracking(){
-  sendHeartbeat();
+async function startPresenceTracking(){
+  // phải chờ gửi xong heartbeat của CHÍNH MÌNH trước, rồi mới lấy danh sách đang online — nếu không, lần gọi
+  // getOnlineUsers đầu tiên có thể chạy trước khi heartbeat kịp ghi vào cache, khiến avatar bản thân bị thiếu
+  // ở lượt tải đầu (phải chờ tới chu kỳ poll 20s sau mới thấy).
+  await sendHeartbeat();
   refreshOnlineUsers();
   setInterval(sendHeartbeat, 25000);
   setInterval(refreshOnlineUsers, 20000);
@@ -1718,8 +1721,9 @@ function kdProjectionRatio(periodType){
 // periodType: 'tuần' | 'tháng' | falsy — khi có, tính điểm "dự kiến hết kỳ" cho kỳ đang chạy dở (điểm cuối
 // cùng có số của chuỗi 2026, đã được đánh dấu "HIỆN TẠI" ở bảng bên dưới), chiếu theo tốc độ trung bình từ
 // đầu kỳ tới hiện tại (run-rate). Đường liền nét chính VẪN vẽ đầy đủ, nối qua TẤT CẢ các điểm số liệu thật kể
-// cả kỳ hiện tại (không tách/ẩn điểm nào) — đường nét đứt là PHẦN THÊM, đi tiếp từ chính điểm số liệu thật của
-// kỳ hiện tại tới điểm dự kiến, đặt gần kỳ hiện tại (không lấn sang vị trí trục X của kỳ kế tiếp).
+// cả kỳ hiện tại (không tách/ẩn điểm nào). Đường NÉT ĐỨT là 1 nhánh RIÊNG, tách ra ("fork") từ kỳ TRƯỚC đã
+// hoàn tất — cùng xuất phát điểm với đường liền nét — đi tới điểm dự kiến đặt đúng tại kỳ hiện tại, để người
+// xem thấy rõ 2 khả năng: đường liền nét = thực tế đã ghi nhận, đường nét đứt = nếu giữ nguyên tốc độ hiện tại.
 function renderKDMiniChart(labels, series, colors, periodType){
   const vals = [];
   series.forEach(s => s.vals.forEach(v => { if (v !== null && v !== undefined) vals.push(v); }));
@@ -1734,7 +1738,12 @@ function renderKDMiniChart(labels, series, colors, periodType){
     if (li >= 0) {
       const actual = s26[li];
       const ratio = kdProjectionRatio(periodType);
-      if (ratio > 1.02) { proj = { idx: li, actual, value: actual*ratio }; vals.push(proj.value); }
+      if (ratio > 1.02) {
+        let prevIdx = -1;
+        for (let i = li-1; i >= 0; i--) { if (s26[i] !== null && s26[i] !== undefined) { prevIdx = i; break; } }
+        proj = { idx: li, value: actual*ratio, prevIdx, prevVal: prevIdx >= 0 ? s26[prevIdx] : null };
+        vals.push(proj.value);
+      }
     }
   }
 
@@ -1742,17 +1751,11 @@ function renderKDMiniChart(labels, series, colors, periodType){
   if (lo === hi) { lo -= Math.abs(lo*0.1)||1; hi += Math.abs(hi*0.1)||1; }
   const padv = (hi-lo)*0.3; lo -= padv; hi += padv;
   const n = labels.length;
-  const W = 620, H = 210, padT = 26, padB = 24;
-  // kỳ hiện tại nằm ở Ô CUỐI trục X (VD tuần mới nhất luôn là cột cuối) thì cần thêm khoảng trống bên phải cho
-  // đoạn nét đứt + nhãn dự kiến; nếu kỳ hiện tại nằm GIỮA trục X (VD tháng — vẫn còn các tháng tương lai rỗng
-  // phía sau) thì đã có sẵn khoảng trống tự nhiên, không cần thêm.
-  const isEdge = proj && proj.idx === n-1;
-  const padL = 10, padR = isEdge ? 76 : 10;
+  const W = 620, H = 210, padT = 26, padB = 24, padL = 10, padR = 10;
   const xFor = i => padL + (W-padL-padR) * (n<=1 ? 0.5 : i/(n-1));
   const yFor = v => padT + (H-padT-padB) * (1 - (v-lo)/(hi-lo));
   let svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:210px;display:block" preserveAspectRatio="none">';
   for (let i=0;i<n;i++) svg += '<text x="'+xFor(i).toFixed(0)+'" y="'+(H-6)+'" font-size="9" fill="#9E9B93" text-anchor="middle" font-family="monospace">'+esc(labels[i])+'</text>';
-  const stepX = n > 1 ? (W-padL-padR)/(n-1) : 60;
   series.forEach((s, si) => {
     const pts = [];
     s.vals.forEach((v,i) => { if (v !== null && v !== undefined) pts.push([xFor(i), yFor(v), v]); });
@@ -1769,16 +1772,19 @@ function renderKDMiniChart(labels, series, colors, periodType){
       svg += '<text x="'+tx.toFixed(1)+'" y="'+(y-9).toFixed(1)+'" font-size="10" font-weight="700" fill="'+colors[si]+'" text-anchor="'+anchor+'" font-family="IBM Plex Mono, monospace">'+esc(fmtKD(v))+'</text>';
     });
   });
-  if (proj) {
+  if (proj && proj.prevIdx >= 0) {
     const col = colors[1];
-    const x0 = xFor(proj.idx), y0 = yFor(proj.actual);
-    // nét đứt đi tiếp TỪ chính điểm số liệu thật của kỳ hiện tại — lệch phải một khoảng NHỎ (không chạm ô kế
-    // tiếp) để rõ ràng đây là phần chiếu thêm, không phải 1 kỳ dữ liệu mới.
-    const x1 = x0 + Math.min(stepX*0.42, 36), y1 = yFor(proj.value);
+    const x1 = xFor(proj.idx), y1 = yFor(proj.value);
+    const isEdgeProj = proj.idx === n-1;
+    const anchor = isEdgeProj ? 'end' : 'middle';
+    const tx = isEdgeProj ? x1-4 : x1;
+    // nét đứt TÁCH RA từ kỳ TRƯỚC đã hoàn tất (cùng gốc với đường liền nét tại đó) — không xuất phát từ điểm
+    // thực tế dở dang của kỳ hiện tại — và ĐÁP đúng vị trí trục X của kỳ hiện tại, không lệch sang kỳ kế tiếp.
+    const x0 = xFor(proj.prevIdx), y0 = yFor(proj.prevVal);
     svg += '<line x1="'+x0.toFixed(1)+'" y1="'+y0.toFixed(1)+'" x2="'+x1.toFixed(1)+'" y2="'+y1.toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="4,3" opacity="0.8"/>';
     svg += '<circle cx="'+x1.toFixed(1)+'" cy="'+y1.toFixed(1)+'" r="3.8" fill="#fff" stroke="'+col+'" stroke-width="2.2"/>';
-    svg += '<text x="'+(x1+4).toFixed(1)+'" y="'+(y1-9).toFixed(1)+'" font-size="10" font-weight="700" fill="'+col+'" text-anchor="start" font-family="IBM Plex Mono, monospace">≈'+esc(fmtKD(proj.value))+'</text>';
-    svg += '<text x="'+(x1+4).toFixed(1)+'" y="'+(y1+13).toFixed(1)+'" font-size="8" fill="'+col+'" text-anchor="start" font-family="IBM Plex Mono, monospace" font-style="italic" opacity="0.85">dự kiến</text>';
+    svg += '<text x="'+tx.toFixed(1)+'" y="'+(y1-20).toFixed(1)+'" font-size="10" font-weight="700" fill="'+col+'" text-anchor="'+anchor+'" font-family="IBM Plex Mono, monospace">≈'+esc(fmtKD(proj.value))+'</text>';
+    svg += '<text x="'+tx.toFixed(1)+'" y="'+(y1-9).toFixed(1)+'" font-size="8" fill="'+col+'" text-anchor="'+anchor+'" font-family="IBM Plex Mono, monospace" font-style="italic" opacity="0.85">dự kiến hết kỳ</text>';
   }
   svg += '</svg>';
   return svg;
