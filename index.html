@@ -1679,7 +1679,7 @@ function renderKDMiniChart(labels, series, colors, periodType){
   const padv = (hi-lo)*0.3; lo -= padv; hi += padv;
   const n = labels.length;
   const W = 620, H = 210, padT = 26, padB = 24;
-  const padL = 10, padR = proj ? 96 : 10; // cần thêm khoảng trống bên phải cho điểm + nhãn "dự kiến"
+  const padL = 10, padR = proj ? 132 : 10; // cần thêm khoảng trống bên phải cho điểm + nhãn "dự kiến"
   const xFor = i => padL + (W-padL-padR) * (n<=1 ? 0.5 : i/(n-1));
   const yFor = v => padT + (H-padT-padB) * (1 - (v-lo)/(hi-lo));
   let svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:210px;display:block" preserveAspectRatio="none">';
@@ -1703,8 +1703,9 @@ function renderKDMiniChart(labels, series, colors, periodType){
   if (proj) {
     const col = colors[1];
     const x0 = xFor(proj.idx), y0 = yFor(proj.actual);
-    const stepX = n > 1 ? (W-padL-padR)/(n-1) : 50;
-    const x1 = x0 + stepX*0.9, y1 = yFor(proj.value);
+    // x0 đã nằm ở đúng rìa phải của "vùng vẽ dữ liệu thật" (vì padR dành riêng cho phần dự kiến) — đặt điểm
+    // dự kiến lệch phải 1 khoảng NHỎ trong chính padR đó, chừa đủ chỗ cho nhãn số + dòng chữ "dự kiến hết kỳ".
+    const x1 = x0 + padR*0.32, y1 = yFor(proj.value);
     svg += '<line x1="'+x0.toFixed(1)+'" y1="'+y0.toFixed(1)+'" x2="'+x1.toFixed(1)+'" y2="'+y1.toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="4,3" opacity="0.75"/>';
     svg += '<circle cx="'+x1.toFixed(1)+'" cy="'+y1.toFixed(1)+'" r="3.6" fill="#fff" stroke="'+col+'" stroke-width="2"/>';
     svg += '<text x="'+x1.toFixed(1)+'" y="'+(y1-9).toFixed(1)+'" font-size="10" font-weight="700" fill="'+col+'" text-anchor="start" font-family="IBM Plex Mono, monospace">'+esc(fmtKD(proj.value))+'</text>';
