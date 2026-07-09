@@ -254,6 +254,9 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .kd-metric-btn:last-child{border-right:none}
 .kd-metric-btn:hover{background:var(--bg)}
 .kd-metric-btn.active{background:var(--ghn-orange);color:#fff}
+/* nút "Phân tích AI" khi Gemini chưa trả kết quả xong (đang tải ngầm) — vẫn bấm được (sẽ tự hiện bản quy tắc
+   tạm thời), chỉ làm mờ đi để biết là chưa sẵn sàng, không phải nút bị khoá cứng */
+.kd-metric-btn.disabled{opacity:0.45}
 
 /* trang "sắp ra mắt" / placeholder cho các mục chưa có dữ liệu */
 .section-placeholder{max-width:1340px;margin:0 auto;padding:120px 28px;text-align:center;color:var(--muted)}
@@ -963,10 +966,13 @@ const CHART_STORE = {};  // chartId -> {group, weekLabels, entityLabel}
 const CHART_STATE = {};  // chartId -> {mode:'total'|'detail', hidden:Set}
 
 // entityLabel: chữ mô tả 1 dòng chi tiết là gì (Vùng/AM/Khách hàng/KTC...) để đặt tên nút bấm cho đúng ngữ cảnh
-function chartContainerHtml(group, weekLabels, entityLabel){
+// periodType (tuỳ chọn): 'tuần'|'tháng' — khi có, biểu đồ vẽ thêm đường nét đứt dự kiến hết kỳ cho kỳ hiện tại
+// (chưa hoàn tất), theo đúng nguyên lý run-rate của renderKDMiniChart — dùng cho bảng Bán mới; các chỉ số
+// Vận hành gốc (không truyền periodType) giữ nguyên hành vi cũ, không có đường dự kiến.
+function chartContainerHtml(group, weekLabels, entityLabel, periodType){
   if (!weekLabels || weekLabels.length < 2) return '';
   const id = 'ch' + (CHART_SEQ++);
-  CHART_STORE[id] = { group, weekLabels, entityLabel };
+  CHART_STORE[id] = { group, weekLabels, entityLabel, periodType };
   CHART_STATE[id] = { mode: 'detail', hidden: new Set() };
   return '<div class="tbl-wrap trend-chart-wrap" id="chartwrap-'+id+'">' + renderChartInner(id) + '</div>';
 }
@@ -974,7 +980,7 @@ function chartValOf(rec, wk){ return wk.pct !== undefined ? wk.pct : wk.val; }
 function renderChartInner(id){
   const st = CHART_STORE[id], state = CHART_STATE[id];
   if (!st) return '';
-  const { group, weekLabels, entityLabel } = st;
+  const { group, weekLabels, entityLabel, periodType } = st;
   const detailRows = group.rows.filter(r => !r.isTotalRow && !r.isGrand);
   const totalRec = group.rows.find(r => r.isGrand) || group.rows.find(r => r.isTotalRow);
   const colorFor = (label) => CHART_COLORS[Math.max(0, detailRows.findIndex(r => r.label === label)) % CHART_COLORS.length];
@@ -995,7 +1001,7 @@ function renderChartInner(id){
   if (state.mode === 'total' && !totalRec) {
     body = '<div class="mut" style="font-size:12px;padding:10px 0">Nhóm này chưa có dòng Tổng/Grand Total để hiển thị.</div>';
   } else {
-    body = renderChartSVG(lines, weekLabels);
+    body = renderChartSVG(lines, weekLabels, periodType);
   }
 
   let legend = '<div class="trend-legend">';
@@ -1015,11 +1021,33 @@ function renderChartInner(id){
 
   return head + body + legend;
 }
-function renderChartSVG(lines, weekLabels){
+function renderChartSVG(lines, weekLabels, periodType){
   if (!lines.length) return '<div class="mut" style="font-size:12px;padding:10px 0">Không có dòng nào được chọn để vẽ.</div>';
   let vals = [];
   lines.forEach(({rec}) => rec.weeks.forEach(wk => { const v = chartValOf(rec, wk); if (v !== null && v !== undefined) vals.push(v); }));
   if (vals.length < 2) return '<div class="mut" style="font-size:12px;padding:10px 0">Chưa đủ dữ liệu để vẽ trend.</div>';
+  // dự kiến hết kỳ (nếu có periodType và kỳ cuối cùng chưa hoàn tất) — tính TRƯỚC khi xác định lo/hi để trục Y
+  // co giãn vừa khít bao gồm cả điểm dự kiến, theo đúng nguyên lý run-rate của renderKDMiniChart, áp dụng cho
+  // TỪNG đường đang vẽ (mỗi đường có thể có 1 điểm dự kiến riêng, tách ra ("fork") từ kỳ trước đã hoàn tất).
+  const projList = [];
+  if (periodType) {
+    const ratio = kdProjectionRatio(periodType);
+    if (ratio > 1.02) {
+      const lastIdx = weekLabels.length - 1;
+      lines.forEach((ln, li) => {
+        const rec = ln.rec;
+        const wkLast = rec.weeks[lastIdx];
+        const actual = wkLast ? chartValOf(rec, wkLast) : null;
+        if (actual === null || actual === undefined) return;
+        let prevIdx = -1;
+        for (let i = lastIdx-1; i >= 0; i--) { const v = chartValOf(rec, rec.weeks[i]); if (v !== null && v !== undefined) { prevIdx = i; break; } }
+        if (prevIdx < 0) return;
+        const value = actual * ratio;
+        projList.push({ li, lastIdx, prevIdx, value });
+        vals.push(value);
+      });
+    }
+  }
   let lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
   if (lo === hi) { lo -= Math.abs(lo*0.1)||0.05; hi += Math.abs(hi*0.1)||0.05; }
   const padv = (hi-lo)*0.15; lo -= padv; hi += padv;
@@ -1037,6 +1065,16 @@ function renderChartSVG(lines, weekLabels){
     const titleTxt = esc(rec.label) + ' — ' + weekLabels.map((w,i)=>{ const wk=rec.weeks[i]; const v=chartValOf(rec,wk); return w+': '+(v===null||v===undefined?'–':(isPctMetric?(v*100).toFixed(1)+'%':v));}).join(', ');
     svg += '<path d="'+smoothPathD(pts)+'" fill="none" stroke="'+color+'" stroke-width="2" opacity="0.92"><title>'+titleTxt+'</title></path>';
     pts.forEach(p => { svg += '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2.4" fill="'+color+'"></circle>'; });
+  });
+  // đường nét đứt dự kiến hết kỳ — tách ("fork") từ kỳ TRƯỚC đã hoàn tất, cùng gốc với đường liền nét tại đó.
+  projList.forEach(p => {
+    const ln = lines[p.li];
+    const rec = ln.rec, color = ln.color;
+    const prevVal = chartValOf(rec, rec.weeks[p.prevIdx]);
+    const x0 = xFor(p.prevIdx), y0 = yFor(prevVal);
+    const x1 = xFor(p.lastIdx), y1 = yFor(p.value);
+    svg += '<line x1="'+x0.toFixed(1)+'" y1="'+y0.toFixed(1)+'" x2="'+x1.toFixed(1)+'" y2="'+y1.toFixed(1)+'" stroke="'+color+'" stroke-width="2" stroke-dasharray="4,3" opacity="0.8"/>';
+    svg += '<circle cx="'+x1.toFixed(1)+'" cy="'+y1.toFixed(1)+'" r="3.6" fill="#fff" stroke="'+color+'" stroke-width="2"><title>≈ dự kiến hết kỳ</title></circle>';
   });
   svg += '</svg>';
   return svg;
@@ -1069,7 +1107,7 @@ const OPS_FACTS_STORE = {};
 const OPS_AI_STORE = { overview: null, groups: {} };
 
 // ---------- nhận xét tự động dưới mỗi bảng (đạt target = xanh, chưa đạt = đỏ) ----------
-function buildGroupAnalysis(group, dir, id, ctxLabel){
+function buildGroupAnalysis(group, dir, id, ctxLabel, fmtOverride){
   const rows = group.rows.filter(r => !r.isTotalRow && !r.isGrand);
   if (!rows.length) return '';
   const withVal = rows.map(r => {
@@ -1079,8 +1117,10 @@ function buildGroupAnalysis(group, dir, id, ctxLabel){
   }).filter(x => x.v !== null && x.v !== undefined);
   if (!withVal.length) return '';
   const isPctMetric = withVal[0].r.weeks[0].pct !== undefined;
-  const fmtV = v => isPctMetric ? fmtPct(v) : fmtMin(v);
-  const fmtGap = v => isPctMetric ? Math.abs(v*100).toFixed(1)+'pp' : Math.abs(v).toFixed(1)+' p';
+  // fmtOverride: dùng khi giá trị không phải % lẫn không phải phút (VD Sản lượng/Số lượng KH/Doanh thu của
+  // bảng Bán mới) — để không bị mặc định format nhầm thành "X phút" như các chỉ số Vận hành gốc.
+  const fmtV = fmtOverride ? fmtOverride : (v => isPctMetric ? fmtPct(v) : fmtMin(v));
+  const fmtGap = fmtOverride ? (v => fmtOverride(Math.abs(v))) : (v => isPctMetric ? Math.abs(v*100).toFixed(1)+'pp' : Math.abs(v).toFixed(1)+' p');
   // gap: khoảng cách tới target THEO ĐÚNG hướng tốt/xấu — dương = đạt (dư ra bấy nhiêu), âm = chưa đạt (thiếu bấy nhiêu)
   const scoredRows = withVal.map(x => {
     const hasTarget = x.r.target !== null && x.r.target !== undefined && !isNaN(x.r.target);
@@ -1192,8 +1232,8 @@ function parseGroupedSheet(table, opt){
   }
   // đọc ĐÚNG tiêu đề cột con (VD "Đơn"/"%OnT", "Vol LấyTC"/"%Rớt", "% Vol"/"%FD"...) trực tiếp từ sheet —
   // không đoán/hardcode — để tự nhận ra khi cột "vol" thực ra là % (VD user đổi "Đơn" thành "% Vol")
-  let volLabel = null, pctLabel = null, volIsPct = false;
-  if (!opt.singleValue && weeksCount > 0) {
+  let volLabel = null, pctLabel = null, volIsPct = false, khLabel = null, revLabel = null;
+  if (!opt.singleValue && !opt.tripleValue && weeksCount > 0) {
     const raw1 = colLabel(table, opt.weekStartIdx).trim();
     const wkTok = firstToken(raw1, '');
     const sub1 = (wkTok && raw1.indexOf(wkTok) === 0) ? raw1.slice(wkTok.length).trim() : raw1;
@@ -1201,6 +1241,14 @@ function parseGroupedSheet(table, opt){
     volLabel = sub1 || 'Vol';
     pctLabel = sub2 || '%';
     volIsPct = sub1.indexOf('%') !== -1;
+  } else if (opt.tripleValue && weeksCount > 0) {
+    // bảng 3 cột/tuần (VD Sản lượng | Số lượng KH | Doanh Thu) — đọc động cả 3 nhãn cột con từ sheet
+    const raw1 = colLabel(table, opt.weekStartIdx).trim();
+    const wkTok = firstToken(raw1, '');
+    const sub1 = (wkTok && raw1.indexOf(wkTok) === 0) ? raw1.slice(wkTok.length).trim() : raw1;
+    volLabel = sub1 || 'Sản lượng';
+    khLabel = colLabel(table, opt.weekStartIdx + 1).trim() || 'Số lượng KH';
+    revLabel = colLabel(table, opt.weekStartIdx + 2).trim() || 'Doanh Thu';
   }
   const groups = [];
   let topLabel = opt.dim1HeaderPrefix ? extractSwallowedFirstLabel(table, opt.dim1HeaderPrefix) : '';
@@ -1221,7 +1269,13 @@ function parseGroupedSheet(table, opt){
     const weeks = [];
     for (let w = 0; w < weeksCount; w++) {
       if (opt.singleValue) weeks.push({ val: cell(row, opt.weekStartIdx + w*opt.weekStep) });
-      else {
+      else if (opt.tripleValue) {
+        weeks.push({
+          vol: cell(row, opt.weekStartIdx + w*opt.weekStep),
+          khCount: cell(row, opt.weekStartIdx + w*opt.weekStep + 1),
+          rev: cell(row, opt.weekStartIdx + w*opt.weekStep + 2)
+        });
+      } else {
         const rawVol = cell(row, opt.weekStartIdx + w*opt.weekStep);
         weeks.push({ vol: volIsPct ? normPct(rawVol) : rawVol, pct: normPct(cell(row, opt.weekStartIdx + w*opt.weekStep + 1)) });
       }
@@ -1234,7 +1288,182 @@ function parseGroupedSheet(table, opt){
     current.rows.push(rec);
   });
   // bỏ các group rỗng (divider không có dòng dữ liệu nào theo sau, ví dụ divider cấp 1 của GTC đã được nối vào divider cấp 2)
-  return { weeksCount, weekLabels, volLabel, pctLabel, volIsPct, groups: groups.filter(g => g.rows.length > 0) };
+  return { weeksCount, weekLabels, volLabel, pctLabel, volIsPct, khLabel, revLabel, groups: groups.filter(g => g.rows.length > 0) };
+}
+// Bảng "Bán mới" (24_KD_BanMoi theo Vùng dùng parseKDTable có sẵn; 24_KD_BanMoiAM theo AM/Khách hàng dùng
+// hàm này): dim1, target (số tuyệt đối, không phải %), rồi mỗi tuần 3 cột Sản lượng | Số lượng KH | Doanh Thu,
+// cuối cùng là 1 cột Δ (không đọc giá trị Δ có sẵn trong sheet — Δ hiển thị trên web luôn được TỰ TÍNH LẠI phía
+// client theo đúng 2 kỳ gần nhất của chỉ số đang chọn, để nhất quán với mọi bảng khác trong báo cáo).
+function parseKDBanMoi(table, dim1HeaderPrefix){
+  return parseGroupedSheet(table, { targetIdx: 1, targetIsPct: false, dimIdxs: [0], weekStartIdx: 2, weekStep: 3, fixedCols: 3, tripleValue: true, dim1HeaderPrefix });
+}
+// "chiếu" 1 group (nhiều dòng AM/Khách hàng, mỗi dòng nhiều tuần x {vol,khCount,rev}) sang ĐÚNG khuôn dạng
+// {label, rows:[{label,target,weeks:[{val}],isTotalRow,isGrand}]} mà các hàm dùng chung (chartContainerHtml,
+// buildGroupAnalysis, rowHtml...) đang xử lý — theo ĐÚNG 1 chỉ số đang được chọn (vol/khCount/rev). Nhờ vậy
+// toàn bộ máy vẽ bảng/biểu đồ/nhận xét của Vận hành được tái dùng nguyên vẹn cho bảng Bán mới mới này.
+function banMoiMetricView(group, metric){
+  return {
+    label: group.label,
+    rows: group.rows.map(r => ({
+      label: r.label, target: r.target, isTotalRow: r.isTotalRow, isGrand: r.isGrand,
+      weeks: r.weeks.map(wk => ({ val: wk[metric] }))
+    }))
+  };
+}
+
+// ================= "Bán mới theo AM/Khách hàng" (24_KD_BanMoiAM) =================
+// Bảng luôn hiện đủ CẢ 3 chỉ số (Sản lượng/Số lượng KH/Doanh thu) mỗi tuần, giống cấu trúc gốc trong sheet.
+// Biểu đồ + Δ + nhận xét (target/AI) đổi theo 1 chỉ số đang được CHỌN (nút 3 lựa chọn) — vì Target/Δ/xu hướng
+// chỉ có ý nghĩa khi so sánh CÙNG 1 đơn vị, không thể gộp cả 3 vào 1 con số duy nhất.
+function banMoiFmtOf(metric){ return metric === 'khCount' ? fmtNum : fmtKD; }
+function banMoiMetricLabel(metric){ return metric === 'vol' ? 'Sản lượng' : (metric === 'khCount' ? 'Số lượng KH' : 'Doanh thu'); }
+const BANMOI_METRIC_STATE = { current: 'vol' };
+const BANMOI_MODE_STATE = { current: 'ai' }; // 'ai' | 'rule' — dùng chung cho cả khối Bán mới theo AM/KH
+const BANMOI_AI_STORE = {}; // groupId ('banmoiam-<i>') -> văn AI (tái dùng backend getOpsAnalysis có sẵn)
+let BANMOI_PARSED = null; // { weeksCount, weekLabels, volLabel, khLabel, revLabel, groups } — parseKDBanMoi(...)
+
+function theadBanMoiHtml(firstColLabel, volLabel, khLabel, revLabel, weekLabels){
+  let h1 = '<tr><th rowspan="2" style="text-align:left!important;padding-left:10px!important">'+esc(firstColLabel)+'</th><th rowspan="2">Target<br>('+esc(banMoiMetricLabel('vol'))+')</th>';
+  let h2 = '<tr class="subhead">';
+  weekLabels.forEach((w) => {
+    h1 += '<th colspan="3" class="wsep">'+esc(w)+'</th>';
+    h2 += '<th class="wsep">'+esc(volLabel)+'</th><th>'+esc(khLabel)+'</th><th>'+esc(revLabel)+'</th>';
+  });
+  h1 += '<th rowspan="2">Δ ('+esc(banMoiMetricLabel(BANMOI_METRIC_STATE.current))+'<br>2 kỳ gần nhất)</th></tr>';
+  h2 += '</tr>';
+  return '<thead>'+h1+h2+'</thead>';
+}
+// khác với weekTds dùng chung cho các bảng Vận hành (luôn format phút cho giá trị không phải %), bảng Bán mới
+// cần TỰ render riêng vì mỗi tuần có 3 giá trị cùng lúc (Sản lượng/Số lượng KH/Doanh thu, mỗi cái 1 đơn vị
+// format khác nhau) — không khớp khuôn dạng {val} hay {vol,pct} mà weekTds/rowHtml đang xử lý.
+function banMoiRowHtml(rec, dir, metric, isLastWeekProjected, projRatio){
+  const n = rec.weeks.length;
+  const rowCls = rec.isGrand ? ' class="grand-row"' : (rec.isTotalRow ? ' class="total-row"' : '');
+  let tds = '<td style="text-align:left!important">'+esc(rec.label)+'</td>';
+  tds += '<td class="mut">'+(rec.target===null||rec.target===undefined?'–':fmtKD(rec.target))+'</td>';
+  rec.weeks.forEach((wk,i) => {
+    const showProj = isLastWeekProjected && i === n-1;
+    const projSpan = (v, fmtF) => (showProj && v !== null && v !== undefined)
+      ? '<div style="font-size:9px;font-weight:600;color:#F15A22;font-style:italic">≈'+fmtF(v*projRatio)+'</div>' : '';
+    tds += '<td class="wsep">'+fmtNum(wk.vol)+projSpan(wk.vol, fmtNum)+'</td>' +
+           '<td>'+fmtNum(wk.khCount)+projSpan(wk.khCount, fmtNum)+'</td>' +
+           '<td>'+fmtKD(wk.rev)+projSpan(wk.rev, fmtKD)+'</td>';
+  });
+  const curr = n>=1 ? rec.weeks[n-1][metric] : null, prev = n>=2 ? rec.weeks[n-2][metric] : null;
+  let deltaHtml = '<td class="mut">–</td>';
+  if (curr !== null && curr !== undefined && prev !== null && prev !== undefined) {
+    const diff = curr - prev, fmtF = banMoiFmtOf(metric);
+    if (Math.abs(diff) < 1e-9) deltaHtml = '<td class="mut">— 0</td>';
+    else {
+      const isGood = dir==='ge' ? diff>0 : diff<0;
+      const color = isGood ? '#0F6E56' : '#C0392B';
+      deltaHtml = '<td><span style="color:'+color+';font-weight:700">'+(diff>0?'▲':'▼')+' '+fmtF(Math.abs(diff))+'</span></td>';
+    }
+  }
+  return '<tr'+rowCls+'>'+tds+deltaHtml+'</tr>';
+}
+function banMoiTableHtml(group, dir, firstColLabel, volLabel, khLabel, revLabel, weekLabels, metric){
+  const ratio = kdProjectionRatio('tuần');
+  const isLastWeekProjected = ratio > 1.02;
+  const rows = group.rows.map(r => banMoiRowHtml(r, dir, metric, isLastWeekProjected, ratio)).join('');
+  return '<div class="tbl-wrap" style="margin-top:8px;overflow-x:auto"><table>' +
+    theadBanMoiHtml(firstColLabel, volLabel, khLabel, revLabel, weekLabels) +
+    '<tbody>'+rows+'</tbody></table></div>' +
+    (isLastWeekProjected ? '<div class="mut" style="font-size:11px;font-style:italic;margin-top:4px">≈ số in nghiêng màu cam ở tuần cuối là số DỰ KIẾN hết tuần (chiếu theo tốc độ trung bình từ đầu tuần tới hôm nay), vì tuần này chưa kết thúc.</div>' : '');
+}
+// nhận xét dưới mỗi group — luôn gọi buildGroupAnalysis TRƯỚC để cập nhật OPS_FACTS_STORE mới nhất theo đúng
+// chỉ số đang chọn (cần cho AI + giữ đúng màu xanh/vàng/đỏ theo tỉ lệ đạt target), rồi mới thay phần VĂN BẢN
+// bằng bản AI nếu đã có và đang ở chế độ 'ai' — giữ nguyên class màu/id đã tính trong bản rule-based.
+function banMoiGroupBlockHtml(group, gIdx, weekLabels, firstColLabel, volLabel, khLabel, revLabel, metric, mode){
+  const dir = 'ge'; // Bán mới: sản lượng/số KH/doanh thu càng cao so target càng tốt
+  const groupId = 'banmoiam-'+gIdx;
+  const view = banMoiMetricView(group, metric);
+  const fmtOverride = banMoiFmtOf(metric);
+  let out = groupHeadingHtml(group.label, 'AM.'+(gIdx+1), true, 'Nhóm '+(gIdx+1));
+  out += banMoiTableHtml(group, dir, firstColLabel, volLabel, khLabel, revLabel, weekLabels, metric);
+  out += chartContainerHtml(view, weekLabels, 'đối tượng', 'tuần');
+  const ruleHtml = buildGroupAnalysis(view, dir, groupId, group.label + ' — ' + banMoiMetricLabel(metric), fmtOverride);
+  const useAi = mode !== 'rule';
+  const aiText = useAi && BANMOI_AI_STORE[groupId];
+  if (aiText && ruleHtml) {
+    const names = view.rows.filter(r=>!r.isTotalRow&&!r.isGrand).map(r=>r.label);
+    out += ruleHtml.replace(/(<div class="comment [a-z]+" id="cmt-[^"]+">)[\s\S]*(<\/div>)$/,
+      '$1<span style="font-size:9.5px;font-weight:600;color:#7B4FA6;font-family:var(--mono)">✨ AI</span> ' + highlightAiText(aiText, names) + '$2');
+  } else {
+    out += ruleHtml;
+  }
+  return out;
+}
+function renderBanMoiAMBody(){
+  if (!BANMOI_PARSED) return '';
+  const { weekLabels, volLabel, khLabel, revLabel, groups } = BANMOI_PARSED;
+  const metric = BANMOI_METRIC_STATE.current, mode = BANMOI_MODE_STATE.current;
+  if (!groups.length) return '<div class="mut" style="font-size:12.5px;padding:10px 0">Chưa có dữ liệu — điền số liệu vào tab 24_KD_BanMoiAM rồi bấm "Làm mới dữ liệu".</div>';
+  return groups.map((g,i) => banMoiGroupBlockHtml(g, i, weekLabels, 'Đối tượng', volLabel||'Sản lượng', khLabel||'Số lượng KH', revLabel||'Doanh Thu', metric, mode)).join('');
+}
+function setBanMoiMetric(metric){
+  BANMOI_METRIC_STATE.current = metric;
+  ['vol','khCount','rev'].forEach(m => {
+    const btn = document.getElementById('banMoiMetricBtn-'+m);
+    if (btn) btn.classList.toggle('active', m === metric);
+  });
+  const el = document.getElementById('banMoiAMBody');
+  if (el) el.innerHTML = renderBanMoiAMBody();
+}
+function setBanMoiMode(mode){
+  BANMOI_MODE_STATE.current = mode;
+  ['ai','rule'].forEach(m => {
+    const btn = document.getElementById('banMoiModeBtn-'+m);
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+  const el = document.getElementById('banMoiAMBody');
+  if (el) el.innerHTML = renderBanMoiAMBody();
+}
+function renderBanMoiAMBlock(parsed, title, blockId){
+  BANMOI_PARSED = parsed;
+  if (!parsed || !parsed.groups || !parsed.groups.length) {
+    return '<div class="block-header">'+esc(title)+'</div><div class="tbl-wrap" style="padding:20px"><div class="mut" style="font-size:12.5px">Chưa có dữ liệu — tạo tab 24_KD_BanMoiAM và điền số liệu theo format đã hướng dẫn.</div></div>';
+  }
+  const metric = BANMOI_METRIC_STATE.current, mode = BANMOI_MODE_STATE.current;
+  let out = '<div class="block-header">'+esc(title)+'</div>';
+  out += '<div class="tbl-wrap" style="padding:16px 18px">';
+  out += '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px">';
+  out += '<div class="kd-metric-toggle">' +
+    '<button type="button" onclick="setBanMoiMetric(\'vol\')" id="banMoiMetricBtn-vol" class="kd-metric-btn'+(metric==='vol'?' active':'')+'">📦 Sản lượng</button>' +
+    '<button type="button" onclick="setBanMoiMetric(\'khCount\')" id="banMoiMetricBtn-khCount" class="kd-metric-btn'+(metric==='khCount'?' active':'')+'">👥 Số lượng KH</button>' +
+    '<button type="button" onclick="setBanMoiMetric(\'rev\')" id="banMoiMetricBtn-rev" class="kd-metric-btn'+(metric==='rev'?' active':'')+'">💰 Doanh thu</button>' +
+    '</div>';
+  out += '<div class="kd-metric-toggle" title="Chọn văn phong nhận xét: AI (Gemini) viết chuyên sâu, hoặc bản quy tắc cố định">' +
+    '<button type="button" onclick="setBanMoiMode(\'ai\')" id="banMoiModeBtn-ai" class="kd-metric-btn'+(mode==='ai'?' active':'')+(Object.keys(BANMOI_AI_STORE).length?'':' disabled')+'">✨ Phân tích AI</button>' +
+    '<button type="button" onclick="setBanMoiMode(\'rule\')" id="banMoiModeBtn-rule" class="kd-metric-btn'+(mode==='rule'?' active':'')+'">📐 Thông thường</button>' +
+    '</div></div>';
+  out += '<div class="mut" style="font-size:11px;font-style:italic;margin-bottom:8px">Target so theo đúng chỉ số đang chọn ở trên · biểu đồ nét đứt = số dự kiến nếu hết tuần hiện tại vẫn giữ nguyên tốc độ hiện tại.</div>';
+  out += '<div id="banMoiAMBody">' + renderBanMoiAMBody() + '</div>';
+  out += '</div>';
+  return out;
+}
+// dùng lại NGUYÊN VẸN backend getOpsAnalysis đã có (không cần action mới trong Code.gs) — chỉ gửi phần "groups"
+// (facts target/best/worst/badList đã tính sẵn cho từng nhóm AM/Khách hàng theo đúng chỉ số đang chọn), không
+// kèm "overview" (Bán mới không có phần tổng quan điểm sáng/cần cải thiện riêng). Nhờ payload tách bạch với
+// phần Vận hành (facts khác nhau -> cache-key khác nhau ở Code.gs) nên không đụng/không cần gọi lại phần Vận hành.
+async function banMoiEnhanceWithAI(){
+  try {
+    if (!BANMOI_PARSED || !BANMOI_PARSED.groups.length) return;
+    const groupIds = BANMOI_PARSED.groups.map((g,i) => 'banmoiam-'+i);
+    const groups = groupIds.map(gid => OPS_FACTS_STORE[gid]).filter(Boolean);
+    if (!groups.length) return;
+    const res = await callBackend('getOpsAnalysis', { token: AUTH.session.token, overview: { highlights: [], lowlights: [] }, groups });
+    if (!res.ok || !res.analysis || !res.analysis.groups) return;
+    Object.keys(res.analysis.groups).forEach(gid => {
+      if (gid.indexOf('banmoiam-') !== 0) return;
+      const text = res.analysis.groups[gid];
+      if (typeof text === 'string' && text.trim()) BANMOI_AI_STORE[gid] = text;
+    });
+    const el = document.getElementById('banMoiAMBody');
+    if (el) el.innerHTML = renderBanMoiAMBody();
+    const aiBtn = document.getElementById('banMoiModeBtn-ai');
+    if (aiBtn) aiBtn.classList.remove('disabled');
+  } catch (e) { /* im lặng giữ nguyên bản rule-based đang hiển thị */ }
 }
 
 function parseExtra2(table, dim1HeaderPrefix){ // 02_OPR,03_ODR,04_FD,07_GTC : dim1,dim2,target,tuần...,delta
@@ -1846,7 +2075,8 @@ function buildSummaryBanner(data){
 const KD_TABS = [
   { key: '21_KD_HangNangNhe', title: 'LTC — Vùng DBB — Hàng nặng & nhẹ' },
   { key: '22_KD_HangNang', title: 'LTC — Vùng DBB — Hàng nặng' },
-  { key: '23_KD_HangNhe', title: 'LTC — Vùng DBB — Hàng nhẹ' }
+  { key: '23_KD_HangNhe', title: 'LTC — Vùng DBB — Hàng nhẹ' },
+  { key: '24_KD_BanMoi', title: 'LTC — Vùng DBB — Bán mới' }
 ];
 let kdLoaded = false;
 
@@ -2212,16 +2442,21 @@ function buildKDBlockOverview(kd){
 const KD_DATA_STORE = {};
 const KD_METRIC_STATE = {};
 const KD_AI_STORE = {}; // KD_AI_STORE[blockId] = { overview_vol, overview_rev, weekly_vol, weekly_rev, monthly_vol, monthly_rev } từ Gemini, hoặc undefined nếu chưa có/lỗi (dùng rule-based).
+// KD_ANALYSIS_MODE[blockId] = 'ai' (mặc định — hiện bản AI ngay khi có, tạm hiện rule-based trong lúc chờ) hoặc
+// 'rule' (người dùng chủ động chọn Thông thường — LUÔN hiện bản quy tắc cũ dù AI đã có sẵn, không tự đổi).
+const KD_ANALYSIS_MODE = {};
 
-// ghép HTML "Tổng quan" — ưu tiên dùng văn AI (Gemini) nếu đã có, còn không thì rơi về bản rule-based cũ.
-// Màu xanh/đỏ và emoji 🟢/🔴 LUÔN do code tự tính (không để AI quyết định) để đảm bảo đúng quy ước của báo cáo.
-function kdAssembleOverviewHtml(kd, aiItem){
+// ghép HTML "Tổng quan" — ưu tiên dùng văn AI (Gemini) nếu đã có VÀ mode='ai', còn không thì rơi về bản
+// rule-based cũ. Màu xanh/đỏ và emoji 🟢/🔴 LUÔN do code tự tính (không để AI quyết định) để đảm bảo đúng
+// quy ước của báo cáo.
+function kdAssembleOverviewHtml(kd, aiItem, mode){
+  const useAi = mode !== 'rule';
   const volRes = kdOverviewLines(kdMetricPeriod(kd.weekly, 'vol'), kdMetricPeriod(kd.monthly, 'vol'), 'sản lượng');
   const revRes = kdOverviewLines(kdMetricPeriod(kd.weekly, 'rev'), kdMetricPeriod(kd.monthly, 'rev'), 'doanh thu');
   if (!volRes && !revRes) return '';
   const overallGood = volRes ? volRes.overallGood : revRes.overallGood;
-  const aiVol = aiItem && Array.isArray(aiItem.overview_vol) && aiItem.overview_vol.length ? aiItem.overview_vol : null;
-  const aiRev = aiItem && Array.isArray(aiItem.overview_rev) && aiItem.overview_rev.length ? aiItem.overview_rev : null;
+  const aiVol = useAi && aiItem && Array.isArray(aiItem.overview_vol) && aiItem.overview_vol.length ? aiItem.overview_vol : null;
+  const aiRev = useAi && aiItem && Array.isArray(aiItem.overview_rev) && aiItem.overview_rev.length ? aiItem.overview_rev : null;
   const periodNames = (kd.weekly && kd.weekly.labels || []).concat(kd.monthly && kd.monthly.labels || []);
   const volLinesHtml = aiVol ? aiVol.map(l => '<div class="aline">• '+highlightAiText(l, periodNames)+'</div>').join('')
     : (volRes ? volRes.lines.map(l => '<div class="aline">• '+l+'</div>').join('') : '');
@@ -2234,12 +2469,13 @@ function kdAssembleOverviewHtml(kd, aiItem){
   html += '</div>';
   return html;
 }
-// ghép HTML "nhận xét chi tiết" của 1 tần suất — ưu tiên đoạn văn AI nếu đã có cho đúng tần suất đó, còn
-// không thì rơi về bản rule-based cũ (buildKDMetricAnalysis, đã có sẵn con số + màu tăng/giảm).
-function kdAssembleDetailHtml(periodBoth, periodLabel, aiItem, periodKey){
+// ghép HTML "nhận xét chi tiết" của 1 tần suất — ưu tiên đoạn văn AI nếu đã có (và mode='ai') cho đúng tần
+// suất đó, còn không thì rơi về bản rule-based cũ (buildKDMetricAnalysis, đã có sẵn con số + màu tăng/giảm).
+function kdAssembleDetailHtml(periodBoth, periodLabel, aiItem, periodKey, mode){
+  const useAi = mode !== 'rule';
   const volField = periodKey + '_vol', revField = periodKey + '_rev';
-  const aiVolText = aiItem && typeof aiItem[volField] === 'string' && aiItem[volField].trim();
-  const aiRevText = aiItem && typeof aiItem[revField] === 'string' && aiItem[revField].trim();
+  const aiVolText = useAi && aiItem && typeof aiItem[volField] === 'string' && aiItem[volField].trim();
+  const aiRevText = useAi && aiItem && typeof aiItem[revField] === 'string' && aiItem[revField].trim();
   const detailNames = periodBoth && periodBoth.labels || [];
   const volHtml = aiVolText
     ? '<div style="font-size:12.5px;margin-bottom:10px;line-height:1.6">📦 <b>Sản lượng</b> — '+highlightAiText(aiItem[volField], detailNames)+' <span style="font-size:9px;color:#7B4FA6">✨</span></div>'
@@ -2256,12 +2492,13 @@ function kdRenderPeriodColumn(blockId, periodKey){
   const kd = KD_DATA_STORE[blockId];
   if (!kd) return '';
   const metric = KD_METRIC_STATE[blockId] || 'vol';
+  const mode = KD_ANALYSIS_MODE[blockId] || 'ai';
   const periodBoth = kd[periodKey];
   const period = kdMetricPeriod(periodBoth, metric);
   const colors = ['#0063AA','#F15A22'];
   const pt = periodKey === 'weekly' ? 'tuần' : 'tháng';
   return renderKDMiniChart(period.labels, [{vals:period.y2025},{vals:period.y2026}], colors, pt) +
-    kdAssembleDetailHtml(periodBoth, pt, KD_AI_STORE[blockId], periodKey) +
+    kdAssembleDetailHtml(periodBoth, pt, KD_AI_STORE[blockId], periodKey, mode) +
     kdPeriodTable(period, pt);
 }
 // bấm nút chọn Sản lượng/Doanh thu ở 1 khối — chỉ vẽ lại đúng 2 cột (Tuần/Tháng) của khối đó, không ảnh hưởng
@@ -2282,21 +2519,42 @@ function setKDMetric(blockId, metric){
 function kdRefreshBlock(blockId){
   const kd = KD_DATA_STORE[blockId];
   if (!kd) return;
+  const mode = KD_ANALYSIS_MODE[blockId] || 'ai';
   const ovEl = document.getElementById('kdOverview-'+blockId);
-  if (ovEl) ovEl.innerHTML = kdAssembleOverviewHtml(kd, KD_AI_STORE[blockId]);
+  if (ovEl) ovEl.innerHTML = kdAssembleOverviewHtml(kd, KD_AI_STORE[blockId], mode);
   const wEl = document.getElementById('kdCol-'+blockId+'-weekly');
   if (wEl) wEl.innerHTML = kdRenderPeriodColumn(blockId, 'weekly');
   const mEl = document.getElementById('kdCol-'+blockId+'-monthly');
   if (mEl) mEl.innerHTML = kdRenderPeriodColumn(blockId, 'monthly');
+  const aiBtn = document.getElementById('kdModeBtn-'+blockId+'-ai');
+  // nếu AI vừa tải xong lần đầu (trước đó nút "AI" bị ẩn/mờ vì chưa có dữ liệu) thì cập nhật lại trạng thái nút
+  if (aiBtn) aiBtn.classList.toggle('disabled', !KD_AI_STORE[blockId]);
+}
+// bấm nút chọn Phân tích theo AI/Thông thường ở 1 khối — chỉ đổi cách HIỂN THỊ văn bản nhận xét (tổng quan +
+// chi tiết) của đúng khối đó, không gọi lại backend (dữ liệu AI đã tải sẵn từ kdEnhanceWithAI, chỉ là ẩn/hiện).
+function setKDAnalysisMode(blockId, mode){
+  KD_ANALYSIS_MODE[blockId] = mode;
+  ['ai','rule'].forEach(m => {
+    const btn = document.getElementById('kdModeBtn-'+blockId+'-'+m);
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+  kdRefreshBlock(blockId);
 }
 function renderKDBlock(kd, title, blockId){
   if (!kd) return '<div class="block-header">'+esc(title)+'</div><div class="tbl-wrap" style="padding:20px"><div class="mut" style="font-size:12.5px">Chưa có dữ liệu — tạo tab Google Sheet tương ứng và điền số liệu theo format đã hướng dẫn.</div></div>';
   if (!KD_METRIC_STATE[blockId]) KD_METRIC_STATE[blockId] = 'vol';
+  if (!KD_ANALYSIS_MODE[blockId]) KD_ANALYSIS_MODE[blockId] = 'ai';
   const metric = KD_METRIC_STATE[blockId];
+  const mode = KD_ANALYSIS_MODE[blockId];
   const colors = ['#0063AA','#F15A22'];
   let out = '<div class="block-header">'+esc(title)+'</div>';
   out += '<div class="tbl-wrap" style="padding:16px 18px">';
-  out += '<div id="kdOverview-'+esc(blockId)+'">' + kdAssembleOverviewHtml(kd, KD_AI_STORE[blockId]) + '</div>';
+  out += '<div style="display:flex;justify-content:flex-end;margin-bottom:6px">' +
+    '<div class="kd-metric-toggle" title="Chọn văn phong nhận xét: AI (Gemini) viết chuyên sâu, hoặc bản quy tắc cố định">' +
+    '<button type="button" onclick="setKDAnalysisMode(\''+esc(blockId)+'\',\'ai\')" id="kdModeBtn-'+esc(blockId)+'-ai" class="kd-metric-btn'+(mode==='ai'?' active':'')+(KD_AI_STORE[blockId]?'':' disabled')+'">✨ Phân tích AI</button>' +
+    '<button type="button" onclick="setKDAnalysisMode(\''+esc(blockId)+'\',\'rule\')" id="kdModeBtn-'+esc(blockId)+'-rule" class="kd-metric-btn'+(mode==='rule'?' active':'')+'">📐 Thông thường</button>' +
+    '</div></div>';
+  out += '<div id="kdOverview-'+esc(blockId)+'">' + kdAssembleOverviewHtml(kd, KD_AI_STORE[blockId], mode) + '</div>';
   out += '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:6px">';
   out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[0]+'"></span><span style="color:'+colors[0]+';font-weight:700">2025</span></span>';
   out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[1]+'"></span><span style="color:'+colors[1]+';font-weight:700">2026</span></span>';
@@ -2387,9 +2645,17 @@ async function loadKinhDoanh(){
       KD_DATA_STORE[t.key] = kd;
       out += renderKDBlock(kd, t.title, t.key);
     });
+    // "Bán mới theo AM/Khách hàng" (24_KD_BanMoiAM) — cấu trúc khác hẳn (Target + 3 cột/tuần), không dùng
+    // được parseKDTable/renderKDBlock như 4 khối trên nên có luồng parse + render riêng (parseKDBanMoi/renderBanMoiAMBlock).
+    safeRun('banMoiAM', () => {
+      const amTable = res.tables ? res.tables['24_KD_BanMoiAM'] : null;
+      const banMoiParsed = amTable ? parseKDBanMoi(amTable) : null;
+      out += renderBanMoiAMBlock(banMoiParsed, 'LTC — Vùng DBB — Bán mới theo AM/Khách hàng', 'banMoiAM');
+    });
     document.getElementById('kdBody').innerHTML = out;
     // bản rule-based đã hiện xong ở trên — giờ mới âm thầm gọi AI nâng cấp, không chặn UI.
     kdEnhanceWithAI();
+    banMoiEnhanceWithAI();
   } catch(e) {
     kdProgress.finish('kdLoadingNote');
     document.getElementById('kdErrBanner').innerHTML = '<div style="background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">Lỗi tải Kinh doanh: '+esc(e.message)+'</div>';

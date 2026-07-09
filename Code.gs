@@ -59,7 +59,7 @@ const ADMIN_NAME = 'Quản trị viên';
 const DATA_SHEET_NAMES = ['01_Scorecard', '02_OPR', '03_ODR', '04_FD', '05_RotLC',
   '06_BL_LC_36H', '07_GTC', '08_BL_Giao_120H', '09_BL_LC_Tra_48H', '10_BL_Tra_120H',
   '11_KTC_ChoNhap', '12_KTC_NhapXuat', '13_KTC_Ton24H',
-  '21_KD_HangNangNhe', '22_KD_HangNang', '23_KD_HangNhe'];
+  '21_KD_HangNangNhe', '22_KD_HangNang', '23_KD_HangNhe', '24_KD_BanMoi', '24_KD_BanMoiAM'];
 
 // Cột trong sheet "Main" (1-indexed)
 const COL = { EMAIL: 1, HOTEN: 2, HASH: 3, SALT: 4, ACTIVE: 5, VAITRO: 6, NGAYTAO: 7,
