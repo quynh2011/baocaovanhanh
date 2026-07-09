@@ -176,7 +176,16 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .login-back:hover{color:var(--text)}
 
 /* menu người dùng góc trên phải khi đã đăng nhập */
-.user-menu{position:fixed;top:18px;right:150px;z-index:1000}
+.user-menu{position:fixed;top:18px;right:150px;z-index:1000;display:flex;align-items:center;gap:8px}
+/* dải avatar "đang online" kiểu Google Data Studio — chồng nhẹ lên nhau, chấm xanh báo hiệu đang hoạt động */
+.online-users-bar{display:flex;align-items:center}
+.online-avatar{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:#fff;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.15);
+  margin-left:-8px;position:relative;cursor:default;font-family:var(--f)}
+.online-avatar:first-child{margin-left:0}
+.online-avatar:not(.more)::after{content:'';position:absolute;bottom:-1px;right:-1px;width:7px;height:7px;
+  border-radius:50%;background:#22c55e;border:1.5px solid #fff}
+.online-avatar.more{background:#8a8578;font-size:9px}
 .user-menu-btn{background:rgba(255,255,255,.9);border:1px solid var(--border-strong);border-radius:24px;padding:8px 14px 8px 8px;
   display:flex;align-items:center;gap:8px;cursor:pointer;font-family:var(--f);font-size:12.5px;font-weight:600;color:var(--text);box-shadow:0 4px 14px rgba(0,0,0,.1)}
 .user-menu-avatar{width:24px;height:24px;border-radius:50%;background:var(--ghn-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
@@ -307,6 +316,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 
 <!-- ================= MENU NGƯỜI DÙNG (khi đã đăng nhập) ================= -->
 <div class="user-menu" id="userMenu" style="display:none">
+  <div class="online-users-bar" id="onlineUsersBar" title="Người đang xem báo cáo"></div>
   <div class="user-menu-btn" onclick="toggleUserMenu()">
     <span class="user-menu-avatar" id="userAvatar">?</span>
     <span class="umb-name" id="userMenuName">—</span>
@@ -451,7 +461,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
   <div class="page" style="padding-top:28px">
     <div class="report-header" style="border-bottom-color:var(--ghn-blue)">
       <div><h1>Kinh Doanh <span class="rh-tag">DBB</span></h1>
-        <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Doanh thu LTC — Vùng DBB, theo Tuần &amp; theo Tháng</div>
+        <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Sản lượng LTC — Vùng DBB, theo Tuần &amp; theo Tháng</div>
       </div>
     </div>
     <div id="kdErrBanner"></div>
@@ -675,6 +685,50 @@ function enterApp(user){
   const exportBtn = document.querySelector('.export-btn');
   if (exportBtn) exportBtn.style.display = (user.role === 'Admin') ? '' : 'none';
   main().catch(e => { document.getElementById('loadingNote').style.display='none'; showError('Lỗi tổng thể: '+e.message); });
+  startPresenceTracking();
+}
+
+// ---------- "Ai đang online" (giống Google Data Studio) — báo hiệu định kỳ + hiển thị avatar cạnh tên user ----------
+// Màu avatar theo email (hash đơn giản) để cùng 1 người luôn ra cùng 1 màu, tận dụng lại bảng màu CHART_COLORS
+// đã dùng cho biểu đồ để đồng bộ tông màu toàn báo cáo.
+function colorForEmail(email){
+  let h = 0;
+  const s = String(email || '');
+  for (let i = 0; i < s.length; i++) h = (h*31 + s.charCodeAt(i)) >>> 0;
+  return CHART_COLORS[h % CHART_COLORS.length];
+}
+function renderOnlineUsers(users){
+  const bar = document.getElementById('onlineUsersBar');
+  if (!bar) return;
+  if (!users || !users.length) { bar.innerHTML = ''; return; }
+  const MAX_SHOW = 5;
+  const shown = users.slice(0, MAX_SHOW);
+  let html = shown.map(u => {
+    const initial = (u.name || u.email || '?').trim().charAt(0).toUpperCase();
+    return '<span class="online-avatar" style="background:'+colorForEmail(u.email||u.name)+'" title="'+attrEsc((u.name||u.email)+' — đang xem báo cáo')+'">'+esc(initial)+'</span>';
+  }).join('');
+  if (users.length > MAX_SHOW) {
+    const rest = users.length - MAX_SHOW;
+    html += '<span class="online-avatar more" title="'+rest+' người khác đang xem">+'+rest+'</span>';
+  }
+  bar.innerHTML = html;
+}
+// im lặng bỏ qua lỗi ở heartbeat/refresh — đây là tính năng phụ trợ, không nên làm gián đoạn hay hiện lỗi
+// gây phiền cho người dùng nếu mạng chập chờn 1 nhịp.
+async function sendHeartbeat(){
+  try { await callBackend('heartbeat', { token: AUTH.session.token }); } catch (e) {}
+}
+async function refreshOnlineUsers(){
+  try {
+    const res = await callBackend('getOnlineUsers', { token: AUTH.session.token });
+    if (res.ok) renderOnlineUsers(res.users);
+  } catch (e) {}
+}
+function startPresenceTracking(){
+  sendHeartbeat();
+  refreshOnlineUsers();
+  setInterval(sendHeartbeat, 25000);
+  setInterval(refreshOnlineUsers, 20000);
 }
 
 function showError(msg){
@@ -1598,13 +1652,13 @@ function buildSummaryBanner(data){
     buildOverviewAnalysis(data);
 }
 
-// ================= KINH DOANH (DBB) — biểu đồ doanh thu LTC =================
+// ================= KINH DOANH (DBB) — biểu đồ sản lượng LTC =================
 // Đọc từ 3 tab riêng (chưa tồn tại cho tới khi user tạo + backend Code.gs được cập nhật để trả về) —
 // nếu chưa có, hiển thị "Chưa có dữ liệu" gọn gàng thay vì lỗi, không ảnh hưởng phần Vận hành.
 const KD_TABS = [
-  { key: '21_KD_HangNangNhe', title: 'Doanh thu LTC — Vùng DBB — Hàng nặng & nhẹ' },
-  { key: '22_KD_HangNang', title: 'Doanh thu LTC — Vùng DBB — Hàng nặng' },
-  { key: '23_KD_HangNhe', title: 'Doanh thu LTC — Vùng DBB — Hàng nhẹ' }
+  { key: '21_KD_HangNangNhe', title: 'Sản lượng LTC — Vùng DBB — Hàng nặng & nhẹ' },
+  { key: '22_KD_HangNang', title: 'Sản lượng LTC — Vùng DBB — Hàng nặng' },
+  { key: '23_KD_HangNhe', title: 'Sản lượng LTC — Vùng DBB — Hàng nhẹ' }
 ];
 let kdLoaded = false;
 
@@ -1638,6 +1692,12 @@ function parseKDTable(table){
   return { weekly, monthly };
 }
 
+// index của kỳ mới nhất CÓ SỐ LIỆU 2026 (kỳ đang chạy dở / vừa hoàn tất gần nhất) — dùng chung ở nhiều nơi
+// (chart, bảng, phần nhận xét) để đồng bộ tuyệt đối "kỳ hiện tại" là kỳ nào.
+function kdLatestIdx(y2026){
+  for (let i = y2026.length-1; i >= 0; i--) { if (y2026[i] !== null && y2026[i] !== undefined) return i; }
+  return -1;
+}
 // % thời gian đã trôi qua của kỳ ĐANG CHẠY DỞ (tuần/tháng hiện tại), dùng để chiếu ("run-rate") ra kết quả
 // dự kiến cả kỳ. Số liệu vận hành luôn có độ trễ 1 ngày (số ghi nhận "hôm nay" trong sheet thực chất là số
 // chốt của HÔM QUA — hôm nay chưa qua nên chưa có số), nên mốc tính "đã trôi qua bao nhiêu" phải lấy theo
@@ -1657,11 +1717,9 @@ function kdProjectionRatio(periodType){
 }
 // periodType: 'tuần' | 'tháng' | falsy — khi có, tính điểm "dự kiến hết kỳ" cho kỳ đang chạy dở (điểm cuối
 // cùng có số của chuỗi 2026, đã được đánh dấu "HIỆN TẠI" ở bảng bên dưới), chiếu theo tốc độ trung bình từ
-// đầu kỳ tới hiện tại (run-rate). QUAN TRỌNG: đường nét đứt phải XUẤT PHÁT TỪ KỲ TRƯỚC (kỳ đã hoàn tất gần
-// nhất) và ĐÁP xuống ĐÚNG vị trí trục X của kỳ hiện tại — không được vẽ lệch/nối tiếp sang vị trí của kỳ kế
-// tiếp (dễ gây hiểu lầm là số liệu của kỳ sau). Điểm số liệu thật (còn dở dang) của kỳ hiện tại vẫn hiển thị
-// riêng, nhỏ & mờ hơn, đúng tại vị trí của nó, tách khỏi đường liền nét chính để không tạo hình chữ V giả gây
-// hiểu lầm là kết quả tụt dốc (thực chất chỉ vì kỳ chưa kết thúc).
+// đầu kỳ tới hiện tại (run-rate). Đường liền nét chính VẪN vẽ đầy đủ, nối qua TẤT CẢ các điểm số liệu thật kể
+// cả kỳ hiện tại (không tách/ẩn điểm nào) — đường nét đứt là PHẦN THÊM, đi tiếp từ chính điểm số liệu thật của
+// kỳ hiện tại tới điểm dự kiến, đặt gần kỳ hiện tại (không lấn sang vị trí trục X của kỳ kế tiếp).
 function renderKDMiniChart(labels, series, colors, periodType){
   const vals = [];
   series.forEach(s => s.vals.forEach(v => { if (v !== null && v !== undefined) vals.push(v); }));
@@ -1672,17 +1730,11 @@ function renderKDMiniChart(labels, series, colors, periodType){
   let proj = null;
   if (periodType && series.length >= 2) {
     const s26 = series[1].vals;
-    let li = -1;
-    for (let i = s26.length-1; i >= 0; i--) { if (s26[i] !== null && s26[i] !== undefined) { li = i; break; } }
+    const li = kdLatestIdx(s26);
     if (li >= 0) {
       const actual = s26[li];
       const ratio = kdProjectionRatio(periodType);
-      if (ratio > 1.02) {
-        let prevIdx = -1;
-        for (let i = li-1; i >= 0; i--) { if (s26[i] !== null && s26[i] !== undefined) { prevIdx = i; break; } }
-        proj = { idx: li, actual, value: actual*ratio, prevIdx, prevVal: prevIdx >= 0 ? s26[prevIdx] : null };
-        vals.push(proj.value);
-      }
+      if (ratio > 1.02) { proj = { idx: li, actual, value: actual*ratio }; vals.push(proj.value); }
     }
   }
 
@@ -1690,21 +1742,23 @@ function renderKDMiniChart(labels, series, colors, periodType){
   if (lo === hi) { lo -= Math.abs(lo*0.1)||1; hi += Math.abs(hi*0.1)||1; }
   const padv = (hi-lo)*0.3; lo -= padv; hi += padv;
   const n = labels.length;
-  const W = 620, H = 210, padT = 26, padB = 24, padL = 10, padR = 10;
+  const W = 620, H = 210, padT = 26, padB = 24;
+  // kỳ hiện tại nằm ở Ô CUỐI trục X (VD tuần mới nhất luôn là cột cuối) thì cần thêm khoảng trống bên phải cho
+  // đoạn nét đứt + nhãn dự kiến; nếu kỳ hiện tại nằm GIỮA trục X (VD tháng — vẫn còn các tháng tương lai rỗng
+  // phía sau) thì đã có sẵn khoảng trống tự nhiên, không cần thêm.
+  const isEdge = proj && proj.idx === n-1;
+  const padL = 10, padR = isEdge ? 76 : 10;
   const xFor = i => padL + (W-padL-padR) * (n<=1 ? 0.5 : i/(n-1));
   const yFor = v => padT + (H-padT-padB) * (1 - (v-lo)/(hi-lo));
   let svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:210px;display:block" preserveAspectRatio="none">';
   for (let i=0;i<n;i++) svg += '<text x="'+xFor(i).toFixed(0)+'" y="'+(H-6)+'" font-size="9" fill="#9E9B93" text-anchor="middle" font-family="monospace">'+esc(labels[i])+'</text>';
+  const stepX = n > 1 ? (W-padL-padR)/(n-1) : 60;
   series.forEach((s, si) => {
-    const ptsAll = [];
-    s.vals.forEach((v,i) => { if (v !== null && v !== undefined) ptsAll.push([xFor(i), yFor(v), v]); });
-    // series 2026 (si===1) có dự kiến: tách điểm cuối (kỳ đang chạy dở) ra khỏi đường liền nét chính.
-    const splitCurrent = si === 1 && proj;
-    const pts = splitCurrent ? ptsAll.slice(0, ptsAll.length-1) : ptsAll;
-    if (pts.length >= 2) {
-      const d = smoothPathD(pts.map(p=>[p[0],p[1]]));
-      svg += '<path d="'+d+'" fill="none" stroke="'+colors[si]+'" stroke-width="2.2"/>';
-    }
+    const pts = [];
+    s.vals.forEach((v,i) => { if (v !== null && v !== undefined) pts.push([xFor(i), yFor(v), v]); });
+    if (pts.length < 2) return;
+    const d = smoothPathD(pts.map(p=>[p[0],p[1]]));
+    svg += '<path d="'+d+'" fill="none" stroke="'+colors[si]+'" stroke-width="2.2"/>';
     // điểm đầu/cuối neo lệch vào trong (start/end) thay vì "middle" — vì số giờ hiển thị 2 chữ số thập phân
     // (VD 437,75k) rộng hơn hẳn trước đây (VD 438k), neo giữa sẽ bị tràn ra ngoài viewBox ở 2 mép biểu đồ.
     pts.forEach(([x,y,v], idx) => {
@@ -1714,37 +1768,24 @@ function renderKDMiniChart(labels, series, colors, periodType){
       svg += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.2" fill="'+colors[si]+'"/>';
       svg += '<text x="'+tx.toFixed(1)+'" y="'+(y-9).toFixed(1)+'" font-size="10" font-weight="700" fill="'+colors[si]+'" text-anchor="'+anchor+'" font-family="IBM Plex Mono, monospace">'+esc(fmtKD(v))+'</text>';
     });
-    if (splitCurrent) {
-      // điểm thực tế của kỳ đang chạy dở — nhỏ, mờ, KHÔNG nối vào đường liền nét chính.
-      const [lx, ly, lv] = ptsAll[ptsAll.length-1];
-      const edgeAnchor = proj.idx === n-1 ? 'end' : 'middle';
-      const ltx = proj.idx === n-1 ? lx-4 : lx;
-      svg += '<circle cx="'+lx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="2.6" fill="'+colors[si]+'" opacity="0.6"/>';
-      svg += '<text x="'+ltx.toFixed(1)+'" y="'+(ly+15).toFixed(1)+'" font-size="8.5" font-weight="600" fill="'+colors[si]+'" text-anchor="'+edgeAnchor+'" font-family="IBM Plex Mono, monospace" opacity="0.75">hiện có '+esc(fmtKD(lv))+'</text>';
-    }
   });
   if (proj) {
     const col = colors[1];
-    const x1 = xFor(proj.idx), y1 = yFor(proj.value);
-    const isEdge = proj.idx === n-1; // kỳ hiện tại đang nằm ở đúng ô cuối trục X (VD tuần mới nhất)
-    const anchor = isEdge ? 'end' : 'middle';
-    const tx = isEdge ? x1-4 : x1;
-    if (proj.prevIdx >= 0) {
-      // đường nét đứt XUẤT PHÁT từ kỳ trước đã hoàn tất, ĐÁP xuống đúng ô trục X của kỳ hiện tại — không
-      // vẽ lệch sang phía kỳ kế tiếp.
-      const x0 = xFor(proj.prevIdx), y0 = yFor(proj.prevVal);
-      svg += '<line x1="'+x0.toFixed(1)+'" y1="'+y0.toFixed(1)+'" x2="'+x1.toFixed(1)+'" y2="'+y1.toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="4,3" opacity="0.8"/>';
-    }
+    const x0 = xFor(proj.idx), y0 = yFor(proj.actual);
+    // nét đứt đi tiếp TỪ chính điểm số liệu thật của kỳ hiện tại — lệch phải một khoảng NHỎ (không chạm ô kế
+    // tiếp) để rõ ràng đây là phần chiếu thêm, không phải 1 kỳ dữ liệu mới.
+    const x1 = x0 + Math.min(stepX*0.42, 36), y1 = yFor(proj.value);
+    svg += '<line x1="'+x0.toFixed(1)+'" y1="'+y0.toFixed(1)+'" x2="'+x1.toFixed(1)+'" y2="'+y1.toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="4,3" opacity="0.8"/>';
     svg += '<circle cx="'+x1.toFixed(1)+'" cy="'+y1.toFixed(1)+'" r="3.8" fill="#fff" stroke="'+col+'" stroke-width="2.2"/>';
-    svg += '<text x="'+tx.toFixed(1)+'" y="'+(y1-10).toFixed(1)+'" font-size="10" font-weight="700" fill="'+col+'" text-anchor="'+anchor+'" font-family="IBM Plex Mono, monospace">≈'+esc(fmtKD(proj.value))+'</text>';
-    svg += '<text x="'+tx.toFixed(1)+'" y="'+(y1-24).toFixed(1)+'" font-size="8" fill="'+col+'" text-anchor="'+anchor+'" font-family="IBM Plex Mono, monospace" font-style="italic" opacity="0.85">dự kiến hết kỳ</text>';
+    svg += '<text x="'+(x1+4).toFixed(1)+'" y="'+(y1-9).toFixed(1)+'" font-size="10" font-weight="700" fill="'+col+'" text-anchor="start" font-family="IBM Plex Mono, monospace">≈'+esc(fmtKD(proj.value))+'</text>';
+    svg += '<text x="'+(x1+4).toFixed(1)+'" y="'+(y1+13).toFixed(1)+'" font-size="8" fill="'+col+'" text-anchor="start" font-family="IBM Plex Mono, monospace" font-style="italic" opacity="0.85">dự kiến</text>';
   }
   svg += '</svg>';
   return svg;
 }
 
 // so 2026 với 2025 CÙNG KỲ (cùng nhãn tuần/tháng) — chỉ so những kỳ có đủ số liệu cả 2 năm để công bằng.
-// diff/pct dùng để tô màu đồng bộ với quy ước chung của báo cáo: tăng doanh thu = xanh (tốt), giảm = đỏ (xấu).
+// diff/pct dùng để tô màu đồng bộ với quy ước chung của báo cáo: tăng sản lượng = xanh (tốt), giảm = đỏ (xấu).
 function kdYoyPairs(labels, y2025, y2026){
   const pairs = [];
   for (let i = 0; i < labels.length; i++) {
@@ -1783,14 +1824,23 @@ function kdPeriodTable(period, periodLabel){
   const labels = period.labels, y25 = period.y2025, y26 = period.y2026;
   const n = labels.length;
   if (!n) return '';
-  let latestIdx = -1;
-  for (let i = n-1; i >= 0; i--) { if (y26[i] !== null && y26[i] !== undefined) { latestIdx = i; break; } }
+  const latestIdx = kdLatestIdx(y26);
   function deltaSpan(curr, prev){
     if (curr === null || curr === undefined || prev === null || prev === undefined) return '<span class="mut">–</span>';
     const d = curr - prev, flat = d === 0, good = d > 0;
     const p = prev !== 0 ? d/prev : null;
     const color = flat ? '#8B6B00' : (good ? '#0F6E56' : '#C0392B');
     return '<span style="color:'+color+';font-weight:700">'+(flat?'—':(good?'▲':'▼'))+' '+fmtKDPct(p)+'</span>';
+  }
+  // dòng phụ nhỏ, in nghiêng, hiện NGAY DƯỚI delta thật — thêm phần so sánh dựa trên giá trị DỰ KIẾN hết kỳ
+  // (không chỉ số thực tế còn dở dang), để biết nếu giữ nguyên tốc độ hiện tại thì kỳ này sẽ tăng/giảm bao
+  // nhiêu % — cùng công thức run-rate dùng cho đường nét đứt trên biểu đồ (kdProjectionRatio).
+  function deltaSpanProj(curr, prev){
+    if (curr === null || curr === undefined || prev === null || prev === undefined) return '';
+    const d = curr - prev, flat = d === 0, good = d > 0;
+    const p = prev !== 0 ? d/prev : null;
+    const color = flat ? '#8B6B00' : (good ? '#0F6E56' : '#C0392B');
+    return '<div style="font-size:9.5px;font-weight:600;font-style:italic;color:'+color+';margin-top:2px">dự kiến: '+(flat?'—':(good?'▲':'▼'))+' '+fmtKDPct(p)+'</div>';
   }
   // kỳ mới nhất (HIỆN TẠI) thường chưa hết kỳ — chiếu thêm 1 giá trị "dự kiến hết kỳ" bằng đúng công thức
   // run-rate dùng cho đường nét đứt trên biểu đồ (kdProjectionRatio), hiển thị ngay dưới số thật trong bảng.
@@ -1801,13 +1851,16 @@ function kdPeriodTable(period, periodLabel){
     if ((v25 === null || v25 === undefined) && (v26 === null || v26 === undefined)) continue;
     const isLatest = i === latestIdx;
     const showProj = isLatest && v26 !== null && v26 !== undefined && projRatio > 1.02;
-    const v26Cell = fmtKD(v26) + (showProj ? '<div style="font-size:9.5px;font-weight:600;color:#F15A22;font-style:italic">≈ '+fmtKD(v26*projRatio)+' dự kiến</div>' : '');
+    const projVal = showProj ? v26*projRatio : null;
+    const v26Cell = fmtKD(v26) + (showProj ? '<div style="font-size:9.5px;font-weight:600;color:#F15A22;font-style:italic">≈ '+fmtKD(projVal)+' dự kiến</div>' : '');
+    const yoyCell = deltaSpan(v26, v25) + (showProj ? deltaSpanProj(projVal, v25) : '');
+    const prevCell = deltaSpan(v26, i > 0 ? y26[i-1] : null) + (showProj ? deltaSpanProj(projVal, i > 0 ? y26[i-1] : null) : '');
     rows += '<tr'+(isLatest ? ' style="background:#FFF3EA"' : '')+'>' +
       '<td style="'+(isLatest?'font-weight:700;color:#C0431A':'')+'">'+esc(labels[i])+(isLatest ? ' <span style="font-size:9.5px;font-weight:700;color:#F15A22;font-family:var(--mono)">● HIỆN TẠI</span>' : '')+'</td>' +
       '<td>'+fmtKD(v25)+'</td>' +
       '<td style="'+(isLatest?'font-weight:700':'')+'">'+v26Cell+'</td>' +
-      '<td>'+deltaSpan(v26, v25)+'</td>' +
-      '<td>'+deltaSpan(v26, i > 0 ? y26[i-1] : null)+'</td>' +
+      '<td>'+yoyCell+'</td>' +
+      '<td>'+prevCell+'</td>' +
       '</tr>';
   }
   if (!rows) return '';
@@ -1817,7 +1870,27 @@ function kdPeriodTable(period, periodLabel){
     '<th>2025</th><th>2026</th><th>SO CÙNG KỲ 2025</th><th>'+esc(prevLabel.toUpperCase())+'</th>' +
     '</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
-// nhận xét chi tiết cho 1 chuỗi (Tuần hoặc Tháng): tổng so cùng kỳ 2025, xu hướng 2026, rồi tới bảng đầy đủ theo thời gian.
+// tổng CẢ KỲ nếu kỳ hiện tại hoàn tất đúng theo tốc độ hiện tại (thay giá trị thực tế dở dang của kỳ hiện tại
+// bằng giá trị dự kiến run-rate, giữ nguyên các kỳ khác) — cho biết "nếu giữ nhịp này tới hết kỳ thì % so
+// cùng kỳ 2025 sẽ là bao nhiêu", khác với % tính trên số liệu còn dở dang (luôn thấp hơn thực tế vì chưa đủ ngày).
+function kdProjectedTotal(pairs, period, periodLabel){
+  const latestIdx = kdLatestIdx(period.y2026);
+  if (latestIdx < 0) return null;
+  const ratio = kdProjectionRatio(periodLabel);
+  if (ratio <= 1.02) return null;
+  const curLabel = period.labels[latestIdx];
+  const pairIdx = pairs.findIndex(p => p.label === curLabel);
+  if (pairIdx < 0) return null; // kỳ hiện tại chưa có số 2025 cùng kỳ để so sánh
+  const actualCur = pairs[pairIdx].v26;
+  const projCur = actualCur * ratio;
+  const sum25 = pairs.reduce((a,p) => a + p.v25, 0);
+  const sum26 = pairs.reduce((a,p) => a + p.v26, 0);
+  const sum26Proj = sum26 - actualCur + projCur;
+  const pct = sum25 !== 0 ? (sum26Proj - sum25) / sum25 : null;
+  return { curLabel, actualCur, projCur, sum26Proj, pct };
+}
+// nhận xét chi tiết cho 1 chuỗi (Tuần hoặc Tháng): tổng so cùng kỳ 2025, xu hướng 2026, dự kiến hết kỳ, rồi
+// tới bảng đầy đủ theo thời gian.
 function buildKDPeriodAnalysis(period, periodLabel){
   const pairs = kdYoyPairs(period.labels, period.y2025, period.y2026);
   if (!pairs.length) return '<div class="mut" style="font-size:12px;margin-top:8px">Chưa đủ số liệu cùng kỳ 2025 để so sánh.</div>';
@@ -1827,11 +1900,19 @@ function buildKDPeriodAnalysis(period, periodLabel){
   const totalPct = sum25 !== 0 ? totalDiff / sum25 : null;
   const totalGood = totalDiff >= 0;
   const trend = kdTrendDescriptor(period.y2026);
+  const projTotal = kdProjectedTotal(pairs, period, periodLabel);
 
   let html = '<div style="margin-top:10px">';
   html += '<div style="font-size:12.5px;margin-bottom:8px;line-height:1.55">Tổng theo '+esc(periodLabel)+': <b>2026 = '+fmtKD(sum26)+'</b>, 2025 = '+fmtKD(sum25)+
     ' &rarr; <span style="font-weight:700;color:'+(totalGood?'#0F6E56':'#C0392B')+'">'+(totalGood?'▲':'▼')+' '+fmtKDPct(totalPct)+'</span> so cùng kỳ 2025' +
     (trend ? '. Xu hướng nội tại 2026: <b style="color:'+(trend.cls==='good'?'#0F6E56':trend.cls==='bad'?'#C0392B':'#8B6B00')+'">'+trend.text+'</b>' : '') + '.</div>';
+  if (projTotal) {
+    const good = projTotal.pct === null || projTotal.pct >= 0;
+    html += '<div style="font-size:12px;margin-bottom:8px;line-height:1.55;color:#6B6558;font-style:italic">'+
+      '📈 Nếu '+esc(projTotal.curLabel)+' hoàn tất theo đúng tốc độ hiện tại (dự kiến ≈'+fmtKD(projTotal.projCur)+'): tổng ước đạt <b>'+fmtKD(projTotal.sum26Proj)+'</b>'+
+      ' &rarr; <span style="font-weight:700;color:'+(good?'#0F6E56':'#C0392B')+'">'+(good?'▲':'▼')+' '+fmtKDPct(projTotal.pct)+'</span> so cùng kỳ 2025'+
+      ' (thay vì '+fmtKDPct(totalPct)+' nếu chỉ tính số đã có tới nay).</div>';
+  }
   html += kdPeriodTable(period, periodLabel);
   html += '</div>';
   return html;
@@ -1882,9 +1963,9 @@ function buildKDBlockOverview(kd){
       ? 'Cả góc nhìn ngắn hạn (theo tuần, '+fmtKDPct(wPct)+') và dài hạn (theo tháng, '+fmtKDPct(mPct)+') so với cùng kỳ 2025 đều đồng thuận theo hướng '+(wPct>=0?'tăng trưởng':'suy giảm')+'.'
       : 'Có lệch pha giữa ngắn hạn và dài hạn: theo tuần đang '+(wPct>=0?'tăng '+fmtKDPct(wPct):'giảm '+fmtKDPct(wPct))+' so cùng kỳ, nhưng theo tháng lại đang '+(mPct>=0?'tăng '+fmtKDPct(mPct):'giảm '+fmtKDPct(mPct))+' — cần theo dõi thêm để biết đây là tín hiệu đảo chiều thật hay chỉ là dao động ngắn hạn.');
   } else if (wPct !== null) {
-    lines.push('Theo tuần, tổng doanh thu '+(wPct>=0?'tăng '+fmtKDPct(wPct):'giảm '+fmtKDPct(wPct))+' so cùng kỳ 2025.');
+    lines.push('Theo tuần, tổng sản lượng '+(wPct>=0?'tăng '+fmtKDPct(wPct):'giảm '+fmtKDPct(wPct))+' so cùng kỳ 2025.');
   } else if (mPct !== null) {
-    lines.push('Theo tháng, tổng doanh thu '+(mPct>=0?'tăng '+fmtKDPct(mPct):'giảm '+fmtKDPct(mPct))+' so cùng kỳ 2025.');
+    lines.push('Theo tháng, tổng sản lượng '+(mPct>=0?'tăng '+fmtKDPct(mPct):'giảm '+fmtKDPct(mPct))+' so cùng kỳ 2025.');
   }
   if (conv) lines.push((conv.cls==='good' ? 'Tín hiệu tích cực: ' : conv.cls==='bad' ? 'Cần lưu ý: ' : 'Đáng chú ý: ') + conv.text.charAt(0).toUpperCase()+conv.text.slice(1)+'.');
   if (wLatest) lines.push(wLatest);
