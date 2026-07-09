@@ -827,6 +827,36 @@ function esc(s){ return String(s === null || s === undefined ? '' : s).replace(/
 // escape để nhét an toàn vào TRONG một HTML attribute có dấu ngoặc kép (ví dụ onchange="...")
 function attrEsc(s){ return String(s === null || s === undefined ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// ---------- tô đậm/tô màu văn AI (tên người/nhóm, số liệu, xu hướng tăng-giảm) ----------
+// Văn do Gemini viết ra chỉ là chuỗi thuần (đã esc() để an toàn) — KHÔNG chứa HTML/markup từ AI (tránh rủi ro AI
+// tự chèn thẻ lạ). Việc tô đậm/tô màu là do CODE tự nhận diện lại các mốc quan trọng NGAY TRONG chuỗi đã esc(),
+// dựa trên: (1) danh sách tên người/nhóm/nhãn kỳ ĐÃ BIẾT TRƯỚC (lấy từ facts đã gửi cho AI, không phải AI tự
+// khai), (2) từ khoá xu hướng tăng/giảm/rủi ro thường gặp, (3) số liệu có đơn vị (%, pp, phút, k/M/B).
+function escRegex(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+const AI_HL_POS_WORDS = ['tăng trưởng','cải thiện liên tục','cải thiện','phục hồi','tích cực','tốt nhất','đạt target','vượt mục tiêu','vượt','đạt'];
+const AI_HL_NEG_WORDS = ['xấu đi liên tục','xấu đi','sụt giảm','suy giảm','chưa đạt target','chưa đạt','kém nhất','rủi ro','cần lưu ý','cần chú ý','cảnh báo','thách thức','nguy cơ','áp lực','giảm','thiếu'];
+function highlightAiText(text, names){
+  if (!text) return '';
+  const escaped = esc(text);
+  const uniqNames = Array.from(new Set((names||[]).filter(n => n !== null && n !== undefined && String(n).trim()).map(n => esc(String(n).trim()))))
+    .sort((a,b) => b.length - a.length);
+  const sortedPos = AI_HL_POS_WORDS.slice().sort((a,b)=>b.length-a.length).map(esc);
+  const sortedNeg = AI_HL_NEG_WORDS.slice().sort((a,b)=>b.length-a.length).map(esc);
+  const groups = [];
+  if (uniqNames.length) groups.push('(?<name>' + uniqNames.map(escRegex).join('|') + ')');
+  groups.push('(?<neg>' + sortedNeg.map(escRegex).join('|') + ')');
+  groups.push('(?<pos>' + sortedPos.map(escRegex).join('|') + ')');
+  groups.push('(?<num>-?\\d+[.,]?\\d*\\s?(?:%|pp\\b|phút\\b|k\\b|M\\b|B\\b))');
+  const re = new RegExp(groups.join('|'), 'g');
+  return escaped.replace(re, function(m){
+    const g = arguments[arguments.length - 1]; // named groups object (luôn là arg cuối khi regex có named group)
+    if (g && g.name) return '<b style="color:#0063AA">'+m+'</b>';
+    if (g && g.neg) return '<b style="color:#C0392B">'+m+'</b>';
+    if (g && g.pos) return '<b style="color:#1D9E75">'+m+'</b>';
+    return '<b>'+m+'</b>';
+  });
+}
+
 // ---------- thu gọn / mở rộng từng phần lớn ----------
 function toggleSection(headerEl){
   headerEl.classList.toggle('collapsed');
@@ -1695,7 +1725,9 @@ async function opsEnhanceWithAI(){
         const text = analysis.overview[pid];
         const el = document.getElementById('al-'+pid);
         if (el && typeof text === 'string' && text.trim()) {
-          el.innerHTML = '• ' + esc(text) + ' <span style="font-size:9px;color:#7B4FA6">✨</span>';
+          const item = overview.highlights.find(p => p.id === pid) || overview.lowlights.find(p => p.id === pid);
+          const names = item ? [item.name, item.worst && item.worst.label] : [];
+          el.innerHTML = '• ' + highlightAiText(text, names) + ' <span style="font-size:9px;color:#7B4FA6">✨</span>';
         }
       });
       const aiTag = ' <span style="font-size:9.5px;font-weight:600;color:#7B4FA6;font-family:var(--mono)">✨ AI</span>';
@@ -1715,8 +1747,11 @@ async function opsEnhanceWithAI(){
       Object.keys(analysis.groups).forEach(gid => {
         const text = analysis.groups[gid];
         const el = document.getElementById('cmt-'+gid);
+        const facts = OPS_FACTS_STORE[gid];
         if (el && typeof text === 'string' && text.trim()) {
-          el.innerHTML = esc(text) + ' <span style="font-size:9px;color:#7B4FA6">✨</span>';
+          const names = facts ? [facts.best && facts.best.label, facts.worst && facts.worst.label, facts.totalLabel]
+            .concat((facts.badList||[]).map(x => x.label)) : [];
+          el.innerHTML = highlightAiText(text, names) + ' <span style="font-size:9px;color:#7B4FA6">✨</span>';
         }
       });
     }
@@ -2187,9 +2222,10 @@ function kdAssembleOverviewHtml(kd, aiItem){
   const overallGood = volRes ? volRes.overallGood : revRes.overallGood;
   const aiVol = aiItem && Array.isArray(aiItem.overview_vol) && aiItem.overview_vol.length ? aiItem.overview_vol : null;
   const aiRev = aiItem && Array.isArray(aiItem.overview_rev) && aiItem.overview_rev.length ? aiItem.overview_rev : null;
-  const volLinesHtml = aiVol ? aiVol.map(l => '<div class="aline">• '+esc(l)+'</div>').join('')
+  const periodNames = (kd.weekly && kd.weekly.labels || []).concat(kd.monthly && kd.monthly.labels || []);
+  const volLinesHtml = aiVol ? aiVol.map(l => '<div class="aline">• '+highlightAiText(l, periodNames)+'</div>').join('')
     : (volRes ? volRes.lines.map(l => '<div class="aline">• '+l+'</div>').join('') : '');
-  const revLinesHtml = aiRev ? aiRev.map(l => '<div class="aline">• '+esc(l)+'</div>').join('')
+  const revLinesHtml = aiRev ? aiRev.map(l => '<div class="aline">• '+highlightAiText(l, periodNames)+'</div>').join('')
     : (revRes ? revRes.lines.map(l => '<div class="aline">• '+l+'</div>').join('') : '');
   const aiBadge = (aiVol || aiRev) ? ' <span style="font-size:9.5px;font-weight:600;color:#7B4FA6;font-family:var(--mono)">✨ AI</span>' : '';
   let html = '<div class="comment '+(overallGood?'green':'red')+'" style="margin-bottom:14px"><b>'+(overallGood?'🟢':'🔴')+' Tổng quan:</b>'+aiBadge;
@@ -2204,11 +2240,12 @@ function kdAssembleDetailHtml(periodBoth, periodLabel, aiItem, periodKey){
   const volField = periodKey + '_vol', revField = periodKey + '_rev';
   const aiVolText = aiItem && typeof aiItem[volField] === 'string' && aiItem[volField].trim();
   const aiRevText = aiItem && typeof aiItem[revField] === 'string' && aiItem[revField].trim();
+  const detailNames = periodBoth && periodBoth.labels || [];
   const volHtml = aiVolText
-    ? '<div style="font-size:12.5px;margin-bottom:10px;line-height:1.6">📦 <b>Sản lượng</b> — '+esc(aiItem[volField])+' <span style="font-size:9px;color:#7B4FA6">✨</span></div>'
+    ? '<div style="font-size:12.5px;margin-bottom:10px;line-height:1.6">📦 <b>Sản lượng</b> — '+highlightAiText(aiItem[volField], detailNames)+' <span style="font-size:9px;color:#7B4FA6">✨</span></div>'
     : buildKDMetricAnalysis(kdMetricPeriod(periodBoth, 'vol'), periodLabel, 'Sản lượng', '📦');
   const revHtml = aiRevText
-    ? '<div style="font-size:12.5px;margin-bottom:10px;line-height:1.6">💰 <b>Doanh thu</b> — '+esc(aiItem[revField])+' <span style="font-size:9px;color:#7B4FA6">✨</span></div>'
+    ? '<div style="font-size:12.5px;margin-bottom:10px;line-height:1.6">💰 <b>Doanh thu</b> — '+highlightAiText(aiItem[revField], detailNames)+' <span style="font-size:9px;color:#7B4FA6">✨</span></div>'
     : buildKDMetricAnalysis(kdMetricPeriod(periodBoth, 'rev'), periodLabel, 'Doanh thu', '💰');
   if (!volHtml && !revHtml) return '<div class="mut" style="font-size:12px;margin-top:8px">Chưa đủ số liệu cùng kỳ 2025 để so sánh.</div>';
   return '<div style="margin-top:10px">' + volHtml + revHtml + '</div>';
