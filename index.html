@@ -1608,12 +1608,14 @@ const KD_TABS = [
 ];
 let kdLoaded = false;
 
+// luôn giữ 2 chữ số sau dấu phẩy (kiểu số Việt Nam) cho MỌI giá trị sản lượng/doanh thu — kể cả khi rút gọn k/B,
+// để không mất độ chính xác (VD 1,22k thay vì làm tròn thành 1k).
 function fmtKD(v){
   if (v === null || v === undefined || isNaN(v)) return '–';
   const av = Math.abs(v);
-  if (av >= 1e9) return (v/1e9).toFixed(1) + ' B';
-  if (av >= 1e3) return Math.round(v/1e3) + 'k';
-  return String(Math.round(v));
+  if (av >= 1e9) return (v/1e9).toFixed(2).replace('.', ',') + ' B';
+  if (av >= 1e3) return (v/1e3).toFixed(2).replace('.', ',') + 'k';
+  return v.toFixed(2).replace('.', ',');
 }
 
 // tách 1 sheet KD (cột: Time, Volume_Tuần_2025, Volume_Tuần_2026, Volume_Tháng_2025, Volume_Tháng_2026)
@@ -1664,20 +1666,157 @@ function renderKDMiniChart(labels, series, colors){
   return svg;
 }
 
+// so 2026 với 2025 CÙNG KỲ (cùng nhãn tuần/tháng) — chỉ so những kỳ có đủ số liệu cả 2 năm để công bằng.
+// diff/pct dùng để tô màu đồng bộ với quy ước chung của báo cáo: tăng doanh thu = xanh (tốt), giảm = đỏ (xấu).
+function kdYoyPairs(labels, y2025, y2026){
+  const pairs = [];
+  for (let i = 0; i < labels.length; i++) {
+    const v25 = y2025[i], v26 = y2026[i];
+    if (v25 === null || v25 === undefined || v26 === null || v26 === undefined) continue;
+    const diff = v26 - v25;
+    const pct = v25 !== 0 ? diff / v25 : null;
+    pairs.push({ label: labels[i], v25, v26, diff, pct });
+  }
+  return pairs;
+}
+function fmtKDPct(p){
+  if (p === null || p === undefined || isNaN(p)) return '–';
+  return (p >= 0 ? '+' : '') + (p*100).toFixed(1) + '%';
+}
+// xu hướng của chuỗi 2026 qua các kỳ gần đây (không so với 2025, chỉ nhìn nội tại chuỗi năm nay đang đi lên/xuống) —
+// dùng ngưỡng nhiễu tương đối (1% giá trị trung bình) thay vì ngưỡng tuyệt đối, vì quy mô Tuần/Tháng khác xa nhau.
+function kdTrendDescriptor(vals){
+  const clean = vals.filter(v => v !== null && v !== undefined);
+  if (clean.length < 3) return null;
+  const avg = clean.reduce((a,b)=>a+b,0) / clean.length;
+  const eps = Math.abs(avg) * 0.01;
+  const diffs = [];
+  for (let i = 1; i < clean.length; i++) diffs.push(clean[i] - clean[i-1]);
+  const up = diffs.filter(d => d > eps).length, down = diffs.filter(d => d < -eps).length;
+  if (down === 0 && up > 0) return { text: 'tăng liên tục qua các kỳ gần đây', cls: 'good' };
+  if (up === 0 && down > 0) return { text: 'giảm liên tục qua các kỳ gần đây', cls: 'bad' };
+  if (up > down) return { text: 'nhìn chung tăng dù còn dao động', cls: 'good' };
+  if (down > up) return { text: 'nhìn chung giảm dù còn dao động', cls: 'bad' };
+  return { text: 'đi ngang', cls: 'flat' };
+}
+// nhận xét chi tiết cho 1 chuỗi (Tuần hoặc Tháng): tổng so cùng kỳ 2025, xu hướng 2026, danh sách kỳ tăng/giảm có tô màu.
+function buildKDPeriodAnalysis(period, periodLabel){
+  const pairs = kdYoyPairs(period.labels, period.y2025, period.y2026);
+  if (!pairs.length) return '<div class="mut" style="font-size:12px;margin-top:8px">Chưa đủ số liệu cùng kỳ 2025 để so sánh.</div>';
+  const sum25 = pairs.reduce((a,p) => a + p.v25, 0);
+  const sum26 = pairs.reduce((a,p) => a + p.v26, 0);
+  const totalDiff = sum26 - sum25;
+  const totalPct = sum25 !== 0 ? totalDiff / sum25 : null;
+  const totalGood = totalDiff >= 0;
+  const trend = kdTrendDescriptor(period.y2026);
+  const up = pairs.filter(p => p.diff > 0).sort((a,b) => (b.pct||0) - (a.pct||0));
+  const down = pairs.filter(p => p.diff < 0).sort((a,b) => (a.pct||0) - (b.pct||0));
+
+  let html = '<div style="margin-top:10px">';
+  html += '<div style="font-size:12.5px;margin-bottom:8px;line-height:1.55">Tổng theo '+esc(periodLabel)+': <b>2026 = '+fmtKD(sum26)+'</b>, 2025 = '+fmtKD(sum25)+
+    ' &rarr; <span style="font-weight:700;color:'+(totalGood?'#0F6E56':'#C0392B')+'">'+(totalGood?'▲':'▼')+' '+fmtKDPct(totalPct)+'</span> so cùng kỳ 2025' +
+    (trend ? '. Xu hướng nội tại 2026: <b style="color:'+(trend.cls==='good'?'#0F6E56':trend.cls==='bad'?'#C0392B':'#8B6B00')+'">'+trend.text+'</b>' : '') + '.</div>';
+
+  html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
+  pairs.forEach(p => {
+    const flat = p.diff === 0;
+    const good = p.diff > 0;
+    const color = flat ? '#8B6B00' : (good ? '#0F6E56' : '#C0392B');
+    const bg = flat ? '#FEFCE8' : (good ? '#F0FDF4' : '#FEF2F2');
+    const arrow = flat ? '—' : (good ? '▲' : '▼');
+    html += '<span style="font-family:var(--mono);font-size:11px;padding:3px 7px;border-radius:5px;background:'+bg+';color:'+color+';font-weight:600">'+esc(p.label)+' '+arrow+' '+fmtKDPct(p.pct)+'</span>';
+  });
+  html += '</div>';
+
+  if (up.length) {
+    html += '<div class="comment green"><b>🟢 Tăng so cùng kỳ 2025 ('+up.length+'):</b>' +
+      up.slice(0,6).map(p => '<div class="aline">• '+esc(p.label)+': '+fmtKD(p.v25)+' &rarr; '+fmtKD(p.v26)+' ('+fmtKDPct(p.pct)+')</div>').join('') +
+      (up.length > 6 ? '<div class="aline mut">…và '+(up.length-6)+' kỳ khác</div>' : '') + '</div>';
+  }
+  if (down.length) {
+    html += '<div class="comment red"><b>🔴 Giảm so cùng kỳ 2025 ('+down.length+'):</b>' +
+      down.slice(0,6).map(p => '<div class="aline">• '+esc(p.label)+': '+fmtKD(p.v25)+' &rarr; '+fmtKD(p.v26)+' ('+fmtKDPct(p.pct)+')</div>').join('') +
+      (down.length > 6 ? '<div class="aline mut">…và '+(down.length-6)+' kỳ khác</div>' : '') + '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+// so sánh nửa đầu vs nửa sau của chuỗi %YoY để biết khoảng cách so với 2025 đang THU HẸP hay NỚI RỘNG theo
+// thời gian — đây là góc nhìn "xu hướng của xu hướng" (đạo hàm bậc 2 kiểu số liệu kinh doanh), không chỉ so 1 kỳ.
+function kdConvergenceNote(pairs){
+  const withPct = pairs.filter(p => p.pct !== null && p.pct !== undefined);
+  if (withPct.length < 4) return null;
+  const mid = Math.floor(withPct.length/2);
+  const firstHalf = withPct.slice(0, mid), secondHalf = withPct.slice(mid);
+  const avg = arr => arr.reduce((a,p)=>a+p.pct,0) / arr.length;
+  const a1 = avg(firstHalf), a2 = avg(secondHalf);
+  if (Math.abs(a2 - a1) < 0.02) return null;
+  if (a1 < 0 && a2 > a1) return { text: 'khoảng cách so với 2025 đang thu hẹp dần qua các kỳ gần đây (từ '+fmtKDPct(a1)+' còn '+fmtKDPct(a2)+')', cls: 'good' };
+  if (a1 >= 0 && a2 < a1) return { text: 'mức tăng so với 2025 đang chững lại dần (từ '+fmtKDPct(a1)+' còn '+fmtKDPct(a2)+')', cls: 'warn' };
+  if (a2 > a1) return { text: 'mức tăng so với 2025 đang nới rộng thêm (từ '+fmtKDPct(a1)+' lên '+fmtKDPct(a2)+')', cls: 'good' };
+  return { text: 'mức giảm so với 2025 đang xấu đi dần (từ '+fmtKDPct(a1)+' xuống '+fmtKDPct(a2)+')', cls: 'bad' };
+}
+function kdLatestNote(pairs, periodLabel){
+  if (!pairs.length) return null;
+  const last = pairs[pairs.length-1];
+  const good = last.diff > 0;
+  const prefix = periodLabel === 'tuần' ? 'Kỳ gần nhất (tuần ' : 'Kỳ gần nhất (tháng ';
+  return prefix + esc(last.label) + '): ' + fmtKD(last.v26) + ' so với ' + fmtKD(last.v25) + ' cùng kỳ 2025 (<span style="font-weight:700;color:'+(good?'#0F6E56':'#C0392B')+'">'+(good?'▲':'▼')+' '+fmtKDPct(last.pct)+'</span>).';
+}
+// nhận xét TỔNG QUAN gộp cả 2 tần suất — đối chiếu góc nhìn ngắn hạn (tuần, sát diễn biến) với dài hạn
+// (tháng, ít nhiễu hơn) để phát hiện lệch pha (VD tuần đang hồi phục nhưng tháng vẫn chưa phản ánh kịp),
+// cộng thêm tín hiệu hội tụ/phân kỳ theo thời gian và điểm dữ liệu mới nhất — đọc trước khi đi vào chi tiết từng biểu đồ.
+function buildKDBlockOverview(kd){
+  const wPairs = kdYoyPairs(kd.weekly.labels, kd.weekly.y2025, kd.weekly.y2026);
+  const mPairs = kdYoyPairs(kd.monthly.labels, kd.monthly.y2025, kd.monthly.y2026);
+  if (!wPairs.length && !mPairs.length) return '';
+  const sumPct = pairs => {
+    const s25 = pairs.reduce((a,p)=>a+p.v25,0), s26 = pairs.reduce((a,p)=>a+p.v26,0);
+    return s25 !== 0 ? (s26-s25)/s25 : null;
+  };
+  const wPct = wPairs.length ? sumPct(wPairs) : null;
+  const mPct = mPairs.length ? sumPct(mPairs) : null;
+  const conv = wPairs.length >= 4 ? kdConvergenceNote(wPairs) : null;
+  const wLatest = kdLatestNote(wPairs, 'tuần');
+  const mLatest = kdLatestNote(mPairs, 'tháng');
+
+  const lines = [];
+  if (wPct !== null && mPct !== null) {
+    const agree = (wPct >= 0) === (mPct >= 0);
+    lines.push(agree
+      ? 'Cả góc nhìn ngắn hạn (theo tuần, '+fmtKDPct(wPct)+') và dài hạn (theo tháng, '+fmtKDPct(mPct)+') so với cùng kỳ 2025 đều đồng thuận theo hướng '+(wPct>=0?'tăng trưởng':'suy giảm')+'.'
+      : 'Có lệch pha giữa ngắn hạn và dài hạn: theo tuần đang '+(wPct>=0?'tăng '+fmtKDPct(wPct):'giảm '+fmtKDPct(wPct))+' so cùng kỳ, nhưng theo tháng lại đang '+(mPct>=0?'tăng '+fmtKDPct(mPct):'giảm '+fmtKDPct(mPct))+' — cần theo dõi thêm để biết đây là tín hiệu đảo chiều thật hay chỉ là dao động ngắn hạn.');
+  } else if (wPct !== null) {
+    lines.push('Theo tuần, tổng doanh thu '+(wPct>=0?'tăng '+fmtKDPct(wPct):'giảm '+fmtKDPct(wPct))+' so cùng kỳ 2025.');
+  } else if (mPct !== null) {
+    lines.push('Theo tháng, tổng doanh thu '+(mPct>=0?'tăng '+fmtKDPct(mPct):'giảm '+fmtKDPct(mPct))+' so cùng kỳ 2025.');
+  }
+  if (conv) lines.push((conv.cls==='good' ? 'Tín hiệu tích cực: ' : conv.cls==='bad' ? 'Cần lưu ý: ' : 'Đáng chú ý: ') + conv.text.charAt(0).toUpperCase()+conv.text.slice(1)+'.');
+  if (wLatest) lines.push(wLatest);
+  if (mLatest) lines.push(mLatest);
+  if (!lines.length) return '';
+  const overallPct = wPct !== null ? wPct : mPct;
+  const overallGood = overallPct === null || overallPct >= 0;
+  return '<div class="comment '+(overallGood?'green':'red')+'" style="margin-bottom:14px"><b>'+(overallGood?'🟢':'🔴')+' Tổng quan:</b>' +
+    lines.map(l => '<div class="aline">• '+l+'</div>').join('') + '</div>';
+}
 function renderKDBlock(kd, title){
   if (!kd) return '<div class="block-header">'+esc(title)+'</div><div class="tbl-wrap" style="padding:20px"><div class="mut" style="font-size:12.5px">Chưa có dữ liệu — tạo tab Google Sheet tương ứng và điền số liệu theo format đã hướng dẫn.</div></div>';
   const colors = ['#0063AA','#F15A22'];
   let out = '<div class="block-header">'+esc(title)+'</div>';
   out += '<div class="tbl-wrap" style="padding:16px 18px">';
+  out += buildKDBlockOverview(kd);
   out += '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px">';
   out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[0]+'"></span>2025</span>';
   out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[1]+'"></span>2026</span>';
   out += '</div>';
   out += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">';
   out += '<div><div class="mut" style="font-size:11px;font-family:var(--mono);margin-bottom:4px">THEO TUẦN</div>' +
-    renderKDMiniChart(kd.weekly.labels, [{vals:kd.weekly.y2025},{vals:kd.weekly.y2026}], colors) + '</div>';
+    renderKDMiniChart(kd.weekly.labels, [{vals:kd.weekly.y2025},{vals:kd.weekly.y2026}], colors) +
+    buildKDPeriodAnalysis(kd.weekly, 'tuần') + '</div>';
   out += '<div><div class="mut" style="font-size:11px;font-family:var(--mono);margin-bottom:4px">THEO THÁNG</div>' +
-    renderKDMiniChart(kd.monthly.labels, [{vals:kd.monthly.y2025},{vals:kd.monthly.y2026}], colors) + '</div>';
+    renderKDMiniChart(kd.monthly.labels, [{vals:kd.monthly.y2025},{vals:kd.monthly.y2026}], colors) +
+    buildKDPeriodAnalysis(kd.monthly, 'tháng') + '</div>';
   out += '</div></div>';
   return out;
 }
