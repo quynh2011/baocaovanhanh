@@ -246,6 +246,14 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .vh-subtab-btn.active{background:var(--ghn-blue);color:#fff;border-color:var(--ghn-blue)}
 .vh-pane{display:none}
 .vh-pane.active{display:block}
+/* nút chọn Sản lượng/Doanh thu trong mỗi khối Kinh doanh — dùng màu cam (đồng bộ với accent của mục DBB) để
+   phân biệt trực quan với tab xanh của Vận hành ở trên */
+.kd-metric-toggle{display:inline-flex;border:1px solid var(--border-strong);border-radius:8px;overflow:hidden}
+.kd-metric-btn{font-family:var(--f);font-size:11.5px;font-weight:600;padding:6px 13px;border:none;
+  background:#fff;color:var(--muted);cursor:pointer;border-right:1px solid var(--border-strong)}
+.kd-metric-btn:last-child{border-right:none}
+.kd-metric-btn:hover{background:var(--bg)}
+.kd-metric-btn.active{background:var(--ghn-orange);color:#fff}
 
 /* trang "sắp ra mắt" / placeholder cho các mục chưa có dữ liệu */
 .section-placeholder{max-width:1340px;margin:0 auto;padding:120px 28px;text-align:center;color:var(--muted)}
@@ -472,7 +480,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
   <div class="page" style="padding-top:28px">
     <div class="report-header" style="border-bottom-color:var(--ghn-blue)">
       <div><h1>Kinh Doanh <span class="rh-tag">DBB</span></h1>
-        <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Sản lượng LTC — Vùng DBB, theo Tuần &amp; theo Tháng</div>
+        <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Sản lượng &amp; Doanh thu LTC — Vùng DBB, theo Tuần &amp; theo Tháng</div>
       </div>
     </div>
     <div id="kdErrBanner"></div>
@@ -1698,9 +1706,9 @@ function buildSummaryBanner(data){
 // Đọc từ 3 tab riêng (chưa tồn tại cho tới khi user tạo + backend Code.gs được cập nhật để trả về) —
 // nếu chưa có, hiển thị "Chưa có dữ liệu" gọn gàng thay vì lỗi, không ảnh hưởng phần Vận hành.
 const KD_TABS = [
-  { key: '21_KD_HangNangNhe', title: 'Sản lượng LTC — Vùng DBB — Hàng nặng & nhẹ' },
-  { key: '22_KD_HangNang', title: 'Sản lượng LTC — Vùng DBB — Hàng nặng' },
-  { key: '23_KD_HangNhe', title: 'Sản lượng LTC — Vùng DBB — Hàng nhẹ' }
+  { key: '21_KD_HangNangNhe', title: 'LTC — Vùng DBB — Hàng nặng & nhẹ' },
+  { key: '22_KD_HangNang', title: 'LTC — Vùng DBB — Hàng nặng' },
+  { key: '23_KD_HangNhe', title: 'LTC — Vùng DBB — Hàng nhẹ' }
 ];
 let kdLoaded = false;
 
@@ -1709,29 +1717,47 @@ let kdLoaded = false;
 function fmtKD(v){
   if (v === null || v === undefined || isNaN(v)) return '–';
   const av = Math.abs(v);
+  // thêm bậc "triệu" (M) — Doanh thu (VNĐ) thường rơi vào khoảng trăm triệu tới vài tỷ, nếu chỉ có 2 bậc
+  // k/B như trước (dành cho Sản lượng, vốn chỉ tới vài trăm nghìn) thì số ở khoảng 1 triệu–999 triệu sẽ hiện
+  // rất khó đọc kiểu "362095,53k" thay vì "362,10 M".
   if (av >= 1e9) return (v/1e9).toFixed(2).replace('.', ',') + ' B';
+  if (av >= 1e6) return (v/1e6).toFixed(2).replace('.', ',') + ' M';
   if (av >= 1e3) return (v/1e3).toFixed(2).replace('.', ',') + 'k';
   return v.toFixed(2).replace('.', ',');
 }
 
-// tách 1 sheet KD (cột: Time, Volume_Tuần_2025, Volume_Tuần_2026, Volume_Tháng_2025, Volume_Tháng_2026)
-// thành 2 chuỗi: theo Tuần và theo Tháng, dựa vào cặp cột nào có giá trị ở mỗi dòng.
+// tách 1 sheet KD thành 2 chuỗi (Tuần/Tháng), MỖI chuỗi giữ CẢ 2 chỉ số Sản lượng (vol) và Doanh thu (rev) —
+// cột: Time, Volume_Tuần_2025/2026, Volume_Tháng_2025/2026, Doanh thu_Tuần_2025/2026, Doanh thu_Tháng_2025/2026.
+// Giữ cả 2 chỉ số trong cùng 1 object để nút chọn "Sản lượng/Doanh thu" chỉ cần đổi chỗ đọc, không cần gọi
+// lại backend hay parse lại.
 function parseKDTable(table){
   if (!table || !table.cols || !table.cols.length) return null;
-  const weekly = { labels: [], y2025: [], y2026: [] };
-  const monthly = { labels: [], y2025: [], y2026: [] };
+  const weekly = { labels: [], vol:{y2025:[],y2026:[]}, rev:{y2025:[],y2026:[]} };
+  const monthly = { labels: [], vol:{y2025:[],y2026:[]}, rev:{y2025:[],y2026:[]} };
   (table.rows||[]).forEach(r => {
     const label = cell(r, 0);
     if (label === null || label === undefined || label === '') return;
-    const w25 = cell(r, 1), w26 = cell(r, 2), m25 = cell(r, 3), m26 = cell(r, 4);
-    if (w25 !== null || w26 !== null) {
-      weekly.labels.push(String(label)); weekly.y2025.push(w25); weekly.y2026.push(w26);
-    } else if (m25 !== null || m26 !== null) {
-      monthly.labels.push(String(label)); monthly.y2025.push(m25); monthly.y2026.push(m26);
+    const wVol25 = cell(r, 1), wVol26 = cell(r, 2), mVol25 = cell(r, 3), mVol26 = cell(r, 4);
+    const wRev25 = cell(r, 5), wRev26 = cell(r, 6), mRev25 = cell(r, 7), mRev26 = cell(r, 8);
+    const hasWeek = wVol25 !== null || wVol26 !== null || wRev25 !== null || wRev26 !== null;
+    const hasMonth = mVol25 !== null || mVol26 !== null || mRev25 !== null || mRev26 !== null;
+    if (hasWeek) {
+      weekly.labels.push(String(label));
+      weekly.vol.y2025.push(wVol25); weekly.vol.y2026.push(wVol26);
+      weekly.rev.y2025.push(wRev25); weekly.rev.y2026.push(wRev26);
+    } else if (hasMonth) {
+      monthly.labels.push(String(label));
+      monthly.vol.y2025.push(mVol25); monthly.vol.y2026.push(mVol26);
+      monthly.rev.y2025.push(mRev25); monthly.rev.y2026.push(mRev26);
     }
   });
   if (!weekly.labels.length && !monthly.labels.length) return null;
   return { weekly, monthly };
+}
+// lấy ra 1 "kỳ" theo đúng khuôn dạng {labels,y2025,y2026} cũ (generic) mà toàn bộ hàm chart/bảng/nhận xét bên
+// dưới đang dùng — chỉ đổi metric đọc (vol/rev) chứ không phải viết lại các hàm đó.
+function kdMetricPeriod(period, metric){
+  return { labels: period.labels, y2025: period[metric].y2025, y2026: period[metric].y2026 };
 }
 
 // index của kỳ mới nhất CÓ SỐ LIỆU 2026 (kỳ đang chạy dở / vừa hoàn tất gần nhất) — dùng chung ở nhiều nơi
@@ -1934,11 +1960,11 @@ function kdProjectedTotal(pairs, period, periodLabel){
   const pct = sum25 !== 0 ? (sum26Proj - sum25) / sum25 : null;
   return { curLabel, actualCur, projCur, sum26Proj, pct };
 }
-// nhận xét chi tiết cho 1 chuỗi (Tuần hoặc Tháng): tổng so cùng kỳ 2025, xu hướng 2026, dự kiến hết kỳ, rồi
-// tới bảng đầy đủ theo thời gian.
-function buildKDPeriodAnalysis(period, periodLabel){
+// nhận xét chi tiết cho 1 CHỈ SỐ (Sản lượng hoặc Doanh thu) của 1 tần suất (Tuần/Tháng): tổng so cùng kỳ 2025,
+// xu hướng 2026, dự kiến hết kỳ. KHÔNG kèm bảng số liệu — bảng được vẽ riêng, đổi theo nút chọn bên trên.
+function buildKDMetricAnalysis(period, periodLabel, metricLabel, metricIcon){
   const pairs = kdYoyPairs(period.labels, period.y2025, period.y2026);
-  if (!pairs.length) return '<div class="mut" style="font-size:12px;margin-top:8px">Chưa đủ số liệu cùng kỳ 2025 để so sánh.</div>';
+  if (!pairs.length) return '';
   const sum25 = pairs.reduce((a,p) => a + p.v25, 0);
   const sum26 = pairs.reduce((a,p) => a + p.v26, 0);
   const totalDiff = sum26 - sum25;
@@ -1947,20 +1973,28 @@ function buildKDPeriodAnalysis(period, periodLabel){
   const trend = kdTrendDescriptor(period.y2026);
   const projTotal = kdProjectedTotal(pairs, period, periodLabel);
 
-  let html = '<div style="margin-top:10px">';
-  html += '<div style="font-size:12.5px;margin-bottom:8px;line-height:1.55">Tổng theo '+esc(periodLabel)+': <b>2026 = '+fmtKD(sum26)+'</b>, 2025 = '+fmtKD(sum25)+
+  let html = '<div style="font-size:12.5px;margin-bottom:6px;line-height:1.55">'+metricIcon+' <b>'+esc(metricLabel)+'</b> — Tổng theo '+esc(periodLabel)+': <b>2026 = '+fmtKD(sum26)+'</b>, 2025 = '+fmtKD(sum25)+
     ' &rarr; <span style="font-weight:700;color:'+(totalGood?'#0F6E56':'#C0392B')+'">'+(totalGood?'▲':'▼')+' '+fmtKDPct(totalPct)+'</span> so cùng kỳ 2025' +
     (trend ? '. Xu hướng nội tại 2026: <b style="color:'+(trend.cls==='good'?'#0F6E56':trend.cls==='bad'?'#C0392B':'#8B6B00')+'">'+trend.text+'</b>' : '') + '.</div>';
   if (projTotal) {
     const good = projTotal.pct === null || projTotal.pct >= 0;
-    html += '<div style="font-size:12px;margin-bottom:8px;line-height:1.55;color:#6B6558;font-style:italic">'+
+    html += '<div style="font-size:12px;margin-bottom:10px;line-height:1.55;color:#6B6558;font-style:italic">'+
       '📈 Nếu '+esc(projTotal.curLabel)+' hoàn tất theo đúng tốc độ hiện tại (dự kiến ≈'+fmtKD(projTotal.projCur)+'): tổng ước đạt <b>'+fmtKD(projTotal.sum26Proj)+'</b>'+
       ' &rarr; <span style="font-weight:700;color:'+(good?'#0F6E56':'#C0392B')+'">'+(good?'▲':'▼')+' '+fmtKDPct(projTotal.pct)+'</span> so cùng kỳ 2025'+
       ' (thay vì '+fmtKDPct(totalPct)+' nếu chỉ tính số đã có tới nay).</div>';
+  } else {
+    html = html.replace('margin-bottom:6px', 'margin-bottom:10px');
   }
-  html += kdPeriodTable(period, periodLabel);
-  html += '</div>';
   return html;
+}
+// nhận xét chi tiết cho 1 tần suất (Tuần/Tháng) — LUÔN hiện CẢ Sản lượng lẫn Doanh thu cùng lúc (không đổi
+// theo nút chọn Sản lượng/Doanh thu ở trên, vì đây là nhận định gộp cả 2 góc nhìn cho người đọc); chỉ biểu đồ
+// và bảng số liệu bên dưới mới đổi theo nút chọn.
+function buildKDPeriodAnalysis(periodBoth, periodLabel){
+  const volHtml = buildKDMetricAnalysis(kdMetricPeriod(periodBoth, 'vol'), periodLabel, 'Sản lượng', '📦');
+  const revHtml = buildKDMetricAnalysis(kdMetricPeriod(periodBoth, 'rev'), periodLabel, 'Doanh thu', '💰');
+  if (!volHtml && !revHtml) return '<div class="mut" style="font-size:12px;margin-top:8px">Chưa đủ số liệu cùng kỳ 2025 để so sánh.</div>';
+  return '<div style="margin-top:10px">' + volHtml + revHtml + '</div>';
 }
 // so sánh nửa đầu vs nửa sau của chuỗi %YoY để biết khoảng cách so với 2025 đang THU HẸP hay NỚI RỘNG theo
 // thời gian — đây là góc nhìn "xu hướng của xu hướng" (đạo hàm bậc 2 kiểu số liệu kinh doanh), không chỉ so 1 kỳ.
@@ -1984,13 +2018,12 @@ function kdLatestNote(pairs, periodLabel){
   const prefix = periodLabel === 'tuần' ? 'Kỳ gần nhất (tuần ' : 'Kỳ gần nhất (tháng ';
   return prefix + esc(last.label) + '): ' + fmtKD(last.v26) + ' so với ' + fmtKD(last.v25) + ' cùng kỳ 2025 (<span style="font-weight:700;color:'+(good?'#0F6E56':'#C0392B')+'">'+(good?'▲':'▼')+' '+fmtKDPct(last.pct)+'</span>).';
 }
-// nhận xét TỔNG QUAN gộp cả 2 tần suất — đối chiếu góc nhìn ngắn hạn (tuần, sát diễn biến) với dài hạn
-// (tháng, ít nhiễu hơn) để phát hiện lệch pha (VD tuần đang hồi phục nhưng tháng vẫn chưa phản ánh kịp),
-// cộng thêm tín hiệu hội tụ/phân kỳ theo thời gian và điểm dữ liệu mới nhất — đọc trước khi đi vào chi tiết từng biểu đồ.
-function buildKDBlockOverview(kd){
-  const wPairs = kdYoyPairs(kd.weekly.labels, kd.weekly.y2025, kd.weekly.y2026);
-  const mPairs = kdYoyPairs(kd.monthly.labels, kd.monthly.y2025, kd.monthly.y2026);
-  if (!wPairs.length && !mPairs.length) return '';
+// tính bộ "lines" nhận xét tổng quan (đối chiếu ngắn hạn/dài hạn + hội tụ/phân kỳ + kỳ gần nhất) cho 1 CHỈ SỐ
+// (Sản lượng hoặc Doanh thu) — tách riêng khỏi buildKDBlockOverview để gọi lại cho cả 2 chỉ số.
+function kdOverviewLines(weekly, monthly, metricNoun){
+  const wPairs = kdYoyPairs(weekly.labels, weekly.y2025, weekly.y2026);
+  const mPairs = kdYoyPairs(monthly.labels, monthly.y2025, monthly.y2026);
+  if (!wPairs.length && !mPairs.length) return null;
   const sumPct = pairs => {
     const s25 = pairs.reduce((a,p)=>a+p.v25,0), s26 = pairs.reduce((a,p)=>a+p.v26,0);
     return s25 !== 0 ? (s26-s25)/s25 : null;
@@ -2008,21 +2041,69 @@ function buildKDBlockOverview(kd){
       ? 'Cả góc nhìn ngắn hạn (theo tuần, '+fmtKDPct(wPct)+') và dài hạn (theo tháng, '+fmtKDPct(mPct)+') so với cùng kỳ 2025 đều đồng thuận theo hướng '+(wPct>=0?'tăng trưởng':'suy giảm')+'.'
       : 'Có lệch pha giữa ngắn hạn và dài hạn: theo tuần đang '+(wPct>=0?'tăng '+fmtKDPct(wPct):'giảm '+fmtKDPct(wPct))+' so cùng kỳ, nhưng theo tháng lại đang '+(mPct>=0?'tăng '+fmtKDPct(mPct):'giảm '+fmtKDPct(mPct))+' — cần theo dõi thêm để biết đây là tín hiệu đảo chiều thật hay chỉ là dao động ngắn hạn.');
   } else if (wPct !== null) {
-    lines.push('Theo tuần, tổng sản lượng '+(wPct>=0?'tăng '+fmtKDPct(wPct):'giảm '+fmtKDPct(wPct))+' so cùng kỳ 2025.');
+    lines.push('Theo tuần, tổng '+metricNoun+' '+(wPct>=0?'tăng '+fmtKDPct(wPct):'giảm '+fmtKDPct(wPct))+' so cùng kỳ 2025.');
   } else if (mPct !== null) {
-    lines.push('Theo tháng, tổng sản lượng '+(mPct>=0?'tăng '+fmtKDPct(mPct):'giảm '+fmtKDPct(mPct))+' so cùng kỳ 2025.');
+    lines.push('Theo tháng, tổng '+metricNoun+' '+(mPct>=0?'tăng '+fmtKDPct(mPct):'giảm '+fmtKDPct(mPct))+' so cùng kỳ 2025.');
   }
   if (conv) lines.push((conv.cls==='good' ? 'Tín hiệu tích cực: ' : conv.cls==='bad' ? 'Cần lưu ý: ' : 'Đáng chú ý: ') + conv.text.charAt(0).toUpperCase()+conv.text.slice(1)+'.');
   if (wLatest) lines.push(wLatest);
   if (mLatest) lines.push(mLatest);
-  if (!lines.length) return '';
+  if (!lines.length) return null;
   const overallPct = wPct !== null ? wPct : mPct;
-  const overallGood = overallPct === null || overallPct >= 0;
-  return '<div class="comment '+(overallGood?'green':'red')+'" style="margin-bottom:14px"><b>'+(overallGood?'🟢':'🔴')+' Tổng quan:</b>' +
-    lines.map(l => '<div class="aline">• '+l+'</div>').join('') + '</div>';
+  return { lines: lines, overallGood: overallPct === null || overallPct >= 0 };
 }
-function renderKDBlock(kd, title){
+// nhận xét TỔNG QUAN gộp cả 2 tần suất VÀ cả 2 chỉ số (Sản lượng + Doanh thu) — đối chiếu góc nhìn ngắn hạn
+// (tuần, sát diễn biến) với dài hạn (tháng, ít nhiễu hơn) để phát hiện lệch pha, cộng thêm tín hiệu hội tụ/
+// phân kỳ theo thời gian và điểm dữ liệu mới nhất — đọc trước khi đi vào chi tiết từng biểu đồ. Luôn hiện cả
+// 2 chỉ số, không phụ thuộc nút chọn Sản lượng/Doanh thu ở dưới.
+function buildKDBlockOverview(kd){
+  const volRes = kdOverviewLines(kdMetricPeriod(kd.weekly, 'vol'), kdMetricPeriod(kd.monthly, 'vol'), 'sản lượng');
+  const revRes = kdOverviewLines(kdMetricPeriod(kd.weekly, 'rev'), kdMetricPeriod(kd.monthly, 'rev'), 'doanh thu');
+  if (!volRes && !revRes) return '';
+  const overallGood = volRes ? volRes.overallGood : revRes.overallGood;
+  let html = '<div class="comment '+(overallGood?'green':'red')+'" style="margin-bottom:14px"><b>'+(overallGood?'🟢':'🔴')+' Tổng quan:</b>';
+  if (volRes) html += '<div class="aline" style="margin-top:6px"><b>📦 Sản lượng:</b></div>' + volRes.lines.map(l => '<div class="aline">• '+l+'</div>').join('');
+  if (revRes) html += '<div class="aline" style="margin-top:6px"><b>💰 Doanh thu:</b></div>' + revRes.lines.map(l => '<div class="aline">• '+l+'</div>').join('');
+  html += '</div>';
+  return html;
+}
+// dữ liệu đã parse (cả vol lẫn rev) và chỉ số đang chọn của TỪNG khối KD — key = t.key (tên sheet, đã unique
+// sẵn) — để nút chọn Sản lượng/Doanh thu chỉ cần vẽ lại đúng phần biểu đồ+bảng của khối đó, không phải tải
+// lại dữ liệu hay vẽ lại cả trang.
+const KD_DATA_STORE = {};
+const KD_METRIC_STATE = {};
+
+// vẽ phần "biểu đồ + bảng số liệu" của 1 tần suất (weekly/monthly) trong 1 khối, theo ĐÚNG chỉ số đang được
+// chọn (Sản lượng hoặc Doanh thu) của khối đó — đây là phần DUY NHẤT đổi khi bấm nút chọn.
+function kdRenderPeriodColumn(blockId, periodKey){
+  const kd = KD_DATA_STORE[blockId];
+  if (!kd) return '';
+  const metric = KD_METRIC_STATE[blockId] || 'vol';
+  const periodBoth = kd[periodKey];
+  const period = kdMetricPeriod(periodBoth, metric);
+  const colors = ['#0063AA','#F15A22'];
+  const pt = periodKey === 'weekly' ? 'tuần' : 'tháng';
+  return renderKDMiniChart(period.labels, [{vals:period.y2025},{vals:period.y2026}], colors, pt) +
+    buildKDPeriodAnalysis(periodBoth, pt) +
+    kdPeriodTable(period, pt);
+}
+// bấm nút chọn Sản lượng/Doanh thu ở 1 khối — chỉ vẽ lại đúng 2 cột (Tuần/Tháng) của khối đó, không ảnh hưởng
+// phần nhận xét tổng quan/chi tiết ở trên (vốn luôn hiện cả 2 chỉ số) hay các khối khác.
+function setKDMetric(blockId, metric){
+  KD_METRIC_STATE[blockId] = metric;
+  ['vol','rev'].forEach(m => {
+    const btn = document.getElementById('kdMetricBtn-'+blockId+'-'+m);
+    if (btn) btn.classList.toggle('active', m === metric);
+  });
+  const wEl = document.getElementById('kdCol-'+blockId+'-weekly');
+  if (wEl) wEl.innerHTML = kdRenderPeriodColumn(blockId, 'weekly');
+  const mEl = document.getElementById('kdCol-'+blockId+'-monthly');
+  if (mEl) mEl.innerHTML = kdRenderPeriodColumn(blockId, 'monthly');
+}
+function renderKDBlock(kd, title, blockId){
   if (!kd) return '<div class="block-header">'+esc(title)+'</div><div class="tbl-wrap" style="padding:20px"><div class="mut" style="font-size:12.5px">Chưa có dữ liệu — tạo tab Google Sheet tương ứng và điền số liệu theo format đã hướng dẫn.</div></div>';
+  if (!KD_METRIC_STATE[blockId]) KD_METRIC_STATE[blockId] = 'vol';
+  const metric = KD_METRIC_STATE[blockId];
   const colors = ['#0063AA','#F15A22'];
   let out = '<div class="block-header">'+esc(title)+'</div>';
   out += '<div class="tbl-wrap" style="padding:16px 18px">';
@@ -2031,14 +2112,16 @@ function renderKDBlock(kd, title){
   out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[0]+'"></span><span style="color:'+colors[0]+';font-weight:700">2025</span></span>';
   out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[1]+'"></span><span style="color:'+colors[1]+';font-weight:700">2026</span></span>';
   out += '<span class="mut" style="font-size:11px;font-style:italic">- - - nét đứt = dự kiến hết kỳ hiện tại (chiếu theo tốc độ trung bình từ đầu kỳ tới hôm nay)</span>';
+  out += '<div class="kd-metric-toggle" style="margin-left:auto">' +
+    '<button type="button" onclick="setKDMetric(\''+esc(blockId)+'\',\'vol\')" id="kdMetricBtn-'+esc(blockId)+'-vol" class="kd-metric-btn'+(metric==='vol'?' active':'')+'">📦 Sản lượng</button>' +
+    '<button type="button" onclick="setKDMetric(\''+esc(blockId)+'\',\'rev\')" id="kdMetricBtn-'+esc(blockId)+'-rev" class="kd-metric-btn'+(metric==='rev'?' active':'')+'">💰 Doanh thu</button>' +
+    '</div>';
   out += '</div>';
   out += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">';
   out += '<div><div class="mut" style="font-size:11px;font-family:var(--mono);margin-bottom:4px">THEO TUẦN</div>' +
-    renderKDMiniChart(kd.weekly.labels, [{vals:kd.weekly.y2025},{vals:kd.weekly.y2026}], colors, 'tuần') +
-    buildKDPeriodAnalysis(kd.weekly, 'tuần') + '</div>';
+    '<div id="kdCol-'+esc(blockId)+'-weekly">' + kdRenderPeriodColumn(blockId, 'weekly') + '</div></div>';
   out += '<div><div class="mut" style="font-size:11px;font-family:var(--mono);margin-bottom:4px">THEO THÁNG</div>' +
-    renderKDMiniChart(kd.monthly.labels, [{vals:kd.monthly.y2025},{vals:kd.monthly.y2026}], colors, 'tháng') +
-    buildKDPeriodAnalysis(kd.monthly, 'tháng') + '</div>';
+    '<div id="kdCol-'+esc(blockId)+'-monthly">' + kdRenderPeriodColumn(blockId, 'monthly') + '</div></div>';
   out += '</div></div>';
   return out;
 }
@@ -2058,7 +2141,8 @@ async function loadKinhDoanh(){
     KD_TABS.forEach(t => {
       const table = res.tables ? res.tables[t.key] : null;
       const kd = table ? parseKDTable(table) : null;
-      out += renderKDBlock(kd, t.title);
+      KD_DATA_STORE[t.key] = kd;
+      out += renderKDBlock(kd, t.title, t.key);
     });
     document.getElementById('kdBody').innerHTML = out;
   } catch(e) {
