@@ -2055,7 +2055,8 @@ function kdOverviewLines(weekly, monthly, metricNoun){
 // nhận xét TỔNG QUAN gộp cả 2 tần suất VÀ cả 2 chỉ số (Sản lượng + Doanh thu) — đối chiếu góc nhìn ngắn hạn
 // (tuần, sát diễn biến) với dài hạn (tháng, ít nhiễu hơn) để phát hiện lệch pha, cộng thêm tín hiệu hội tụ/
 // phân kỳ theo thời gian và điểm dữ liệu mới nhất — đọc trước khi đi vào chi tiết từng biểu đồ. Luôn hiện cả
-// 2 chỉ số, không phụ thuộc nút chọn Sản lượng/Doanh thu ở dưới.
+// 2 chỉ số, không phụ thuộc nút chọn Sản lượng/Doanh thu ở dưới. Đây là bản RULE-BASED (dự phòng) — dùng khi
+// chưa có/lỗi bản AI (xem kdAssembleOverviewHtml bên dưới, nơi quyết định AI hay rule-based).
 function buildKDBlockOverview(kd){
   const volRes = kdOverviewLines(kdMetricPeriod(kd.weekly, 'vol'), kdMetricPeriod(kd.monthly, 'vol'), 'sản lượng');
   const revRes = kdOverviewLines(kdMetricPeriod(kd.weekly, 'rev'), kdMetricPeriod(kd.monthly, 'rev'), 'doanh thu');
@@ -2067,12 +2068,48 @@ function buildKDBlockOverview(kd){
   html += '</div>';
   return html;
 }
-// dữ liệu đã parse (cả vol lẫn rev) và chỉ số đang chọn của TỪNG khối KD — key = t.key (tên sheet, đã unique
-// sẵn) — để nút chọn Sản lượng/Doanh thu chỉ cần vẽ lại đúng phần biểu đồ+bảng của khối đó, không phải tải
-// lại dữ liệu hay vẽ lại cả trang.
+// dữ liệu đã parse (cả vol lẫn rev), chỉ số đang chọn, VÀ nhận xét AI (nếu có) của TỪNG khối KD — key = t.key
+// (tên sheet, đã unique sẵn) — để nút chọn Sản lượng/Doanh thu chỉ cần vẽ lại đúng phần biểu đồ+bảng của khối
+// đó, và để bản AI (tới muộn hơn, sau khi gọi Gemini) chỉ cần vẽ lại đúng khối đó khi có kết quả.
 const KD_DATA_STORE = {};
 const KD_METRIC_STATE = {};
+const KD_AI_STORE = {}; // KD_AI_STORE[blockId] = { overview_vol, overview_rev, weekly_vol, weekly_rev, monthly_vol, monthly_rev } từ Gemini, hoặc undefined nếu chưa có/lỗi (dùng rule-based).
 
+// ghép HTML "Tổng quan" — ưu tiên dùng văn AI (Gemini) nếu đã có, còn không thì rơi về bản rule-based cũ.
+// Màu xanh/đỏ và emoji 🟢/🔴 LUÔN do code tự tính (không để AI quyết định) để đảm bảo đúng quy ước của báo cáo.
+function kdAssembleOverviewHtml(kd, aiItem){
+  const volRes = kdOverviewLines(kdMetricPeriod(kd.weekly, 'vol'), kdMetricPeriod(kd.monthly, 'vol'), 'sản lượng');
+  const revRes = kdOverviewLines(kdMetricPeriod(kd.weekly, 'rev'), kdMetricPeriod(kd.monthly, 'rev'), 'doanh thu');
+  if (!volRes && !revRes) return '';
+  const overallGood = volRes ? volRes.overallGood : revRes.overallGood;
+  const aiVol = aiItem && Array.isArray(aiItem.overview_vol) && aiItem.overview_vol.length ? aiItem.overview_vol : null;
+  const aiRev = aiItem && Array.isArray(aiItem.overview_rev) && aiItem.overview_rev.length ? aiItem.overview_rev : null;
+  const volLinesHtml = aiVol ? aiVol.map(l => '<div class="aline">• '+esc(l)+'</div>').join('')
+    : (volRes ? volRes.lines.map(l => '<div class="aline">• '+l+'</div>').join('') : '');
+  const revLinesHtml = aiRev ? aiRev.map(l => '<div class="aline">• '+esc(l)+'</div>').join('')
+    : (revRes ? revRes.lines.map(l => '<div class="aline">• '+l+'</div>').join('') : '');
+  const aiBadge = (aiVol || aiRev) ? ' <span style="font-size:9.5px;font-weight:600;color:#7B4FA6;font-family:var(--mono)">✨ AI</span>' : '';
+  let html = '<div class="comment '+(overallGood?'green':'red')+'" style="margin-bottom:14px"><b>'+(overallGood?'🟢':'🔴')+' Tổng quan:</b>'+aiBadge;
+  if (volLinesHtml) html += '<div class="aline" style="margin-top:6px"><b>📦 Sản lượng:</b></div>' + volLinesHtml;
+  if (revLinesHtml) html += '<div class="aline" style="margin-top:6px"><b>💰 Doanh thu:</b></div>' + revLinesHtml;
+  html += '</div>';
+  return html;
+}
+// ghép HTML "nhận xét chi tiết" của 1 tần suất — ưu tiên đoạn văn AI nếu đã có cho đúng tần suất đó, còn
+// không thì rơi về bản rule-based cũ (buildKDMetricAnalysis, đã có sẵn con số + màu tăng/giảm).
+function kdAssembleDetailHtml(periodBoth, periodLabel, aiItem, periodKey){
+  const volField = periodKey + '_vol', revField = periodKey + '_rev';
+  const aiVolText = aiItem && typeof aiItem[volField] === 'string' && aiItem[volField].trim();
+  const aiRevText = aiItem && typeof aiItem[revField] === 'string' && aiItem[revField].trim();
+  const volHtml = aiVolText
+    ? '<div style="font-size:12.5px;margin-bottom:10px;line-height:1.6">📦 <b>Sản lượng</b> — '+esc(aiItem[volField])+' <span style="font-size:9px;color:#7B4FA6">✨</span></div>'
+    : buildKDMetricAnalysis(kdMetricPeriod(periodBoth, 'vol'), periodLabel, 'Sản lượng', '📦');
+  const revHtml = aiRevText
+    ? '<div style="font-size:12.5px;margin-bottom:10px;line-height:1.6">💰 <b>Doanh thu</b> — '+esc(aiItem[revField])+' <span style="font-size:9px;color:#7B4FA6">✨</span></div>'
+    : buildKDMetricAnalysis(kdMetricPeriod(periodBoth, 'rev'), periodLabel, 'Doanh thu', '💰');
+  if (!volHtml && !revHtml) return '<div class="mut" style="font-size:12px;margin-top:8px">Chưa đủ số liệu cùng kỳ 2025 để so sánh.</div>';
+  return '<div style="margin-top:10px">' + volHtml + revHtml + '</div>';
+}
 // vẽ phần "biểu đồ + bảng số liệu" của 1 tần suất (weekly/monthly) trong 1 khối, theo ĐÚNG chỉ số đang được
 // chọn (Sản lượng hoặc Doanh thu) của khối đó — đây là phần DUY NHẤT đổi khi bấm nút chọn.
 function kdRenderPeriodColumn(blockId, periodKey){
@@ -2084,7 +2121,7 @@ function kdRenderPeriodColumn(blockId, periodKey){
   const colors = ['#0063AA','#F15A22'];
   const pt = periodKey === 'weekly' ? 'tuần' : 'tháng';
   return renderKDMiniChart(period.labels, [{vals:period.y2025},{vals:period.y2026}], colors, pt) +
-    buildKDPeriodAnalysis(periodBoth, pt) +
+    kdAssembleDetailHtml(periodBoth, pt, KD_AI_STORE[blockId], periodKey) +
     kdPeriodTable(period, pt);
 }
 // bấm nút chọn Sản lượng/Doanh thu ở 1 khối — chỉ vẽ lại đúng 2 cột (Tuần/Tháng) của khối đó, không ảnh hưởng
@@ -2100,6 +2137,18 @@ function setKDMetric(blockId, metric){
   const mEl = document.getElementById('kdCol-'+blockId+'-monthly');
   if (mEl) mEl.innerHTML = kdRenderPeriodColumn(blockId, 'monthly');
 }
+// khi bản nhận xét AI của 1 khối vừa tải xong (kdEnhanceWithAI) — vẽ lại tổng quan + cả 2 cột Tuần/Tháng của
+// đúng khối đó để thay bản rule-based bằng bản AI, không đụng tới các khối khác hay bảng/biểu đồ đang hiển thị.
+function kdRefreshBlock(blockId){
+  const kd = KD_DATA_STORE[blockId];
+  if (!kd) return;
+  const ovEl = document.getElementById('kdOverview-'+blockId);
+  if (ovEl) ovEl.innerHTML = kdAssembleOverviewHtml(kd, KD_AI_STORE[blockId]);
+  const wEl = document.getElementById('kdCol-'+blockId+'-weekly');
+  if (wEl) wEl.innerHTML = kdRenderPeriodColumn(blockId, 'weekly');
+  const mEl = document.getElementById('kdCol-'+blockId+'-monthly');
+  if (mEl) mEl.innerHTML = kdRenderPeriodColumn(blockId, 'monthly');
+}
 function renderKDBlock(kd, title, blockId){
   if (!kd) return '<div class="block-header">'+esc(title)+'</div><div class="tbl-wrap" style="padding:20px"><div class="mut" style="font-size:12.5px">Chưa có dữ liệu — tạo tab Google Sheet tương ứng và điền số liệu theo format đã hướng dẫn.</div></div>';
   if (!KD_METRIC_STATE[blockId]) KD_METRIC_STATE[blockId] = 'vol';
@@ -2107,7 +2156,7 @@ function renderKDBlock(kd, title, blockId){
   const colors = ['#0063AA','#F15A22'];
   let out = '<div class="block-header">'+esc(title)+'</div>';
   out += '<div class="tbl-wrap" style="padding:16px 18px">';
-  out += buildKDBlockOverview(kd);
+  out += '<div id="kdOverview-'+esc(blockId)+'">' + kdAssembleOverviewHtml(kd, KD_AI_STORE[blockId]) + '</div>';
   out += '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:6px">';
   out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[0]+'"></span><span style="color:'+colors[0]+';font-weight:700">2025</span></span>';
   out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[1]+'"></span><span style="color:'+colors[1]+';font-weight:700">2026</span></span>';
@@ -2124,6 +2173,60 @@ function renderKDBlock(kd, title, blockId){
     '<div id="kdCol-'+esc(blockId)+'-monthly">' + kdRenderPeriodColumn(blockId, 'monthly') + '</div></div>';
   out += '</div></div>';
   return out;
+}
+
+// tóm tắt số liệu ĐÃ TÍNH SẴN (tổng, %YoY từng kỳ, xu hướng, dự kiến hết kỳ...) của 1 chỉ số/1 tần suất, gửi
+// cho AI viết văn — AI KHÔNG được tự tính lại, chỉ dùng đúng các số này (xem buildKDAIPrompt phía Code.gs).
+// Làm tròn 2 chữ số cho gọn payload, không đổi độ chính xác hiển thị (chart/bảng vẫn dùng số gốc riêng).
+function kdBuildFactsSummary(period, periodLabel){
+  const pairs = kdYoyPairs(period.labels, period.y2025, period.y2026);
+  if (!pairs.length) return null;
+  const round2 = n => (n === null || n === undefined || isNaN(n)) ? null : Math.round(n*100)/100;
+  const trend = kdTrendDescriptor(period.y2026);
+  const projTotal = kdProjectedTotal(pairs, period, periodLabel);
+  const conv = pairs.length >= 4 ? kdConvergenceNote(pairs) : null;
+  const sum25 = pairs.reduce((a,p) => a + p.v25, 0), sum26 = pairs.reduce((a,p) => a + p.v26, 0);
+  return {
+    periodLabel: periodLabel,
+    series: pairs.map(p => ({ label: p.label, v2025: round2(p.v25), v2026: round2(p.v26), pctVsLastYear: p.pct !== null ? round2(p.pct*100) : null })),
+    totalSum2025: round2(sum25),
+    totalSum2026: round2(sum26),
+    totalPctVsLastYear: sum25 ? round2(((sum26-sum25)/sum25)*100) : null,
+    trendText: trend ? trend.text : null,
+    projected: projTotal ? {
+      currentLabel: projTotal.curLabel,
+      currentActual: round2(projTotal.actualCur),
+      currentProjected: round2(projTotal.projCur),
+      projectedTotal2026: round2(projTotal.sum26Proj),
+      projectedPctVsLastYear: projTotal.pct !== null ? round2(projTotal.pct*100) : null
+    } : null,
+    convergenceNote: conv ? conv.text : null
+  };
+}
+function kdBuildBlockFacts(kd, title, blockId){
+  return {
+    key: blockId,
+    title: title,
+    weekly: { volume: kdBuildFactsSummary(kdMetricPeriod(kd.weekly, 'vol'), 'tuần'), revenue: kdBuildFactsSummary(kdMetricPeriod(kd.weekly, 'rev'), 'tuần') },
+    monthly: { volume: kdBuildFactsSummary(kdMetricPeriod(kd.monthly, 'vol'), 'tháng'), revenue: kdBuildFactsSummary(kdMetricPeriod(kd.monthly, 'rev'), 'tháng') }
+  };
+}
+// gọi backend (Gemini free tier) để nâng cấp nhận xét lên bản AI viết văn tự nhiên — chạy NGẦM, KHÔNG await ở
+// nơi gọi, vì bản rule-based đã hiện sẵn ngay lập tức rồi (người dùng không phải chờ). Nếu lỗi/chưa cấu hình
+// API key/hết hạn mức miễn phí trong ngày: im lặng bỏ qua, giữ nguyên bản rule-based đang hiển thị — không
+// hiện lỗi làm phiền người dùng vì đây chỉ là phần "nâng cấp thêm", không phải tính năng cốt lõi.
+async function kdEnhanceWithAI(){
+  try {
+    const blocks = KD_TABS.filter(t => KD_DATA_STORE[t.key]).map(t => kdBuildBlockFacts(KD_DATA_STORE[t.key], t.title, t.key));
+    if (!blocks.length) return;
+    const res = await callBackend('getKDAnalysis', { token: AUTH.session.token, blocks: blocks });
+    if (!res.ok || !Array.isArray(res.analysis)) return;
+    res.analysis.forEach(item => {
+      if (!item || !item.key || !KD_DATA_STORE[item.key]) return;
+      KD_AI_STORE[item.key] = item;
+      kdRefreshBlock(item.key);
+    });
+  } catch (e) { /* im lặng giữ nguyên bản rule-based đang hiển thị */ }
 }
 
 async function loadKinhDoanh(){
@@ -2145,6 +2248,8 @@ async function loadKinhDoanh(){
       out += renderKDBlock(kd, t.title, t.key);
     });
     document.getElementById('kdBody').innerHTML = out;
+    // bản rule-based đã hiện xong ở trên — giờ mới âm thầm gọi AI nâng cấp, không chặn UI.
+    kdEnhanceWithAI();
   } catch(e) {
     kdProgress.finish('kdLoadingNote');
     document.getElementById('kdErrBanner').innerHTML = '<div style="background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">Lỗi tải Kinh doanh: '+esc(e.message)+'</div>';
