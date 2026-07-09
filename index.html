@@ -199,6 +199,49 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
   .user-menu{right:66px;top:12px}
   .user-menu-btn span.umb-name{display:none}
 }
+
+/* ================= NÚT TRÒN NỔI DBB + MENU ĐIỀU HƯỚNG CÁC MỤC ================= */
+.dbb-fab-wrap{position:fixed;right:24px;bottom:24px;z-index:3000;display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+.dbb-sub-menu{display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-bottom:2px;
+  opacity:0;pointer-events:none;transform:translateY(12px);transition:opacity .18s ease,transform .18s ease}
+.dbb-sub-menu.open{opacity:1;pointer-events:auto;transform:translateY(0)}
+.dbb-sub-btn{height:42px;border-radius:21px;background:var(--ghn-blue);color:#fff;border:none;font-family:var(--f);
+  font-weight:600;font-size:12.5px;cursor:pointer;padding:0 18px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.28);
+  display:flex;align-items:center;gap:7px;transition:background .15s,transform .1s}
+.dbb-sub-btn:hover{background:var(--ghn-blue-dark);transform:scale(1.03)}
+.dbb-sub-btn.active{background:var(--ghn-orange)}
+.dbb-fab{width:62px;height:62px;border-radius:50%;background:linear-gradient(150deg,var(--ghn-orange),var(--ghn-orange-dark));
+  color:#fff;border:none;font-family:var(--f);font-weight:700;font-size:13px;cursor:pointer;
+  box-shadow:0 10px 26px rgba(193,66,13,.45);display:flex;align-items:center;justify-content:center;
+  transition:transform .2s ease;flex-shrink:0}
+.dbb-fab:hover{transform:scale(1.06)}
+.dbb-fab.open{transform:rotate(135deg)}
+.dbb-fab.open span{transform:rotate(-135deg);display:inline-block}
+
+/* các "section" lớn của app: mặc định chỉ 1 cái active hiển thị, còn lại display:none */
+.app-section{display:none}
+.app-section.active{display:block}
+
+/* thanh tab con Ngày/Tuần/Tháng trong mục Vận hành */
+.vh-subtabs{max-width:1340px;margin:0 auto;padding:14px 28px 0;display:flex;gap:8px}
+.vh-subtab-btn{font-family:var(--f);font-size:12.5px;font-weight:600;padding:7px 16px;border-radius:8px;
+  border:1px solid var(--border-strong);background:#fff;color:var(--muted);cursor:pointer}
+.vh-subtab-btn:hover{background:var(--bg)}
+.vh-subtab-btn.active{background:var(--ghn-blue);color:#fff;border-color:var(--ghn-blue)}
+.vh-pane{display:none}
+.vh-pane.active{display:block}
+
+/* trang "sắp ra mắt" / placeholder cho các mục chưa có dữ liệu */
+.section-placeholder{max-width:1340px;margin:0 auto;padding:120px 28px;text-align:center;color:var(--muted)}
+.section-placeholder .sp-icon{font-size:46px;margin-bottom:18px}
+.section-placeholder h2{font-size:21px;color:var(--text);margin-bottom:8px;font-weight:700}
+.section-placeholder p{font-size:13px;max-width:420px;margin:0 auto}
+
+@media (max-width:640px){
+  .dbb-fab-wrap{right:14px;bottom:14px}
+  .dbb-fab{width:54px;height:54px;font-size:11px}
+  .vh-subtabs{padding:12px 12px 0}
+}
 </style>
 </head>
 <body>
@@ -210,7 +253,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 
     <!-- Bước 1: đăng nhập -->
     <div class="login-step active" id="stepLogin">
-      <div class="login-title">DBB Region - Daily Report </div>
+      <div class="login-title">Báo Cáo Vận Hành Tuần</div>
       <div class="login-sub">Đăng nhập bằng email @ghn.vn</div>
       <div class="login-error" id="loginError"></div>
       <div class="login-field">
@@ -299,6 +342,37 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 </div>
 
 <div id="appRoot" style="display:none">
+
+<!-- ================= NÚT TRÒN NỔI DBB ================= -->
+<div class="dbb-fab-wrap">
+  <div class="dbb-sub-menu" id="dbbSubMenu">
+    <button class="dbb-sub-btn active" id="navBtn-sectionVanHanh" onclick="switchSection('sectionVanHanh')">📊 Vận hành</button>
+    <button class="dbb-sub-btn" id="navBtn-sectionKinhDoanh" onclick="switchSection('sectionKinhDoanh')">💰 Kinh doanh</button>
+    <button class="dbb-sub-btn" id="navBtn-sectionTruyThu" onclick="switchSection('sectionTruyThu')">🧾 Truy thu</button>
+    <button class="dbb-sub-btn" id="navBtn-sectionCapacity" onclick="switchSection('sectionCapacity')">📦 Capacity</button>
+    <button class="dbb-sub-btn" id="navBtn-sectionNhanSu" onclick="switchSection('sectionNhanSu')">👥 Nhân sự</button>
+    <button class="dbb-sub-btn" id="navBtn-sectionComingSoon" onclick="switchSection('sectionComingSoon')">✨ Sắp ra mắt</button>
+  </div>
+  <button class="dbb-fab" id="dbbFab" onclick="toggleDbbMenu()"><span>DBB</span></button>
+</div>
+
+<!-- ================= SECTION: VẬN HÀNH (Ngày / Tuần / Tháng) ================= -->
+<div id="sectionVanHanh" class="app-section active">
+  <div class="vh-subtabs">
+    <button class="vh-subtab-btn" id="vhTabBtn-ngay" onclick="switchVanHanhTab('ngay')">Ngày</button>
+    <button class="vh-subtab-btn active" id="vhTabBtn-tuan" onclick="switchVanHanhTab('tuan')">Tuần</button>
+    <button class="vh-subtab-btn" id="vhTabBtn-thang" onclick="switchVanHanhTab('thang')">Tháng</button>
+  </div>
+
+  <div id="vhNgay" class="vh-pane">
+    <div class="section-placeholder">
+      <div class="sp-icon">🗓️</div>
+      <h2>Báo cáo theo Ngày — sắp ra mắt</h2>
+      <p>Đang chờ tạo cấu trúc 13 tab dữ liệu theo ngày trên Google Sheet (giống hệt 13 tab theo tuần hiện tại). Sẽ hiển thị đầy đủ 12 chỉ số khi có dữ liệu.</p>
+    </div>
+  </div>
+
+  <div id="vhTuan" class="vh-pane active">
 <button class="toc-fab" id="tocFab" onclick="toggleTocPanel()">☰ Mục lục</button>
 <div class="toc-panel" id="tocPanel">
   <div class="toc-panel-title">Chuyển nhanh</div>
@@ -327,7 +401,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
   </div>
 
   <div id="errBanner"></div>
-  <div id="loadingNote">Đang tải dữ liệu…</div>
+  <div id="loadingNote">Đang tải dữ liệu từ Google Sheet…</div>
 
   <div id="summaryBannerWrap"></div>
 
@@ -361,6 +435,61 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     <div>Modify by - Pham Van Quynh - DBB Live Report</div>
   </div>
 </div>
+  </div><!-- /#vhTuan -->
+
+  <div id="vhThang" class="vh-pane">
+    <div class="section-placeholder">
+      <div class="sp-icon">📅</div>
+      <h2>Báo cáo theo Tháng — sắp ra mắt</h2>
+      <p>Đang chờ tạo cấu trúc 13 tab dữ liệu theo tháng trên Google Sheet (giống hệt 13 tab theo tuần hiện tại). Sẽ hiển thị đầy đủ 12 chỉ số khi có dữ liệu.</p>
+    </div>
+  </div>
+</div><!-- /#sectionVanHanh -->
+
+<!-- ================= SECTION: KINH DOANH (DBB) ================= -->
+<div id="sectionKinhDoanh" class="app-section">
+  <div class="page" style="padding-top:28px">
+    <div class="report-header" style="border-bottom-color:var(--ghn-blue)">
+      <div><h1>Kinh Doanh <span class="rh-tag">DBB</span></h1>
+        <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Doanh thu LTC — Vùng DBB, theo Tuần &amp; theo Tháng</div>
+      </div>
+    </div>
+    <div id="kdErrBanner"></div>
+    <div id="kdLoadingNote" style="font-family:var(--mono);font-size:12.5px;color:var(--muted);padding:10px 0">Đang tải dữ liệu…</div>
+    <div id="kdBody"></div>
+  </div>
+</div>
+
+<!-- ================= SECTION: TRUY THU / CAPACITY / NHÂN SỰ / SẮP RA MẮT ================= -->
+<div id="sectionTruyThu" class="app-section">
+  <div class="section-placeholder">
+    <div class="sp-icon">🧾</div>
+    <h2>Truy thu — sắp ra mắt</h2>
+    <p>Đang chờ cấu trúc dữ liệu cụ thể để triển khai.</p>
+  </div>
+</div>
+<div id="sectionCapacity" class="app-section">
+  <div class="section-placeholder">
+    <div class="sp-icon">📦</div>
+    <h2>Capacity — sắp ra mắt</h2>
+    <p>Đang chờ cấu trúc dữ liệu cụ thể để triển khai.</p>
+  </div>
+</div>
+<div id="sectionNhanSu" class="app-section">
+  <div class="section-placeholder">
+    <div class="sp-icon">👥</div>
+    <h2>Nhân sự — sắp ra mắt</h2>
+    <p>Đang chờ cấu trúc dữ liệu cụ thể để triển khai.</p>
+  </div>
+</div>
+<div id="sectionComingSoon" class="app-section">
+  <div class="section-placeholder">
+    <div class="sp-icon">✨</div>
+    <h2>Sắp ra mắt</h2>
+    <p>Tính năng mới sẽ được cập nhật tại đây.</p>
+  </div>
+</div>
+
 </div><!-- /#appRoot -->
 
 <script id="mainScript">
@@ -1467,6 +1596,149 @@ function buildSummaryBanner(data){
     groupHtml('sg-red', '🔴', 'Chưa đạt', bad) +
     '</div>' +
     buildOverviewAnalysis(data);
+}
+
+// ================= KINH DOANH (DBB) — biểu đồ doanh thu LTC =================
+// Đọc từ 3 tab riêng (chưa tồn tại cho tới khi user tạo + backend Code.gs được cập nhật để trả về) —
+// nếu chưa có, hiển thị "Chưa có dữ liệu" gọn gàng thay vì lỗi, không ảnh hưởng phần Vận hành.
+const KD_TABS = [
+  { key: '21_KD_HangNangNhe', title: 'Doanh thu LTC — Vùng DBB — Hàng nặng & nhẹ' },
+  { key: '22_KD_HangNang', title: 'Doanh thu LTC — Vùng DBB — Hàng nặng' },
+  { key: '23_KD_HangNhe', title: 'Doanh thu LTC — Vùng DBB — Hàng nhẹ' }
+];
+let kdLoaded = false;
+
+function fmtKD(v){
+  if (v === null || v === undefined || isNaN(v)) return '–';
+  const av = Math.abs(v);
+  if (av >= 1e9) return (v/1e9).toFixed(1) + ' B';
+  if (av >= 1e3) return Math.round(v/1e3) + 'k';
+  return String(Math.round(v));
+}
+
+// tách 1 sheet KD (cột: Time, Volume_Tuần_2025, Volume_Tuần_2026, Volume_Tháng_2025, Volume_Tháng_2026)
+// thành 2 chuỗi: theo Tuần và theo Tháng, dựa vào cặp cột nào có giá trị ở mỗi dòng.
+function parseKDTable(table){
+  if (!table || !table.cols || !table.cols.length) return null;
+  const weekly = { labels: [], y2025: [], y2026: [] };
+  const monthly = { labels: [], y2025: [], y2026: [] };
+  (table.rows||[]).forEach(r => {
+    const label = cell(r, 0);
+    if (label === null || label === undefined || label === '') return;
+    const w25 = cell(r, 1), w26 = cell(r, 2), m25 = cell(r, 3), m26 = cell(r, 4);
+    if (w25 !== null || w26 !== null) {
+      weekly.labels.push(String(label)); weekly.y2025.push(w25); weekly.y2026.push(w26);
+    } else if (m25 !== null || m26 !== null) {
+      monthly.labels.push(String(label)); monthly.y2025.push(m25); monthly.y2026.push(m26);
+    }
+  });
+  if (!weekly.labels.length && !monthly.labels.length) return null;
+  return { weekly, monthly };
+}
+
+function renderKDMiniChart(labels, series, colors){
+  const vals = [];
+  series.forEach(s => s.vals.forEach(v => { if (v !== null && v !== undefined) vals.push(v); }));
+  if (vals.length < 2) return '<div class="mut" style="font-size:12px;padding:10px 0">Chưa đủ dữ liệu.</div>';
+  let lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+  if (lo === hi) { lo -= Math.abs(lo*0.1)||1; hi += Math.abs(hi*0.1)||1; }
+  const padv = (hi-lo)*0.3; lo -= padv; hi += padv;
+  const n = labels.length;
+  const W = 620, H = 210, padL = 10, padR = 10, padT = 26, padB = 24;
+  const xFor = i => padL + (W-padL-padR) * (n<=1 ? 0.5 : i/(n-1));
+  const yFor = v => padT + (H-padT-padB) * (1 - (v-lo)/(hi-lo));
+  let svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:210px;display:block" preserveAspectRatio="none">';
+  for (let i=0;i<n;i++) svg += '<text x="'+xFor(i).toFixed(0)+'" y="'+(H-6)+'" font-size="9" fill="#9E9B93" text-anchor="middle" font-family="monospace">'+esc(labels[i])+'</text>';
+  series.forEach((s, si) => {
+    const pts = [];
+    s.vals.forEach((v,i) => { if (v !== null && v !== undefined) pts.push([xFor(i), yFor(v), v]); });
+    if (pts.length < 2) return;
+    const d = smoothPathD(pts.map(p=>[p[0],p[1]]));
+    svg += '<path d="'+d+'" fill="none" stroke="'+colors[si]+'" stroke-width="2.2"/>';
+    pts.forEach(([x,y,v]) => {
+      svg += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.2" fill="'+colors[si]+'"/>';
+      svg += '<text x="'+x.toFixed(1)+'" y="'+(y-9).toFixed(1)+'" font-size="10" font-weight="700" fill="'+colors[si]+'" text-anchor="middle" font-family="IBM Plex Mono, monospace">'+esc(fmtKD(v))+'</text>';
+    });
+  });
+  svg += '</svg>';
+  return svg;
+}
+
+function renderKDBlock(kd, title){
+  if (!kd) return '<div class="block-header">'+esc(title)+'</div><div class="tbl-wrap" style="padding:20px"><div class="mut" style="font-size:12.5px">Chưa có dữ liệu — tạo tab Google Sheet tương ứng và điền số liệu theo format đã hướng dẫn.</div></div>';
+  const colors = ['#0063AA','#F15A22'];
+  let out = '<div class="block-header">'+esc(title)+'</div>';
+  out += '<div class="tbl-wrap" style="padding:16px 18px">';
+  out += '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px">';
+  out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[0]+'"></span>2025</span>';
+  out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[1]+'"></span>2026</span>';
+  out += '</div>';
+  out += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">';
+  out += '<div><div class="mut" style="font-size:11px;font-family:var(--mono);margin-bottom:4px">THEO TUẦN</div>' +
+    renderKDMiniChart(kd.weekly.labels, [{vals:kd.weekly.y2025},{vals:kd.weekly.y2026}], colors) + '</div>';
+  out += '<div><div class="mut" style="font-size:11px;font-family:var(--mono);margin-bottom:4px">THEO THÁNG</div>' +
+    renderKDMiniChart(kd.monthly.labels, [{vals:kd.monthly.y2025},{vals:kd.monthly.y2026}], colors) + '</div>';
+  out += '</div></div>';
+  return out;
+}
+
+async function loadKinhDoanh(){
+  if (kdLoaded) return;
+  kdLoaded = true;
+  try {
+    const res = await callBackend('getReportData', { token: AUTH.session.token });
+    document.getElementById('kdLoadingNote').style.display = 'none';
+    if (!res.ok) {
+      document.getElementById('kdErrBanner').innerHTML = '<div style="background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">Không tải được dữ liệu Kinh doanh: '+esc(errMsg(res.error))+'</div>';
+      return;
+    }
+    let out = '';
+    KD_TABS.forEach(t => {
+      const table = res.tables ? res.tables[t.key] : null;
+      const kd = table ? parseKDTable(table) : null;
+      out += renderKDBlock(kd, t.title);
+    });
+    document.getElementById('kdBody').innerHTML = out;
+  } catch(e) {
+    document.getElementById('kdLoadingNote').style.display = 'none';
+    document.getElementById('kdErrBanner').innerHTML = '<div style="background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">Lỗi tải Kinh doanh: '+esc(e.message)+'</div>';
+  }
+}
+
+// ================= ĐIỀU HƯỚNG CÁC SECTION (nút tròn nổi DBB) =================
+function toggleDbbMenu(){
+  document.getElementById('dbbSubMenu').classList.toggle('open');
+  document.getElementById('dbbFab').classList.toggle('open');
+}
+document.addEventListener('click', function(e){
+  const menu = document.getElementById('dbbSubMenu'), fab = document.getElementById('dbbFab');
+  if (!menu || !menu.classList.contains('open')) return;
+  if (!menu.contains(e.target) && fab && !fab.contains(e.target)) {
+    menu.classList.remove('open'); fab.classList.remove('open');
+  }
+});
+const ALL_SECTIONS = ['sectionVanHanh','sectionKinhDoanh','sectionTruyThu','sectionCapacity','sectionNhanSu','sectionComingSoon'];
+function switchSection(id){
+  ALL_SECTIONS.forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.classList.toggle('active', s === id);
+    const btn = document.getElementById('navBtn-'+s);
+    if (btn) btn.classList.toggle('active', s === id);
+  });
+  const menu = document.getElementById('dbbSubMenu'), fab = document.getElementById('dbbFab');
+  if (menu) menu.classList.remove('open');
+  if (fab) fab.classList.remove('open');
+  if (id === 'sectionKinhDoanh') loadKinhDoanh();
+  if (typeof window.scrollTo === 'function') window.scrollTo(0,0);
+}
+function switchVanHanhTab(tab){
+  const paneIds = { ngay: 'vhNgay', tuan: 'vhTuan', thang: 'vhThang' };
+  ['ngay','tuan','thang'].forEach(t => {
+    const pane = document.getElementById(paneIds[t]);
+    if (pane) pane.classList.toggle('active', t===tab);
+    const btn = document.getElementById('vhTabBtn-'+t);
+    if (btn) btn.classList.toggle('active', t===tab);
+  });
 }
 
 // ---------- main ----------
