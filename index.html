@@ -1655,9 +1655,13 @@ function kdProjectionRatio(periodType){
   const dim = new Date(yesterday.getFullYear(), yesterday.getMonth()+1, 0).getDate();
   return dom >= dim ? 1 : dim/dom;
 }
-// periodType: 'tuần' | 'tháng' | falsy — khi có, tự tính và vẽ thêm 1 điểm/đoạn nét đứt "dự kiến hết kỳ" cho
-// ĐIỂM CUỐI CÙNG của chuỗi 2026 (đúng kỳ đang chạy dở, đã được đánh dấu "HIỆN TẠI" ở bảng bên dưới) — chiếu
-// theo tốc độ trung bình từ đầu kỳ tới hiện tại (run-rate), KHÔNG phải suy diễn xu hướng nhiều kỳ trước đó.
+// periodType: 'tuần' | 'tháng' | falsy — khi có, tính điểm "dự kiến hết kỳ" cho kỳ đang chạy dở (điểm cuối
+// cùng có số của chuỗi 2026, đã được đánh dấu "HIỆN TẠI" ở bảng bên dưới), chiếu theo tốc độ trung bình từ
+// đầu kỳ tới hiện tại (run-rate). QUAN TRỌNG: đường nét đứt phải XUẤT PHÁT TỪ KỲ TRƯỚC (kỳ đã hoàn tất gần
+// nhất) và ĐÁP xuống ĐÚNG vị trí trục X của kỳ hiện tại — không được vẽ lệch/nối tiếp sang vị trí của kỳ kế
+// tiếp (dễ gây hiểu lầm là số liệu của kỳ sau). Điểm số liệu thật (còn dở dang) của kỳ hiện tại vẫn hiển thị
+// riêng, nhỏ & mờ hơn, đúng tại vị trí của nó, tách khỏi đường liền nét chính để không tạo hình chữ V giả gây
+// hiểu lầm là kết quả tụt dốc (thực chất chỉ vì kỳ chưa kết thúc).
 function renderKDMiniChart(labels, series, colors, periodType){
   const vals = [];
   series.forEach(s => s.vals.forEach(v => { if (v !== null && v !== undefined) vals.push(v); }));
@@ -1673,7 +1677,12 @@ function renderKDMiniChart(labels, series, colors, periodType){
     if (li >= 0) {
       const actual = s26[li];
       const ratio = kdProjectionRatio(periodType);
-      if (ratio > 1.02) { proj = { idx: li, actual, value: actual*ratio }; vals.push(proj.value); }
+      if (ratio > 1.02) {
+        let prevIdx = -1;
+        for (let i = li-1; i >= 0; i--) { if (s26[i] !== null && s26[i] !== undefined) { prevIdx = i; break; } }
+        proj = { idx: li, actual, value: actual*ratio, prevIdx, prevVal: prevIdx >= 0 ? s26[prevIdx] : null };
+        vals.push(proj.value);
+      }
     }
   }
 
@@ -1681,18 +1690,21 @@ function renderKDMiniChart(labels, series, colors, periodType){
   if (lo === hi) { lo -= Math.abs(lo*0.1)||1; hi += Math.abs(hi*0.1)||1; }
   const padv = (hi-lo)*0.3; lo -= padv; hi += padv;
   const n = labels.length;
-  const W = 620, H = 210, padT = 26, padB = 24;
-  const padL = 10, padR = proj ? 132 : 10; // cần thêm khoảng trống bên phải cho điểm + nhãn "dự kiến"
+  const W = 620, H = 210, padT = 26, padB = 24, padL = 10, padR = 10;
   const xFor = i => padL + (W-padL-padR) * (n<=1 ? 0.5 : i/(n-1));
   const yFor = v => padT + (H-padT-padB) * (1 - (v-lo)/(hi-lo));
   let svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:210px;display:block" preserveAspectRatio="none">';
   for (let i=0;i<n;i++) svg += '<text x="'+xFor(i).toFixed(0)+'" y="'+(H-6)+'" font-size="9" fill="#9E9B93" text-anchor="middle" font-family="monospace">'+esc(labels[i])+'</text>';
   series.forEach((s, si) => {
-    const pts = [];
-    s.vals.forEach((v,i) => { if (v !== null && v !== undefined) pts.push([xFor(i), yFor(v), v]); });
-    if (pts.length < 2) return;
-    const d = smoothPathD(pts.map(p=>[p[0],p[1]]));
-    svg += '<path d="'+d+'" fill="none" stroke="'+colors[si]+'" stroke-width="2.2"/>';
+    const ptsAll = [];
+    s.vals.forEach((v,i) => { if (v !== null && v !== undefined) ptsAll.push([xFor(i), yFor(v), v]); });
+    // series 2026 (si===1) có dự kiến: tách điểm cuối (kỳ đang chạy dở) ra khỏi đường liền nét chính.
+    const splitCurrent = si === 1 && proj;
+    const pts = splitCurrent ? ptsAll.slice(0, ptsAll.length-1) : ptsAll;
+    if (pts.length >= 2) {
+      const d = smoothPathD(pts.map(p=>[p[0],p[1]]));
+      svg += '<path d="'+d+'" fill="none" stroke="'+colors[si]+'" stroke-width="2.2"/>';
+    }
     // điểm đầu/cuối neo lệch vào trong (start/end) thay vì "middle" — vì số giờ hiển thị 2 chữ số thập phân
     // (VD 437,75k) rộng hơn hẳn trước đây (VD 438k), neo giữa sẽ bị tràn ra ngoài viewBox ở 2 mép biểu đồ.
     pts.forEach(([x,y,v], idx) => {
@@ -1702,17 +1714,30 @@ function renderKDMiniChart(labels, series, colors, periodType){
       svg += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.2" fill="'+colors[si]+'"/>';
       svg += '<text x="'+tx.toFixed(1)+'" y="'+(y-9).toFixed(1)+'" font-size="10" font-weight="700" fill="'+colors[si]+'" text-anchor="'+anchor+'" font-family="IBM Plex Mono, monospace">'+esc(fmtKD(v))+'</text>';
     });
+    if (splitCurrent) {
+      // điểm thực tế của kỳ đang chạy dở — nhỏ, mờ, KHÔNG nối vào đường liền nét chính.
+      const [lx, ly, lv] = ptsAll[ptsAll.length-1];
+      const edgeAnchor = proj.idx === n-1 ? 'end' : 'middle';
+      const ltx = proj.idx === n-1 ? lx-4 : lx;
+      svg += '<circle cx="'+lx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="2.6" fill="'+colors[si]+'" opacity="0.6"/>';
+      svg += '<text x="'+ltx.toFixed(1)+'" y="'+(ly+15).toFixed(1)+'" font-size="8.5" font-weight="600" fill="'+colors[si]+'" text-anchor="'+edgeAnchor+'" font-family="IBM Plex Mono, monospace" opacity="0.75">hiện có '+esc(fmtKD(lv))+'</text>';
+    }
   });
   if (proj) {
     const col = colors[1];
-    const x0 = xFor(proj.idx), y0 = yFor(proj.actual);
-    // x0 đã nằm ở đúng rìa phải của "vùng vẽ dữ liệu thật" (vì padR dành riêng cho phần dự kiến) — đặt điểm
-    // dự kiến lệch phải 1 khoảng NHỎ trong chính padR đó, chừa đủ chỗ cho nhãn số + dòng chữ "dự kiến hết kỳ".
-    const x1 = x0 + padR*0.32, y1 = yFor(proj.value);
-    svg += '<line x1="'+x0.toFixed(1)+'" y1="'+y0.toFixed(1)+'" x2="'+x1.toFixed(1)+'" y2="'+y1.toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="4,3" opacity="0.75"/>';
-    svg += '<circle cx="'+x1.toFixed(1)+'" cy="'+y1.toFixed(1)+'" r="3.6" fill="#fff" stroke="'+col+'" stroke-width="2"/>';
-    svg += '<text x="'+x1.toFixed(1)+'" y="'+(y1-9).toFixed(1)+'" font-size="10" font-weight="700" fill="'+col+'" text-anchor="start" font-family="IBM Plex Mono, monospace">'+esc(fmtKD(proj.value))+'</text>';
-    svg += '<text x="'+x1.toFixed(1)+'" y="'+(y1+14).toFixed(1)+'" font-size="8.5" fill="'+col+'" text-anchor="start" font-family="IBM Plex Mono, monospace" font-style="italic" opacity="0.85">dự kiến hết kỳ</text>';
+    const x1 = xFor(proj.idx), y1 = yFor(proj.value);
+    const isEdge = proj.idx === n-1; // kỳ hiện tại đang nằm ở đúng ô cuối trục X (VD tuần mới nhất)
+    const anchor = isEdge ? 'end' : 'middle';
+    const tx = isEdge ? x1-4 : x1;
+    if (proj.prevIdx >= 0) {
+      // đường nét đứt XUẤT PHÁT từ kỳ trước đã hoàn tất, ĐÁP xuống đúng ô trục X của kỳ hiện tại — không
+      // vẽ lệch sang phía kỳ kế tiếp.
+      const x0 = xFor(proj.prevIdx), y0 = yFor(proj.prevVal);
+      svg += '<line x1="'+x0.toFixed(1)+'" y1="'+y0.toFixed(1)+'" x2="'+x1.toFixed(1)+'" y2="'+y1.toFixed(1)+'" stroke="'+col+'" stroke-width="2" stroke-dasharray="4,3" opacity="0.8"/>';
+    }
+    svg += '<circle cx="'+x1.toFixed(1)+'" cy="'+y1.toFixed(1)+'" r="3.8" fill="#fff" stroke="'+col+'" stroke-width="2.2"/>';
+    svg += '<text x="'+tx.toFixed(1)+'" y="'+(y1-10).toFixed(1)+'" font-size="10" font-weight="700" fill="'+col+'" text-anchor="'+anchor+'" font-family="IBM Plex Mono, monospace">≈'+esc(fmtKD(proj.value))+'</text>';
+    svg += '<text x="'+tx.toFixed(1)+'" y="'+(y1-24).toFixed(1)+'" font-size="8" fill="'+col+'" text-anchor="'+anchor+'" font-family="IBM Plex Mono, monospace" font-style="italic" opacity="0.85">dự kiến hết kỳ</text>';
   }
   svg += '</svg>';
   return svg;
@@ -1877,8 +1902,8 @@ function renderKDBlock(kd, title){
   out += '<div class="tbl-wrap" style="padding:16px 18px">';
   out += buildKDBlockOverview(kd);
   out += '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:6px">';
-  out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[0]+'"></span>2025</span>';
-  out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[1]+'"></span>2026</span>';
+  out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[0]+'"></span><span style="color:'+colors[0]+';font-weight:700">2025</span></span>';
+  out += '<span class="lg-item"><span class="lg-dot" style="background:'+colors[1]+'"></span><span style="color:'+colors[1]+';font-weight:700">2026</span></span>';
   out += '<span class="mut" style="font-size:11px;font-style:italic">- - - nét đứt = dự kiến hết kỳ hiện tại (chiếu theo tốc độ trung bình từ đầu kỳ tới hôm nay)</span>';
   out += '</div>';
   out += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">';
