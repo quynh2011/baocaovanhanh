@@ -961,6 +961,18 @@ function hydrateFromSnapshot(snap){
     const s = snap.chartState[id];
     CHART_STATE[id] = { mode: s.mode, hidden: new Set(s.hidden||[]) };
   });
+  // Khôi phục dữ liệu + trạng thái nút chọn Sản lượng/Doanh thu/Số lượng KH VÀ nút chọn Phân tích AI/Thông
+  // thường của Kinh doanh (kể cả khối Bán mới theo AM/Khách hàng) — thiếu bước này thì các nút bấm vẫn HIỆN
+  // trong file xuất ra (vì HTML đã có sẵn) nhưng bấm vào không đổi được gì, vì KD_DATA_STORE/KD_AI_STORE/...
+  // (biến JS thuần trong bộ nhớ) rỗng nếu không hydrate lại đúng những gì đã có tại thời điểm bấm "Xuất file HTML".
+  Object.assign(KD_DATA_STORE, snap.kdDataStore || {});
+  Object.assign(KD_METRIC_STATE, snap.kdMetricState || {});
+  Object.assign(KD_AI_STORE, snap.kdAiStore || {});
+  Object.assign(KD_ANALYSIS_MODE, snap.kdAnalysisMode || {});
+  if (snap.banMoiParsed) BANMOI_PARSED = snap.banMoiParsed;
+  if (snap.banMoiMetricState && snap.banMoiMetricState.current) BANMOI_METRIC_STATE.current = snap.banMoiMetricState.current;
+  if (snap.banMoiModeState && snap.banMoiModeState.current) BANMOI_MODE_STATE.current = snap.banMoiModeState.current;
+  Object.assign(BANMOI_AI_STORE, snap.banMoiAiStore || {});
   const ln = document.getElementById('loadingNote'); if (ln) ln.style.display = 'none';
   const wt = document.getElementById('weekTag'); if (wt) wt.textContent = 'Bản xuất tĩnh';
   const ua = document.getElementById('updatedAt'); if (ua) ua.textContent = (snap.exportedAt || '') + ' (bản xuất tĩnh, không tự cập nhật)';
@@ -983,7 +995,18 @@ function exportStaticHtml(){
     Object.keys(CHART_STORE).forEach(id => { chartStore[id] = CHART_STORE[id]; });
     Object.keys(CHART_STATE).forEach(id => { chartState[id] = { mode: CHART_STATE[id].mode, hidden: Array.from(CHART_STATE[id].hidden) }; });
     const exportedAt = new Date().toLocaleString('vi-VN');
-    const snapshot = { chartStore, chartState, exportedAt };
+    // Chụp cả trạng thái nút chọn (Sản lượng/Doanh thu/Số lượng KH) VÀ trạng thái nút chọn Phân tích AI/Thông
+    // thường (kèm chính văn bản AI đã tải được, nếu có) của Kinh doanh + Bán mới theo AM/Khách hàng — để mở
+    // file xuất ra vẫn bấm đổi qua lại được các nút này, không chỉ riêng biểu đồ (checkbox AM/Vùng).
+    const snapshot = {
+      chartStore, chartState, exportedAt,
+      kdDataStore: KD_DATA_STORE, kdMetricState: KD_METRIC_STATE,
+      kdAiStore: KD_AI_STORE, kdAnalysisMode: KD_ANALYSIS_MODE,
+      banMoiParsed: BANMOI_PARSED,
+      banMoiMetricState: { current: BANMOI_METRIC_STATE.current },
+      banMoiModeState: { current: BANMOI_MODE_STATE.current },
+      banMoiAiStore: BANMOI_AI_STORE
+    };
     const pageEl = activeSectionEl ? activeSectionEl.querySelector('.page') : document.querySelector('.page');
     const tocFabEl = document.getElementById(meta.tocFabId);
     const tocPanelEl = document.getElementById(meta.tocPanelId);
@@ -2902,8 +2925,13 @@ if (window.__STATIC_SNAPSHOT__) {
   // Đây là file đã được xuất ra qua nút "Xuất file HTML" (chỉ Admin mới thấy nút này) — HTML đã có
   // sẵn đầy đủ số liệu ngay trong file, không cần đăng nhập lại để xem bản xuất tĩnh này, chỉ cần
   // hồi phục trạng thái biểu đồ, KHÔNG gọi main() (không cần và không nên tải lại từ Google Sheet).
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('appRoot').style.display = '';
+  // LƯU Ý: file xuất ra CHỈ nhúng đúng phần ".page" + mục lục của section đang xem (xem exportStaticHtml) —
+  // KHÔNG có #loginScreen/#appRoot (những id đó chỉ tồn tại trên trang gốc đầy đủ, có màn đăng nhập).
+  // Bug đã sửa: gọi .style trực tiếp trên getElementById('loginScreen')/('appRoot') từng ném lỗi
+  // "Cannot read properties of null" ở ĐÚNG đây, làm dừng toàn bộ phần script phía dưới — khiến
+  // hydrateFromSnapshot() KHÔNG BAO GIỜ chạy, nên toàn bộ checkbox/nút bấm trong file xuất ra bị liệt.
+  const lsEl = document.getElementById('loginScreen'); if (lsEl) lsEl.style.display = 'none';
+  const arEl = document.getElementById('appRoot'); if (arEl) arEl.style.display = '';
   hydrateFromSnapshot(window.__STATIC_SNAPSHOT__);
 } else {
   // Có phiên đăng nhập hợp lệ còn hạn trong trình duyệt (localStorage) thì vào thẳng, không bắt
