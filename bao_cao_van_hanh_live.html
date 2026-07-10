@@ -478,23 +478,76 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
   </div>
 </div><!-- /#sectionVanHanh -->
 
-<!-- ================= SECTION: KINH DOANH (DBB) ================= -->
+<!-- ================= SECTION: KINH DOANH (DBB) (Ngày / Tuần / Tháng) ================= -->
 <div id="sectionKinhDoanh" class="app-section">
-  <div class="page" style="padding-top:28px">
-    <div class="report-header" style="border-bottom-color:var(--ghn-blue)">
-      <div><h1>Kinh Doanh <span class="rh-tag">DBB</span></h1>
-        <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Sản lượng &amp; Doanh thu LTC — Vùng DBB, theo Tuần &amp; theo Tháng</div>
-      </div>
+  <div class="vh-subtabs">
+    <button class="vh-subtab-btn" id="kdTabBtn-ngay" onclick="switchKDTab('ngay')">Ngày</button>
+    <button class="vh-subtab-btn active" id="kdTabBtn-tuan" onclick="switchKDTab('tuan')">Tuần</button>
+    <button class="vh-subtab-btn" id="kdTabBtn-thang" onclick="switchKDTab('thang')">Tháng</button>
+  </div>
+
+  <div id="kdNgay" class="vh-pane">
+    <div class="section-placeholder">
+      <div class="sp-icon">🗓️</div>
+      <h2>Kinh doanh theo Ngày — sắp ra mắt</h2>
+      <p>Đang chờ thiết kế cấu trúc dữ liệu theo ngày trên Google Sheet. Sẽ hiển thị Sản lượng &amp; Doanh thu khi có dữ liệu.</p>
     </div>
-    <div id="kdErrBanner"></div>
-    <div id="kdLoadingNote" class="load-progress">
-      <span>Đang tải dữ liệu…</span>
-      <span class="load-progress-track"><span class="load-progress-fill" id="kdLoadingFill"></span></span>
-      <span class="load-progress-pct" id="kdLoadingPct">0%</span>
+  </div>
+
+  <div id="kdTuan" class="vh-pane active">
+<button class="toc-fab" id="kdTocFab" onclick="toggleKDTocPanel()">☰ Mục lục</button>
+<div class="toc-panel" id="kdTocPanel">
+  <div class="toc-panel-title">Chuyển nhanh</div>
+  <a href="#kdtop" class="toc-top" onclick="closeKDTocPanel()">🏠 Tổng quan (đầu trang)</a>
+  <a href="#kd-21_KD_HangNangNhe" onclick="closeKDTocPanel()"><span class="tnum">1</span>Hàng nặng &amp; nhẹ</a>
+  <a href="#kd-22_KD_HangNang" onclick="closeKDTocPanel()"><span class="tnum">2</span>Hàng nặng</a>
+  <a href="#kd-23_KD_HangNhe" onclick="closeKDTocPanel()"><span class="tnum">3</span>Hàng nhẹ</a>
+  <a href="#kd-24_KD_BanMoi" onclick="closeKDTocPanel()"><span class="tnum">4</span>Bán mới theo Vùng</a>
+  <a href="#kd-banMoiAM" onclick="closeKDTocPanel()"><span class="tnum">5</span>Bán mới theo AM/Khách hàng</a>
+</div>
+<div class="page" style="padding-top:28px">
+  <div class="report-header" id="kdtop" style="border-bottom-color:var(--ghn-blue)">
+    <div><h1>Kinh Doanh <span class="rh-tag">DBB</span></h1>
+      <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Sản lượng &amp; Doanh thu LTC — Vùng DBB, theo Tuần &amp; theo Tháng</div>
     </div>
-    <div id="kdBody"></div>
+    <div class="meta">Modify by - Pham Van Quynh - DBB Live Report<br>Cập nhật lúc: <span id="kdUpdatedAt">—</span><br><button class="refresh-btn" onclick="location.reload()">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
+  </div>
+  <div id="kdErrBanner"></div>
+  <div id="kdLoadingNote" class="load-progress">
+    <span>Đang tải dữ liệu…</span>
+    <span class="load-progress-track"><span class="load-progress-fill" id="kdLoadingFill"></span></span>
+    <span class="load-progress-pct" id="kdLoadingPct">0%</span>
+  </div>
+  <div class="toc">
+    <div class="toc-gh">Mục lục</div>
+    <div>
+      <a href="#kd-21_KD_HangNangNhe"><span class="tnum">1</span>Hàng nặng &amp; nhẹ</a>
+      <a href="#kd-22_KD_HangNang"><span class="tnum">2</span>Hàng nặng</a>
+      <a href="#kd-23_KD_HangNhe"><span class="tnum">3</span>Hàng nhẹ</a>
+      <a href="#kd-24_KD_BanMoi"><span class="tnum">4</span>Bán mới theo Vùng</a>
+      <a href="#kd-banMoiAM"><span class="tnum">5</span>Bán mới theo AM/Khách hàng</a>
+    </div>
+  </div>
+  <div id="kdBody"></div>
+  <div class="report-footer">
+    <div class="legend">
+      <div class="leg"><span class="leg-dot" style="background:var(--green-cell)"></span>Đạt target</div>
+      <div class="leg"><span class="leg-dot" style="background:var(--red-cell)"></span>Chưa đạt target</div>
+      <div class="leg">▲/▼ = xu hướng so kỳ trước (xanh = cải thiện, đỏ = xấu đi)</div>
+    </div>
+    <div>Modify by - Pham Van Quynh - DBB Live Report</div>
   </div>
 </div>
+  </div><!-- /#kdTuan -->
+
+  <div id="kdThang" class="vh-pane">
+    <div class="section-placeholder">
+      <div class="sp-icon">📅</div>
+      <h2>Kinh doanh theo Tháng (báo cáo tổng hợp riêng) — sắp ra mắt</h2>
+      <p>Tab này sẽ dùng cho báo cáo tổng hợp theo tháng riêng biệt (khác với cột "Theo Tháng" đang hiển thị song song trong từng khối ở tab Tuần). Logic sẽ bổ sung sau.</p>
+    </div>
+  </div>
+</div><!-- /#sectionKinhDoanh -->
 
 <!-- ================= SECTION: TRUY THU / CAPACITY / NHÂN SỰ / SẮP RA MẮT ================= -->
 <div id="sectionTruyThu" class="app-section">
@@ -731,9 +784,9 @@ function enterApp(user){
   document.getElementById('userMenuFullName').textContent = user.name || '(chưa có tên)';
   document.getElementById('userMenuEmail').textContent = user.email;
   // Nút "Xuất file HTML" đóng gói toàn bộ dữ liệu ra 1 file mở được mà không cần đăng nhập —
-  // để tránh vô hiệu hoá mục đích kiểm soát truy cập, chỉ Admin mới thấy nút này.
-  const exportBtn = document.querySelector('.export-btn');
-  if (exportBtn) exportBtn.style.display = (user.role === 'Admin') ? '' : 'none';
+  // để tránh vô hiệu hoá mục đích kiểm soát truy cập, chỉ Admin mới thấy nút này. Mỗi section (Vận hành,
+  // Kinh doanh, ...) có nút riêng (cùng class .export-btn) nên phải áp dụng cho TẤT CẢ, không chỉ nút đầu tiên.
+  document.querySelectorAll('.export-btn').forEach(btn => { btn.style.display = (user.role === 'Admin') ? '' : 'none'; });
   main().catch(e => { document.getElementById('loadingNote').style.display='none'; showError('Lỗi tổng thể: '+e.message); });
   startPresenceTracking();
 }
@@ -881,6 +934,21 @@ document.addEventListener('click', function(e){
   if (!panel || !btn || !panel.classList.contains('open')) return;
   if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.remove('open');
 });
+// bản mục lục nổi RIÊNG cho Kinh doanh (cùng cơ chế, khác id — 2 mục lục không bao giờ cùng hiển thị 1 lúc vì
+// nằm trong 2 phần .app-section loại trừ lẫn nhau qua switchSection).
+function toggleKDTocPanel(){
+  const el = document.getElementById('kdTocPanel');
+  if (el) el.classList.toggle('open');
+}
+function closeKDTocPanel(){
+  const el = document.getElementById('kdTocPanel');
+  if (el) el.classList.remove('open');
+}
+document.addEventListener('click', function(e){
+  const panel = document.getElementById('kdTocPanel'), btn = document.getElementById('kdTocFab');
+  if (!panel || !btn || !panel.classList.contains('open')) return;
+  if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.remove('open');
+});
 
 // ---------- xuất file HTML tĩnh để gửi người khác đọc (không cần quyền truy cập Google Sheet) ----------
 // Nguyên lý: đóng gói lại đúng HTML đang hiển thị (đã có đủ số liệu) + trạng thái các biểu đồ (CHART_STORE/CHART_STATE)
@@ -896,19 +964,31 @@ function hydrateFromSnapshot(snap){
   const ln = document.getElementById('loadingNote'); if (ln) ln.style.display = 'none';
   const wt = document.getElementById('weekTag'); if (wt) wt.textContent = 'Bản xuất tĩnh';
   const ua = document.getElementById('updatedAt'); if (ua) ua.textContent = (snap.exportedAt || '') + ' (bản xuất tĩnh, không tự cập nhật)';
+  // Kinh doanh không có weekTag riêng — chỉ có kdUpdatedAt — ghi chú "bản xuất tĩnh" vào đúng chỗ nếu có.
+  const kdLn = document.getElementById('kdLoadingNote'); if (kdLn) kdLn.style.display = 'none';
+  const kdUa = document.getElementById('kdUpdatedAt'); if (kdUa) kdUa.textContent = (snap.exportedAt || '') + ' (bản xuất tĩnh, không tự cập nhật)';
 }
+// mỗi section (Vận hành/Kinh doanh/...) tự khai báo bộ id (trang, nút mục lục, khung mục lục, tên file/tiêu đề
+// khi xuất) — exportStaticHtml() luôn xuất đúng section NGƯỜI DÙNG ĐANG XEM (.app-section.active), không còn
+// cố định lấy ".page" đầu tiên trong DOM (trước đây luôn lấy nhầm Vận hành dù đang xem Kinh doanh).
+const EXPORT_SECTION_META = {
+  sectionVanHanh: { tocFabId: 'tocFab', tocPanelId: 'tocPanel', title: 'Báo Cáo Vận Hành Tuần — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_van_hanh_tuan_' },
+  sectionKinhDoanh: { tocFabId: 'kdTocFab', tocPanelId: 'kdTocPanel', title: 'Báo Cáo Kinh Doanh — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_kinh_doanh_' }
+};
 function exportStaticHtml(){
   try {
+    const activeSectionEl = document.querySelector('.app-section.active');
+    const meta = (activeSectionEl && EXPORT_SECTION_META[activeSectionEl.id]) || EXPORT_SECTION_META.sectionVanHanh;
     const chartStore = {}, chartState = {};
     Object.keys(CHART_STORE).forEach(id => { chartStore[id] = CHART_STORE[id]; });
     Object.keys(CHART_STATE).forEach(id => { chartState[id] = { mode: CHART_STATE[id].mode, hidden: Array.from(CHART_STATE[id].hidden) }; });
     const exportedAt = new Date().toLocaleString('vi-VN');
     const snapshot = { chartStore, chartState, exportedAt };
-    const pageEl = document.querySelector('.page');
-    const tocFabEl = document.getElementById('tocFab');
-    const tocPanelEl = document.getElementById('tocPanel');
+    const pageEl = activeSectionEl ? activeSectionEl.querySelector('.page') : document.querySelector('.page');
+    const tocFabEl = document.getElementById(meta.tocFabId);
+    const tocPanelEl = document.getElementById(meta.tocPanelId);
     const mainScriptEl = document.getElementById('mainScript');
-    if (!pageEl) throw new Error('Không tìm thấy nội dung báo cáo để xuất');
+    if (!pageEl) throw new Error('Không tìm thấy nội dung báo cáo để xuất (tab đang xem chưa có dữ liệu dạng bảng)');
     if (!mainScriptEl) throw new Error('Không tìm thấy mã script chính để nhúng vào file xuất');
     const pageHtml = pageEl.outerHTML;
     const fabHtml = tocFabEl ? tocFabEl.outerHTML : '';
@@ -922,7 +1002,7 @@ function exportStaticHtml(){
     const headExtras =
       '<meta charset="UTF-8">' +
       '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">' +
-      '<title>Báo Cáo Vận Hành Tuần — GHN (Bản xuất tĩnh)</title>' +
+      '<title>' + meta.title + '</title>' +
       (fontLinkEl ? fontLinkEl.outerHTML : '') +
       (styleEl ? styleEl.outerHTML : '');
     const snapJson = JSON.stringify(snapshot).replace(/</g, '\\u003c');
@@ -934,7 +1014,7 @@ function exportStaticHtml(){
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'bao_cao_van_hanh_tuan_' + new Date().toISOString().slice(0,10) + '.html';
+    a.download = meta.filePrefix + new Date().toISOString().slice(0,10) + '.html';
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -2639,20 +2719,23 @@ async function loadKinhDoanh(){
       return;
     }
     let out = '';
+    // mỗi khối bọc trong 1 div id="kd-<key>" — để mục lục nổi (kdTocPanel) + mục lục cuối trang (.toc) có thể
+    // nhảy thẳng tới đúng khối, giống hệt cơ chế partBanner(key,...) bên Vận hành.
     KD_TABS.forEach(t => {
       const table = res.tables ? res.tables[t.key] : null;
       const kd = table ? parseKDTable(table) : null;
       KD_DATA_STORE[t.key] = kd;
-      out += renderKDBlock(kd, t.title, t.key);
+      out += '<div id="kd-'+esc(t.key)+'">' + renderKDBlock(kd, t.title, t.key) + '</div>';
     });
     // "Bán mới theo AM/Khách hàng" (24_KD_BanMoiAM) — cấu trúc khác hẳn (Target + 3 cột/tuần), không dùng
     // được parseKDTable/renderKDBlock như 4 khối trên nên có luồng parse + render riêng (parseKDBanMoi/renderBanMoiAMBlock).
     safeRun('banMoiAM', () => {
       const amTable = res.tables ? res.tables['24_KD_BanMoiAM'] : null;
       const banMoiParsed = amTable ? parseKDBanMoi(amTable) : null;
-      out += renderBanMoiAMBlock(banMoiParsed, 'LTC — Vùng DBB — Bán mới theo AM/Khách hàng', 'banMoiAM');
+      out += '<div id="kd-banMoiAM">' + renderBanMoiAMBlock(banMoiParsed, 'LTC — Vùng DBB — Bán mới theo AM/Khách hàng', 'banMoiAM') + '</div>';
     });
     document.getElementById('kdBody').innerHTML = out;
+    const kdUa = document.getElementById('kdUpdatedAt'); if (kdUa) kdUa.textContent = new Date().toLocaleString('vi-VN');
     // bản rule-based đã hiện xong ở trên — giờ mới âm thầm gọi AI nâng cấp, không chặn UI.
     kdEnhanceWithAI();
     banMoiEnhanceWithAI();
@@ -2694,6 +2777,17 @@ function switchVanHanhTab(tab){
     const pane = document.getElementById(paneIds[t]);
     if (pane) pane.classList.toggle('active', t===tab);
     const btn = document.getElementById('vhTabBtn-'+t);
+    if (btn) btn.classList.toggle('active', t===tab);
+  });
+}
+// tương tự switchVanHanhTab nhưng cho Kinh doanh — Ngày/Tháng hiện là placeholder "sắp ra mắt" (logic thật sẽ
+// bổ sung sau khi có cấu trúc tab dữ liệu theo Ngày/Tháng riêng trên Sheet), Tuần giữ nguyên nội dung hiện có.
+function switchKDTab(tab){
+  const paneIds = { ngay: 'kdNgay', tuan: 'kdTuan', thang: 'kdThang' };
+  ['ngay','tuan','thang'].forEach(t => {
+    const pane = document.getElementById(paneIds[t]);
+    if (pane) pane.classList.toggle('active', t===tab);
+    const btn = document.getElementById('kdTabBtn-'+t);
     if (btn) btn.classList.toggle('active', t===tab);
   });
 }
