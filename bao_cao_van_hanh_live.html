@@ -226,6 +226,50 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
   font-weight:700;padding:3px 9px;border-radius:20px}
 .perm-toggle{width:17px;height:17px;cursor:pointer;accent-color:var(--ghn-blue)}
 .perm-inactive-badge{display:inline-block;background:#FEF2F2;color:#C0392B;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;margin-left:6px}
+.modal-card.wide{max-width:920px}
+.config-toolbar{display:flex;justify-content:flex-end;margin-bottom:12px}
+.config-add-btn{font-family:var(--mono);font-size:12px;background:var(--ghn-blue);color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:600}
+.config-add-btn:hover{background:var(--ghn-blue-dark)}
+.config-add-form{display:none;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;flex-wrap:wrap;gap:10px;align-items:center}
+.config-add-form.open{display:flex}
+.config-add-form input,.config-add-form select{font-family:var(--f);font-size:12.5px;padding:7px 9px;border:1px solid var(--border-strong);border-radius:7px;background:#fff;color:var(--text)}
+.config-add-form input[type=email],.config-add-form input[type=text]{flex:1;min-width:170px}
+.config-add-form .config-add-actions{display:flex;gap:8px;margin-left:auto}
+.role-select{font-family:var(--f);font-size:12px;padding:5px 6px;border:1px solid var(--border-strong);border-radius:6px;background:#fff;color:var(--text)}
+.active-switch{position:relative;display:inline-block;width:34px;height:19px;vertical-align:middle}
+.active-switch input{opacity:0;width:0;height:0}
+.active-switch .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#D8D5CC;border-radius:20px;transition:.15s}
+.active-switch .slider:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:2.5px;background:#fff;border-radius:50%;transition:.15s}
+.active-switch input:checked + .slider{background:var(--ghn-blue)}
+.active-switch input:checked + .slider:before{transform:translateX(15px)}
+.row-action-btn{font-family:var(--mono);font-size:10.5px;border:1px solid var(--border-strong);background:#fff;color:var(--muted);padding:4px 8px;border-radius:6px;cursor:pointer;margin-right:4px;white-space:nowrap}
+.row-action-btn:hover{border-color:var(--ghn-blue);color:var(--ghn-blue)}
+.row-action-btn.danger:hover{border-color:#C0392B;color:#C0392B}
+
+/* ===== Kế hoạch kinh doanh (Kế hoạch / Kết quả / Tiến độ) ===== */
+.kh-subpane{display:none}
+.kh-subpane.active{display:block}
+.kh-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px}
+.kh-toolbar-title{font-size:13px;color:var(--muted);font-family:var(--mono)}
+.kh-form{display:none;background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px}
+.kh-form.open{display:block}
+.kh-form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px 14px;margin-bottom:14px}
+.kh-field{display:flex;flex-direction:column;gap:5px}
+.kh-field.wide{grid-column:1/-1}
+.kh-field label{font-size:11px;color:var(--muted);font-weight:600}
+.kh-field input,.kh-field select,.kh-field textarea{font-family:var(--f);font-size:12.5px;padding:8px 10px;border:1px solid var(--border-strong);border-radius:8px;background:#fff;color:var(--text)}
+.kh-field textarea{resize:vertical;min-height:56px}
+.kh-form-actions{display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border);padding-top:14px}
+.kh-cancel-btn{font-family:var(--mono);font-size:12px;background:#fff;border:1px solid var(--border-strong);color:var(--muted);padding:8px 15px;border-radius:8px;cursor:pointer}
+.kh-cancel-btn:hover{border-color:var(--border-strong);color:var(--text)}
+.kh-table-wrap{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;overflow:auto;max-height:520px}
+.kh-table{width:100%;border-collapse:collapse;font-size:12px}
+.kh-table th{position:sticky;top:0;background:var(--bg);text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+.kh-table td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top;max-width:220px}
+.kh-table tr:last-child td{border-bottom:none}
+.kh-table tr:hover td{background:var(--bg)}
+.kh-empty-row td{text-align:center;color:var(--muted);padding:24px}
+.kh-photo-preview{width:100%;height:70px;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)}
 /* đếm ngược 60 giây khi nhập OTP xác thực lại phiên (sau 24h) */
 .otp-countdown{font-family:var(--mono);font-size:12px;color:var(--muted);margin:-4px 0 12px;text-align:left}
 .otp-countdown b{color:var(--ghn-blue)}
@@ -412,21 +456,39 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 <!-- ================= MODAL "CẤU HÌNH" (chỉ Admin) — phân quyền tải HTML/copy dữ liệu/chụp màn hình từng người ================= -->
 <div class="modal-overlay" id="configModal">
   <div class="modal-card wide">
-    <h3>⚙️ Cấu hình phân quyền <span class="modal-x" onclick="closeConfigModal()">✕ Đóng</span></h3>
-    <div class="perm-hint">Mặc định tài khoản không phải Admin sẽ KHÔNG có quyền nào ở dưới (giống 1 Google Sheet đã khoá). Admin luôn có toàn quyền, không cần bật. Bật/tắt sẽ lưu ngay lập tức.</div>
+    <h3>⚙️ Cấu hình <span class="modal-x" onclick="closeConfigModal()">✕ Đóng</span></h3>
+    <div class="perm-hint">Quản lý toàn bộ tài khoản nhân viên ngay tại đây — không cần mở Google Sheet nữa. Tài khoản không phải Admin mặc định KHÔNG có quyền nào ở 3 cột bên dưới (giống 1 Google Sheet đã khoá). Admin luôn có toàn quyền. Mọi thay đổi lưu ngay lập tức.</div>
     <div class="login-error" id="configError"></div>
     <div class="login-notice" id="configNotice"></div>
+    <div class="config-toolbar">
+      <button class="config-add-btn" id="configAddToggleBtn" onclick="toggleAddUserForm()">+ Thêm nhân viên</button>
+    </div>
+    <div class="config-add-form" id="configAddForm">
+      <input type="text" id="addUserName" placeholder="Họ và tên">
+      <input type="email" id="addUserEmail" placeholder="email@ghn.vn">
+      <select class="role-select" id="addUserRole">
+        <option value="Nhân viên">Nhân viên</option>
+        <option value="Admin">Admin</option>
+      </select>
+      <div class="config-add-actions">
+        <button class="row-action-btn" onclick="toggleAddUserForm()">Huỷ</button>
+        <button class="config-add-btn" onclick="submitAddUser()">Tạo tài khoản</button>
+      </div>
+    </div>
     <table class="perm-table">
       <thead>
         <tr>
           <th>Nhân viên</th>
-          <th class="pc">Tải file HTML</th>
+          <th class="pc">Vai trò</th>
+          <th class="pc">Hoạt động</th>
+          <th class="pc">Tải HTML</th>
           <th class="pc">Copy dữ liệu</th>
           <th class="pc">Chụp màn hình</th>
+          <th class="pc">Thao tác</th>
         </tr>
       </thead>
       <tbody id="configUserList">
-        <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Đang tải danh sách…</td></tr>
+        <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Đang tải danh sách…</td></tr>
       </tbody>
     </table>
   </div>
@@ -547,6 +609,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     <button class="vh-subtab-btn" id="kdTabBtn-ngay" onclick="switchKDTab('ngay')">Ngày</button>
     <button class="vh-subtab-btn active" id="kdTabBtn-tuan" onclick="switchKDTab('tuan')">Tuần</button>
     <button class="vh-subtab-btn" id="kdTabBtn-thang" onclick="switchKDTab('thang')">Tháng</button>
+    <button class="vh-subtab-btn" id="kdTabBtn-kehoach" onclick="switchKDTab('kehoach')">📋 Kế hoạch kinh doanh</button>
   </div>
 
   <div id="kdNgay" class="vh-pane">
@@ -608,6 +671,56 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
       <div class="sp-icon">📅</div>
       <h2>Kinh doanh theo Tháng (báo cáo tổng hợp riêng) — sắp ra mắt</h2>
       <p>Tab này sẽ dùng cho báo cáo tổng hợp theo tháng riêng biệt (khác với cột "Theo Tháng" đang hiển thị song song trong từng khối ở tab Tuần). Logic sẽ bổ sung sau.</p>
+    </div>
+  </div>
+
+  <!-- ================= KẾ HOẠCH KINH DOANH — chuyển từ công cụ CRM riêng vào web chính, dùng chung đăng nhập ================= -->
+  <div id="kdKeHoach" class="vh-pane">
+    <div class="page" style="padding-top:28px">
+      <div class="report-header" style="border-bottom-color:var(--ghn-blue)">
+        <div><h1>Kế Hoạch Kinh Doanh <span class="rh-tag">DBB</span></h1>
+          <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Lập kế hoạch tiếp cận khách hàng mới, theo dõi kết quả &amp; tiến độ triển khai</div>
+        </div>
+        <div class="meta"><button class="refresh-btn" onclick="khLoaded=false;loadKeHoachKinhDoanh()">↻ Làm mới dữ liệu</button></div>
+      </div>
+      <div id="khErrBanner"></div>
+      <div id="khLoadingNote" class="load-progress">
+        <span>Đang tải dữ liệu…</span>
+        <span class="load-progress-track"><span class="load-progress-fill" id="khLoadingFill"></span></span>
+        <span class="load-progress-pct" id="khLoadingPct">0%</span>
+      </div>
+      <div class="vh-subtabs" style="margin-bottom:18px">
+        <button class="vh-subtab-btn active" id="khTabBtn-kehoach" onclick="switchKHTab('kehoach')">📝 Kế hoạch</button>
+        <button class="vh-subtab-btn" id="khTabBtn-ketqua" onclick="switchKHTab('ketqua')">✅ Kết quả</button>
+        <button class="vh-subtab-btn" id="khTabBtn-tiendo" onclick="switchKHTab('tiendo')">🚧 Tiến độ</button>
+      </div>
+
+      <div id="khPaneKehoach" class="kh-subpane active">
+        <div class="kh-toolbar">
+          <div class="kh-toolbar-title" id="khCountKehoach">0 kế hoạch</div>
+          <button class="config-add-btn" onclick="toggleKHForm('kehoach')">+ Thêm kế hoạch mới</button>
+        </div>
+        <div class="kh-form" id="khFormWrap-kehoach"></div>
+        <div class="kh-table-wrap"><table class="kh-table" id="khTable-kehoach"></table></div>
+      </div>
+
+      <div id="khPaneKetqua" class="kh-subpane">
+        <div class="kh-toolbar">
+          <div class="kh-toolbar-title" id="khCountKetqua">0 kết quả</div>
+          <button class="config-add-btn" onclick="toggleKHForm('ketqua')">+ Thêm kết quả</button>
+        </div>
+        <div class="kh-form" id="khFormWrap-ketqua"></div>
+        <div class="kh-table-wrap"><table class="kh-table" id="khTable-ketqua"></table></div>
+      </div>
+
+      <div id="khPaneTiendo" class="kh-subpane">
+        <div class="kh-toolbar">
+          <div class="kh-toolbar-title" id="khCountTiendo">0 tiến độ</div>
+          <button class="config-add-btn" onclick="toggleKHForm('tiendo')">+ Thêm tiến độ</button>
+        </div>
+        <div class="kh-form" id="khFormWrap-tiendo"></div>
+        <div class="kh-table-wrap"><table class="kh-table" id="khTable-tiendo"></table></div>
+      </div>
     </div>
   </div>
 </div><!-- /#sectionKinhDoanh -->
@@ -742,7 +855,11 @@ const LOGIN_ERR_MSG = {
   password_too_short: 'Mật khẩu phải có tối thiểu 8 ký tự',
   old_password_incorrect: 'Mật khẩu hiện tại không đúng',
   forbidden: 'Bạn không có quyền thực hiện thao tác này',
-  server_error: 'Lỗi hệ thống, thử lại sau'
+  server_error: 'Lỗi hệ thống, thử lại sau',
+  account_exists: 'Email này đã có tài khoản',
+  last_admin: 'Không thể thực hiện — đây là Admin đang hoạt động cuối cùng, hệ thống cần giữ ít nhất 1 Admin',
+  cannot_delete_self: 'Không thể tự xoá tài khoản của chính mình',
+  bad_request: 'Thiếu thông tin hoặc dữ liệu không hợp lệ'
 };
 function errMsg(code){ return LOGIN_ERR_MSG[code] || ('Có lỗi xảy ra (' + code + ')'); }
 
@@ -925,7 +1042,9 @@ function handleLogoutClick(){
   location.reload();
 }
 
-// ================= TRANG "CẤU HÌNH" (chỉ Admin) — phân quyền tải HTML/copy dữ liệu/chụp màn hình =================
+// ================= TRANG "CẤU HÌNH" (chỉ Admin) — quản lý tài khoản + phân quyền tải HTML/copy dữ liệu/chụp màn hình =================
+// Toàn bộ CRUD tài khoản (thêm/sửa vai trò/bật-tắt hoạt động/đặt lại mật khẩu/xoá) làm thẳng trên web — Admin
+// không còn cần mở Google Sheet "Main" thủ công như trước nữa.
 window.__configUsersMap = {}; // email -> {taiHtml, copy, chupManHinh} — cache trạng thái hiện tại để gửi đủ cả 3
                                // trường mỗi lần đổi 1 trường (backend updateUserPermissions ghi đè cả 3 cùng lúc).
 async function openConfigModal(){
@@ -933,8 +1052,9 @@ async function openConfigModal(){
   document.getElementById('configModal').classList.add('open');
   document.getElementById('configError').style.display = 'none';
   document.getElementById('configNotice').style.display = 'none';
+  document.getElementById('configAddForm').classList.remove('open');
   const tbody = document.getElementById('configUserList');
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Đang tải danh sách…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Đang tải danh sách…</td></tr>';
   try {
     const res = await callBackend('getUserList', { token: AUTH.session.token });
     if (!res.ok) { tbody.innerHTML = ''; showLoginError('configError', errMsg(res.error)); return; }
@@ -946,23 +1066,41 @@ async function openConfigModal(){
 }
 function closeConfigModal(){ document.getElementById('configModal').classList.remove('open'); }
 
+function configNotify(msg){
+  const notice = document.getElementById('configNotice');
+  if (!notice) return;
+  notice.textContent = msg;
+  notice.style.display = 'block';
+  setTimeout(() => { notice.style.display = 'none'; }, 2500);
+}
+
 function renderConfigUserList(users){
   window.__configUsersMap = {};
   const tbody = document.getElementById('configUserList');
-  if (!users.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Chưa có nhân viên nào trong sheet Main</td></tr>'; return; }
+  if (!users.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Chưa có nhân viên nào</td></tr>'; return; }
   tbody.innerHTML = users.map(u => {
     window.__configUsersMap[u.email] = { taiHtml: !!u.permissions.taiHtml, copy: !!u.permissions.copy, chupManHinh: !!u.permissions.chupManHinh };
     const isAdmin = u.role === 'Admin';
+    const isSelf = AUTH.session && AUTH.session.email === u.email;
+    const em = attrEsc(u.email);
     const nameCell = '<div class="perm-row-name">' + esc(u.name || '(chưa có tên)') + (u.active ? '' : '<span class="perm-inactive-badge">Ngừng hoạt động</span>') + '</div>'
       + '<div class="perm-row-email">' + esc(u.email) + '</div>';
-    if (isAdmin) {
-      return '<tr><td>' + nameCell + '</td><td class="pc" colspan="3"><span class="perm-admin-badge">Admin — Toàn quyền</span></td></tr>';
-    }
-    const cb = (field) => '<input type="checkbox" class="perm-toggle" ' + (u.permissions[field] ? 'checked' : '') + ' onchange="togglePermission(\'' + attrEsc(u.email) + '\',\'' + field + '\',this.checked)">';
+    const roleCell = '<select class="role-select" onchange="updateUserRole(\'' + em + '\',this.value)">'
+      + '<option value="Nhân viên"' + (isAdmin ? '' : ' selected') + '>Nhân viên</option>'
+      + '<option value="Admin"' + (isAdmin ? ' selected' : '') + '>Admin</option></select>';
+    const activeCell = '<label class="active-switch"><input type="checkbox" ' + (u.active ? 'checked' : '') + ' onchange="updateUserActive(\'' + em + '\',this.checked)"><span class="slider"></span></label>';
+    const permCell = (field) => isAdmin
+      ? '<span class="perm-admin-badge">Toàn quyền</span>'
+      : '<input type="checkbox" class="perm-toggle" ' + (u.permissions[field] ? 'checked' : '') + ' onchange="togglePermission(\'' + em + '\',\'' + field + '\',this.checked)">';
+    const actionsCell = '<button class="row-action-btn" onclick="resetUserPasswordAdmin(\'' + em + '\')">🔑 Đặt lại MK</button>'
+      + (isSelf ? '' : '<button class="row-action-btn danger" onclick="deleteUserAdmin(\'' + em + '\')">🗑 Xoá</button>');
     return '<tr><td>' + nameCell + '</td>'
-      + '<td class="pc">' + cb('taiHtml') + '</td>'
-      + '<td class="pc">' + cb('copy') + '</td>'
-      + '<td class="pc">' + cb('chupManHinh') + '</td></tr>';
+      + '<td class="pc">' + roleCell + '</td>'
+      + '<td class="pc">' + activeCell + '</td>'
+      + '<td class="pc">' + permCell('taiHtml') + '</td>'
+      + '<td class="pc">' + permCell('copy') + '</td>'
+      + '<td class="pc">' + permCell('chupManHinh') + '</td>'
+      + '<td class="pc">' + actionsCell + '</td></tr>';
   }).join('');
 }
 
@@ -970,14 +1108,86 @@ async function togglePermission(email, field, checked){
   const cur = window.__configUsersMap[email] || { taiHtml: false, copy: false, chupManHinh: false };
   cur[field] = checked;
   window.__configUsersMap[email] = cur;
-  const notice = document.getElementById('configNotice');
   try {
     const res = await callBackend('updateUserPermissions', { token: AUTH.session.token, targetEmail: email, taiHtml: cur.taiHtml, copy: cur.copy, chupManHinh: cur.chupManHinh });
     if (!res.ok) { showLoginError('configError', errMsg(res.error)); openConfigModal(); return; } // sai thì tải lại danh sách cho đúng trạng thái thật
-    if (notice) { notice.textContent = 'Đã lưu quyền cho ' + email; notice.style.display = 'block'; setTimeout(() => { notice.style.display = 'none'; }, 2500); }
+    configNotify('Đã lưu quyền cho ' + email);
   } catch(e) {
     showLoginError('configError', 'Không kết nối được máy chủ: ' + e.message);
     openConfigModal();
+  }
+}
+
+function toggleAddUserForm(){
+  const form = document.getElementById('configAddForm');
+  form.classList.toggle('open');
+  if (form.classList.contains('open')) {
+    document.getElementById('addUserName').value = '';
+    document.getElementById('addUserEmail').value = '';
+    document.getElementById('addUserRole').value = 'Nhân viên';
+  }
+}
+
+async function submitAddUser(){
+  const name = document.getElementById('addUserName').value.trim();
+  const email = document.getElementById('addUserEmail').value.trim();
+  const role = document.getElementById('addUserRole').value;
+  if (!name || !email) { showLoginError('configError', 'Nhập đầy đủ họ tên và email'); return; }
+  try {
+    const res = await callBackend('addUser', { token: AUTH.session.token, name, email, role });
+    if (!res.ok) { showLoginError('configError', errMsg(res.error)); return; }
+    document.getElementById('configAddForm').classList.remove('open');
+    configNotify('Đã tạo tài khoản cho ' + email + ' — mật khẩu tạm đã gửi qua email');
+    openConfigModal();
+  } catch(e) {
+    showLoginError('configError', 'Không kết nối được máy chủ: ' + e.message);
+  }
+}
+
+async function updateUserRole(email, role){
+  try {
+    const res = await callBackend('updateUser', { token: AUTH.session.token, targetEmail: email, role });
+    if (!res.ok) { showLoginError('configError', errMsg(res.error)); openConfigModal(); return; }
+    configNotify('Đã cập nhật vai trò cho ' + email);
+    openConfigModal();
+  } catch(e) {
+    showLoginError('configError', 'Không kết nối được máy chủ: ' + e.message);
+    openConfigModal();
+  }
+}
+
+async function updateUserActive(email, active){
+  try {
+    const res = await callBackend('updateUser', { token: AUTH.session.token, targetEmail: email, active });
+    if (!res.ok) { showLoginError('configError', errMsg(res.error)); openConfigModal(); return; }
+    configNotify((active ? 'Đã kích hoạt ' : 'Đã vô hiệu hoá ') + email);
+    openConfigModal();
+  } catch(e) {
+    showLoginError('configError', 'Không kết nối được máy chủ: ' + e.message);
+    openConfigModal();
+  }
+}
+
+async function resetUserPasswordAdmin(email){
+  if (!confirm('Đặt lại mật khẩu cho ' + email + '? Mật khẩu tạm mới sẽ được gửi qua email của họ.')) return;
+  try {
+    const res = await callBackend('adminResetPassword', { token: AUTH.session.token, targetEmail: email });
+    if (!res.ok) { showLoginError('configError', errMsg(res.error)); return; }
+    configNotify('Đã gửi mật khẩu tạm mới cho ' + email);
+  } catch(e) {
+    showLoginError('configError', 'Không kết nối được máy chủ: ' + e.message);
+  }
+}
+
+async function deleteUserAdmin(email){
+  if (!confirm('Xoá vĩnh viễn tài khoản ' + email + '? Không thể hoàn tác.')) return;
+  try {
+    const res = await callBackend('deleteUser', { token: AUTH.session.token, targetEmail: email });
+    if (!res.ok) { showLoginError('configError', errMsg(res.error)); return; }
+    configNotify('Đã xoá tài khoản ' + email);
+    openConfigModal();
+  } catch(e) {
+    showLoginError('configError', 'Không kết nối được máy chủ: ' + e.message);
   }
 }
 
@@ -3038,6 +3248,285 @@ async function loadKinhDoanh(){
   }
 }
 
+// ================= KẾ HOẠCH KINH DOANH (Kế hoạch / Kết quả / Tiến độ) =================
+// Chuyển từ công cụ CRM Apps Script riêng (Sheet "DBB KẾ HOẠCH KINH DOANH") vào thẳng web chính — dùng CHUNG
+// đăng nhập/phân quyền với web (không còn tài khoản/đăng nhập riêng của công cụ cũ nữa).
+let khLoaded = false;
+window.KH_DATA = { kehoach: [], ketqua: [], tiendo: [], xaphuong: [] };
+let khCurTab = 'kehoach';
+
+const KH_FIELDS = {
+  kehoach: [
+    { id:'ngayLapKeHoach', label:'Ngày lập kế hoạch', type:'date', required:true },
+    { id:'ngayThucHien', label:'Ngày thực hiện', type:'date' },
+    { id:'nhomKH', label:'Nhóm KH', type:'text', placeholder:'VD: Khách Mới' },
+    { id:'sdtKH', label:'SĐT khách hàng', type:'tel' },
+    { id:'tenShop', label:'Tên shop', type:'text', required:true },
+    { id:'idKhachHang', label:'ID khách hàng', type:'text' },
+    { id:'donViDoiThu', label:'Đơn vị đối thủ', type:'text' },
+    { id:'bangGia', label:'Bảng giá', type:'text' },
+    { id:'sanPham', label:'Sản phẩm', type:'text' },
+    { id:'sanLuongThang', label:'Sản lượng/tháng', type:'number' },
+    { id:'sanLuongTangThem', label:'Sản lượng tăng thêm/tháng', type:'text' },
+    { id:'khoiLuong', label:'Khối lượng', type:'text' },
+    { id:'trangThai', label:'Trạng thái khách hàng', type:'text', placeholder:'VD: Đang tiếp cận' },
+    { id:'chinhSach', label:'Chính sách đi kèm', type:'textarea', wide:true },
+    { id:'nguyenNhan', label:'Nguyên nhân/yêu cầu', type:'textarea', wide:true }
+  ],
+  ketqua: [
+    { id:'idKhachHang', label:'ID khách hàng', type:'text' },
+    { id:'tenShop', label:'Tên shop', type:'text', required:true },
+    { id:'ngayTiepCan', label:'Ngày tiếp cận', type:'date' },
+    { id:'diaChi', label:'Địa chỉ', type:'text', wide:true },
+    { id:'sanLuongGuiGHN', label:'Sản lượng gửi GHN', type:'number' },
+    { id:'bangGia', label:'Bảng giá', type:'text' },
+    { id:'ngayBatDauLenDon', label:'Ngày bắt đầu lên đơn', type:'date' },
+    { id:'anhCheckin', label:'Ảnh checkin cửa hàng', type:'file' },
+    { id:'anhSanPham', label:'Ảnh sản phẩm kinh doanh', type:'file' }
+  ],
+  tiendo: [
+    { id:'idKhachHang', label:'ID khách hàng', type:'text' },
+    { id:'sdtKH', label:'SĐT khách hàng', type:'tel' },
+    { id:'tenShop', label:'Tên shop', type:'text', required:true },
+    { id:'ngayGapKH', label:'Ngày gặp KH', type:'date' },
+    { id:'diaChi', label:'Địa chỉ KH', type:'text', wide:true },
+    { id:'sanPham', label:'Sản phẩm', type:'text' },
+    { id:'doiThu', label:'Đối thủ', type:'text' },
+    { id:'bangGia', label:'Bảng giá', type:'text' },
+    { id:'sanLuong', label:'Sản lượng', type:'text' },
+    { id:'khoiLuong', label:'Khối lượng', type:'text' },
+    { id:'chinhSach', label:'Chính sách', type:'textarea', wide:true },
+    { id:'lyDo', label:'Lý do chưa kéo được', type:'textarea', wide:true },
+    { id:'deXuat', label:'Đề xuất', type:'textarea', wide:true },
+    { id:'anhCheckin', label:'Ảnh checkin cửa hàng', type:'file' },
+    { id:'anhSanPham', label:'Ảnh sản phẩm kinh doanh', type:'file' }
+  ]
+};
+
+const KH_TABLE_COLS = {
+  kehoach: [['ngayLapKeHoach','Ngày lập','date'],['nguoiLap','Người lập','text'],['tenShop','Tên shop','text'],
+    ['sdtKH','SĐT','text'],['nhomKH','Nhóm KH','text'],['diaChi','Địa chỉ','text'],['sanLuongThang','SL/tháng','text'],
+    ['trangThai','Trạng thái','text']],
+  ketqua: [['ngayTiepCan','Ngày tiếp cận','date'],['tenShop','Tên shop','text'],['idKhachHang','ID KH','text'],
+    ['diaChi','Địa chỉ','text'],['sanLuongGuiGHN','SL gửi GHN','text'],['bangGia','Bảng giá','text'],
+    ['ngayBatDauLenDon','Ngày lên đơn','date'],['anhCheckin','Ảnh checkin','link'],['anhSanPham','Ảnh SP','link']],
+  tiendo: [['ngayGapKH','Ngày gặp KH','date'],['tenShop','Tên shop','text'],['sdtKH','SĐT','text'],
+    ['sanPham','Sản phẩm','text'],['bangGia','Bảng giá','text'],['lyDo','Lý do','text'],['deXuat','Đề xuất','text']]
+};
+
+// Vị trí cột trong Sheet gốc (khớp đúng thứ tự COL_KH/COL_KQ/COL_TD phía backend Code.gs) — dùng để đọc lại
+// dữ liệu {cols,rows} kiểu gviz-shape thành mảng object dễ dùng ở frontend.
+const KH_ROW_KEYS = {
+  kehoach: ['thoiGianNhap','nguoiLap','ngayLapKeHoach','ngayThucHien','nhomKH','sdtKH','tenShop','diaChi',
+    'donViDoiThu','bangGia','chinhSach','sanLuongThang','sanLuongTangThem','khoiLuong','idKhachHang','sanPham',
+    'nguyenNhan','trangThai'],
+  ketqua: ['thoiGianNhap','idKhachHang','tenShop','ngayTiepCan','diaChi','anhCheckin','anhSanPham',
+    'sanLuongGuiGHN','bangGia','ngayBatDauLenDon'],
+  tiendo: ['thoiGianNhap','idKhachHang','sdtKH','tenShop','ngayGapKH','diaChi','anhCheckin','anhSanPham',
+    'sanPham','doiThu','bangGia','chinhSach','sanLuong','khoiLuong','lyDo','deXuat']
+};
+
+function parseKHTable(table, keys){
+  if (!table || !table.rows) return [];
+  return table.rows.map(row => {
+    const obj = {};
+    keys.forEach((k, i) => {
+      const cell = row.c ? row.c[i] : null;
+      obj[k] = cell && cell.v != null ? cell.v : '';
+    });
+    return obj;
+  }).reverse(); // mới nhất lên đầu
+}
+
+function khFormatDate(v){
+  if (!v) return '';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('vi-VN');
+}
+
+async function loadKeHoachKinhDoanh(){
+  if (khLoaded) return;
+  khLoaded = true;
+  const prog = startFakeProgress('khLoadingFill', 'khLoadingPct');
+  try {
+    const res = await callBackend('getKeHoachData', { token: AUTH.session.token });
+    prog.finish('khLoadingNote');
+    if (!res.ok) {
+      document.getElementById('khErrBanner').innerHTML = '<div style="background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">Không tải được dữ liệu Kế hoạch kinh doanh: '+esc(errMsg(res.error))+'</div>';
+      return;
+    }
+    window.KH_DATA.kehoach = parseKHTable(res.kehoach, KH_ROW_KEYS.kehoach);
+    window.KH_DATA.ketqua = parseKHTable(res.ketqua, KH_ROW_KEYS.ketqua);
+    window.KH_DATA.tiendo = parseKHTable(res.tiendo, KH_ROW_KEYS.tiendo);
+    window.KH_DATA.xaphuong = parseKHTable(res.xaphuong, ['wardCode','wardName','districtId','districtName','provinceName']);
+    renderKHTable('kehoach');
+    renderKHTable('ketqua');
+    renderKHTable('tiendo');
+  } catch(e) {
+    prog.finish('khLoadingNote');
+    document.getElementById('khErrBanner').innerHTML = '<div style="background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">Lỗi tải Kế hoạch kinh doanh: '+esc(e.message)+'</div>';
+  }
+}
+
+function switchKHTab(tab){
+  khCurTab = tab;
+  ['kehoach','ketqua','tiendo'].forEach(t => {
+    const pane = document.getElementById('khPane' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (pane) pane.classList.toggle('active', t===tab);
+    const btn = document.getElementById('khTabBtn-'+t);
+    if (btn) btn.classList.toggle('active', t===tab);
+  });
+}
+
+function renderKHTable(kind){
+  const rows = window.KH_DATA[kind] || [];
+  const countEl = document.getElementById('khCount' + kind.charAt(0).toUpperCase() + kind.slice(1));
+  if (countEl) countEl.textContent = rows.length + (kind==='kehoach' ? ' kế hoạch' : kind==='ketqua' ? ' kết quả' : ' tiến độ');
+  const cols = KH_TABLE_COLS[kind];
+  const table = document.getElementById('khTable-' + kind);
+  if (!table) return;
+  let html = '<thead><tr>' + cols.map(c => '<th>'+esc(c[1])+'</th>').join('') + '</tr></thead><tbody>';
+  if (!rows.length) {
+    html += '<tr class="kh-empty-row"><td colspan="'+cols.length+'">Chưa có dữ liệu</td></tr>';
+  } else {
+    rows.forEach(r => {
+      html += '<tr>' + cols.map(c => {
+        const [key,,type] = c;
+        const v = r[key];
+        if (type === 'date') return '<td>'+esc(khFormatDate(v))+'</td>';
+        if (type === 'link') return '<td>' + (v ? '<a href="'+attrEsc(v)+'" target="_blank" rel="noopener">Xem ảnh</a>' : '—') + '</td>';
+        return '<td>'+esc(v)+'</td>';
+      }).join('') + '</tr>';
+    });
+  }
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+// ---------- form thêm mới (dùng chung khung renderer cho cả 3 loại, riêng "kehoach" có thêm khối địa chỉ Tỉnh/Huyện/Xã) ----------
+function khFieldHtml(kind, f){
+  const id = 'khf_' + kind + '_' + f.id;
+  const req = f.required ? 'required' : '';
+  let input;
+  if (f.type === 'textarea') input = '<textarea id="'+id+'" '+req+' placeholder="'+attrEsc(f.placeholder||'')+'"></textarea>';
+  else if (f.type === 'file') input = '<input type="file" id="'+id+'" accept="image/*" onchange="khPreviewImage(this)"><img class="kh-photo-preview" id="'+id+'_preview" style="display:none">';
+  else input = '<input type="'+f.type+'" id="'+id+'" '+req+' placeholder="'+attrEsc(f.placeholder||'')+'">';
+  return '<div class="kh-field'+(f.wide?' wide':'')+'"><label>'+esc(f.label)+(f.required?' *':'')+'</label>'+input+'</div>';
+}
+
+function khPreviewImage(input){
+  const preview = document.getElementById(input.id + '_preview');
+  const file = input.files && input.files[0];
+  if (!file || !preview) return;
+  const reader = new FileReader();
+  reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+  reader.readAsDataURL(file);
+}
+
+function khAddressBlockHtml(){
+  return '<div class="kh-field wide"><label>Địa chỉ</label>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">'
+    + '<select id="khf_kehoach_tinh" onchange="khOnProvinceChange()"><option value="">— Chọn Tỉnh/Thành —</option></select>'
+    + '<select id="khf_kehoach_huyen" onchange="khOnDistrictChange()"><option value="">— Chọn Quận/Huyện —</option></select>'
+    + '<select id="khf_kehoach_xa"><option value="">— Chọn Phường/Xã —</option></select>'
+    + '<input type="text" id="khf_kehoach_sonha" placeholder="Số nhà, tên đường">'
+    + '</div></div>';
+}
+
+function khOnProvinceChange(){
+  const tinh = document.getElementById('khf_kehoach_tinh').value;
+  const huyenSel = document.getElementById('khf_kehoach_huyen');
+  const xaSel = document.getElementById('khf_kehoach_xa');
+  const districts = [...new Set(window.KH_DATA.xaphuong.filter(x => x.provinceName === tinh).map(x => x.districtName))];
+  huyenSel.innerHTML = '<option value="">— Chọn Quận/Huyện —</option>' + districts.map(d => '<option value="'+attrEsc(d)+'">'+esc(d)+'</option>').join('');
+  xaSel.innerHTML = '<option value="">— Chọn Phường/Xã —</option>';
+}
+
+function khOnDistrictChange(){
+  const tinh = document.getElementById('khf_kehoach_tinh').value;
+  const huyen = document.getElementById('khf_kehoach_huyen').value;
+  const xaSel = document.getElementById('khf_kehoach_xa');
+  const wards = window.KH_DATA.xaphuong.filter(x => x.provinceName === tinh && x.districtName === huyen).map(x => x.wardName);
+  xaSel.innerHTML = '<option value="">— Chọn Phường/Xã —</option>' + wards.map(w => '<option value="'+attrEsc(w)+'">'+esc(w)+'</option>').join('');
+}
+
+function khComposeAddress(){
+  const soNha = document.getElementById('khf_kehoach_sonha').value.trim();
+  const xa = document.getElementById('khf_kehoach_xa').value;
+  const huyen = document.getElementById('khf_kehoach_huyen').value;
+  const tinh = document.getElementById('khf_kehoach_tinh').value;
+  return [soNha, xa, huyen, tinh].filter(Boolean).join(', ');
+}
+
+function toggleKHForm(kind){
+  const wrap = document.getElementById('khFormWrap-' + kind);
+  const isOpen = wrap.classList.contains('open');
+  if (isOpen) { wrap.classList.remove('open'); return; }
+  let html = '<div class="kh-form-grid">';
+  if (kind === 'kehoach') {
+    // Chỉ 1 lần duy nhất: nạp danh sách Tỉnh cho select khi mở form kế hoạch.
+    html += khFieldHtml('kehoach', KH_FIELDS.kehoach[0]) + khFieldHtml('kehoach', KH_FIELDS.kehoach[1]);
+    html += khAddressBlockHtml();
+    KH_FIELDS.kehoach.slice(2).forEach(f => { html += khFieldHtml('kehoach', f); });
+  } else {
+    KH_FIELDS[kind].forEach(f => { html += khFieldHtml(kind, f); });
+  }
+  html += '</div><div class="kh-form-actions"><button class="kh-cancel-btn" onclick="toggleKHForm(\''+kind+'\')">Huỷ</button>'
+    + '<button class="config-add-btn" id="khSubmitBtn-'+kind+'" onclick="submitKHForm(\''+kind+'\')">Lưu</button></div>';
+  wrap.innerHTML = html;
+  wrap.classList.add('open');
+  if (kind === 'kehoach') {
+    const provinces = [...new Set(window.KH_DATA.xaphuong.map(x => x.provinceName))].sort();
+    document.getElementById('khf_kehoach_tinh').innerHTML = '<option value="">— Chọn Tỉnh/Thành —</option>' + provinces.map(p => '<option value="'+attrEsc(p)+'">'+esc(p)+'</option>').join('');
+  }
+}
+
+function khReadImageDataUrl(inputId){
+  return new Promise(resolve => {
+    const input = document.getElementById(inputId);
+    const file = input && input.files && input.files[0];
+    if (!file) return resolve('');
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+}
+
+async function submitKHForm(kind){
+  const btn = document.getElementById('khSubmitBtn-' + kind);
+  const requiredFields = KH_FIELDS[kind].filter(f => f.required);
+  for (const f of requiredFields) {
+    const el = document.getElementById('khf_' + kind + '_' + f.id);
+    if (el && !el.value.trim()) { alert('Vui lòng nhập: ' + f.label); return; }
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Đang lưu…'; }
+  try {
+    const payload = { token: AUTH.session.token };
+    if (kind === 'kehoach') payload.diaChi = khComposeAddress();
+    for (const f of KH_FIELDS[kind]) {
+      if (f.type === 'file') continue; // ảnh xử lý riêng bên dưới (đọc base64 bất đồng bộ)
+      const el = document.getElementById('khf_' + kind + '_' + f.id);
+      payload[f.id] = el ? el.value.trim() : '';
+    }
+    for (const f of KH_FIELDS[kind]) {
+      if (f.type !== 'file') continue;
+      payload[f.id] = await khReadImageDataUrl('khf_' + kind + '_' + f.id);
+    }
+    const action = kind === 'kehoach' ? 'addKeHoach' : kind === 'ketqua' ? 'addKetQua' : 'addTienDo';
+    const res = await callBackend(action, payload);
+    if (!res.ok) { alert(errMsg(res.error)); return; }
+    toggleKHForm(kind);
+    khLoaded = false;
+    await loadKeHoachKinhDoanh();
+  } catch(e) {
+    alert('Không kết nối được máy chủ: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Lưu'; }
+  }
+}
+
 // ================= ĐIỀU HƯỚNG CÁC SECTION (nút tròn nổi DBB) =================
 function toggleDbbMenu(){
   document.getElementById('dbbSubMenu').classList.toggle('open');
@@ -3076,13 +3565,14 @@ function switchVanHanhTab(tab){
 // tương tự switchVanHanhTab nhưng cho Kinh doanh — Ngày/Tháng hiện là placeholder "sắp ra mắt" (logic thật sẽ
 // bổ sung sau khi có cấu trúc tab dữ liệu theo Ngày/Tháng riêng trên Sheet), Tuần giữ nguyên nội dung hiện có.
 function switchKDTab(tab){
-  const paneIds = { ngay: 'kdNgay', tuan: 'kdTuan', thang: 'kdThang' };
-  ['ngay','tuan','thang'].forEach(t => {
+  const paneIds = { ngay: 'kdNgay', tuan: 'kdTuan', thang: 'kdThang', kehoach: 'kdKeHoach' };
+  ['ngay','tuan','thang','kehoach'].forEach(t => {
     const pane = document.getElementById(paneIds[t]);
     if (pane) pane.classList.toggle('active', t===tab);
     const btn = document.getElementById('kdTabBtn-'+t);
     if (btn) btn.classList.toggle('active', t===tab);
   });
+  if (tab === 'kehoach') loadKeHoachKinhDoanh();
 }
 
 // ---------- main ----------
