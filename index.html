@@ -210,6 +210,28 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .modal-card{background:#fff;border-radius:16px;max-width:360px;width:100%;padding:26px 26px 22px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
 .modal-card h3{font-size:15px;margin-bottom:16px}
 .modal-close-x{position:absolute}
+/* trang "Cấu hình" (Admin) — modal rộng hơn để chứa bảng danh sách nhân viên + 3 cột quyền */
+.modal-card.wide{max-width:720px;text-align:left;max-height:82vh;overflow:auto}
+.modal-card.wide h3{display:flex;align-items:center;justify-content:space-between}
+.modal-card.wide .modal-x{cursor:pointer;font-size:14px;color:var(--muted);font-weight:400}
+.perm-hint{font-size:11.5px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+.perm-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.perm-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);
+  padding:6px 8px;border-bottom:1px solid var(--border-strong)}
+.perm-table td{padding:8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.perm-table td.pc{text-align:center}
+.perm-row-name{font-weight:700;color:var(--text)}
+.perm-row-email{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.perm-admin-badge{display:inline-block;background:var(--ghn-blue-light);color:var(--ghn-blue-dark);font-size:10.5px;
+  font-weight:700;padding:3px 9px;border-radius:20px}
+.perm-toggle{width:17px;height:17px;cursor:pointer;accent-color:var(--ghn-blue)}
+.perm-inactive-badge{display:inline-block;background:#FEF2F2;color:#C0392B;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;margin-left:6px}
+/* đếm ngược 60 giây khi nhập OTP xác thực lại phiên (sau 24h) */
+.otp-countdown{font-family:var(--mono);font-size:12px;color:var(--muted);margin:-4px 0 12px;text-align:left}
+.otp-countdown b{color:var(--ghn-blue)}
+.otp-countdown.warn b{color:#C0392B}
+.login-resend{font-size:11.5px;color:var(--ghn-blue);cursor:pointer;font-weight:600;background:none;border:none;font-family:var(--f);padding:0}
+.login-resend[disabled]{color:var(--muted);cursor:default}
 @media (max-width:640px){
   .login-card{padding:28px 22px 22px}
   .user-menu{right:66px;top:12px}
@@ -329,6 +351,23 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
       </div>
       <button class="login-btn" id="resetBtn" onclick="handleResetPasswordClick()">Đặt mật khẩu mới</button>
     </div>
+
+    <!-- Bước 4: xác thực lại phiên bằng OTP sau khi phiên đăng nhập quá 24 giờ — không cần gõ lại mật khẩu,
+         chỉ cần chứng minh vẫn còn quyền truy cập hộp mail @ghn.vn của chính mình, trong đúng 60 giây. -->
+    <div class="login-step" id="stepSessionOtp">
+      <div class="login-title">Xác thực lại phiên đăng nhập</div>
+      <div class="login-sub" id="sessionOtpSub">Phiên đăng nhập đã quá 24 giờ — nhập mã đã gửi tới email của bạn</div>
+      <div class="login-error" id="sessionOtpError"></div>
+      <div class="login-notice" id="sessionOtpNotice"></div>
+      <div class="login-field">
+        <label>Mã xác nhận (OTP, 6 số)</label>
+        <input type="text" id="sessionOtpInput" placeholder="123456" inputmode="numeric" maxlength="6" onkeydown="if(event.key==='Enter')handleVerifySessionOtpClick()">
+      </div>
+      <div class="otp-countdown" id="sessionOtpCountdown">Mã có hiệu lực trong <b id="sessionOtpSeconds">60</b> giây</div>
+      <button class="login-btn" id="sessionOtpBtn" onclick="handleVerifySessionOtpClick()">Xác nhận</button>
+      <button class="login-resend" id="sessionOtpResendBtn" style="margin-top:12px" onclick="requestSessionOtpFor(window.__sessionOtpEmail, true)">Gửi lại mã</button>
+      <div class="login-link" style="display:block;margin-top:10px" onclick="showLoginStep('stepLogin'); clearLastEmail();">← Đăng nhập bằng tài khoản khác</div>
+    </div>
   </div>
 </div>
 
@@ -341,6 +380,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
   </div>
   <div class="user-menu-panel" id="userMenuPanel">
     <div class="user-menu-info"><b id="userMenuFullName">—</b><span id="userMenuEmail">—</span></div>
+    <div class="user-menu-item" id="userMenuConfigItem" style="display:none" onclick="openConfigModal()">⚙️ Cấu hình</div>
     <div class="user-menu-item" onclick="openChangePasswordModal()">🔑 Đổi mật khẩu</div>
     <div class="user-menu-item" onclick="handleLogoutClick()">🚪 Đăng xuất</div>
   </div>
@@ -366,6 +406,29 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     </div>
     <button class="login-btn" onclick="handleChangePasswordClick()">Cập nhật mật khẩu</button>
     <button class="login-btn secondary" style="margin-top:8px" onclick="closeChangePasswordModal()">Huỷ</button>
+  </div>
+</div>
+
+<!-- ================= MODAL "CẤU HÌNH" (chỉ Admin) — phân quyền tải HTML/copy dữ liệu/chụp màn hình từng người ================= -->
+<div class="modal-overlay" id="configModal">
+  <div class="modal-card wide">
+    <h3>⚙️ Cấu hình phân quyền <span class="modal-x" onclick="closeConfigModal()">✕ Đóng</span></h3>
+    <div class="perm-hint">Mặc định tài khoản không phải Admin sẽ KHÔNG có quyền nào ở dưới (giống 1 Google Sheet đã khoá). Admin luôn có toàn quyền, không cần bật. Bật/tắt sẽ lưu ngay lập tức.</div>
+    <div class="login-error" id="configError"></div>
+    <div class="login-notice" id="configNotice"></div>
+    <table class="perm-table">
+      <thead>
+        <tr>
+          <th>Nhân viên</th>
+          <th class="pc">Tải file HTML</th>
+          <th class="pc">Copy dữ liệu</th>
+          <th class="pc">Chụp màn hình</th>
+        </tr>
+      </thead>
+      <tbody id="configUserList">
+        <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Đang tải danh sách…</td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -591,6 +654,10 @@ const SHEET_NAMES = ['01_Scorecard','02_OPR','03_ODR','04_FD','05_RotLC','06_BL_
 // https://script.google.com/macros/s/XXXXXXXX/exec vào đây sau khi deploy Code.gs.
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx_H_2yTY9WPxmr-mzxAl3rLCYStN5MWWTxqPrOwTDH86Diz5_8mf_CUTlz8RlDganrRQ/exec";
 const SESSION_KEY = 'ghn_report_session_v1';
+const LAST_EMAIL_KEY = 'ghn_report_last_email_v1'; // nhớ email đăng nhập gần nhất RIÊNG với phiên (token) — để
+  // sau khi phiên hết hạn (24h) vẫn biết gửi OTP xác thực lại về email nào mà không cần bắt gõ lại từ đầu.
+const SESSION_CLIENT_TTL_MS = 24 * 60 * 60 * 1000; // phải khớp SESSION_TTL_MS ở Code.gs (24 tiếng) — sau mốc
+  // này trình duyệt tự coi phiên là hết hạn và chuyển sang màn hình nhập OTP thay vì mất luôn phiên.
 
 const AUTH = {
   session: null,
@@ -604,9 +671,14 @@ const AUTH = {
       return s;
     } catch(e){ return null; }
   },
-  save(s){ this.session = s; localStorage.setItem(SESSION_KEY, JSON.stringify(s)); },
+  save(s){
+    this.session = s;
+    localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    if (s && s.email) localStorage.setItem(LAST_EMAIL_KEY, s.email);
+  },
   clear(){ this.session = null; localStorage.removeItem(SESSION_KEY); }
 };
+function clearLastEmail(){ localStorage.removeItem(LAST_EMAIL_KEY); }
 
 // gọi backend Apps Script — dùng Content-Type: text/plain để trình duyệt không gửi preflight
 // OPTIONS (Apps Script Web App không tự xử lý OPTIONS), đây là cách chuẩn khi gọi Apps Script
@@ -669,6 +741,7 @@ const LOGIN_ERR_MSG = {
   otp_expired: 'Mã xác nhận đã hết hạn, vui lòng gửi lại',
   password_too_short: 'Mật khẩu phải có tối thiểu 8 ký tự',
   old_password_incorrect: 'Mật khẩu hiện tại không đúng',
+  forbidden: 'Bạn không có quyền thực hiện thao tác này',
   server_error: 'Lỗi hệ thống, thử lại sau'
 };
 function errMsg(code){ return LOGIN_ERR_MSG[code] || ('Có lỗi xảy ra (' + code + ')'); }
@@ -681,7 +754,7 @@ async function handleLoginClick(){
   try {
     const res = await callBackend('login', { email, password });
     if (!res.ok) { showLoginError('loginError', errMsg(res.error)); return; }
-    AUTH.save({ token: res.token, email: res.email, name: res.name, role: res.role, exp: Date.now() + 8*60*60*1000 });
+    AUTH.save({ token: res.token, email: res.email, name: res.name, role: res.role, permissions: res.permissions, exp: Date.now() + SESSION_CLIENT_TTL_MS });
     enterApp(res);
   } catch(e) {
     showLoginError('loginError', 'Không kết nối được máy chủ: ' + e.message);
@@ -736,6 +809,80 @@ async function handleResetPasswordClick(){
   }
 }
 
+// ================= XÁC THỰC LẠI PHIÊN SAU 24H BẰNG OTP (không cần gõ lại mật khẩu) =================
+// Khi AUTH.load() thấy phiên đã hết hạn (24h) NHƯNG trình duyệt còn nhớ email đăng nhập gần nhất
+// (LAST_EMAIL_KEY), hiển thị bước này thay vì màn hình đăng nhập trắng — chỉ cần nhập đúng mã gửi về
+// mail @ghn.vn của chính mình, trong đúng 60 giây, không cần nhớ lại mật khẩu.
+window.__sessionOtpEmail = null;
+window.__sessionOtpTimer = null;
+
+function showOtpReloginStep(email){
+  window.__sessionOtpEmail = email;
+  document.getElementById('sessionOtpSub').textContent = 'Phiên đăng nhập của ' + email + ' đã quá 24 giờ — nhập mã đã gửi tới email trên';
+  document.getElementById('sessionOtpInput').value = '';
+  showLoginStep('stepSessionOtp');
+  requestSessionOtpFor(email, false);
+}
+
+async function requestSessionOtpFor(email, isResend){
+  if (!email) return;
+  const btn = document.getElementById('sessionOtpResendBtn');
+  const notice = document.getElementById('sessionOtpNotice');
+  const err = document.getElementById('sessionOtpError'); if (err) err.style.display = 'none';
+  if (isResend && btn) btn.disabled = true;
+  try {
+    const res = await callBackend('requestSessionOtp', { email });
+    if (!res.ok) { showLoginError('sessionOtpError', errMsg(res.error)); return; }
+    if (isResend && notice) { notice.textContent = 'Đã gửi lại mã mới tới ' + email; notice.style.display = 'block'; setTimeout(() => { notice.style.display = 'none'; }, 4000); }
+    startOtpCountdown();
+  } catch(e) {
+    showLoginError('sessionOtpError', 'Không kết nối được máy chủ: ' + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function startOtpCountdown(){
+  if (window.__sessionOtpTimer) clearInterval(window.__sessionOtpTimer);
+  let remain = 60;
+  const secEl = document.getElementById('sessionOtpSeconds');
+  const wrapEl = document.getElementById('sessionOtpCountdown');
+  const setUi = () => {
+    if (secEl) secEl.textContent = String(remain);
+    if (wrapEl) wrapEl.classList.toggle('warn', remain <= 15);
+  };
+  setUi();
+  window.__sessionOtpTimer = setInterval(() => {
+    remain -= 1;
+    if (remain <= 0) {
+      clearInterval(window.__sessionOtpTimer);
+      remain = 0;
+      setUi();
+      if (wrapEl) wrapEl.innerHTML = 'Mã đã <b>hết hạn</b> — bấm "Gửi lại mã" để nhận mã mới';
+      return;
+    }
+    setUi();
+  }, 1000);
+}
+
+async function handleVerifySessionOtpClick(){
+  const email = window.__sessionOtpEmail;
+  const otp = document.getElementById('sessionOtpInput').value.trim();
+  if (!otp) { showLoginError('sessionOtpError', 'Nhập mã xác nhận'); return; }
+  setBtnLoading('sessionOtpBtn', true, 'Đang xác nhận…', 'Xác nhận');
+  try {
+    const res = await callBackend('verifySessionOtp', { email, otp });
+    if (!res.ok) { showLoginError('sessionOtpError', errMsg(res.error)); return; }
+    if (window.__sessionOtpTimer) clearInterval(window.__sessionOtpTimer);
+    AUTH.save({ token: res.token, email: res.email, name: res.name, role: res.role, permissions: res.permissions, exp: Date.now() + SESSION_CLIENT_TTL_MS });
+    enterApp(res);
+  } catch(e) {
+    showLoginError('sessionOtpError', 'Không kết nối được máy chủ: ' + e.message);
+  } finally {
+    setBtnLoading('sessionOtpBtn', false, 'Đang xác nhận…', 'Xác nhận');
+  }
+}
+
 function toggleUserMenu(){ document.getElementById('userMenuPanel').classList.toggle('open'); }
 document.addEventListener('click', function(e){
   const panel = document.getElementById('userMenuPanel'), btn = document.querySelector('.user-menu-btn');
@@ -775,6 +922,62 @@ function handleLogoutClick(){
   location.reload();
 }
 
+// ================= TRANG "CẤU HÌNH" (chỉ Admin) — phân quyền tải HTML/copy dữ liệu/chụp màn hình =================
+window.__configUsersMap = {}; // email -> {taiHtml, copy, chupManHinh} — cache trạng thái hiện tại để gửi đủ cả 3
+                               // trường mỗi lần đổi 1 trường (backend updateUserPermissions ghi đè cả 3 cùng lúc).
+async function openConfigModal(){
+  document.getElementById('userMenuPanel').classList.remove('open');
+  document.getElementById('configModal').classList.add('open');
+  document.getElementById('configError').style.display = 'none';
+  document.getElementById('configNotice').style.display = 'none';
+  const tbody = document.getElementById('configUserList');
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Đang tải danh sách…</td></tr>';
+  try {
+    const res = await callBackend('getUserList', { token: AUTH.session.token });
+    if (!res.ok) { tbody.innerHTML = ''; showLoginError('configError', errMsg(res.error)); return; }
+    renderConfigUserList(res.users || []);
+  } catch(e) {
+    tbody.innerHTML = '';
+    showLoginError('configError', 'Không kết nối được máy chủ: ' + e.message);
+  }
+}
+function closeConfigModal(){ document.getElementById('configModal').classList.remove('open'); }
+
+function renderConfigUserList(users){
+  window.__configUsersMap = {};
+  const tbody = document.getElementById('configUserList');
+  if (!users.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Chưa có nhân viên nào trong sheet Main</td></tr>'; return; }
+  tbody.innerHTML = users.map(u => {
+    window.__configUsersMap[u.email] = { taiHtml: !!u.permissions.taiHtml, copy: !!u.permissions.copy, chupManHinh: !!u.permissions.chupManHinh };
+    const isAdmin = u.role === 'Admin';
+    const nameCell = '<div class="perm-row-name">' + esc(u.name || '(chưa có tên)') + (u.active ? '' : '<span class="perm-inactive-badge">Ngừng hoạt động</span>') + '</div>'
+      + '<div class="perm-row-email">' + esc(u.email) + '</div>';
+    if (isAdmin) {
+      return '<tr><td>' + nameCell + '</td><td class="pc" colspan="3"><span class="perm-admin-badge">Admin — Toàn quyền</span></td></tr>';
+    }
+    const cb = (field) => '<input type="checkbox" class="perm-toggle" ' + (u.permissions[field] ? 'checked' : '') + ' onchange="togglePermission(\'' + attrEsc(u.email) + '\',\'' + field + '\',this.checked)">';
+    return '<tr><td>' + nameCell + '</td>'
+      + '<td class="pc">' + cb('taiHtml') + '</td>'
+      + '<td class="pc">' + cb('copy') + '</td>'
+      + '<td class="pc">' + cb('chupManHinh') + '</td></tr>';
+  }).join('');
+}
+
+async function togglePermission(email, field, checked){
+  const cur = window.__configUsersMap[email] || { taiHtml: false, copy: false, chupManHinh: false };
+  cur[field] = checked;
+  window.__configUsersMap[email] = cur;
+  const notice = document.getElementById('configNotice');
+  try {
+    const res = await callBackend('updateUserPermissions', { token: AUTH.session.token, targetEmail: email, taiHtml: cur.taiHtml, copy: cur.copy, chupManHinh: cur.chupManHinh });
+    if (!res.ok) { showLoginError('configError', errMsg(res.error)); openConfigModal(); return; } // sai thì tải lại danh sách cho đúng trạng thái thật
+    if (notice) { notice.textContent = 'Đã lưu quyền cho ' + email; notice.style.display = 'block'; setTimeout(() => { notice.style.display = 'none'; }, 2500); }
+  } catch(e) {
+    showLoginError('configError', 'Không kết nối được máy chủ: ' + e.message);
+    openConfigModal();
+  }
+}
+
 function enterApp(user){
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appRoot').style.display = '';
@@ -783,12 +986,76 @@ function enterApp(user){
   document.getElementById('userMenuName').textContent = user.name || user.email;
   document.getElementById('userMenuFullName').textContent = user.name || '(chưa có tên)';
   document.getElementById('userMenuEmail').textContent = user.email;
-  // Nút "Xuất file HTML" đóng gói toàn bộ dữ liệu ra 1 file mở được mà không cần đăng nhập —
-  // để tránh vô hiệu hoá mục đích kiểm soát truy cập, chỉ Admin mới thấy nút này. Mỗi section (Vận hành,
-  // Kinh doanh, ...) có nút riêng (cùng class .export-btn) nên phải áp dụng cho TẤT CẢ, không chỉ nút đầu tiên.
-  document.querySelectorAll('.export-btn').forEach(btn => { btn.style.display = (user.role === 'Admin') ? '' : 'none'; });
+  const isAdmin = user.role === 'Admin';
+  // permissions có thể thiếu nếu là phiên cũ lưu từ TRƯỚC khi có tính năng phân quyền này (bản localStorage cũ) —
+  // mặc định đóng (an toàn) cho tới lần đăng nhập/xác thực OTP tiếp theo, lúc đó backend sẽ trả permissions đầy đủ.
+  const perms = user.permissions || { taiHtml: false, copy: false, chupManHinh: false };
+  window.__CURRENT_USER__ = user;
+  window.__CURRENT_PERMS__ = perms;
+  // Nút "Xuất file HTML" đóng gói toàn bộ dữ liệu ra 1 file mở được mà không cần đăng nhập — mặc định chỉ
+  // Admin mới thấy, nhưng Admin có thể cấp thêm quyền "Tải file HTML" cho từng nhân viên qua trang Cấu hình.
+  // Mỗi section (Vận hành, Kinh doanh, ...) có nút riêng (cùng class .export-btn) nên phải áp dụng cho TẤT CẢ.
+  document.querySelectorAll('.export-btn').forEach(btn => { btn.style.display = (isAdmin || perms.taiHtml) ? '' : 'none'; });
+  document.getElementById('userMenuConfigItem').style.display = isAdmin ? '' : 'none';
+  applyDataProtection(user, perms);
   main().catch(e => { document.getElementById('loadingNote').style.display='none'; showError('Lỗi tổng thể: '+e.message); });
   startPresenceTracking();
+}
+
+// ================= BẢO VỆ DỮ LIỆU CHO TÀI KHOẢN KHÔNG CÓ QUYỀN (giống Google Sheet đã khoá) =================
+// Admin luôn KHÔNG bị áp dụng bất kỳ giới hạn nào ở đây. Với non-Admin: quyền "Copy dữ liệu" chặn copy/cắt/chọn
+// văn bản/menu chuột phải; quyền "Chụp màn hình" (không thể chặn thật ở mức OS trên web) được thay bằng watermark
+// định danh (tên+email+giờ) phủ toàn màn hình để truy vết nếu ảnh chụp bị phát tán — đây là phương án đã thống
+// nhất, không hứa hẹn chặn chụp màn hình tuyệt đối. Thiếu 1 trong 2 quyền cũng chặn thêm in (Ctrl+P) và các phím
+// tắt mở DevTools/View Source — đều là cách khác để trích xuất dữ liệu ra khỏi trang.
+function applyDataProtection(user, perms){
+  if (window.__dataProtectionApplied) return; // enterApp() có thể chạy lại (vd sau OTP) — chỉ gắn listener 1 lần
+  window.__dataProtectionApplied = true;
+  const isAdmin = user.role === 'Admin';
+  const canCopy = isAdmin || !!perms.copy;
+  const canScreenshot = isAdmin || !!perms.chupManHinh;
+
+  if (!canCopy) {
+    document.addEventListener('copy', e => e.preventDefault());
+    document.addEventListener('cut', e => e.preventDefault());
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('selectstart', e => e.preventDefault());
+    document.addEventListener('dragstart', e => e.preventDefault());
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
+  }
+  if (!canCopy || !canScreenshot) {
+    document.addEventListener('keydown', function(e){
+      const k = (e.key || '').toLowerCase();
+      const ctrlOrCmd = e.ctrlKey || e.metaKey;
+      const blockDevtools = e.key === 'F12' || (ctrlOrCmd && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) || (ctrlOrCmd && k === 'u');
+      const blockPrintOrSave = ctrlOrCmd && (k === 'p' || k === 's');
+      if (blockDevtools || blockPrintOrSave) e.preventDefault();
+    });
+    window.addEventListener('beforeprint', e => { /* không thể chặn tuyệt đối, chỉ hạn chế lối tắt thông thường */ });
+  }
+  if (!canScreenshot) buildWatermark(user);
+}
+
+// Watermark tiled bằng canvas (nhanh, 1 phần tử DOM duy nhất, không chặn thao tác chuột/phím bên dưới nhờ
+// pointer-events:none) — làm mới mỗi phút để giờ trên watermark không "đứng hình" tại thời điểm đăng nhập.
+function buildWatermark(user){
+  const existing = document.getElementById('wmOverlay');
+  if (existing) existing.remove();
+  const text = (user.name || user.email) + '  ·  ' + user.email + '  ·  ' + new Date().toLocaleString('vi-VN');
+  const canvas = document.createElement('canvas');
+  canvas.width = 480; canvas.height = 260;
+  const ctx = canvas.getContext('2d');
+  ctx.translate(40, 170); ctx.rotate(-Math.PI / 9);
+  ctx.font = '13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.fillStyle = 'rgba(20,18,15,0.08)';
+  ctx.fillText(text, 0, 0);
+  const wm = document.createElement('div');
+  wm.id = 'wmOverlay';
+  wm.style.cssText = 'position:fixed;inset:0;z-index:999999;pointer-events:none;'
+    + 'background-image:url(' + canvas.toDataURL() + ');background-repeat:repeat;';
+  document.body.appendChild(wm);
+  if (!window.__wmRefreshTimer) window.__wmRefreshTimer = setInterval(() => buildWatermark(user), 60000);
 }
 
 // ---------- "Ai đang online" (giống Google Data Studio) — báo hiệu định kỳ + hiển thị avatar cạnh tên user ----------
@@ -2934,11 +3201,16 @@ if (window.__STATIC_SNAPSHOT__) {
   const arEl = document.getElementById('appRoot'); if (arEl) arEl.style.display = '';
   hydrateFromSnapshot(window.__STATIC_SNAPSHOT__);
 } else {
-  // Có phiên đăng nhập hợp lệ còn hạn trong trình duyệt (localStorage) thì vào thẳng, không bắt
-  // gõ lại mật khẩu mỗi lần mở trang; nếu không thì giữ nguyên màn hình đăng nhập (đã hiện sẵn).
+  // Có phiên đăng nhập hợp lệ còn hạn (< 24h) trong trình duyệt (localStorage) thì vào thẳng, không bắt
+  // gõ lại mật khẩu mỗi lần mở trang. Nếu phiên đã hết hạn (>= 24h) NHƯNG trình duyệt còn nhớ email đăng
+  // nhập gần nhất, bắt buộc xác thực lại bằng OTP gửi về mail @ghn (không cho đăng nhập vĩnh viễn, cũng
+  // không bắt gõ lại mật khẩu) — nếu không còn nhớ email nào cả thì giữ nguyên màn hình đăng nhập thường.
   const existing = AUTH.load();
   if (existing) {
     enterApp(existing);
+  } else {
+    const lastEmail = localStorage.getItem(LAST_EMAIL_KEY);
+    if (lastEmail) showOtpReloginStep(lastEmail);
   }
 }
 </script>
