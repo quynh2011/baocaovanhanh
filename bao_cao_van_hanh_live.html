@@ -845,8 +845,11 @@ async function requestSessionOtpFor(email, isResend){
 function startOtpCountdown(){
   if (window.__sessionOtpTimer) clearInterval(window.__sessionOtpTimer);
   let remain = 60;
-  const secEl = document.getElementById('sessionOtpSeconds');
   const wrapEl = document.getElementById('sessionOtpCountdown');
+  // Lần hết hạn trước có thể đã ghi đè innerHTML của wrapEl (xoá mất #sessionOtpSeconds bên trong) —
+  // phục hồi lại cấu trúc gốc trước khi lấy lại tham chiếu secEl, nếu không đồng hồ đếm ngược mới sẽ không hiển thị được.
+  if (wrapEl) wrapEl.innerHTML = 'Mã có hiệu lực trong <b id="sessionOtpSeconds">60</b> giây';
+  const secEl = document.getElementById('sessionOtpSeconds');
   const setUi = () => {
     if (secEl) secEl.textContent = String(remain);
     if (wrapEl) wrapEl.classList.toggle('warn', remain <= 15);
