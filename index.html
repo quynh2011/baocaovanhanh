@@ -270,6 +270,49 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .kh-table tr:hover td{background:var(--bg)}
 .kh-empty-row td{text-align:center;color:var(--muted);padding:24px}
 .kh-photo-preview{width:100%;height:70px;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid var(--border)}
+/* ----- Kế hoạch kinh doanh: 6 màn hình theo cấu trúc công cụ CRM gốc ----- */
+.kh-form-card{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px}
+.kh-search-bar{display:flex;gap:10px;margin-bottom:16px}
+.kh-search-bar input{flex:1;font-family:var(--f);font-size:13px;padding:9px 12px;border:1px solid var(--border-strong);border-radius:8px}
+.kh-filter-bar{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px}
+.kh-filter-bar label{display:flex;flex-direction:column;gap:4px;font-size:10.5px;color:var(--muted);font-weight:600}
+.kh-filter-bar input,.kh-filter-bar select{font-family:var(--f);font-size:12px;padding:7px 9px;border:1px solid var(--border-strong);border-radius:7px;background:#fff;color:var(--text)}
+.kh-filter-bar .kh-filter-actions{display:flex;align-items:flex-end;gap:8px}
+.kh-search-result-row{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:11px 14px;margin-bottom:8px;cursor:pointer;font-size:12.5px}
+.kh-search-result-row:hover{border-color:var(--ghn-blue);background:var(--ghn-blue-light)}
+.kh-detail-card{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+.kh-detail-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:12px}
+.kh-detail-head h3{font-size:16px}
+.kh-detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px 16px;font-size:12.5px}
+.kh-detail-grid div span{display:block;font-size:10.5px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.kh-action-btns{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.kh-action-btn{font-family:var(--f);font-size:12.5px;font-weight:600;padding:10px 16px;border-radius:9px;border:1px solid var(--border-strong);background:#fff;color:var(--text);cursor:pointer}
+.kh-action-btn:hover{border-color:var(--ghn-blue);color:var(--ghn-blue)}
+.kh-action-btn.done{border-color:var(--dn);color:var(--dn)}
+.kh-action-btn.done:hover{background:var(--dn);color:#fff}
+.kh-action-btn.progress{border-color:var(--warn);color:var(--warn)}
+.kh-action-btn.progress:hover{background:var(--warn);color:#fff}
+.kh-action-btn.edit{border-color:var(--ghn-blue);color:var(--ghn-blue)}
+.kh-action-btn.edit:hover{background:var(--ghn-blue);color:#fff}
+.kh-timeline{border-left:2px solid var(--border);margin-left:8px;padding-left:18px}
+.kh-timeline-item{position:relative;padding-bottom:18px}
+.kh-timeline-item::before{content:'';position:absolute;left:-23px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--ghn-blue);border:2px solid #fff;box-shadow:0 0 0 1px var(--border)}
+.kh-timeline-item .kt-head{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:4px}
+.kh-timeline-item .kt-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--ghn-blue-light);color:var(--ghn-blue)}
+.kh-timeline-item .kt-tag.result{background:#EAF3DE;color:var(--dn)}
+.kh-timeline-item .kt-body{font-size:12.5px;background:var(--bg);border-radius:8px;padding:10px 12px}
+.kh-timeline-item .kt-photos{display:flex;gap:8px;margin-top:8px}
+.kh-timeline-item .kt-photos img{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:zoom-in}
+.kh-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:2000;cursor:zoom-out}
+.kh-lightbox.open{display:flex}
+.kh-lightbox img{max-width:90vw;max-height:88vh;border-radius:8px}
+.kh-summary-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+.kh-summary-card{background:var(--surface);border:0.5px solid var(--border);border-radius:11px;padding:14px 16px}
+.kh-summary-card .kc-label{font-size:11px;color:var(--muted);font-weight:600}
+.kh-summary-card .kc-value{font-size:24px;font-weight:700;margin-top:4px;font-family:var(--mono)}
+.kh-empty-note{text-align:center;color:var(--muted);padding:40px 20px;font-size:13px;background:var(--surface);border:1px dashed var(--border-strong);border-radius:12px}
+.kh-banner-warn{background:var(--yellow-cell);border:1px solid #EAD98A;color:var(--warn);padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px}
+.kh-nav{flex-wrap:wrap}
 /* đếm ngược 60 giây khi nhập OTP xác thực lại phiên (sau 24h) */
 .otp-countdown{font-family:var(--mono);font-size:12px;color:var(--muted);margin:-4px 0 12px;text-align:left}
 .otp-countdown b{color:var(--ghn-blue)}
@@ -689,41 +732,75 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
         <span class="load-progress-track"><span class="load-progress-fill" id="khLoadingFill"></span></span>
         <span class="load-progress-pct" id="khLoadingPct">0%</span>
       </div>
-      <div class="vh-subtabs" style="margin-bottom:18px">
-        <button class="vh-subtab-btn active" id="khTabBtn-kehoach" onclick="switchKHTab('kehoach')">📝 Kế hoạch</button>
-        <button class="vh-subtab-btn" id="khTabBtn-ketqua" onclick="switchKHTab('ketqua')">✅ Kết quả</button>
-        <button class="vh-subtab-btn" id="khTabBtn-tiendo" onclick="switchKHTab('tiendo')">🚧 Tiến độ</button>
+      <div class="vh-subtabs kh-nav" style="margin-bottom:18px">
+        <button class="vh-subtab-btn active" id="khTabBtn-lap" onclick="switchKHTab('lap')">📝 Lập Kế Hoạch</button>
+        <button class="vh-subtab-btn" id="khTabBtn-capnhat" onclick="switchKHTab('capnhat')">🔄 Cập Nhật Tiến Độ</button>
+        <button class="vh-subtab-btn" id="khTabBtn-baocaokh" onclick="switchKHTab('baocaokh')">📊 Báo Cáo Kế Hoạch</button>
+        <button class="vh-subtab-btn" id="khTabBtn-tongquan" onclick="switchKHTab('tongquan')">📈 Báo Cáo Tổng Quan</button>
+        <button class="vh-subtab-btn" id="khTabBtn-kinhdoanh" onclick="switchKHTab('kinhdoanh')">💰 Báo Cáo Kinh Doanh</button>
+        <button class="vh-subtab-btn" id="khTabBtn-bieudo" onclick="switchKHTab('bieudo')">🎨 Biểu Đồ</button>
       </div>
 
-      <div id="khPaneKehoach" class="kh-subpane active">
-        <div class="kh-toolbar">
-          <div class="kh-toolbar-title" id="khCountKehoach">0 kế hoạch</div>
-          <button class="config-add-btn" onclick="toggleKHForm('kehoach')">+ Thêm kế hoạch mới</button>
+      <!-- 1. LẬP KẾ HOẠCH -->
+      <div id="khPaneLap" class="kh-subpane active">
+        <div class="kh-form-card">
+          <div class="kh-field" style="max-width:340px;margin-bottom:14px">
+            <label>Nhóm khách hàng *</label>
+            <select id="khGroupSelect" onchange="khOnGroupChange()">
+              <option value="">— Chọn nhóm khách hàng —</option>
+              <option value="Khách Mới">Mời khách mới chưa sử dụng</option>
+              <option value="Nguy cơ rời bỏ">Khách có nguy cơ rời bỏ</option>
+              <option value="Khách cũ rời bỏ">Mời lại khách cũ rời bỏ</option>
+              <option value="Khách tăng sản lượng">Khách tăng sản lượng đơn</option>
+            </select>
+          </div>
+          <div id="khLapFormBody"></div>
         </div>
-        <div class="kh-form" id="khFormWrap-kehoach"></div>
-        <div class="kh-table-wrap"><table class="kh-table" id="khTable-kehoach"></table></div>
+        <div class="kh-toolbar">
+          <div class="kh-toolbar-title" id="khCountLap">0 kế hoạch gần đây</div>
+        </div>
+        <div class="kh-table-wrap"><table class="kh-table" id="khTable-lap"></table></div>
       </div>
 
-      <div id="khPaneKetqua" class="kh-subpane">
-        <div class="kh-toolbar">
-          <div class="kh-toolbar-title" id="khCountKetqua">0 kết quả</div>
-          <button class="config-add-btn" onclick="toggleKHForm('ketqua')">+ Thêm kết quả</button>
+      <!-- 2. CẬP NHẬT TIẾN ĐỘ -->
+      <div id="khPaneCapnhat" class="kh-subpane">
+        <div class="kh-search-bar">
+          <input type="text" id="khSearchInput" placeholder="Nhập ID khách hàng hoặc SĐT để tìm..." onkeydown="if(event.key==='Enter')khSearchKeHoach()">
+          <button class="config-add-btn" onclick="khSearchKeHoach()">🔍 Tìm kiếm</button>
         </div>
-        <div class="kh-form" id="khFormWrap-ketqua"></div>
-        <div class="kh-table-wrap"><table class="kh-table" id="khTable-ketqua"></table></div>
+        <div id="khSearchResults"></div>
+        <div id="khCustomerDetail"></div>
       </div>
 
-      <div id="khPaneTiendo" class="kh-subpane">
-        <div class="kh-toolbar">
-          <div class="kh-toolbar-title" id="khCountTiendo">0 tiến độ</div>
-          <button class="config-add-btn" onclick="toggleKHForm('tiendo')">+ Thêm tiến độ</button>
-        </div>
-        <div class="kh-form" id="khFormWrap-tiendo"></div>
-        <div class="kh-table-wrap"><table class="kh-table" id="khTable-tiendo"></table></div>
+      <!-- 3. BÁO CÁO KẾ HOẠCH -->
+      <div id="khPaneBaocaokh" class="kh-subpane">
+        <div class="kh-filter-bar" id="khFilterBarPlan"></div>
+        <div class="kh-toolbar"><div class="kh-toolbar-title" id="khCountBaocaokh">0 kế hoạch</div></div>
+        <div class="kh-table-wrap"><table class="kh-table" id="khTable-baocaokh"></table></div>
+      </div>
+
+      <!-- 4. BÁO CÁO TỔNG QUAN -->
+      <div id="khPaneTongquan" class="kh-subpane">
+        <div class="kh-filter-bar" id="khFilterBarOverview"></div>
+        <div id="khOverviewSummary"></div>
+        <div class="kh-table-wrap"><table class="kh-table" id="khTable-tongquan"></table></div>
+      </div>
+
+      <!-- 5. BÁO CÁO KINH DOANH -->
+      <div id="khPaneKinhdoanh" class="kh-subpane">
+        <div id="khBusinessBanner"></div>
+        <div id="khBusinessContent"></div>
+      </div>
+
+      <!-- 6. BIỂU ĐỒ -->
+      <div id="khPaneBieudo" class="kh-subpane">
+        <div class="kh-filter-bar" id="khFilterBarChart"></div>
+        <div id="khChartWrap"></div>
       </div>
     </div>
   </div>
 </div><!-- /#sectionKinhDoanh -->
+<div class="kh-lightbox" id="khLightbox" onclick="khCloseLightbox()"><img id="khLightboxImg" src=""></div>
 
 <!-- ================= SECTION: TRUY THU / CAPACITY / NHÂN SỰ / SẮP RA MẮT ================= -->
 <div id="sectionTruyThu" class="app-section">
@@ -3248,36 +3325,79 @@ async function loadKinhDoanh(){
   }
 }
 
-// ================= KẾ HOẠCH KINH DOANH (Kế hoạch / Kết quả / Tiến độ) =================
+// ================= KẾ HOẠCH KINH DOANH — 6 màn hình đúng luồng công cụ CRM gốc =================
 // Chuyển từ công cụ CRM Apps Script riêng (Sheet "DBB KẾ HOẠCH KINH DOANH") vào thẳng web chính — dùng CHUNG
-// đăng nhập/phân quyền với web (không còn tài khoản/đăng nhập riêng của công cụ cũ nữa).
+// đăng nhập/phân quyền với web (không còn tài khoản/đăng nhập riêng của công cụ cũ nữa). Toàn bộ dữ liệu
+// (Kehoach/Ketqua/Tiendo/Doanhthu) chỉ tải 1 lần (getKeHoachData) rồi xử lý tìm kiếm/lọc/báo cáo/biểu đồ HOÀN
+// TOÀN ở phía client trên bộ nhớ đệm này — không cần thêm round-trip cho mỗi thao tác xem/lọc.
 let khLoaded = false;
-window.KH_DATA = { kehoach: [], ketqua: [], tiendo: [], xaphuong: [] };
-let khCurTab = 'kehoach';
+window.KH_DATA = { kehoach: [], ketqua: [], tiendo: [], xaphuong: [], doanhthu: { cols:[], rows:[], error:null }, staff: [] };
+let khCurTab = 'lap';
+let khSelected = null; // kế hoạch đang được chọn ở màn "Cập Nhật Tiến Độ"
 
-const KH_FIELDS = {
-  kehoach: [
-    { id:'ngayLapKeHoach', label:'Ngày lập kế hoạch', type:'date', required:true },
-    { id:'ngayThucHien', label:'Ngày thực hiện', type:'date' },
-    { id:'nhomKH', label:'Nhóm KH', type:'text', placeholder:'VD: Khách Mới' },
+// Vị trí cột trong Sheet gốc (khớp đúng thứ tự COL_KH/COL_KQ/COL_TD phía backend Code.gs)
+const KH_ROW_KEYS = {
+  kehoach: ['thoiGianNhap','nguoiLap','ngayLapKeHoach','ngayThucHien','nhomKH','sdtKH','tenShop','diaChi',
+    'donViDoiThu','bangGia','chinhSach','sanLuongThang','sanLuongTangThem','khoiLuong','idKhachHang','sanPham',
+    'nguyenNhan','trangThai'],
+  ketqua: ['thoiGianNhap','idKhachHang','tenShop','ngayTiepCan','diaChi','anhCheckin','anhSanPham',
+    'sanLuongGuiGHN','bangGia','ngayBatDauLenDon'],
+  tiendo: ['thoiGianNhap','idKhachHang','sdtKH','tenShop','ngayGapKH','diaChi','anhCheckin','anhSanPham',
+    'sanPham','doiThu','bangGia','chinhSach','sanLuong','khoiLuong','lyDo','deXuat']
+};
+
+// Field theo từng Nhóm KH ở màn "Lập Kế Hoạch" — 3 nhóm khách đã có trong hệ thống đều bắt đầu bằng ô ID để
+// tra cứu/tự điền, riêng "Khách Mới" nhập địa chỉ đầy đủ (Tỉnh/Huyện/Xã) vì chưa có bản ghi nào trước đó.
+const KH_GROUP_FIELDS = {
+  'Khách Mới': [
     { id:'sdtKH', label:'SĐT khách hàng', type:'tel' },
     { id:'tenShop', label:'Tên shop', type:'text', required:true },
-    { id:'idKhachHang', label:'ID khách hàng', type:'text' },
     { id:'donViDoiThu', label:'Đơn vị đối thủ', type:'text' },
     { id:'bangGia', label:'Bảng giá', type:'text' },
-    { id:'sanPham', label:'Sản phẩm', type:'text' },
-    { id:'sanLuongThang', label:'Sản lượng/tháng', type:'number' },
-    { id:'sanLuongTangThem', label:'Sản lượng tăng thêm/tháng', type:'text' },
-    { id:'khoiLuong', label:'Khối lượng', type:'text' },
-    { id:'trangThai', label:'Trạng thái khách hàng', type:'text', placeholder:'VD: Đang tiếp cận' },
     { id:'chinhSach', label:'Chính sách đi kèm', type:'textarea', wide:true },
-    { id:'nguyenNhan', label:'Nguyên nhân/yêu cầu', type:'textarea', wide:true }
+    { id:'sanLuongThang', label:'Sản lượng dự kiến/tháng', type:'number' },
+    { id:'khoiLuong', label:'Khối lượng', type:'text' }
   ],
-  ketqua: [
-    { id:'idKhachHang', label:'ID khách hàng', type:'text' },
+  'Nguy cơ rời bỏ': [
+    { id:'idKhachHang', label:'ID khách hàng', type:'text', lookup:true },
+    { id:'sdtKH', label:'SĐT khách hàng', type:'tel' },
     { id:'tenShop', label:'Tên shop', type:'text', required:true },
-    { id:'ngayTiepCan', label:'Ngày tiếp cận', type:'date' },
     { id:'diaChi', label:'Địa chỉ', type:'text', wide:true },
+    { id:'sanPham', label:'Sản phẩm', type:'text' },
+    { id:'sanLuongThang', label:'Sản lượng đang gửi GHN', type:'number' },
+    { id:'nguyenNhan', label:'Nguyên nhân có nguy cơ rời bỏ', type:'textarea', wide:true }
+  ],
+  'Khách cũ rời bỏ': [
+    { id:'idKhachHang', label:'ID khách cũ', type:'text', lookup:true },
+    { id:'sdtKH', label:'SĐT khách hàng', type:'tel' },
+    { id:'tenShop', label:'Tên shop', type:'text', required:true },
+    { id:'diaChi', label:'Địa chỉ', type:'text', wide:true },
+    { id:'donViDoiThu', label:'Đơn vị đối thủ', type:'text' },
+    { id:'bangGia', label:'Bảng giá', type:'text' },
+    { id:'chinhSach', label:'Chính sách đi kèm', type:'textarea', wide:true },
+    { id:'sanLuongThang', label:'Sản lượng đơn/tháng', type:'number' },
+    { id:'khoiLuong', label:'Khối lượng', type:'text' }
+  ],
+  'Khách tăng sản lượng': [
+    { id:'idKhachHang', label:'ID khách hàng', type:'text', lookup:true },
+    { id:'sdtKH', label:'SĐT khách hàng', type:'tel' },
+    { id:'tenShop', label:'Tên shop', type:'text', required:true },
+    { id:'diaChi', label:'Địa chỉ', type:'text', wide:true },
+    { id:'donViDoiThu', label:'Đơn vị đối thủ', type:'text' },
+    { id:'bangGia', label:'Bảng giá đối thủ', type:'text' },
+    { id:'chinhSach', label:'Chính sách đối thủ', type:'textarea', wide:true },
+    { id:'sanLuongThang', label:'Sản lượng GHN hiện tại', type:'number' },
+    { id:'sanLuongTangThem', label:'Sản lượng tăng thêm', type:'text' },
+    { id:'khoiLuong', label:'Khối lượng', type:'text' },
+    { id:'nguyenNhan', label:'Yêu cầu để kéo thêm sản lượng', type:'textarea', wide:true }
+  ]
+};
+const KH_GROUPS = Object.keys(KH_GROUP_FIELDS);
+
+// Field cho 2 hành động "Đã kéo được KH" (Ketqua) / "Cập nhật tiến độ" (Tiendo) — giữ nguyên đúng field gốc.
+const KH_ACTION_FIELDS = {
+  ketqua: [
+    { id:'ngayTiepCan', label:'Ngày tiếp cận', type:'date' },
     { id:'sanLuongGuiGHN', label:'Sản lượng gửi GHN', type:'number' },
     { id:'bangGia', label:'Bảng giá', type:'text' },
     { id:'ngayBatDauLenDon', label:'Ngày bắt đầu lên đơn', type:'date' },
@@ -3285,11 +3405,7 @@ const KH_FIELDS = {
     { id:'anhSanPham', label:'Ảnh sản phẩm kinh doanh', type:'file' }
   ],
   tiendo: [
-    { id:'idKhachHang', label:'ID khách hàng', type:'text' },
-    { id:'sdtKH', label:'SĐT khách hàng', type:'tel' },
-    { id:'tenShop', label:'Tên shop', type:'text', required:true },
     { id:'ngayGapKH', label:'Ngày gặp KH', type:'date' },
-    { id:'diaChi', label:'Địa chỉ KH', type:'text', wide:true },
     { id:'sanPham', label:'Sản phẩm', type:'text' },
     { id:'doiThu', label:'Đối thủ', type:'text' },
     { id:'bangGia', label:'Bảng giá', type:'text' },
@@ -3303,29 +3419,6 @@ const KH_FIELDS = {
   ]
 };
 
-const KH_TABLE_COLS = {
-  kehoach: [['ngayLapKeHoach','Ngày lập','date'],['nguoiLap','Người lập','text'],['tenShop','Tên shop','text'],
-    ['sdtKH','SĐT','text'],['nhomKH','Nhóm KH','text'],['diaChi','Địa chỉ','text'],['sanLuongThang','SL/tháng','text'],
-    ['trangThai','Trạng thái','text']],
-  ketqua: [['ngayTiepCan','Ngày tiếp cận','date'],['tenShop','Tên shop','text'],['idKhachHang','ID KH','text'],
-    ['diaChi','Địa chỉ','text'],['sanLuongGuiGHN','SL gửi GHN','text'],['bangGia','Bảng giá','text'],
-    ['ngayBatDauLenDon','Ngày lên đơn','date'],['anhCheckin','Ảnh checkin','link'],['anhSanPham','Ảnh SP','link']],
-  tiendo: [['ngayGapKH','Ngày gặp KH','date'],['tenShop','Tên shop','text'],['sdtKH','SĐT','text'],
-    ['sanPham','Sản phẩm','text'],['bangGia','Bảng giá','text'],['lyDo','Lý do','text'],['deXuat','Đề xuất','text']]
-};
-
-// Vị trí cột trong Sheet gốc (khớp đúng thứ tự COL_KH/COL_KQ/COL_TD phía backend Code.gs) — dùng để đọc lại
-// dữ liệu {cols,rows} kiểu gviz-shape thành mảng object dễ dùng ở frontend.
-const KH_ROW_KEYS = {
-  kehoach: ['thoiGianNhap','nguoiLap','ngayLapKeHoach','ngayThucHien','nhomKH','sdtKH','tenShop','diaChi',
-    'donViDoiThu','bangGia','chinhSach','sanLuongThang','sanLuongTangThem','khoiLuong','idKhachHang','sanPham',
-    'nguyenNhan','trangThai'],
-  ketqua: ['thoiGianNhap','idKhachHang','tenShop','ngayTiepCan','diaChi','anhCheckin','anhSanPham',
-    'sanLuongGuiGHN','bangGia','ngayBatDauLenDon'],
-  tiendo: ['thoiGianNhap','idKhachHang','sdtKH','tenShop','ngayGapKH','diaChi','anhCheckin','anhSanPham',
-    'sanPham','doiThu','bangGia','chinhSach','sanLuong','khoiLuong','lyDo','deXuat']
-};
-
 function parseKHTable(table, keys){
   if (!table || !table.rows) return [];
   return table.rows.map(row => {
@@ -3334,9 +3427,12 @@ function parseKHTable(table, keys){
       const cell = row.c ? row.c[i] : null;
       obj[k] = cell && cell.v != null ? cell.v : '';
     });
+    obj._row = row.row || null; // rowIndex thật trên Sheet — dùng để tra cứu/sửa/xem lịch sử chính xác 1 dòng
     return obj;
-  }).reverse(); // mới nhất lên đầu
+  });
 }
+
+function khSortDesc(arr){ return [...arr].sort((a,b) => new Date(b.thoiGianNhap||0) - new Date(a.thoiGianNhap||0)); }
 
 function khFormatDate(v){
   if (!v) return '';
@@ -3345,6 +3441,14 @@ function khFormatDate(v){
   return d.toLocaleDateString('vi-VN');
 }
 
+function khFormatDateTime(v){
+  if (!v) return '';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+}
+
+// ---------- Tải dữ liệu 1 lần cho toàn bộ 6 màn hình ----------
 async function loadKeHoachKinhDoanh(){
   if (khLoaded) return;
   khLoaded = true;
@@ -3359,10 +3463,19 @@ async function loadKeHoachKinhDoanh(){
     window.KH_DATA.kehoach = parseKHTable(res.kehoach, KH_ROW_KEYS.kehoach);
     window.KH_DATA.ketqua = parseKHTable(res.ketqua, KH_ROW_KEYS.ketqua);
     window.KH_DATA.tiendo = parseKHTable(res.tiendo, KH_ROW_KEYS.tiendo);
-    window.KH_DATA.xaphuong = parseKHTable(res.xaphuong, ['wardCode','wardName','districtId','districtName','provinceName']);
-    renderKHTable('kehoach');
-    renderKHTable('ketqua');
-    renderKHTable('tiendo');
+    window.KH_DATA.xaphuong = (res.xaphuong && res.xaphuong.rows ? res.xaphuong.rows.map(row => ({
+      wardName: row.c && row.c[1] ? row.c[1].v : '', districtName: row.c && row.c[3] ? row.c[3].v : '', provinceName: row.c && row.c[4] ? row.c[4].v : ''
+    })) : []);
+    window.KH_DATA.doanhthu = res.doanhthu || { cols:[], rows:[], error:null };
+    window.KH_DATA.staff = res.staff || [];
+    renderKHRecentList();
+    khBuildFilterBarPlan();
+    khBuildFilterBarOverview();
+    khBuildFilterBarChart();
+    khApplyPlanFilters();
+    khApplyOverviewFilters();
+    khRenderBusiness();
+    khApplyChartFilters();
   } catch(e) {
     prog.finish('khLoadingNote');
     document.getElementById('khErrBanner').innerHTML = '<div style="background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">Lỗi tải Kế hoạch kinh doanh: '+esc(e.message)+'</div>';
@@ -3371,7 +3484,7 @@ async function loadKeHoachKinhDoanh(){
 
 function switchKHTab(tab){
   khCurTab = tab;
-  ['kehoach','ketqua','tiendo'].forEach(t => {
+  ['lap','capnhat','baocaokh','tongquan','kinhdoanh','bieudo'].forEach(t => {
     const pane = document.getElementById('khPane' + t.charAt(0).toUpperCase() + t.slice(1));
     if (pane) pane.classList.toggle('active', t===tab);
     const btn = document.getElementById('khTabBtn-'+t);
@@ -3379,39 +3492,35 @@ function switchKHTab(tab){
   });
 }
 
-function renderKHTable(kind){
-  const rows = window.KH_DATA[kind] || [];
-  const countEl = document.getElementById('khCount' + kind.charAt(0).toUpperCase() + kind.slice(1));
-  if (countEl) countEl.textContent = rows.length + (kind==='kehoach' ? ' kế hoạch' : kind==='ketqua' ? ' kết quả' : ' tiến độ');
-  const cols = KH_TABLE_COLS[kind];
-  const table = document.getElementById('khTable-' + kind);
-  if (!table) return;
-  let html = '<thead><tr>' + cols.map(c => '<th>'+esc(c[1])+'</th>').join('') + '</tr></thead><tbody>';
-  if (!rows.length) {
-    html += '<tr class="kh-empty-row"><td colspan="'+cols.length+'">Chưa có dữ liệu</td></tr>';
+// ================= 1. LẬP KẾ HOẠCH =================
+function khOnGroupChange(){
+  const group = document.getElementById('khGroupSelect').value;
+  const body = document.getElementById('khLapFormBody');
+  if (!group) { body.innerHTML = ''; return; }
+  const fields = KH_GROUP_FIELDS[group];
+  let html = '<div class="kh-form-grid">';
+  if (group === 'Khách Mới') {
+    html += khFieldHtml('lap', fields[0]);
+    html += khAddressBlockHtml();
+    fields.slice(1).forEach(f => { html += khFieldHtml('lap', f); });
   } else {
-    rows.forEach(r => {
-      html += '<tr>' + cols.map(c => {
-        const [key,,type] = c;
-        const v = r[key];
-        if (type === 'date') return '<td>'+esc(khFormatDate(v))+'</td>';
-        if (type === 'link') return '<td>' + (v ? '<a href="'+attrEsc(v)+'" target="_blank" rel="noopener">Xem ảnh</a>' : '—') + '</td>';
-        return '<td>'+esc(v)+'</td>';
-      }).join('') + '</tr>';
-    });
+    fields.forEach(f => { html += khFieldHtml('lap', f, f.lookup ? 'khLookupCustomerById()' : ''); });
   }
-  html += '</tbody>';
-  table.innerHTML = html;
+  html += '</div><div class="kh-form-actions"><button class="config-add-btn" id="khLapSubmitBtn" onclick="submitLapKeHoach()">Lưu kế hoạch</button></div>';
+  body.innerHTML = html;
+  if (group === 'Khách Mới') {
+    const provinces = [...new Set(window.KH_DATA.xaphuong.map(x => x.provinceName))].filter(Boolean).sort();
+    document.getElementById('khf_lap_tinh').innerHTML = '<option value="">— Chọn Tỉnh/Thành —</option>' + provinces.map(p => '<option value="'+attrEsc(p)+'">'+esc(p)+'</option>').join('');
+  }
 }
 
-// ---------- form thêm mới (dùng chung khung renderer cho cả 3 loại, riêng "kehoach" có thêm khối địa chỉ Tỉnh/Huyện/Xã) ----------
-function khFieldHtml(kind, f){
-  const id = 'khf_' + kind + '_' + f.id;
+function khFieldHtml(prefix, f, blurAction){
+  const id = 'khf_' + prefix + '_' + f.id;
   const req = f.required ? 'required' : '';
   let input;
-  if (f.type === 'textarea') input = '<textarea id="'+id+'" '+req+' placeholder="'+attrEsc(f.placeholder||'')+'"></textarea>';
+  if (f.type === 'textarea') input = '<textarea id="'+id+'" '+req+'></textarea>';
   else if (f.type === 'file') input = '<input type="file" id="'+id+'" accept="image/*" onchange="khPreviewImage(this)"><img class="kh-photo-preview" id="'+id+'_preview" style="display:none">';
-  else input = '<input type="'+f.type+'" id="'+id+'" '+req+' placeholder="'+attrEsc(f.placeholder||'')+'">';
+  else input = '<input type="'+f.type+'" id="'+id+'" '+req+(blurAction ? ' onblur="'+blurAction+'"' : '')+'>';
   return '<div class="kh-field'+(f.wide?' wide':'')+'"><label>'+esc(f.label)+(f.required?' *':'')+'</label>'+input+'</div>';
 }
 
@@ -3427,59 +3536,50 @@ function khPreviewImage(input){
 function khAddressBlockHtml(){
   return '<div class="kh-field wide"><label>Địa chỉ</label>'
     + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">'
-    + '<select id="khf_kehoach_tinh" onchange="khOnProvinceChange()"><option value="">— Chọn Tỉnh/Thành —</option></select>'
-    + '<select id="khf_kehoach_huyen" onchange="khOnDistrictChange()"><option value="">— Chọn Quận/Huyện —</option></select>'
-    + '<select id="khf_kehoach_xa"><option value="">— Chọn Phường/Xã —</option></select>'
-    + '<input type="text" id="khf_kehoach_sonha" placeholder="Số nhà, tên đường">'
+    + '<select id="khf_lap_tinh" onchange="khOnProvinceChange()"><option value="">— Chọn Tỉnh/Thành —</option></select>'
+    + '<select id="khf_lap_huyen" onchange="khOnDistrictChange()"><option value="">— Chọn Quận/Huyện —</option></select>'
+    + '<select id="khf_lap_xa"><option value="">— Chọn Phường/Xã —</option></select>'
+    + '<input type="text" id="khf_lap_sonha" placeholder="Số nhà, tên đường">'
     + '</div></div>';
 }
 
 function khOnProvinceChange(){
-  const tinh = document.getElementById('khf_kehoach_tinh').value;
-  const huyenSel = document.getElementById('khf_kehoach_huyen');
-  const xaSel = document.getElementById('khf_kehoach_xa');
+  const tinh = document.getElementById('khf_lap_tinh').value;
+  const huyenSel = document.getElementById('khf_lap_huyen');
+  const xaSel = document.getElementById('khf_lap_xa');
   const districts = [...new Set(window.KH_DATA.xaphuong.filter(x => x.provinceName === tinh).map(x => x.districtName))];
   huyenSel.innerHTML = '<option value="">— Chọn Quận/Huyện —</option>' + districts.map(d => '<option value="'+attrEsc(d)+'">'+esc(d)+'</option>').join('');
   xaSel.innerHTML = '<option value="">— Chọn Phường/Xã —</option>';
 }
 
 function khOnDistrictChange(){
-  const tinh = document.getElementById('khf_kehoach_tinh').value;
-  const huyen = document.getElementById('khf_kehoach_huyen').value;
-  const xaSel = document.getElementById('khf_kehoach_xa');
+  const tinh = document.getElementById('khf_lap_tinh').value;
+  const huyen = document.getElementById('khf_lap_huyen').value;
+  const xaSel = document.getElementById('khf_lap_xa');
   const wards = window.KH_DATA.xaphuong.filter(x => x.provinceName === tinh && x.districtName === huyen).map(x => x.wardName);
   xaSel.innerHTML = '<option value="">— Chọn Phường/Xã —</option>' + wards.map(w => '<option value="'+attrEsc(w)+'">'+esc(w)+'</option>').join('');
 }
 
-function khComposeAddress(){
-  const soNha = document.getElementById('khf_kehoach_sonha').value.trim();
-  const xa = document.getElementById('khf_kehoach_xa').value;
-  const huyen = document.getElementById('khf_kehoach_huyen').value;
-  const tinh = document.getElementById('khf_kehoach_tinh').value;
+function khComposeAddressLap(){
+  const soNha = document.getElementById('khf_lap_sonha').value.trim();
+  const xa = document.getElementById('khf_lap_xa').value;
+  const huyen = document.getElementById('khf_lap_huyen').value;
+  const tinh = document.getElementById('khf_lap_tinh').value;
   return [soNha, xa, huyen, tinh].filter(Boolean).join(', ');
 }
 
-function toggleKHForm(kind){
-  const wrap = document.getElementById('khFormWrap-' + kind);
-  const isOpen = wrap.classList.contains('open');
-  if (isOpen) { wrap.classList.remove('open'); return; }
-  let html = '<div class="kh-form-grid">';
-  if (kind === 'kehoach') {
-    // Chỉ 1 lần duy nhất: nạp danh sách Tỉnh cho select khi mở form kế hoạch.
-    html += khFieldHtml('kehoach', KH_FIELDS.kehoach[0]) + khFieldHtml('kehoach', KH_FIELDS.kehoach[1]);
-    html += khAddressBlockHtml();
-    KH_FIELDS.kehoach.slice(2).forEach(f => { html += khFieldHtml('kehoach', f); });
-  } else {
-    KH_FIELDS[kind].forEach(f => { html += khFieldHtml(kind, f); });
-  }
-  html += '</div><div class="kh-form-actions"><button class="kh-cancel-btn" onclick="toggleKHForm(\''+kind+'\')">Huỷ</button>'
-    + '<button class="config-add-btn" id="khSubmitBtn-'+kind+'" onclick="submitKHForm(\''+kind+'\')">Lưu</button></div>';
-  wrap.innerHTML = html;
-  wrap.classList.add('open');
-  if (kind === 'kehoach') {
-    const provinces = [...new Set(window.KH_DATA.xaphuong.map(x => x.provinceName))].sort();
-    document.getElementById('khf_kehoach_tinh').innerHTML = '<option value="">— Chọn Tỉnh/Thành —</option>' + provinces.map(p => '<option value="'+attrEsc(p)+'">'+esc(p)+'</option>').join('');
-  }
+// Tra ID khách hàng đã có trong Kehoach — tự điền SĐT/Tên shop/Địa chỉ theo bản ghi gần nhất trùng ID.
+function khLookupCustomerById(){
+  const idEl = document.getElementById('khf_lap_idKhachHang');
+  if (!idEl) return;
+  const id = idEl.value.trim();
+  if (!id) return;
+  const match = khSortDesc(window.KH_DATA.kehoach.filter(r => String(r.idKhachHang).trim() === id))[0];
+  if (!match) return;
+  ['sdtKH','tenShop','diaChi'].forEach(k => {
+    const el = document.getElementById('khf_lap_' + k);
+    if (el && !el.value) el.value = match[k] || '';
+  });
 }
 
 function khReadImageDataUrl(inputId){
@@ -3487,44 +3587,429 @@ function khReadImageDataUrl(inputId){
     const input = document.getElementById(inputId);
     const file = input && input.files && input.files[0];
     if (!file) return resolve('');
+    khWatermarkFile(file).then(resolve).catch(() => resolve(''));
+  });
+}
+
+// Đóng dấu ngày giờ + nhãn "GHN DBB" lên góc dưới-phải ảnh checkin/sản phẩm trước khi upload (giống tính năng
+// watermark của công cụ CRM gốc) — xử lý hoàn toàn ở client bằng Canvas, không cần thư viện ngoài.
+function khWatermarkFile(file){
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = e => resolve(e.target.result);
-    reader.onerror = () => resolve('');
+    reader.onerror = reject;
+    reader.onload = e => {
+      const img = new Image();
+      img.onerror = () => resolve(e.target.result);
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width; canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          const label = 'GHN DBB • ' + new Date().toLocaleString('vi-VN');
+          const fontSize = Math.max(14, Math.round(img.width / 40));
+          ctx.font = fontSize + 'px sans-serif';
+          const padding = Math.round(fontSize * 0.6);
+          const textW = ctx.measureText(label).width;
+          ctx.fillStyle = 'rgba(0,0,0,0.55)';
+          ctx.fillRect(img.width - textW - padding*2, img.height - fontSize - padding*1.8, textW + padding*2, fontSize + padding*1.4);
+          ctx.fillStyle = '#fff';
+          ctx.textBaseline = 'top';
+          ctx.fillText(label, img.width - textW - padding, img.height - fontSize - padding*0.9);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        } catch(err) { resolve(e.target.result); }
+      };
+      img.src = e.target.result;
+    };
     reader.readAsDataURL(file);
   });
 }
 
-async function submitKHForm(kind){
-  const btn = document.getElementById('khSubmitBtn-' + kind);
-  const requiredFields = KH_FIELDS[kind].filter(f => f.required);
+async function submitLapKeHoach(){
+  const group = document.getElementById('khGroupSelect').value;
+  if (!group) { alert('Vui lòng chọn Nhóm khách hàng'); return; }
+  const fields = KH_GROUP_FIELDS[group];
+  const requiredFields = fields.filter(f => f.required);
   for (const f of requiredFields) {
-    const el = document.getElementById('khf_' + kind + '_' + f.id);
+    const el = document.getElementById('khf_lap_' + f.id);
     if (el && !el.value.trim()) { alert('Vui lòng nhập: ' + f.label); return; }
   }
+  const btn = document.getElementById('khLapSubmitBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Đang lưu…'; }
   try {
-    const payload = { token: AUTH.session.token };
-    if (kind === 'kehoach') payload.diaChi = khComposeAddress();
-    for (const f of KH_FIELDS[kind]) {
-      if (f.type === 'file') continue; // ảnh xử lý riêng bên dưới (đọc base64 bất đồng bộ)
-      const el = document.getElementById('khf_' + kind + '_' + f.id);
+    const payload = { token: AUTH.session.token, nhomKH: group };
+    payload.diaChi = group === 'Khách Mới' ? khComposeAddressLap() : (document.getElementById('khf_lap_diaChi') ? document.getElementById('khf_lap_diaChi').value.trim() : '');
+    payload.ngayLapKeHoach = new Date().toISOString().slice(0,10);
+    for (const f of fields) {
+      if (f.type === 'file' || f.id === 'diaChi') continue;
+      const el = document.getElementById('khf_lap_' + f.id);
       payload[f.id] = el ? el.value.trim() : '';
     }
-    for (const f of KH_FIELDS[kind]) {
-      if (f.type !== 'file') continue;
-      payload[f.id] = await khReadImageDataUrl('khf_' + kind + '_' + f.id);
-    }
-    const action = kind === 'kehoach' ? 'addKeHoach' : kind === 'ketqua' ? 'addKetQua' : 'addTienDo';
-    const res = await callBackend(action, payload);
+    const res = await callBackend('addKeHoach', payload);
     if (!res.ok) { alert(errMsg(res.error)); return; }
-    toggleKHForm(kind);
+    document.getElementById('khGroupSelect').value = '';
+    document.getElementById('khLapFormBody').innerHTML = '';
     khLoaded = false;
     await loadKeHoachKinhDoanh();
+    alert('Đã lưu kế hoạch.');
+  } catch(e) {
+    alert('Không kết nối được máy chủ: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Lưu kế hoạch'; }
+  }
+}
+
+function renderKHRecentList(){
+  const rows = khSortDesc(window.KH_DATA.kehoach).slice(0, 30);
+  document.getElementById('khCountLap').textContent = window.KH_DATA.kehoach.length + ' kế hoạch (hiện 30 gần nhất)';
+  const cols = [['ngayLapKeHoach','Ngày lập','date'],['nguoiLap','Người lập','text'],['tenShop','Tên shop','text'],
+    ['sdtKH','SĐT','text'],['nhomKH','Nhóm KH','text'],['trangThai','Trạng thái','text']];
+  khRenderGenericTable('khTable-lap', cols, rows);
+}
+
+function khRenderGenericTable(tableId, cols, rows){
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  let html = '<thead><tr>' + cols.map(c => '<th>'+esc(c[1])+'</th>').join('') + '</tr></thead><tbody>';
+  if (!rows.length) {
+    html += '<tr class="kh-empty-row"><td colspan="'+cols.length+'">Chưa có dữ liệu</td></tr>';
+  } else {
+    rows.forEach(r => {
+      html += '<tr>' + cols.map(c => {
+        const [key,,type] = c;
+        if (type === 'action') return '<td><button class="kh-cancel-btn" onclick="khJumpToUpdate('+r._row+')">Cập nhật</button></td>';
+        const v = r[key];
+        if (type === 'date') return '<td>'+esc(khFormatDate(v))+'</td>';
+        return '<td>'+esc(v)+'</td>';
+      }).join('') + '</tr>';
+    });
+  }
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+// ================= 2. CẬP NHẬT TIẾN ĐỘ =================
+function khSearchKeHoach(){
+  const q = document.getElementById('khSearchInput').value.trim().toLowerCase();
+  const resultsEl = document.getElementById('khSearchResults');
+  document.getElementById('khCustomerDetail').innerHTML = '';
+  khSelected = null;
+  if (!q) { resultsEl.innerHTML = ''; return; }
+  const matches = window.KH_DATA.kehoach.filter(r =>
+    String(r.idKhachHang).toLowerCase().includes(q) || String(r.sdtKH).toLowerCase().includes(q));
+  if (!matches.length) {
+    resultsEl.innerHTML = '<div class="kh-empty-note">Không tìm thấy khách hàng nào khớp với "'+esc(document.getElementById('khSearchInput').value.trim())+'".</div>';
+    return;
+  }
+  if (matches.length === 1) { resultsEl.innerHTML = ''; khSelectCustomer(matches[0]._row); return; }
+  const uniq = [...new Map(matches.map(r => [r.idKhachHang + '|' + r.sdtKH + '|' + r.tenShop, r])).values()];
+  resultsEl.innerHTML = khSortDesc(uniq).map(r =>
+    '<div class="kh-search-result-row" onclick="khSelectCustomer('+r._row+')">'
+    + '<span><b>'+esc(r.tenShop)+'</b> — ID: '+esc(r.idKhachHang||'—')+' — SĐT: '+esc(r.sdtKH||'—')+'</span>'
+    + '<span style="color:var(--muted);font-family:var(--mono);font-size:11.5px">'+esc(r.nhomKH)+'</span></div>'
+  ).join('');
+}
+
+function khJumpToUpdate(rowIndex){
+  switchKHTab('capnhat');
+  document.getElementById('khSearchResults').innerHTML = '';
+  const row = window.KH_DATA.kehoach.find(r => r._row === rowIndex);
+  document.getElementById('khSearchInput').value = row ? (row.idKhachHang || row.sdtKH || '') : '';
+  khSelectCustomer(rowIndex);
+}
+
+function khSelectCustomer(rowIndex){
+  const row = window.KH_DATA.kehoach.find(r => r._row === rowIndex);
+  if (!row) { alert('Không tìm thấy kế hoạch này (có thể vừa được cập nhật).'); return; }
+  khSelected = row;
+  document.getElementById('khSearchResults').innerHTML = '';
+  khRenderCustomerDetail();
+}
+
+function khRenderCustomerDetail(){
+  const r = khSelected;
+  const el = document.getElementById('khCustomerDetail');
+  if (!r) { el.innerHTML = ''; return; }
+  const info = [
+    ['ID khách hàng', r.idKhachHang||'—'], ['SĐT', r.sdtKH||'—'], ['Nhóm KH', r.nhomKH||'—'],
+    ['Địa chỉ', r.diaChi||'—'], ['Ngày lập', khFormatDate(r.ngayLapKeHoach)], ['Người lập', r.nguoiLap||'—'],
+    ['Trạng thái', r.trangThai||'—'], ['Sản lượng/tháng', r.sanLuongThang||'—']
+  ];
+  let html = '<div class="kh-detail-card">'
+    + '<div class="kh-detail-head"><h3>'+esc(r.tenShop||'(chưa có tên shop)')+'</h3>'
+    + '<button class="kh-action-btn edit" onclick="khToggleEditForm()">✏️ Sửa thông tin</button></div>'
+    + '<div class="kh-detail-grid" id="khDetailGrid">' + info.map(([label,v]) => '<div><span>'+esc(label)+'</span>'+esc(v)+'</div>').join('') + '</div>'
+    + '<div id="khEditFormWrap"></div>'
+    + '<div class="kh-action-btns">'
+    + '<button class="kh-action-btn done" onclick="khOpenActionForm(\'ketqua\')">✅ Đã kéo được KH</button>'
+    + '<button class="kh-action-btn progress" onclick="khOpenActionForm(\'tiendo\')">🔄 Cập nhật tiến độ</button>'
+    + '</div><div id="khActionFormWrap"></div>'
+    + '<h4 style="margin:18px 0 12px;font-size:13px;color:var(--muted)">Lịch sử tiếp cận</h4>'
+    + '<div id="khTimelineWrap"></div></div>';
+  el.innerHTML = html;
+  khRenderHistoryTimeline();
+}
+
+function khToggleEditForm(){
+  const wrap = document.getElementById('khEditFormWrap');
+  if (wrap.innerHTML) { wrap.innerHTML = ''; return; }
+  const r = khSelected;
+  const fields = KH_GROUP_FIELDS[r.nhomKH] || KH_GROUP_FIELDS['Khách cũ rời bỏ'];
+  let html = '<div class="kh-form-grid" style="margin-top:14px">';
+  fields.filter(f => f.id !== 'idKhachHang' || true).forEach(f => { html += khFieldHtml('edit', f); });
+  html += '</div><div class="kh-form-actions"><button class="kh-cancel-btn" onclick="khToggleEditForm()">Huỷ</button>'
+    + '<button class="config-add-btn" id="khEditSubmitBtn" onclick="khSubmitEditForm()">Lưu thay đổi</button></div>';
+  wrap.innerHTML = html;
+  fields.forEach(f => { const el = document.getElementById('khf_edit_'+f.id); if (el) el.value = r[f.id] || ''; });
+}
+
+async function khSubmitEditForm(){
+  const r = khSelected;
+  const fields = KH_GROUP_FIELDS[r.nhomKH] || KH_GROUP_FIELDS['Khách cũ rời bỏ'];
+  const btn = document.getElementById('khEditSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Đang lưu…'; }
+  try {
+    const payload = { token: AUTH.session.token, rowIndex: r._row };
+    fields.forEach(f => { const el = document.getElementById('khf_edit_'+f.id); if (el) payload[f.id] = el.value.trim(); });
+    const res = await callBackend('updateKeHoach', payload);
+    if (!res.ok) { alert(errMsg(res.error)); return; }
+    khLoaded = false;
+    await loadKeHoachKinhDoanh();
+    khSelected = window.KH_DATA.kehoach.find(x => x._row === r._row) || null;
+    khRenderCustomerDetail();
+    alert('Đã cập nhật kế hoạch.');
+  } catch(e) {
+    alert('Không kết nối được máy chủ: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Lưu thay đổi'; }
+  }
+}
+
+function khOpenActionForm(kind){
+  const wrap = document.getElementById('khActionFormWrap');
+  if (wrap.dataset.kind === kind) { wrap.innerHTML = ''; wrap.dataset.kind = ''; return; }
+  wrap.dataset.kind = kind;
+  const r = khSelected;
+  let html = '<div class="kh-form-card" style="margin-top:14px"><div class="kh-form-grid">';
+  KH_ACTION_FIELDS[kind].forEach(f => { html += khFieldHtml('act_'+kind, f); });
+  html += '</div><div class="kh-form-actions"><button class="kh-cancel-btn" onclick="document.getElementById(\'khActionFormWrap\').innerHTML=\'\';document.getElementById(\'khActionFormWrap\').dataset.kind=\'\'">Huỷ</button>'
+    + '<button class="config-add-btn" id="khActSubmitBtn" onclick="khSubmitActionForm(\''+kind+'\')">Lưu</button></div></div>';
+  wrap.innerHTML = html;
+}
+
+async function khSubmitActionForm(kind){
+  const r = khSelected;
+  const btn = document.getElementById('khActSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Đang lưu…'; }
+  try {
+    const payload = { token: AUTH.session.token, idKhachHang: r.idKhachHang, sdtKH: r.sdtKH, tenShop: r.tenShop, diaChi: r.diaChi };
+    for (const f of KH_ACTION_FIELDS[kind]) {
+      const el = document.getElementById('khf_act_' + kind + '_' + f.id);
+      payload[f.id] = f.type === 'file' ? await khReadImageDataUrl('khf_act_' + kind + '_' + f.id) : (el ? el.value.trim() : '');
+    }
+    const action = kind === 'ketqua' ? 'addKetQua' : 'addTienDo';
+    const res = await callBackend(action, payload);
+    if (!res.ok) { alert(errMsg(res.error)); return; }
+    document.getElementById('khActionFormWrap').innerHTML = '';
+    document.getElementById('khActionFormWrap').dataset.kind = '';
+    khLoaded = false;
+    await loadKeHoachKinhDoanh();
+    khSelected = window.KH_DATA.kehoach.find(x => x._row === r._row) || r;
+    khRenderCustomerDetail();
   } catch(e) {
     alert('Không kết nối được máy chủ: ' + e.message);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Lưu'; }
   }
+}
+
+function khRenderHistoryTimeline(){
+  const r = khSelected;
+  const items = [
+    ...window.KH_DATA.ketqua.filter(x => x.idKhachHang === r.idKhachHang).map(x => ({...x, _kind:'ketqua'})),
+    ...window.KH_DATA.tiendo.filter(x => x.idKhachHang === r.idKhachHang).map(x => ({...x, _kind:'tiendo'}))
+  ];
+  const wrap = document.getElementById('khTimelineWrap');
+  if (!items.length) { wrap.innerHTML = '<div class="kh-empty-note">Chưa có lịch sử tiếp cận nào cho khách hàng này.</div>'; return; }
+  const sorted = khSortDesc(items);
+  wrap.innerHTML = '<div class="kh-timeline">' + sorted.map(it => {
+    const isResult = it._kind === 'ketqua';
+    const tag = isResult ? '<span class="kt-tag result">✅ Đã kéo được KH</span>' : '<span class="kt-tag">🔄 Cập nhật tiến độ</span>';
+    const bodyLines = isResult
+      ? [['Sản lượng gửi GHN', it.sanLuongGuiGHN], ['Bảng giá', it.bangGia], ['Ngày lên đơn', khFormatDate(it.ngayBatDauLenDon)]]
+      : [['Sản phẩm', it.sanPham], ['Đối thủ', it.doiThu], ['Bảng giá', it.bangGia], ['Sản lượng', it.sanLuong], ['Lý do chưa kéo được', it.lyDo], ['Đề xuất', it.deXuat]];
+    const photos = [it.anhCheckin, it.anhSanPham].filter(Boolean);
+    return '<div class="kh-timeline-item"><div class="kt-head"><span>'+tag+'</span><span>'+esc(khFormatDateTime(it.thoiGianNhap))+'</span></div>'
+      + '<div class="kt-body">' + bodyLines.filter(([,v]) => v).map(([l,v]) => '<div><b>'+esc(l)+':</b> '+esc(v)+'</div>').join('')
+      + (photos.length ? '<div class="kt-photos">' + photos.map(p => '<img src="'+attrEsc(p)+'" onclick="khOpenLightbox(\''+attrEsc(p)+'\')">').join('') + '</div>' : '')
+      + '</div></div>';
+  }).join('') + '</div>';
+}
+
+function khOpenLightbox(url){
+  document.getElementById('khLightboxImg').src = url;
+  document.getElementById('khLightbox').classList.add('open');
+}
+function khCloseLightbox(){ document.getElementById('khLightbox').classList.remove('open'); }
+
+// ================= 3. BÁO CÁO KẾ HOẠCH =================
+function khDistinctVals(key){ return [...new Set(window.KH_DATA.kehoach.map(r => r[key]).filter(Boolean))].sort(); }
+
+function khBuildFilterBarPlan(){
+  const staffOpts = '<option value="">Tất cả</option>' + window.KH_DATA.staff.map(s => '<option value="'+attrEsc(s)+'">'+esc(s)+'</option>').join('');
+  const groupOpts = '<option value="">Tất cả</option>' + KH_GROUPS.map(g => '<option value="'+attrEsc(g)+'">'+esc(g)+'</option>').join('');
+  const statusOpts = '<option value="">Tất cả</option>' + khDistinctVals('trangThai').map(s => '<option value="'+attrEsc(s)+'">'+esc(s)+'</option>').join('');
+  document.getElementById('khFilterBarPlan').innerHTML =
+    '<label>Người lập<select id="khfPlanNguoiLap">'+staffOpts+'</select></label>'
+    + '<label>Từ ngày lập<input type="date" id="khfPlanNgayLapTu"></label>'
+    + '<label>Đến ngày lập<input type="date" id="khfPlanNgayLapDen"></label>'
+    + '<label>Nhóm KH<select id="khfPlanNhomKH">'+groupOpts+'</select></label>'
+    + '<label>Trạng thái<select id="khfPlanTrangThai">'+statusOpts+'</select></label>'
+    + '<div class="kh-filter-actions"><button class="config-add-btn" onclick="khApplyPlanFilters()">Áp dụng</button></div>';
+}
+
+function khApplyPlanFilters(){
+  const nl = document.getElementById('khfPlanNguoiLap').value;
+  const tu = document.getElementById('khfPlanNgayLapTu').value;
+  const den = document.getElementById('khfPlanNgayLapDen').value;
+  const nhom = document.getElementById('khfPlanNhomKH').value;
+  const tt = document.getElementById('khfPlanTrangThai').value;
+  let rows = window.KH_DATA.kehoach.filter(r => {
+    if (nl && r.nguoiLap !== nl) return false;
+    if (nhom && r.nhomKH !== nhom) return false;
+    if (tt && r.trangThai !== tt) return false;
+    if (tu && (!r.ngayLapKeHoach || String(r.ngayLapKeHoach).slice(0,10) < tu)) return false;
+    if (den && (!r.ngayLapKeHoach || String(r.ngayLapKeHoach).slice(0,10) > den)) return false;
+    return true;
+  });
+  rows = khSortDesc(rows);
+  document.getElementById('khCountBaocaokh').textContent = rows.length + ' kế hoạch';
+  khRenderGenericTable('khTable-baocaokh', [
+    ['ngayLapKeHoach','Ngày lập','date'],['nguoiLap','Người lập','text'],['tenShop','Tên shop','text'],
+    ['sdtKH','SĐT','text'],['nhomKH','Nhóm KH','text'],['diaChi','Địa chỉ','text'],['trangThai','Trạng thái','text'],
+    ['_action','Thao tác','action']
+  ], rows);
+}
+
+// ================= 4. BÁO CÁO TỔNG QUAN =================
+function khBuildFilterBarOverview(){
+  const staffOpts = '<option value="">Tất cả</option>' + window.KH_DATA.staff.map(s => '<option value="'+attrEsc(s)+'">'+esc(s)+'</option>').join('');
+  const groupOpts = '<option value="">Tất cả</option>' + KH_GROUPS.map(g => '<option value="'+attrEsc(g)+'">'+esc(g)+'</option>').join('');
+  document.getElementById('khFilterBarOverview').innerHTML =
+    '<label>Người lập<select id="khfOvNguoiLap">'+staffOpts+'</select></label>'
+    + '<label>Nhóm KH<select id="khfOvNhomKH">'+groupOpts+'</select></label>'
+    + '<div class="kh-filter-actions"><button class="config-add-btn" onclick="khApplyOverviewFilters()">Áp dụng</button></div>';
+}
+
+function khApplyOverviewFilters(){
+  const nl = document.getElementById('khfOvNguoiLap').value;
+  const nhom = document.getElementById('khfOvNhomKH').value;
+  const rows = window.KH_DATA.kehoach.filter(r => (!nl || r.nguoiLap===nl) && (!nhom || r.nhomKH===nhom));
+  const idsWithResult = new Set(window.KH_DATA.ketqua.map(r => r.idKhachHang).filter(Boolean));
+  const idsWithProgress = new Set(window.KH_DATA.tiendo.map(r => r.idKhachHang).filter(Boolean));
+  const converted = rows.filter(r => r.idKhachHang && idsWithResult.has(r.idKhachHang)).length;
+  const inProgress = rows.filter(r => r.idKhachHang && idsWithProgress.has(r.idKhachHang) && !idsWithResult.has(r.idKhachHang)).length;
+  document.getElementById('khOverviewSummary').innerHTML = '<div class="kh-summary-cards">'
+    + '<div class="kh-summary-card"><div class="kc-label">Tổng số kế hoạch</div><div class="kc-value">'+rows.length+'</div></div>'
+    + '<div class="kh-summary-card"><div class="kc-label">Đã kéo được KH</div><div class="kc-value" style="color:var(--dn)">'+converted+'</div></div>'
+    + '<div class="kh-summary-card"><div class="kc-label">Đang cập nhật tiến độ</div><div class="kc-value" style="color:var(--warn)">'+inProgress+'</div></div>'
+    + '<div class="kh-summary-card"><div class="kc-label">Chưa có phản hồi</div><div class="kc-value" style="color:var(--muted)">'+(rows.length-converted-inProgress)+'</div></div>'
+    + '</div>';
+  const byGroup = {};
+  rows.forEach(r => { const g = r.nhomKH || '(chưa gắn nhóm)'; byGroup[g] = (byGroup[g]||0) + 1; });
+  const groupRows = Object.keys(byGroup).map(g => ({ nhomKH: g, soLuong: byGroup[g], tiLe: rows.length ? (byGroup[g]/rows.length*100).toFixed(1)+'%' : '0%' }));
+  khRenderGenericTable('khTable-tongquan', [['nhomKH','Nhóm KH','text'],['soLuong','Số lượng','text'],['tiLe','Tỉ lệ','text']], groupRows);
+}
+
+// ================= 5. BÁO CÁO KINH DOANH =================
+function khRenderBusiness(){
+  const dt = window.KH_DATA.doanhthu || {};
+  const banner = document.getElementById('khBusinessBanner');
+  const content = document.getElementById('khBusinessContent');
+  if (dt.error || !dt.rows || !dt.rows.length) {
+    banner.innerHTML = '<div class="kh-banner-warn">⚠️ Dữ liệu Báo Cáo Kinh Doanh hiện chưa khả dụng (nguồn dữ liệu ngoài đang được cập nhật lại). Màn hình sẽ tự hiển thị đầy đủ khi dữ liệu sẵn sàng.</div>';
+    content.innerHTML = '';
+    return;
+  }
+  banner.innerHTML = '';
+  const cols = dt.cols.map(c => c.label);
+  let html = '<div class="kh-table-wrap"><table class="kh-table"><thead><tr>' + cols.map(c => '<th>'+esc(c)+'</th>').join('') + '</tr></thead><tbody>';
+  dt.rows.forEach(row => {
+    html += '<tr>' + cols.map((c,i) => {
+      const cell = row.c ? row.c[i] : null;
+      const v = cell && cell.v != null ? cell.v : '';
+      return '<td>'+esc(typeof v === 'number' ? v.toLocaleString('vi-VN') : v)+'</td>';
+    }).join('') + '</tr>';
+  });
+  html += '</tbody></table></div>';
+  content.innerHTML = html;
+}
+
+// ================= 6. BIỂU ĐỒ =================
+function khBuildFilterBarChart(){
+  const groupOpts = '<option value="">Tất cả</option>' + KH_GROUPS.map(g => '<option value="'+attrEsc(g)+'">'+esc(g)+'</option>').join('');
+  document.getElementById('khFilterBarChart').innerHTML =
+    '<label>Từ ngày lập<input type="date" id="khfChNgayLapTu"></label>'
+    + '<label>Đến ngày lập<input type="date" id="khfChNgayLapDen"></label>'
+    + '<label>Nhóm KH<select id="khfChNhomKH">'+groupOpts+'</select></label>'
+    + '<div class="kh-filter-actions"><button class="config-add-btn" onclick="khApplyChartFilters()">Áp dụng</button></div>';
+}
+
+function khISOWeekKey(d){
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = dt.getUTCDay() || 7;
+  dt.setUTCDate(dt.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(dt.getUTCFullYear(),0,1));
+  const weekNo = Math.ceil((((dt-yearStart)/86400000)+1)/7);
+  return 'T' + weekNo + '/' + dt.getUTCFullYear();
+}
+
+function khApplyChartFilters(){
+  const tu = document.getElementById('khfChNgayLapTu').value;
+  const den = document.getElementById('khfChNgayLapDen').value;
+  const nhom = document.getElementById('khfChNhomKH').value;
+  const rows = window.KH_DATA.kehoach.filter(r => {
+    if (nhom && r.nhomKH !== nhom) return false;
+    if (!r.ngayLapKeHoach) return false;
+    const d = String(r.ngayLapKeHoach).slice(0,10);
+    if (tu && d < tu) return false;
+    if (den && d > den) return false;
+    return true;
+  });
+  const byWeek = {};
+  rows.forEach(r => {
+    const d = new Date(r.ngayLapKeHoach);
+    if (isNaN(d.getTime())) return;
+    const k = khISOWeekKey(d);
+    byWeek[k] = (byWeek[k]||0) + 1;
+  });
+  const weeks = Object.keys(byWeek).sort((a,b) => {
+    const [wa,ya] = a.slice(1).split('/'); const [wb,yb] = b.slice(1).split('/');
+    return ya - yb || wa - wb;
+  }).slice(-12);
+  khRenderBarChart('khChartWrap', weeks.map(w => ({ label:w, value:byWeek[w] })), rows.length);
+}
+
+function khRenderBarChart(containerId, data, total){
+  const el = document.getElementById(containerId);
+  if (!data.length) { el.innerHTML = '<div class="kh-empty-note">Không có dữ liệu phù hợp với bộ lọc để vẽ biểu đồ.</div>'; return; }
+  const w = 900, h = 320, padL = 40, padB = 46, padT = 20, padR = 20;
+  const max = Math.max(...data.map(d => d.value), 1);
+  const barW = (w - padL - padR) / data.length;
+  const scaleY = v => (h - padB - padT) * (v / max);
+  let bars = '', labels = '';
+  data.forEach((d,i) => {
+    const bh = scaleY(d.value);
+    const x = padL + i*barW + barW*0.15;
+    const y = h - padB - bh;
+    bars += '<rect x="'+x+'" y="'+y+'" width="'+(barW*0.7)+'" height="'+bh+'" rx="4" fill="var(--ghn-blue)"></rect>'
+      + '<text x="'+(x+barW*0.35)+'" y="'+(y-6)+'" text-anchor="middle" font-size="11" fill="var(--text)" font-family="var(--mono)">'+d.value+'</text>';
+    labels += '<text x="'+(x+barW*0.35)+'" y="'+(h-padB+16)+'" text-anchor="middle" font-size="10.5" fill="var(--muted)" font-family="var(--mono)">'+esc(d.label)+'</text>';
+  });
+  const svg = '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto;background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:10px 0">'
+    + '<line x1="'+padL+'" y1="'+(h-padB)+'" x2="'+(w-padR)+'" y2="'+(h-padB)+'" stroke="var(--border-strong)"></line>'
+    + bars + labels + '</svg>';
+  el.innerHTML = '<div class="kh-toolbar-title" style="margin-bottom:10px">Số kế hoạch lập theo tuần — tổng '+total+' kế hoạch trong phạm vi lọc</div>' + svg;
 }
 
 // ================= ĐIỀU HƯỚNG CÁC SECTION (nút tròn nổi DBB) =================
