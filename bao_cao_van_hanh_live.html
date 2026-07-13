@@ -763,12 +763,22 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 
   <!-- ================= KẾ HOẠCH KINH DOANH — chuyển từ công cụ CRM riêng vào web chính, dùng chung đăng nhập ================= -->
   <div id="kdKeHoach" class="vh-pane">
+<button class="toc-fab" id="khTocFab" onclick="toggleKHTocPanel()">☰ Mục lục</button>
+<div class="toc-panel" id="khTocPanel">
+  <div class="toc-panel-title">Chuyển nhanh</div>
+  <a href="javascript:void(0)" class="toc-top" onclick="switchKHTab('lap');closeKHTocPanel()">📝 <span class="tnum">1</span>Lập Kế Hoạch</a>
+  <a href="javascript:void(0)" onclick="switchKHTab('capnhat');closeKHTocPanel()"><span class="tnum">2</span>Cập Nhật Tiến Độ</a>
+  <a href="javascript:void(0)" onclick="switchKHTab('baocaokh');closeKHTocPanel()"><span class="tnum">3</span>Báo Cáo Kế Hoạch</a>
+  <a href="javascript:void(0)" onclick="switchKHTab('tongquan');closeKHTocPanel()"><span class="tnum">4</span>Báo Cáo Tổng Quan</a>
+  <a href="javascript:void(0)" onclick="switchKHTab('kinhdoanh');closeKHTocPanel()"><span class="tnum">5</span>Báo Cáo Kinh Doanh</a>
+  <a href="javascript:void(0)" onclick="switchKHTab('bieudo');closeKHTocPanel()"><span class="tnum">6</span>Biểu Đồ</a>
+</div>
     <div class="page" style="padding-top:28px">
       <div class="report-header" style="border-bottom-color:var(--ghn-blue)">
         <div><h1>Kế Hoạch Kinh Doanh <span class="rh-tag">DBB</span></h1>
           <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Lập kế hoạch tiếp cận khách hàng mới, theo dõi kết quả &amp; tiến độ triển khai</div>
         </div>
-        <div class="meta"><button class="refresh-btn" onclick="khLoaded=false;loadKeHoachKinhDoanh()">↻ Làm mới dữ liệu</button></div>
+        <div class="meta"><button class="refresh-btn" onclick="khLoaded=false;loadKeHoachKinhDoanh()">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
       </div>
       <div id="khErrBanner"></div>
       <div id="khLoadingNote" class="load-progress">
@@ -847,12 +857,20 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
   <!-- ================= BÁO CÁO KẾT QUẢ KINH DOANH — nhiều AM/nhân sự cùng nộp giải trình riêng cho 1 kỳ (Tuần),
        Admin đặt deadline + gán reporters, AI gộp thành 1 báo cáo Vùng duy nhất ================= -->
   <div id="kdBCKQKD" class="vh-pane">
+<button class="toc-fab" id="bkTocFab" onclick="toggleBKTocPanel()">☰ Mục lục</button>
+<div class="toc-panel" id="bkTocPanel">
+  <div class="toc-panel-title">Chuyển nhanh</div>
+  <a href="javascript:void(0)" class="toc-top" onclick="switchBCKQKDTab('submit');closeBKTocPanel()">📝 <span class="tnum">1</span>Nộp Báo Cáo</a>
+  <a href="javascript:void(0)" onclick="switchBCKQKDTab('aggregate');closeBKTocPanel()"><span class="tnum">2</span>Báo Cáo Tổng Hợp</a>
+  <a href="javascript:void(0)" id="bkTocLink-periods" onclick="switchBCKQKDTab('periods');closeBKTocPanel()" style="display:none"><span class="tnum">3</span>Quản Lý Kỳ Báo Cáo</a>
+  <a href="javascript:void(0)" id="bkTocLink-builder" onclick="switchBCKQKDTab('builder');closeBKTocPanel()" style="display:none"><span class="tnum">4</span>Thiết Kế Biểu Mẫu</a>
+</div>
     <div class="page" style="padding-top:28px">
       <div class="report-header" style="border-bottom-color:var(--ghn-blue)">
         <div><h1>Báo Cáo Kết Quả Kinh Doanh <span class="rh-tag">DBB</span></h1>
           <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Giải trình kết quả theo Tuần — nhiều AM cùng nộp, AI gộp thành 1 báo cáo Vùng</div>
         </div>
-        <div class="meta"><button class="refresh-btn" onclick="bkLoaded=false;loadBCKQKD()">↻ Làm mới dữ liệu</button></div>
+        <div class="meta"><button class="refresh-btn" onclick="bkLoaded=false;loadBCKQKD()">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
       </div>
       <div id="bkErrBanner"></div>
       <div id="bkLoadingNote" class="load-progress">
@@ -1637,6 +1655,36 @@ document.addEventListener('click', function(e){
   if (!panel || !btn || !panel.classList.contains('open')) return;
   if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.remove('open');
 });
+// bản mục lục nổi cho Kế Hoạch Kinh Doanh — mục lục ở đây là danh sách 6 sub-tab (Lập KH/Cập nhật/Báo cáo KH/
+// Tổng quan/Kinh doanh/Biểu đồ) thay vì các anchor cuộn trang, vì nội dung tổ chức theo tab chứ không cuộn dài.
+function toggleKHTocPanel(){
+  const el = document.getElementById('khTocPanel');
+  if (el) el.classList.toggle('open');
+}
+function closeKHTocPanel(){
+  const el = document.getElementById('khTocPanel');
+  if (el) el.classList.remove('open');
+}
+document.addEventListener('click', function(e){
+  const panel = document.getElementById('khTocPanel'), btn = document.getElementById('khTocFab');
+  if (!panel || !btn || !panel.classList.contains('open')) return;
+  if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.remove('open');
+});
+// bản mục lục nổi cho Báo Cáo Kết Quả Kinh Doanh — cũng là danh sách sub-tab (Nộp Báo Cáo/Báo Cáo Tổng Hợp/
+// 2 mục Admin-only); hiện/ẩn 2 mục Admin-only được đồng bộ trong bkApplyRoleVisibility().
+function toggleBKTocPanel(){
+  const el = document.getElementById('bkTocPanel');
+  if (el) el.classList.toggle('open');
+}
+function closeBKTocPanel(){
+  const el = document.getElementById('bkTocPanel');
+  if (el) el.classList.remove('open');
+}
+document.addEventListener('click', function(e){
+  const panel = document.getElementById('bkTocPanel'), btn = document.getElementById('bkTocFab');
+  if (!panel || !btn || !panel.classList.contains('open')) return;
+  if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.remove('open');
+});
 
 // ---------- xuất file HTML tĩnh để gửi người khác đọc (không cần quyền truy cập Google Sheet) ----------
 // Nguyên lý: đóng gói lại đúng HTML đang hiển thị (đã có đủ số liệu) + trạng thái các biểu đồ (CHART_STORE/CHART_STATE)
@@ -1668,17 +1716,23 @@ function hydrateFromSnapshot(snap){
   const kdLn = document.getElementById('kdLoadingNote'); if (kdLn) kdLn.style.display = 'none';
   const kdUa = document.getElementById('kdUpdatedAt'); if (kdUa) kdUa.textContent = (snap.exportedAt || '') + ' (bản xuất tĩnh, không tự cập nhật)';
 }
-// mỗi section (Vận hành/Kinh doanh/...) tự khai báo bộ id (trang, nút mục lục, khung mục lục, tên file/tiêu đề
-// khi xuất) — exportStaticHtml() luôn xuất đúng section NGƯỜI DÙNG ĐANG XEM (.app-section.active), không còn
-// cố định lấy ".page" đầu tiên trong DOM (trước đây luôn lấy nhầm Vận hành dù đang xem Kinh doanh).
-const EXPORT_SECTION_META = {
-  sectionVanHanh: { tocFabId: 'tocFab', tocPanelId: 'tocPanel', title: 'Báo Cáo Vận Hành Tuần — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_van_hanh_tuan_' },
-  sectionKinhDoanh: { tocFabId: 'kdTocFab', tocPanelId: 'kdTocPanel', title: 'Báo Cáo Kinh Doanh — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_kinh_doanh_' }
+// mỗi PANE (vh-pane) có nút "Xuất file HTML" tự khai báo bộ id (nút mục lục, khung mục lục, tên file/tiêu đề
+// khi xuất) — exportStaticHtml() luôn xuất đúng PANE NGƯỜI DÙNG ĐANG XEM (.vh-pane.active bên trong
+// .app-section.active), không còn cố định lấy ".page" đầu tiên trong toàn bộ section (bug cũ: Kinh doanh có
+// tới 3 pane cùng dùng chung 1 section — Tuần/Kế hoạch/Báo cáo kết quả — nên trước đây bấm "Xuất file HTML" ở
+// Kế hoạch hay Báo cáo kết quả vẫn luôn xuất nhầm nội dung "Kinh doanh Tuần" vì querySelector('.page') chỉ lấy
+// phần tử ĐẦU TIÊN khớp trong toàn section, bất kể pane nào đang active).
+const EXPORT_PANE_META = {
+  vhTuan: { tocFabId: 'tocFab', tocPanelId: 'tocPanel', title: 'Báo Cáo Vận Hành Tuần — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_van_hanh_tuan_' },
+  kdTuan: { tocFabId: 'kdTocFab', tocPanelId: 'kdTocPanel', title: 'Báo Cáo Kinh Doanh — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_kinh_doanh_' },
+  kdKeHoach: { tocFabId: 'khTocFab', tocPanelId: 'khTocPanel', title: 'Kế Hoạch Kinh Doanh — GHN (Bản xuất tĩnh)', filePrefix: 'ke_hoach_kinh_doanh_' },
+  kdBCKQKD: { tocFabId: 'bkTocFab', tocPanelId: 'bkTocPanel', title: 'Báo Cáo Kết Quả Kinh Doanh — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_ket_qua_kinh_doanh_' }
 };
 function exportStaticHtml(){
   try {
     const activeSectionEl = document.querySelector('.app-section.active');
-    const meta = (activeSectionEl && EXPORT_SECTION_META[activeSectionEl.id]) || EXPORT_SECTION_META.sectionVanHanh;
+    const activePaneEl = activeSectionEl ? activeSectionEl.querySelector('.vh-pane.active') : null;
+    const meta = (activePaneEl && EXPORT_PANE_META[activePaneEl.id]) || EXPORT_PANE_META.vhTuan;
     const chartStore = {}, chartState = {};
     Object.keys(CHART_STORE).forEach(id => { chartStore[id] = CHART_STORE[id]; });
     Object.keys(CHART_STATE).forEach(id => { chartState[id] = { mode: CHART_STATE[id].mode, hidden: Array.from(CHART_STATE[id].hidden) }; });
@@ -1695,7 +1749,7 @@ function exportStaticHtml(){
       banMoiModeState: { current: BANMOI_MODE_STATE.current },
       banMoiAiStore: BANMOI_AI_STORE
     };
-    const pageEl = activeSectionEl ? activeSectionEl.querySelector('.page') : document.querySelector('.page');
+    const pageEl = activePaneEl ? activePaneEl.querySelector('.page') : document.querySelector('.page');
     const tocFabEl = document.getElementById(meta.tocFabId);
     const tocPanelEl = document.getElementById(meta.tocPanelId);
     const mainScriptEl = document.getElementById('mainScript');
@@ -4251,6 +4305,10 @@ function bkApplyRoleVisibility(){
   const isAdmin = BK_DATA.isAdmin;
   const pBtn = document.getElementById('bkTabBtn-periods'); if (pBtn) pBtn.style.display = isAdmin ? '' : 'none';
   const bBtn = document.getElementById('bkTabBtn-builder'); if (bBtn) bBtn.style.display = isAdmin ? '' : 'none';
+  // mục lục nổi cũng phải ẩn/hiện 2 mục Admin-only y hệt 2 nút tab ở trên, không thì user thường mở mục lục
+  // vẫn thấy link nhảy tới "Quản Lý Kỳ Báo Cáo"/"Thiết Kế Biểu Mẫu" dù bấm vào sẽ không có quyền xem nội dung.
+  const pLink = document.getElementById('bkTocLink-periods'); if (pLink) pLink.style.display = isAdmin ? '' : 'none';
+  const bLink = document.getElementById('bkTocLink-builder'); if (bLink) bLink.style.display = isAdmin ? '' : 'none';
 }
 
 function switchBCKQKDTab(tab){
