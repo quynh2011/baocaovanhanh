@@ -294,6 +294,49 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .kh-action-btn.progress:hover{background:var(--warn);color:#fff}
 .kh-action-btn.edit{border-color:var(--ghn-blue);color:var(--ghn-blue)}
 .kh-action-btn.edit:hover{background:var(--ghn-blue);color:#fff}
+
+/* ===== Báo Cáo Kết Quả Kinh Doanh (BCKQKD): form động theo schema + form builder Admin ===== */
+.bk-section-card{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+.bk-section-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.bk-item-block{margin-bottom:18px}
+.bk-item-block:last-child{margin-bottom:0}
+.bk-item-label{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:6px}
+.bk-item-placeholder{font-size:11px;color:var(--muted);margin-bottom:6px;font-style:italic}
+.bk-item-textarea{width:100%;font-family:var(--f);font-size:12.5px;padding:10px 12px;border:1px solid var(--border-strong);border-radius:8px;background:#fff;color:var(--text);resize:vertical;min-height:70px}
+.bk-kpi-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:4px}
+.bk-kpi-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);padding:8px 9px;border-bottom:1px solid var(--border-strong);background:var(--bg)}
+.bk-kpi-table td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:middle}
+.bk-kpi-table td.bk-row-label{font-weight:600;max-width:220px}
+.bk-kpi-table .bk-row-note{display:block;font-size:10.5px;color:var(--muted);font-weight:400;margin-top:2px}
+.bk-kpi-table input{width:100%;font-family:var(--f);font-size:12px;padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px}
+.bk-auto-val{font-family:var(--mono);font-weight:700;color:var(--ghn-blue-dark);background:var(--ghn-blue-light);padding:6px 8px;border-radius:6px;display:inline-block;min-width:70px}
+.bk-auto-tag{font-size:9px;color:var(--ghn-blue);font-weight:700;margin-left:5px;vertical-align:middle}
+.bk-rtable-wrap{overflow:auto}
+.bk-rtable{width:100%;min-width:640px;border-collapse:collapse;font-size:12px}
+.bk-rtable th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);padding:8px 9px;border-bottom:1px solid var(--border-strong);background:var(--bg);white-space:nowrap}
+.bk-rtable td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+.bk-rtable input,.bk-rtable select{width:100%;font-family:var(--f);font-size:11.5px;padding:6px 7px;border:1px solid var(--border-strong);border-radius:6px}
+.bk-rtable-addbtn{margin-top:8px}
+.bk-lock-banner{background:#FEF6E7;border:1px solid #F0D9A6;color:#8A6100;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:12.5px}
+.bk-badge{display:inline-block;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.02em}
+.bk-badge.open{background:#E9F7EE;color:#1E7E42}
+.bk-badge.closed{background:#FEF2F2;color:#C0392B}
+.bk-builder-section{background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;padding:16px;margin-bottom:16px}
+.bk-builder-section-head{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.bk-builder-section-head input{flex:1;font-family:var(--f);font-size:13.5px;font-weight:700;padding:8px 10px;border:1px solid var(--border-strong);border-radius:8px}
+.bk-builder-item{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:10px}
+.bk-builder-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.bk-builder-item-type{font-size:9.5px;font-weight:700;text-transform:uppercase;color:var(--ghn-blue);background:var(--ghn-blue-light);padding:2px 8px;border-radius:20px}
+.bk-builder-add-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.bk-builder-field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.bk-builder-field label{font-size:10.5px;color:var(--muted);font-weight:600}
+.bk-builder-field input,.bk-builder-field textarea,.bk-builder-field select{font-family:var(--f);font-size:12px;padding:7px 9px;border:1px solid var(--border-strong);border-radius:7px;width:100%}
+.bk-builder-field textarea{min-height:50px;resize:vertical}
+.bk-rowline{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.bk-rowline input{flex:1}
+.bk-reporter-chips{display:flex;flex-wrap:wrap;gap:6px;max-height:160px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:8px}
+.bk-reporter-chip{display:flex;align-items:center;gap:5px;font-size:11.5px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px 4px 6px}
+.bk-reporter-chip input{width:14px;height:14px}
 .kh-timeline{border-left:2px solid var(--border);margin-left:8px;padding-left:18px}
 .kh-timeline-item{position:relative;padding-bottom:18px}
 .kh-timeline-item::before{content:'';position:absolute;left:-23px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--ghn-blue);border:2px solid #fff;box-shadow:0 0 0 1px var(--border)}
@@ -653,6 +696,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     <button class="vh-subtab-btn active" id="kdTabBtn-tuan" onclick="switchKDTab('tuan')">Tuần</button>
     <button class="vh-subtab-btn" id="kdTabBtn-thang" onclick="switchKDTab('thang')">Tháng</button>
     <button class="vh-subtab-btn" id="kdTabBtn-kehoach" onclick="switchKDTab('kehoach')">📋 Kế hoạch kinh doanh</button>
+    <button class="vh-subtab-btn" id="kdTabBtn-bckqkd" onclick="switchKDTab('bckqkd')">📈 Báo Cáo Kết Quả KD</button>
   </div>
 
   <div id="kdNgay" class="vh-pane">
@@ -799,6 +843,79 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
       </div>
     </div>
   </div>
+
+  <!-- ================= BÁO CÁO KẾT QUẢ KINH DOANH — nhiều AM/nhân sự cùng nộp giải trình riêng cho 1 kỳ (Tuần),
+       Admin đặt deadline + gán reporters, AI gộp thành 1 báo cáo Vùng duy nhất ================= -->
+  <div id="kdBCKQKD" class="vh-pane">
+    <div class="page" style="padding-top:28px">
+      <div class="report-header" style="border-bottom-color:var(--ghn-blue)">
+        <div><h1>Báo Cáo Kết Quả Kinh Doanh <span class="rh-tag">DBB</span></h1>
+          <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Giải trình kết quả theo Tuần — nhiều AM cùng nộp, AI gộp thành 1 báo cáo Vùng</div>
+        </div>
+        <div class="meta"><button class="refresh-btn" onclick="bkLoaded=false;loadBCKQKD()">↻ Làm mới dữ liệu</button></div>
+      </div>
+      <div id="bkErrBanner"></div>
+      <div id="bkLoadingNote" class="load-progress">
+        <span>Đang tải dữ liệu…</span>
+        <span class="load-progress-track"><span class="load-progress-fill" id="bkLoadingFill"></span></span>
+        <span class="load-progress-pct" id="bkLoadingPct">0%</span>
+      </div>
+      <div class="vh-subtabs kh-nav" style="margin-bottom:18px">
+        <button class="vh-subtab-btn active" id="bkTabBtn-submit" onclick="switchBCKQKDTab('submit')">📝 Nộp Báo Cáo</button>
+        <button class="vh-subtab-btn" id="bkTabBtn-aggregate" onclick="switchBCKQKDTab('aggregate')">📊 Báo Cáo Tổng Hợp</button>
+        <button class="vh-subtab-btn" id="bkTabBtn-periods" onclick="switchBCKQKDTab('periods')" style="display:none">📅 Quản Lý Kỳ Báo Cáo</button>
+        <button class="vh-subtab-btn" id="bkTabBtn-builder" onclick="switchBCKQKDTab('builder')" style="display:none">🛠️ Thiết Kế Biểu Mẫu</button>
+      </div>
+
+      <!-- 1. NỘP BÁO CÁO (AM / người dùng) -->
+      <div id="bkPaneSubmit" class="kh-subpane active">
+        <div class="kh-form-card">
+          <div class="kh-field" style="max-width:360px">
+            <label>Chọn kỳ báo cáo *</label>
+            <select id="bkSubmitPeriodSelect" onchange="bkOnSubmitPeriodChange()"><option value="">— Chọn kỳ —</option></select>
+          </div>
+        </div>
+        <div id="bkSubmitFormWrap"></div>
+      </div>
+
+      <!-- 2. BÁO CÁO TỔNG HỢP (AI gộp) -->
+      <div id="bkPaneAggregate" class="kh-subpane">
+        <div class="kh-form-card">
+          <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap">
+            <div class="kh-field" style="max-width:360px">
+              <label>Chọn kỳ báo cáo *</label>
+              <select id="bkAggPeriodSelect" onchange="bkOnAggPeriodChange()"><option value="">— Chọn kỳ —</option></select>
+            </div>
+            <button class="config-add-btn" id="bkGenerateAggBtn" style="display:none" onclick="bkGenerateAggregate()">✨ Tổng hợp lại bằng AI</button>
+          </div>
+        </div>
+        <div id="bkAggWrap"></div>
+      </div>
+
+      <!-- 3. QUẢN LÝ KỲ BÁO CÁO (Admin) -->
+      <div id="bkPanePeriods" class="kh-subpane">
+        <div class="kh-toolbar">
+          <div class="kh-toolbar-title" id="bkPeriodsCount">0 kỳ báo cáo</div>
+          <button class="config-add-btn" onclick="bkOpenPeriodForm(null)">+ Tạo kỳ báo cáo mới</button>
+        </div>
+        <div class="kh-form" id="bkPeriodForm"></div>
+        <div class="kh-table-wrap"><table class="kh-table" id="bkTable-periods"></table></div>
+      </div>
+
+      <!-- 4. THIẾT KẾ BIỂU MẪU (Admin — form builder, thêm/sửa/xoá mục & ô nhập) -->
+      <div id="bkPaneBuilder" class="kh-subpane">
+        <div class="kh-toolbar">
+          <div class="kh-toolbar-title">Thiết kế cấu trúc biểu mẫu báo cáo — thêm/sửa/xoá mục lớn &amp; ô nhập/hiển thị dữ liệu</div>
+          <div style="display:flex;gap:8px">
+            <button class="row-action-btn" onclick="bkAddSection()">+ Thêm mục lớn</button>
+            <button class="config-add-btn" onclick="bkSaveSchema()">💾 Lưu biểu mẫu</button>
+          </div>
+        </div>
+        <div id="bkBuilderMsg"></div>
+        <div id="bkBuilderWrap"></div>
+      </div>
+    </div>
+  </div>
 </div><!-- /#sectionKinhDoanh -->
 <div class="kh-lightbox" id="khLightbox" onclick="khCloseLightbox()"><img id="khLightboxImg" src=""></div>
 
@@ -936,7 +1053,21 @@ const LOGIN_ERR_MSG = {
   account_exists: 'Email này đã có tài khoản',
   last_admin: 'Không thể thực hiện — đây là Admin đang hoạt động cuối cùng, hệ thống cần giữ ít nhất 1 Admin',
   cannot_delete_self: 'Không thể tự xoá tài khoản của chính mình',
-  bad_request: 'Thiếu thông tin hoặc dữ liệu không hợp lệ'
+  bad_request: 'Thiếu thông tin hoặc dữ liệu không hợp lệ',
+  not_assigned: 'Bạn không nằm trong danh sách phải nộp báo cáo cho kỳ này',
+  deadline_passed: 'Đã quá hạn chỉnh sửa (deadline) cho kỳ báo cáo này',
+  period_closed: 'Kỳ báo cáo này đã được Admin đóng, không thể chỉnh sửa',
+  period_not_found: 'Không tìm thấy kỳ báo cáo',
+  missing_period: 'Vui lòng chọn kỳ báo cáo',
+  missing_label: 'Vui lòng nhập tên/nhãn cho kỳ báo cáo',
+  bad_schema: 'Cấu trúc biểu mẫu không hợp lệ',
+  no_submissions: 'Chưa có ai nộp báo cáo giải trình cho kỳ này',
+  ai_not_configured: 'Chưa cấu hình AI (thiếu GEMINI_API_KEY ở phía máy chủ)',
+  ai_rate_limited: 'AI đang bị giới hạn tần suất gọi, vui lòng thử lại sau ít phút',
+  ai_network_error: 'Lỗi kết nối tới máy chủ AI',
+  ai_bad_json: 'AI trả về dữ liệu không đọc được, vui lòng thử tổng hợp lại',
+  ai_empty_response: 'AI không trả về nội dung, vui lòng thử tổng hợp lại',
+  ai_parse_error: 'Không đọc được kết quả AI trả về, vui lòng thử tổng hợp lại'
 };
 function errMsg(code){ return LOGIN_ERR_MSG[code] || ('Có lỗi xảy ra (' + code + ')'); }
 
@@ -4050,14 +4181,705 @@ function switchVanHanhTab(tab){
 // tương tự switchVanHanhTab nhưng cho Kinh doanh — Ngày/Tháng hiện là placeholder "sắp ra mắt" (logic thật sẽ
 // bổ sung sau khi có cấu trúc tab dữ liệu theo Ngày/Tháng riêng trên Sheet), Tuần giữ nguyên nội dung hiện có.
 function switchKDTab(tab){
-  const paneIds = { ngay: 'kdNgay', tuan: 'kdTuan', thang: 'kdThang', kehoach: 'kdKeHoach' };
-  ['ngay','tuan','thang','kehoach'].forEach(t => {
+  const paneIds = { ngay: 'kdNgay', tuan: 'kdTuan', thang: 'kdThang', kehoach: 'kdKeHoach', bckqkd: 'kdBCKQKD' };
+  ['ngay','tuan','thang','kehoach','bckqkd'].forEach(t => {
     const pane = document.getElementById(paneIds[t]);
     if (pane) pane.classList.toggle('active', t===tab);
     const btn = document.getElementById('kdTabBtn-'+t);
     if (btn) btn.classList.toggle('active', t===tab);
   });
   if (tab === 'kehoach') loadKeHoachKinhDoanh();
+  if (tab === 'bckqkd') loadBCKQKD();
+}
+
+// ================= BÁO CÁO KẾT QUẢ KINH DOANH (BCKQKD) =================
+// Form ĐỘNG theo schema JSON (Admin thiết kế/mở rộng qua tab "Thiết Kế Biểu Mẫu") — nhiều AM/nhân sự cùng nộp
+// giải trình riêng cho 1 kỳ (theo Tuần), Admin đặt deadline chỉnh sửa + gán ai phải báo cáo, AI (Gemini) gộp
+// toàn bộ bài nộp thành 1 báo cáo Vùng duy nhất. Toàn bộ dữ liệu tải 1 lần qua getBCKQKDData rồi xử lý ở client.
+let bkLoaded = false;
+window.BK_DATA = { schema: { sections: [] }, periods: [], mySubmissions: {}, isAdmin: false, staff: [], myEmail: '', myName: '' };
+let bkEditingPeriodId = null; // null = đang tạo mới, có giá trị = đang sửa kỳ đã có
+window.bkRepeatState = {}; // itemId -> mảng dòng đang chỉnh sửa ở form Nộp báo cáo (repeatable_table)
+
+async function loadBCKQKD(){
+  if (bkLoaded) return;
+  bkLoaded = true;
+  const bkProgress = startFakeProgress('bkLoadingFill', 'bkLoadingPct');
+  try {
+    const res = await callBackend('getBCKQKDData', { token: AUTH.session.token });
+    bkProgress.finish('bkLoadingNote');
+    if (!res.ok) {
+      if (res.error === 'session_expired' || res.error === 'account_inactive') {
+        AUTH.clear();
+        document.getElementById('appRoot').style.display = 'none';
+        document.getElementById('userMenu').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'flex';
+        showLoginStep('stepLogin');
+        showLoginError('loginError', res.error === 'account_inactive' ? errMsg('account_inactive') : 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.');
+        return;
+      }
+      document.getElementById('bkErrBanner').innerHTML = '<div style="background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">Không tải được dữ liệu: '+esc(errMsg(res.error))+'</div>';
+      return;
+    }
+    window.BK_DATA = {
+      schema: res.schema && Array.isArray(res.schema.sections) ? res.schema : { sections: [] },
+      periods: res.periods || [],
+      mySubmissions: res.mySubmissions || {},
+      isAdmin: !!res.isAdmin,
+      staff: res.staff || [],
+      myEmail: res.myEmail || '',
+      myName: res.myName || ''
+    };
+    bkApplyRoleVisibility();
+    bkPopulateAllPeriodSelects();
+    // 2 tab dưới đây (quản lý kỳ + form builder) chỉ Admin thấy được — không gọi render (và không gọi thêm
+    // request getBCKQKDSubmissionsForPeriod cho từng kỳ) khi user không phải Admin, vừa đỡ tốn request thừa
+    // vừa tránh việc các promise "forbidden" chạy nền ghi đè __lastAction dùng chung khi debug/test.
+    if (BK_DATA.isAdmin) {
+      bkRenderPeriodsTable();
+      bkRenderBuilder();
+    }
+    // đảm bảo KD_DATA_STORE (Vùng) sẵn sàng để auto-fill KPI — idempotent, không tải lại nếu đã có sẵn.
+    try { await loadKinhDoanh(); } catch(e) {}
+  } catch (e) {
+    bkProgress.finish('bkLoadingNote');
+    document.getElementById('bkErrBanner').innerHTML = '<div style="background:#FEF2F2;border:1px solid #F5C2C2;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">Lỗi tải Báo Cáo Kết Quả Kinh Doanh: '+esc(e.message)+'</div>';
+  }
+}
+
+function bkApplyRoleVisibility(){
+  const isAdmin = BK_DATA.isAdmin;
+  const pBtn = document.getElementById('bkTabBtn-periods'); if (pBtn) pBtn.style.display = isAdmin ? '' : 'none';
+  const bBtn = document.getElementById('bkTabBtn-builder'); if (bBtn) bBtn.style.display = isAdmin ? '' : 'none';
+}
+
+function switchBCKQKDTab(tab){
+  const paneIds = { submit: 'bkPaneSubmit', aggregate: 'bkPaneAggregate', periods: 'bkPanePeriods', builder: 'bkPaneBuilder' };
+  Object.keys(paneIds).forEach(t => {
+    const pane = document.getElementById(paneIds[t]);
+    if (pane) pane.classList.toggle('active', t===tab);
+    const btn = document.getElementById('bkTabBtn-'+t);
+    if (btn) btn.classList.toggle('active', t===tab);
+  });
+}
+
+function bkNormEmail(s){ return String(s||'').trim().toLowerCase(); }
+function bkFmtDateTime(iso){
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleString('vi-VN'); } catch(e) { return String(iso); }
+}
+function bkFindPeriod(periodId){ return (BK_DATA.periods||[]).find(p => p.periodId === periodId) || null; }
+function bkFindItemById(itemId){
+  for (const s of (BK_DATA.schema.sections||[])) for (const it of (s.items||[])) if (it.id === itemId) return it;
+  return null;
+}
+
+// ---------- chọn kỳ (dùng chung cho tab Nộp báo cáo + tab Báo cáo tổng hợp) ----------
+function bkPeriodOptionsHtml(list){
+  return list.map(p => '<option value="'+attrEsc(p.periodId)+'">'+esc(p.label)+(p.status==='closed'?' (đã đóng)':'')+'</option>').join('');
+}
+function bkPopulateAllPeriodSelects(){
+  const periods = (BK_DATA.periods||[]).slice().sort((a,b) => String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  // Nộp báo cáo: Admin thấy tất cả các kỳ (để hỗ trợ ngoại lệ); AM chỉ thấy kỳ mình được gán làm reporter.
+  const mySel = BK_DATA.isAdmin ? periods : periods.filter(p => (p.reporters||[]).some(r => bkNormEmail(r.email) === BK_DATA.myEmail));
+  const submitSel = document.getElementById('bkSubmitPeriodSelect');
+  if (submitSel) { const cur = submitSel.value; submitSel.innerHTML = '<option value="">— Chọn kỳ —</option>' + bkPeriodOptionsHtml(mySel); if (cur) submitSel.value = cur; }
+  // Báo cáo tổng hợp: ai cũng xem được (chỉ Admin mới bấm tổng hợp lại được) nên hiện tất cả các kỳ.
+  const aggSel = document.getElementById('bkAggPeriodSelect');
+  if (aggSel) { const cur = aggSel.value; aggSel.innerHTML = '<option value="">— Chọn kỳ —</option>' + bkPeriodOptionsHtml(periods); if (cur) aggSel.value = cur; }
+}
+
+// ---------- 1. NỘP BÁO CÁO (AM / người dùng) ----------
+function bkOnSubmitPeriodChange(){
+  const periodId = document.getElementById('bkSubmitPeriodSelect').value;
+  const wrap = document.getElementById('bkSubmitFormWrap');
+  if (!periodId) { wrap.innerHTML = ''; return; }
+  bkRenderSubmitForm(periodId);
+}
+
+// Auto-fill KPI từ dữ liệu Kinh doanh (Vùng) đã có sẵn trong web — chỉ hỗ trợ 3 dòng có nguồn dữ liệu thật:
+// Tổng doanh thu LTC (21_KD_HangNangNhe), Doanh thu bán mới (24_KD_BanMoi), Doanh thu giữ cũ (= LTC - Bán mới).
+// "Tổng doanh thu GTTC" và mọi "Target" đều KHÔNG có nguồn dữ liệu trong hệ thống -> để AM tự điền tay, không bịa số.
+function bkPctChange(cur, prev){
+  if (cur===null || cur===undefined || prev===null || prev===undefined || prev===0) return null;
+  return (cur - prev) / Math.abs(prev) * 100;
+}
+function bkAutoKPI(kind){
+  const ltcKD = (typeof KD_DATA_STORE !== 'undefined') ? KD_DATA_STORE['21_KD_HangNangNhe'] : null;
+  if (!ltcKD || !ltcKD.weekly || !ltcKD.weekly.labels || !ltcKD.weekly.labels.length) return null;
+  const ltcRev26 = ltcKD.weekly.rev.y2026;
+  const li = kdLatestIdx(ltcRev26);
+  if (li < 0) return null;
+  const label = ltcKD.weekly.labels[li];
+  const ltcVal = ltcRev26[li];
+  const ltcPrev = li > 0 ? ltcRev26[li-1] : null;
+  if (kind === 'ltc') return { actual: ltcVal, pctWoW: bkPctChange(ltcVal, ltcPrev), label: label };
+  const bmKD = (typeof KD_DATA_STORE !== 'undefined') ? KD_DATA_STORE['24_KD_BanMoi'] : null;
+  if (!bmKD || !bmKD.weekly) return null;
+  const bmIdx = bmKD.weekly.labels.indexOf(label);
+  if (bmIdx < 0) return null;
+  const bmVal = bmKD.weekly.rev.y2026[bmIdx];
+  const bmPrev = bmIdx > 0 ? bmKD.weekly.rev.y2026[bmIdx-1] : null;
+  if (bmVal === null || bmVal === undefined) return null;
+  if (kind === 'banmoi') return { actual: bmVal, pctWoW: bkPctChange(bmVal, bmPrev), label: label };
+  if (kind === 'giucu') {
+    if (ltcVal === null || ltcVal === undefined) return null;
+    const gcVal = ltcVal - bmVal;
+    const gcPrev = (ltcPrev !== null && ltcPrev !== undefined && bmPrev !== null && bmPrev !== undefined) ? (ltcPrev - bmPrev) : null;
+    return { actual: gcVal, pctWoW: bkPctChange(gcVal, gcPrev), label: label };
+  }
+  return null;
+}
+
+function bkRenderSubmitForm(periodId){
+  const period = bkFindPeriod(periodId);
+  const wrap = document.getElementById('bkSubmitFormWrap');
+  if (!period) { wrap.innerHTML = ''; return; }
+  const isAdmin = BK_DATA.isAdmin;
+  const now = Date.now();
+  const deadlinePassed = period.deadline && new Date(period.deadline).getTime() < now;
+  const closed = period.status === 'closed';
+  const locked = (deadlinePassed || closed) && !isAdmin;
+  const mySub = BK_DATA.mySubmissions[periodId];
+  const answers = (mySub && mySub.answers) || {};
+
+  let html = '';
+  if (locked) {
+    html += '<div class="bk-lock-banner">🔒 '+(closed ? 'Kỳ báo cáo này đã được Admin đóng.' : 'Đã quá hạn chỉnh sửa (deadline: '+esc(bkFmtDateTime(period.deadline))+').')+' Bạn chỉ có thể xem lại, không thể sửa nữa.</div>';
+  } else if (period.deadline) {
+    html += '<div class="bk-lock-banner" style="background:#EAF3FC;border-color:#BBDCF5;color:#0063AA">⏰ Hạn chỉnh sửa: <b>'+esc(bkFmtDateTime(period.deadline))+'</b>'+(isAdmin?' (Admin luôn được sửa kể cả sau hạn)':'')+'</div>';
+  }
+
+  (BK_DATA.schema.sections||[]).forEach(section => {
+    html += '<div class="bk-section-card"><div class="bk-section-title">'+esc(section.title)+'</div>';
+    (section.items||[]).forEach(item => { html += bkRenderSubmitItem(item, answers[item.id], locked); });
+    html += '</div>';
+  });
+
+  if (!locked) {
+    html += '<div class="kh-form-actions" style="border-top:none;justify-content:flex-start;flex-wrap:wrap">' +
+      '<button class="kh-action-btn done" onclick="bkSaveSubmission(\''+attrEsc(periodId)+'\')">💾 Lưu bài giải trình</button>' +
+      (mySub ? '<span class="mut" style="font-size:11.5px;align-self:center">Đã nộp lúc: '+esc(bkFmtDateTime(mySub.submittedAt))+(mySub.updatedAt && mySub.updatedAt !== mySub.submittedAt ? ' · Sửa lần cuối: '+esc(bkFmtDateTime(mySub.updatedAt)) : '')+'</span>' : '') +
+      '</div>';
+  }
+  wrap.innerHTML = html;
+}
+
+function bkRenderSubmitItem(item, savedVal, locked){
+  const dis = locked ? ' disabled' : '';
+  if (item.type === 'richtext') {
+    const val = savedVal || '';
+    return '<div class="bk-item-block">' +
+      '<div class="bk-item-label">'+esc(item.label)+'</div>' +
+      (item.placeholder ? '<div class="bk-item-placeholder">Gợi ý: '+esc(item.placeholder)+'</div>' : '') +
+      '<textarea class="bk-item-textarea" id="bkField-'+esc(item.id)+'"'+dis+'>'+esc(val)+'</textarea>' +
+      '</div>';
+  }
+  if (item.type === 'kpi_table') {
+    let t = '<div class="bk-item-block">';
+    if (item.title) t += '<div class="bk-item-label">'+esc(item.title)+'</div>';
+    t += '<div class="kh-table-wrap" style="max-height:none"><table class="bk-kpi-table"><thead><tr><th>Chỉ tiêu</th>';
+    (item.cols||[]).forEach(c => t += '<th>'+esc(c)+'</th>');
+    t += '</tr></thead><tbody>';
+    (item.rows||[]).forEach(row => {
+      const rowVal = (savedVal && savedVal[row.id]) || {};
+      const auto = row.autoActual ? bkAutoKPI(row.autoActual) : null;
+      t += '<tr><td class="bk-row-label">'+esc(row.label)+(row.note?'<span class="bk-row-note">'+esc(row.note)+'</span>':'')+'</td>';
+      (item.cols||[]).forEach((c, cIdx) => {
+        const fid = 'bkKpi-'+esc(item.id)+'-'+esc(row.id)+'-c'+cIdx;
+        if (cIdx === 0 && auto) {
+          t += '<td><span class="bk-auto-val">'+esc(fmtKD(auto.actual))+'</span><span class="bk-auto-tag">TỰ ĐỘNG · '+esc(auto.label)+'</span>' +
+            (auto.pctWoW !== null && auto.pctWoW !== undefined ? '<div class="mut" style="font-size:10.5px;margin-top:3px">('+(auto.pctWoW>=0?'+':'')+auto.pctWoW.toFixed(1)+'% so kỳ trước)</div>' : '') +
+            '<input type="hidden" id="'+fid+'" value="'+attrEsc(auto.actual)+'"></td>';
+        } else {
+          const v = rowVal['c'+cIdx] !== undefined ? rowVal['c'+cIdx] : '';
+          t += '<td><input type="text" id="'+fid+'" value="'+attrEsc(v)+'"'+dis+'></td>';
+        }
+      });
+      t += '</tr>';
+    });
+    t += '</tbody></table></div></div>';
+    return t;
+  }
+  if (item.type === 'repeatable_table') {
+    const rows = Array.isArray(savedVal) ? savedVal : [];
+    return bkRenderRepeatableTable(item, rows, locked);
+  }
+  return '';
+}
+
+function bkRenderRepeatableTable(item, rows, locked){
+  bkRepeatState[item.id] = rows.map(r => Object.assign({}, r));
+  return '<div class="bk-item-block" id="bkRTableWrap-'+esc(item.id)+'">' + bkRepeatableTableInner(item, locked) + '</div>';
+}
+function bkRepeatableTableInner(item, locked){
+  const rows = bkRepeatState[item.id] || [];
+  let t = '';
+  if (item.title) t += '<div class="bk-item-label">'+esc(item.title)+'</div>';
+  t += '<div class="bk-rtable-wrap"><table class="bk-rtable"><thead><tr>';
+  (item.columns||[]).forEach(c => t += '<th>'+esc(c.label)+'</th>');
+  if (!locked) t += '<th></th>';
+  t += '</tr></thead><tbody>';
+  if (!rows.length) {
+    t += '<tr><td colspan="'+((item.columns||[]).length + 1)+'" style="text-align:center;color:var(--muted);padding:14px">Chưa có dòng nào'+(locked?'':' — bấm "+ Thêm dòng" bên dưới')+'</td></tr>';
+  }
+  rows.forEach((row, rIdx) => {
+    t += '<tr>';
+    (item.columns||[]).forEach(c => {
+      const v = row[c.id] !== undefined ? row[c.id] : '';
+      if (locked) {
+        t += '<td>'+esc(v)+'</td>';
+      } else if (c.type === 'select') {
+        t += '<td><select onchange="bkSetRepeatCell(\''+esc(item.id)+'\','+rIdx+',\''+esc(c.id)+'\',this.value)">' +
+          '<option value=""></option>' +
+          (c.options||[]).map(o => '<option value="'+attrEsc(o)+'"'+(o===v?' selected':'')+'>'+esc(o)+'</option>').join('') +
+          '</select></td>';
+      } else if (c.type === 'date') {
+        t += '<td><input type="date" value="'+attrEsc(v)+'" onchange="bkSetRepeatCell(\''+esc(item.id)+'\','+rIdx+',\''+esc(c.id)+'\',this.value)"></td>';
+      } else {
+        t += '<td><input type="text" value="'+attrEsc(v)+'" onchange="bkSetRepeatCell(\''+esc(item.id)+'\','+rIdx+',\''+esc(c.id)+'\',this.value)"></td>';
+      }
+    });
+    if (!locked) t += '<td><button type="button" class="row-action-btn danger" onclick="bkRemoveRepeatRow(\''+esc(item.id)+'\','+rIdx+')">✕</button></td>';
+    t += '</tr>';
+  });
+  t += '</tbody></table></div>';
+  if (!locked) t += '<button type="button" class="row-action-btn bk-rtable-addbtn" onclick="bkAddRepeatRow(\''+esc(item.id)+'\')">+ Thêm dòng</button>';
+  return t;
+}
+function bkSetRepeatCell(itemId, rIdx, colId, val){
+  if (!bkRepeatState[itemId]) return;
+  if (!bkRepeatState[itemId][rIdx]) bkRepeatState[itemId][rIdx] = {};
+  bkRepeatState[itemId][rIdx][colId] = val;
+}
+function bkAddRepeatRow(itemId){
+  if (!bkRepeatState[itemId]) bkRepeatState[itemId] = [];
+  bkRepeatState[itemId].push({});
+  const wrap = document.getElementById('bkRTableWrap-'+itemId);
+  const item = bkFindItemById(itemId);
+  if (wrap && item) wrap.innerHTML = bkRepeatableTableInner(item, false);
+}
+function bkRemoveRepeatRow(itemId, rIdx){
+  if (!bkRepeatState[itemId]) return;
+  bkRepeatState[itemId].splice(rIdx, 1);
+  const wrap = document.getElementById('bkRTableWrap-'+itemId);
+  const item = bkFindItemById(itemId);
+  if (wrap && item) wrap.innerHTML = bkRepeatableTableInner(item, false);
+}
+
+async function bkSaveSubmission(periodId){
+  const period = bkFindPeriod(periodId);
+  if (!period) return;
+  const answers = {};
+  (BK_DATA.schema.sections||[]).forEach(section => {
+    (section.items||[]).forEach(item => {
+      if (item.type === 'richtext') {
+        const el = document.getElementById('bkField-'+item.id);
+        if (el) answers[item.id] = el.value;
+      } else if (item.type === 'kpi_table') {
+        const rowsOut = {};
+        (item.rows||[]).forEach(row => {
+          const rowOut = {};
+          (item.cols||[]).forEach((c, cIdx) => {
+            const el = document.getElementById('bkKpi-'+item.id+'-'+row.id+'-c'+cIdx);
+            if (el) rowOut['c'+cIdx] = el.value;
+          });
+          rowsOut[row.id] = rowOut;
+        });
+        answers[item.id] = rowsOut;
+      } else if (item.type === 'repeatable_table') {
+        answers[item.id] = (bkRepeatState[item.id] || []).filter(r => Object.keys(r).some(k => String(r[k]||'').trim() !== ''));
+      }
+    });
+  });
+  const res = await callBackend('saveBCKQKDSubmission', { token: AUTH.session.token, periodId: periodId, answers: answers });
+  if (!res.ok) { alert('Lưu thất bại: ' + errMsg(res.error)); return; }
+  alert('Đã lưu bài giải trình.');
+  bkLoaded = false;
+  await loadBCKQKD();
+  const sel = document.getElementById('bkSubmitPeriodSelect');
+  if (sel) sel.value = periodId;
+  bkRenderSubmitForm(periodId);
+}
+
+// ---------- 2. BÁO CÁO TỔNG HỢP (AI gộp toàn bộ bài nộp) ----------
+function bkOnAggPeriodChange(){
+  const periodId = document.getElementById('bkAggPeriodSelect').value;
+  const genBtn = document.getElementById('bkGenerateAggBtn');
+  if (genBtn) genBtn.style.display = (BK_DATA.isAdmin && periodId) ? '' : 'none';
+  if (!periodId) { document.getElementById('bkAggWrap').innerHTML = ''; return; }
+  bkRenderAggregate(periodId);
+}
+async function bkRenderAggregate(periodId){
+  const wrap = document.getElementById('bkAggWrap');
+  wrap.innerHTML = '<div class="mut" style="padding:20px">Đang tải…</div>';
+  const res = await callBackend('getBCKQKDAggregate', { token: AUTH.session.token, periodId: periodId });
+  if (!res.ok) { wrap.innerHTML = '<div class="bk-lock-banner" style="background:#FEF2F2;border-color:#F5C2C2;color:#C0392B">'+esc(errMsg(res.error))+'</div>'; return; }
+  if (!res.content) { wrap.innerHTML = '<div class="mut" style="padding:20px">Chưa có báo cáo tổng hợp cho kỳ này.'+(BK_DATA.isAdmin?' Bấm "✨ Tổng hợp lại bằng AI" ở trên để tạo.':'')+'</div>'; return; }
+  wrap.innerHTML = bkRenderAggregateContent(res.content, res.generatedAt, res.generatedBy);
+}
+function bkRenderAggregateContent(content, generatedAt, generatedBy){
+  let html = '';
+  html += '<div class="bk-section-card">';
+  if (generatedAt) html += '<div class="mut" style="font-size:11px;margin-bottom:10px">Tổng hợp lúc '+esc(bkFmtDateTime(generatedAt))+(generatedBy?' bởi '+esc(generatedBy):'')+'</div>';
+  if (content.executiveSummary) html += '<div class="bk-item-label">Tóm tắt điều hành</div><div style="font-size:13px;line-height:1.6;margin-bottom:6px">'+esc(content.executiveSummary).replace(/\n/g,'<br>')+'</div>';
+  html += '</div>';
+
+  const bySection = {}; (content.sections||[]).forEach(s => bySection[s.id] = s);
+  (BK_DATA.schema.sections||[]).forEach(section => {
+    const cSec = bySection[section.id];
+    html += '<div class="bk-section-card"><div class="bk-section-title">'+esc(section.title)+'</div>';
+    const byItem = {}; ((cSec && cSec.items) || []).forEach(it => byItem[it.id] = it);
+    (section.items||[]).forEach(item => {
+      const cItem = byItem[item.id];
+      html += bkRenderAggregateItem(item, cItem ? cItem.value : null);
+    });
+    html += '</div>';
+  });
+  return html;
+}
+function bkRenderAggregateItem(item, value){
+  if (item.type === 'richtext') {
+    return '<div class="bk-item-block"><div class="bk-item-label">'+esc(item.label)+'</div>' +
+      '<div style="font-size:12.5px;line-height:1.65;white-space:pre-wrap">'+ (value ? esc(value) : '<span class="mut">(chưa có nội dung)</span>') +'</div></div>';
+  }
+  if (item.type === 'kpi_table') {
+    let t = '<div class="bk-item-block">';
+    if (item.title) t += '<div class="bk-item-label">'+esc(item.title)+'</div>';
+    t += '<div class="kh-table-wrap" style="max-height:none"><table class="bk-kpi-table"><thead><tr><th>Chỉ tiêu</th>';
+    (item.cols||[]).forEach(c => t += '<th>'+esc(c)+'</th>');
+    t += '</tr></thead><tbody>';
+    (item.rows||[]).forEach(row => {
+      const rv = (value && value[row.id]) || {};
+      t += '<tr><td class="bk-row-label">'+esc(row.label)+'</td>';
+      (item.cols||[]).forEach((c, cIdx) => { t += '<td>'+esc(rv['c'+cIdx] !== undefined && rv['c'+cIdx] !== null && rv['c'+cIdx] !== '' ? rv['c'+cIdx] : '–')+'</td>'; });
+      t += '</tr>';
+    });
+    t += '</tbody></table></div></div>';
+    return t;
+  }
+  if (item.type === 'repeatable_table') {
+    const rows = Array.isArray(value) ? value : [];
+    let t = '<div class="bk-item-block">';
+    if (item.title) t += '<div class="bk-item-label">'+esc(item.title)+'</div>';
+    t += '<div class="bk-rtable-wrap"><table class="bk-rtable"><thead><tr>';
+    (item.columns||[]).forEach(c => t += '<th>'+esc(c.label)+'</th>');
+    t += '</tr></thead><tbody>';
+    if (!rows.length) t += '<tr><td colspan="'+(item.columns||[]).length+'" style="text-align:center;color:var(--muted);padding:14px">Không có dòng nào</td></tr>';
+    rows.forEach(row => {
+      t += '<tr>';
+      (item.columns||[]).forEach(c => t += '<td>'+esc(row[c.id] !== undefined ? row[c.id] : '')+'</td>');
+      t += '</tr>';
+    });
+    t += '</tbody></table></div></div>';
+    return t;
+  }
+  return '';
+}
+async function bkGenerateAggregate(){
+  const periodId = document.getElementById('bkAggPeriodSelect').value;
+  if (!periodId) return;
+  if (!confirm('Tổng hợp lại toàn bộ báo cáo cho kỳ này bằng AI? Kết quả cũ (nếu có) sẽ bị thay thế.')) return;
+  const btn = document.getElementById('bkGenerateAggBtn');
+  const oldText = btn.textContent; btn.textContent = '⏳ Đang tổng hợp…'; btn.disabled = true;
+  try {
+    const res = await callBackend('generateBCKQKDAggregate', { token: AUTH.session.token, periodId: periodId });
+    if (!res.ok) { alert('Tổng hợp thất bại: ' + errMsg(res.error)); return; }
+    document.getElementById('bkAggWrap').innerHTML = bkRenderAggregateContent(res.content, res.generatedAt, BK_DATA.myName || BK_DATA.myEmail);
+  } catch (e) {
+    alert('Lỗi kết nối: ' + e.message);
+  } finally {
+    btn.textContent = oldText; btn.disabled = false;
+  }
+}
+
+// ---------- 3. QUẢN LÝ KỲ BÁO CÁO (Admin) ----------
+function bkRenderPeriodsTable(){
+  const tbl = document.getElementById('bkTable-periods');
+  const countEl = document.getElementById('bkPeriodsCount');
+  if (!tbl) return;
+  const periods = (BK_DATA.periods||[]).slice().sort((a,b) => String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  if (countEl) countEl.textContent = periods.length + ' kỳ báo cáo';
+  if (!periods.length) { tbl.innerHTML = '<tr class="kh-empty-row"><td>Chưa có kỳ báo cáo nào — bấm "+ Tạo kỳ báo cáo mới" ở trên.</td></tr>'; return; }
+  let h = '<thead><tr><th>Kỳ</th><th>Deadline</th><th>Trạng thái</th><th>Người báo cáo</th><th>Đã nộp</th><th></th></tr></thead><tbody>';
+  periods.forEach(p => {
+    h += '<tr data-period-row="'+attrEsc(p.periodId)+'">' +
+      '<td style="font-weight:700">'+esc(p.label)+'</td>' +
+      '<td>'+esc(bkFmtDateTime(p.deadline))+'</td>' +
+      '<td><span class="bk-badge '+(p.status==='closed'?'closed':'open')+'">'+(p.status==='closed'?'Đã đóng':'Đang mở')+'</span></td>' +
+      '<td>'+ ((p.reporters||[]).map(r => esc(r.name||r.email)).join(', ') || '<span class="mut">(chưa gán ai)</span>') +'</td>' +
+      '<td id="bkSubCount-'+esc(p.periodId)+'">…</td>' +
+      '<td style="white-space:nowrap"><button class="row-action-btn" onclick="bkOpenPeriodForm(\''+attrEsc(p.periodId)+'\')">✏️ Sửa</button>' +
+      '<button class="row-action-btn" onclick="bkViewSubmissions(\''+attrEsc(p.periodId)+'\')">👁 Bài nộp</button>' +
+      '<button class="row-action-btn danger" onclick="bkDeletePeriod(\''+attrEsc(p.periodId)+'\')">✕ Xoá</button></td>' +
+      '</tr>';
+  });
+  h += '</tbody>';
+  tbl.innerHTML = h;
+  periods.forEach(p => bkLoadSubCount(p.periodId));
+}
+async function bkLoadSubCount(periodId){
+  try {
+    const res = await callBackend('getBCKQKDSubmissionsForPeriod', { token: AUTH.session.token, periodId: periodId });
+    const el = document.getElementById('bkSubCount-'+periodId);
+    if (!el) return;
+    if (!res.ok) { el.textContent = '—'; return; }
+    const period = bkFindPeriod(periodId);
+    const total = period ? (period.reporters||[]).length : 0;
+    el.textContent = res.submissions.length + '/' + total;
+  } catch(e) {}
+}
+function bkToLocalInputValue(iso){
+  try {
+    const d = new Date(iso);
+    const pad = n => String(n).padStart(2,'0');
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+  } catch(e) { return ''; }
+}
+function bkOpenPeriodForm(periodId){
+  bkEditingPeriodId = periodId;
+  const period = periodId ? bkFindPeriod(periodId) : null;
+  const form = document.getElementById('bkPeriodForm');
+  const staff = BK_DATA.staff || [];
+  const selectedEmails = new Set(((period && period.reporters) || []).map(r => bkNormEmail(r.email)));
+  let h = '<div class="kh-form-grid">' +
+    '<div class="kh-field wide"><label>Tên/nhãn kỳ báo cáo *</label><input type="text" id="bkPfLabel" placeholder="VD: TUẦN 28" value="'+attrEsc(period ? period.label : '')+'"></div>' +
+    '<div class="kh-field"><label>Hạn chỉnh sửa (deadline)</label><input type="datetime-local" id="bkPfDeadline" value="'+attrEsc(period && period.deadline ? bkToLocalInputValue(period.deadline) : '')+'"></div>' +
+    '<div class="kh-field"><label>Trạng thái</label><select id="bkPfStatus">' +
+      '<option value="open"'+(!period || period.status!=='closed' ? ' selected':'')+'>Đang mở</option>' +
+      '<option value="closed"'+(period && period.status==='closed' ? ' selected':'')+'>Đã đóng</option>' +
+    '</select></div>' +
+    '<div class="kh-field wide"><label>Người phải nộp báo cáo (reporters)</label>' +
+    '<div class="bk-reporter-chips">' +
+    (staff.length ? staff.map(s => '<label class="bk-reporter-chip"><input type="checkbox" value="'+attrEsc(s.email)+'" data-name="'+attrEsc(s.name)+'"'+(selectedEmails.has(bkNormEmail(s.email))?' checked':'')+'>'+esc(s.name||s.email)+'</label>').join('') : '<span class="mut" style="font-size:11.5px">Không có nhân viên active nào.</span>') +
+    '</div></div>' +
+    '</div>' +
+    '<div class="kh-form-actions">' +
+    '<button class="kh-cancel-btn" onclick="bkCancelPeriodForm()">Huỷ</button>' +
+    '<button class="kh-action-btn done" onclick="bkSavePeriodForm()">💾 '+(period?'Lưu thay đổi':'Tạo kỳ báo cáo')+'</button>' +
+    '</div>';
+  form.innerHTML = h;
+  form.classList.add('open');
+  switchBCKQKDTab('periods');
+  form.scrollIntoView({behavior:'smooth', block:'center'});
+}
+function bkCancelPeriodForm(){
+  bkEditingPeriodId = null;
+  const form = document.getElementById('bkPeriodForm');
+  form.classList.remove('open'); form.innerHTML = '';
+}
+async function bkSavePeriodForm(){
+  const label = document.getElementById('bkPfLabel').value.trim();
+  if (!label) { alert(errMsg('missing_label')); return; }
+  const deadlineLocal = document.getElementById('bkPfDeadline').value;
+  const status = document.getElementById('bkPfStatus').value;
+  const reporters = Array.from(document.querySelectorAll('.bk-reporter-chip input:checked')).map(el => ({ email: el.value, name: el.getAttribute('data-name') || el.value }));
+  const payload = { token: AUTH.session.token, periodId: bkEditingPeriodId || '', label: label, deadline: deadlineLocal ? new Date(deadlineLocal).toISOString() : '', reporters: reporters, status: status };
+  const res = await callBackend('saveBCKQKDPeriod', payload);
+  if (!res.ok) { alert('Lưu thất bại: ' + errMsg(res.error)); return; }
+  bkCancelPeriodForm();
+  bkLoaded = false;
+  await loadBCKQKD();
+  switchBCKQKDTab('periods');
+}
+async function bkDeletePeriod(periodId){
+  const period = bkFindPeriod(periodId);
+  if (!confirm('Xoá kỳ báo cáo "'+(period?period.label:periodId)+'"? Các bài nộp đã có của kỳ này sẽ không còn hiển thị được nữa.')) return;
+  const res = await callBackend('deleteBCKQKDPeriod', { token: AUTH.session.token, periodId: periodId });
+  if (!res.ok) { alert('Xoá thất bại: ' + errMsg(res.error)); return; }
+  bkLoaded = false;
+  await loadBCKQKD();
+  switchBCKQKDTab('periods');
+}
+async function bkViewSubmissions(periodId){
+  const existing = document.getElementById('bkSubDetail-'+periodId);
+  if (existing) { existing.remove(); return; } // bấm lại lần 2 = đóng lại
+  const period = bkFindPeriod(periodId);
+  const res = await callBackend('getBCKQKDSubmissionsForPeriod', { token: AUTH.session.token, periodId: periodId });
+  const row = document.querySelector('tr[data-period-row="'+periodId+'"]');
+  if (!row) return;
+  const assigned = ((period && period.reporters) || []).map(r => ({ email: bkNormEmail(r.email), name: r.name }));
+  let bodyHtml;
+  if (!res.ok) {
+    bodyHtml = '<div style="color:#C0392B;font-size:12px">'+esc(errMsg(res.error))+'</div>';
+  } else {
+    const submittedEmails = new Set(res.submissions.map(s => bkNormEmail(s.email)));
+    const missing = assigned.filter(a => !submittedEmails.has(a.email));
+    bodyHtml = '<div style="display:flex;gap:24px;flex-wrap:wrap;font-size:12px">' +
+      '<div><b>Đã nộp ('+res.submissions.length+'):</b><ul style="margin:6px 0 0 16px;padding:0">' +
+      (res.submissions.length ? res.submissions.map(s => '<li>'+esc(s.name||s.email)+' — cập nhật '+esc(bkFmtDateTime(s.updatedAt))+'</li>').join('') : '<li class="mut">(chưa có ai)</li>') +
+      '</ul></div>' +
+      '<div><b>Chưa nộp ('+missing.length+'):</b><ul style="margin:6px 0 0 16px;padding:0">' +
+      (missing.length ? missing.map(a => '<li>'+esc(a.name||a.email)+'</li>').join('') : '<li class="mut">(không có)</li>') +
+      '</ul></div></div>';
+  }
+  const tr = document.createElement('tr');
+  tr.id = 'bkSubDetail-'+periodId;
+  const td = document.createElement('td');
+  td.colSpan = 6; td.style.background = 'var(--bg)'; td.style.padding = '12px 14px';
+  td.innerHTML = bodyHtml;
+  tr.appendChild(td);
+  row.after(tr);
+}
+
+// ---------- 4. THIẾT KẾ BIỂU MẪU (Admin — form builder: thêm/sửa/xoá mục lớn & ô nhập/hiển thị dữ liệu) ----------
+function bkTypeLabel(t){ return t==='richtext' ? 'Ô giải trình' : (t==='kpi_table' ? 'Bảng KPI' : 'Bảng lặp'); }
+function bkRenderBuilder(){
+  const wrap = document.getElementById('bkBuilderWrap');
+  if (!wrap) return;
+  const sections = BK_DATA.schema.sections || [];
+  if (!sections.length) { wrap.innerHTML = '<div class="mut" style="padding:20px">Chưa có mục nào — bấm "+ Thêm mục lớn" ở trên.</div>'; return; }
+  let h = '';
+  sections.forEach((section, sIdx) => {
+    h += '<div class="bk-builder-section">';
+    h += '<div class="bk-builder-section-head">' +
+      '<input type="text" value="'+attrEsc(section.title)+'" onchange="bkSetSectionTitle('+sIdx+',this.value)" placeholder="Tên mục lớn">' +
+      '<button class="row-action-btn" onclick="bkMoveSection('+sIdx+',-1)" title="Lên">↑</button>' +
+      '<button class="row-action-btn" onclick="bkMoveSection('+sIdx+',1)" title="Xuống">↓</button>' +
+      '<button class="row-action-btn danger" onclick="bkRemoveSection('+sIdx+')">✕ Xoá mục</button>' +
+      '</div>';
+    (section.items||[]).forEach((item, iIdx) => { h += bkRenderBuilderItem(sIdx, item, iIdx); });
+    h += '<div class="bk-builder-add-row">' +
+      '<button class="row-action-btn" onclick="bkAddItem('+sIdx+',\'richtext\')">+ Ô giải trình (văn bản)</button>' +
+      '<button class="row-action-btn" onclick="bkAddItem('+sIdx+',\'kpi_table\')">+ Bảng KPI</button>' +
+      '<button class="row-action-btn" onclick="bkAddItem('+sIdx+',\'repeatable_table\')">+ Bảng lặp (thêm/xoá dòng)</button>' +
+      '</div>';
+    h += '</div>';
+  });
+  wrap.innerHTML = h;
+}
+function bkRenderBuilderItem(sIdx, item, iIdx){
+  let h = '<div class="bk-builder-item">';
+  h += '<div class="bk-builder-item-head"><span class="bk-builder-item-type">'+esc(bkTypeLabel(item.type))+'</span>' +
+    '<div><button class="row-action-btn" onclick="bkMoveItem('+sIdx+','+iIdx+',-1)">↑</button>' +
+    '<button class="row-action-btn" onclick="bkMoveItem('+sIdx+','+iIdx+',1)">↓</button>' +
+    '<button class="row-action-btn danger" onclick="bkRemoveItem('+sIdx+','+iIdx+')">✕ Xoá ô</button></div></div>';
+
+  if (item.type === 'richtext') {
+    h += '<div class="bk-builder-field"><label>Nhãn / câu hỏi</label><input type="text" value="'+attrEsc(item.label||'')+'" onchange="bkSetItemField('+sIdx+','+iIdx+',\'label\',this.value)"></div>';
+    h += '<div class="bk-builder-field"><label>Gợi ý (placeholder, không bắt buộc)</label><textarea onchange="bkSetItemField('+sIdx+','+iIdx+',\'placeholder\',this.value)">'+esc(item.placeholder||'')+'</textarea></div>';
+  } else if (item.type === 'kpi_table') {
+    h += '<div class="bk-builder-field"><label>Tiêu đề bảng (không bắt buộc)</label><input type="text" value="'+attrEsc(item.title||'')+'" onchange="bkSetItemField('+sIdx+','+iIdx+',\'title\',this.value)"></div>';
+    h += '<div class="bk-builder-field"><label>Các cột (mỗi dòng 1 cột — cột đầu tiên là "giá trị thực tế", có thể tự động điền)</label><textarea onchange="bkSetKpiCols('+sIdx+','+iIdx+',this.value)">'+esc((item.cols||[]).join('\n'))+'</textarea></div>';
+    h += '<div class="bk-builder-field"><label>Các dòng chỉ tiêu</label>';
+    (item.rows||[]).forEach((row, rIdx) => {
+      h += '<div class="bk-rowline">' +
+        '<input type="text" placeholder="Tên chỉ tiêu" value="'+attrEsc(row.label||'')+'" onchange="bkSetKpiRowField('+sIdx+','+iIdx+','+rIdx+',\'label\',this.value)">' +
+        '<input type="text" placeholder="Ghi chú" value="'+attrEsc(row.note||'')+'" onchange="bkSetKpiRowField('+sIdx+','+iIdx+','+rIdx+',\'note\',this.value)">' +
+        '<select onchange="bkSetKpiRowField('+sIdx+','+iIdx+','+rIdx+',\'autoActual\',this.value)">' +
+          '<option value=""'+(!row.autoActual?' selected':'')+'>Không tự động</option>' +
+          '<option value="ltc"'+(row.autoActual==='ltc'?' selected':'')+'>Tự động: Tổng doanh thu LTC</option>' +
+          '<option value="banmoi"'+(row.autoActual==='banmoi'?' selected':'')+'>Tự động: Doanh thu bán mới</option>' +
+          '<option value="giucu"'+(row.autoActual==='giucu'?' selected':'')+'>Tự động: Doanh thu giữ cũ</option>' +
+        '</select>' +
+        '<button class="row-action-btn danger" onclick="bkRemoveKpiRow('+sIdx+','+iIdx+','+rIdx+')">✕</button>' +
+        '</div>';
+    });
+    h += '<button class="row-action-btn" onclick="bkAddKpiRow('+sIdx+','+iIdx+')">+ Thêm dòng chỉ tiêu</button></div>';
+  } else if (item.type === 'repeatable_table') {
+    h += '<div class="bk-builder-field"><label>Tiêu đề bảng</label><input type="text" value="'+attrEsc(item.title||'')+'" onchange="bkSetItemField('+sIdx+','+iIdx+',\'title\',this.value)"></div>';
+    h += '<div class="bk-builder-field"><label>Các cột</label>';
+    (item.columns||[]).forEach((col, cIdx) => {
+      h += '<div class="bk-rowline">' +
+        '<input type="text" placeholder="Tên cột" value="'+attrEsc(col.label||'')+'" onchange="bkSetRColField('+sIdx+','+iIdx+','+cIdx+',\'label\',this.value)">' +
+        '<select onchange="bkSetRColField('+sIdx+','+iIdx+','+cIdx+',\'type\',this.value)">' +
+          '<option value="text"'+((!col.type||col.type==='text')?' selected':'')+'>Văn bản</option>' +
+          '<option value="date"'+(col.type==='date'?' selected':'')+'>Ngày</option>' +
+          '<option value="select"'+(col.type==='select'?' selected':'')+'>Lựa chọn</option>' +
+        '</select>' +
+        (col.type==='select' ? '<input type="text" placeholder="Các lựa chọn, cách nhau bởi dấu phẩy" value="'+attrEsc((col.options||[]).join(', '))+'" onchange="bkSetRColOptions('+sIdx+','+iIdx+','+cIdx+',this.value)">' : '') +
+        '<button class="row-action-btn danger" onclick="bkRemoveRCol('+sIdx+','+iIdx+','+cIdx+')">✕</button>' +
+        '</div>';
+    });
+    h += '<button class="row-action-btn" onclick="bkAddRCol('+sIdx+','+iIdx+')">+ Thêm cột</button></div>';
+  }
+  h += '</div>';
+  return h;
+}
+function bkAddSection(){
+  const title = prompt('Tên mục lớn mới (VD: "4. GHI CHÚ KHÁC"):');
+  if (title === null) return;
+  const t = title.trim(); if (!t) return;
+  if (!BK_DATA.schema.sections) BK_DATA.schema.sections = [];
+  BK_DATA.schema.sections.push({ id: 's_' + Date.now(), title: t, items: [] });
+  bkRenderBuilder();
+}
+function bkSetSectionTitle(sIdx, val){ BK_DATA.schema.sections[sIdx].title = val; }
+function bkRemoveSection(sIdx){
+  if (!confirm('Xoá toàn bộ mục "'+BK_DATA.schema.sections[sIdx].title+'" và tất cả ô nhập bên trong?')) return;
+  BK_DATA.schema.sections.splice(sIdx, 1);
+  bkRenderBuilder();
+}
+function bkMoveSection(sIdx, dir){
+  const arr = BK_DATA.schema.sections;
+  const j = sIdx + dir;
+  if (j < 0 || j >= arr.length) return;
+  const tmp = arr[sIdx]; arr[sIdx] = arr[j]; arr[j] = tmp;
+  bkRenderBuilder();
+}
+function bkAddItem(sIdx, type){
+  const section = BK_DATA.schema.sections[sIdx];
+  if (!section.items) section.items = [];
+  const id = 'f_' + Date.now();
+  let item;
+  if (type === 'richtext') item = { type: 'richtext', id: id, label: 'Ô giải trình mới', placeholder: '' };
+  else if (type === 'kpi_table') item = { type: 'kpi_table', id: id, title: '', cols: ['Doanh thu Thực tế', 'Target trong tháng'], rows: [{ id: id+'_r1', label: 'Chỉ tiêu 1' }] };
+  else item = { type: 'repeatable_table', id: id, title: 'Bảng mới', columns: [{ id: 'c1', label: 'Cột 1' }] };
+  section.items.push(item);
+  bkRenderBuilder();
+}
+function bkRemoveItem(sIdx, iIdx){
+  if (!confirm('Xoá ô này khỏi biểu mẫu?')) return;
+  BK_DATA.schema.sections[sIdx].items.splice(iIdx, 1);
+  bkRenderBuilder();
+}
+function bkMoveItem(sIdx, iIdx, dir){
+  const arr = BK_DATA.schema.sections[sIdx].items;
+  const j = iIdx + dir;
+  if (j < 0 || j >= arr.length) return;
+  const tmp = arr[iIdx]; arr[iIdx] = arr[j]; arr[j] = tmp;
+  bkRenderBuilder();
+}
+function bkSetItemField(sIdx, iIdx, field, val){ BK_DATA.schema.sections[sIdx].items[iIdx][field] = val; }
+function bkSetKpiCols(sIdx, iIdx, val){
+  BK_DATA.schema.sections[sIdx].items[iIdx].cols = val.split('\n').map(s => s.trim()).filter(Boolean);
+}
+function bkAddKpiRow(sIdx, iIdx){
+  const item = BK_DATA.schema.sections[sIdx].items[iIdx];
+  if (!item.rows) item.rows = [];
+  item.rows.push({ id: 'r_' + Date.now(), label: 'Chỉ tiêu mới' });
+  bkRenderBuilder();
+}
+function bkRemoveKpiRow(sIdx, iIdx, rIdx){
+  BK_DATA.schema.sections[sIdx].items[iIdx].rows.splice(rIdx, 1);
+  bkRenderBuilder();
+}
+function bkSetKpiRowField(sIdx, iIdx, rIdx, field, val){
+  BK_DATA.schema.sections[sIdx].items[iIdx].rows[rIdx][field] = val;
+}
+function bkAddRCol(sIdx, iIdx){
+  const item = BK_DATA.schema.sections[sIdx].items[iIdx];
+  if (!item.columns) item.columns = [];
+  item.columns.push({ id: 'c_' + Date.now(), label: 'Cột mới' });
+  bkRenderBuilder();
+}
+function bkRemoveRCol(sIdx, iIdx, cIdx){
+  BK_DATA.schema.sections[sIdx].items[iIdx].columns.splice(cIdx, 1);
+  bkRenderBuilder();
+}
+function bkSetRColField(sIdx, iIdx, cIdx, field, val){
+  BK_DATA.schema.sections[sIdx].items[iIdx].columns[cIdx][field] = val;
+  if (field === 'type') bkRenderBuilder(); // đổi loại cột (VD sang "select") cần vẽ lại để hiện thêm ô "các lựa chọn"
+}
+function bkSetRColOptions(sIdx, iIdx, cIdx, val){
+  BK_DATA.schema.sections[sIdx].items[iIdx].columns[cIdx].options = val.split(',').map(s => s.trim()).filter(Boolean);
+}
+async function bkSaveSchema(){
+  const msg = document.getElementById('bkBuilderMsg');
+  const res = await callBackend('saveBCKQKDSchema', { token: AUTH.session.token, schemaJson: JSON.stringify(BK_DATA.schema) });
+  if (!res.ok) { msg.innerHTML = '<div style="color:#C0392B;font-size:12px;margin-bottom:10px">Lưu thất bại: '+esc(errMsg(res.error))+'</div>'; return; }
+  msg.innerHTML = '<div style="color:#1E7E42;font-size:12px;margin-bottom:10px">✓ Đã lưu biểu mẫu. Các AM sẽ thấy cấu trúc mới ngay từ lần tải trang tiếp theo.</div>';
+  setTimeout(() => { msg.innerHTML = ''; }, 4000);
 }
 
 // ---------- main ----------
