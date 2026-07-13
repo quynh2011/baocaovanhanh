@@ -131,6 +131,7 @@ function doPost(e) {
     if (action === 'getBCKQKDSubmissionsForPeriod') return jsonOut(handleGetBCKQKDSubmissionsForPeriod(body));
     if (action === 'generateBCKQKDAggregate') return jsonOut(handleGenerateBCKQKDAggregate(body));
     if (action === 'getBCKQKDAggregate') return jsonOut(handleGetBCKQKDAggregate(body));
+    if (action === 'updateBCKQKDAggregate') return jsonOut(handleUpdateBCKQKDAggregate(body));
     return jsonOut({ ok: false, error: 'unknown_action' });
   } catch (err) {
     return jsonOut({ ok: false, error: 'server_error', detail: String(err) });
@@ -1141,7 +1142,11 @@ function ensureBCKQKDSheets(ss) {
   var aggSh = ss.getSheetByName(BCKQKD_SHEETS.AGGREGATE);
   if (!aggSh) {
     aggSh = ss.insertSheet(BCKQKD_SHEETS.AGGREGATE);
-    aggSh.getRange(1, 1, 1, 5).setValues([['PeriodId', 'GeneratedAt', 'GeneratedBy', 'ContentJson', 'Model']]).setFontWeight('bold');
+    aggSh.getRange(1, 1, 1, 7).setValues([['PeriodId', 'GeneratedAt', 'GeneratedBy', 'ContentJson', 'Model', 'EditedAt', 'EditedBy']]).setFontWeight('bold');
+  } else if (aggSh.getLastColumn() < 7) {
+    // migrate sheet cũ (tạo trước khi có tính năng Admin sửa tay báo cáo tổng hợp) — thêm 2 cột EditedAt/EditedBy
+    // vào cuối, không đụng tới dữ liệu 5 cột đã có.
+    aggSh.getRange(1, 6, 1, 2).setValues([['EditedAt', 'EditedBy']]).setFontWeight('bold');
   }
   return { cfgSh: cfgSh, periodsSh: periodsSh, subSh: subSh, aggSh: aggSh };
 }
@@ -1389,8 +1394,11 @@ function handleGenerateBCKQKDAggregate(body) {
   var aggValues = sheets.aggSh.getDataRange().getValues();
   var rowIdx = -1;
   for (var j = 1; j < aggValues.length; j++) { if (String(aggValues[j][0]) === periodId) { rowIdx = j + 1; break; } }
-  if (rowIdx === -1) { sheets.aggSh.appendRow([periodId, now, auth.email, JSON.stringify(content), GEMINI_MODEL]); }
-  else { sheets.aggSh.getRange(rowIdx, 2, 1, 4).setValues([[now, auth.email, JSON.stringify(content), GEMINI_MODEL]]); }
+  // Tổng hợp lại bằng AI luôn GHI ĐÈ toàn bộ, kể cả nếu trước đó Admin đã chỉnh tay — vì vậy phải xoá luôn
+  // EditedAt/EditedBy (cột 6-7) của bản chỉnh tay cũ, nếu không phần "đã chỉnh sửa bởi..." sẽ hiện sai (gắn
+  // nhầm vào nội dung AI vừa tạo lại, dù nội dung đó chưa hề được Admin sửa tay lần nào).
+  if (rowIdx === -1) { sheets.aggSh.appendRow([periodId, now, auth.email, JSON.stringify(content), GEMINI_MODEL, '', '']); }
+  else { sheets.aggSh.getRange(rowIdx, 2, 1, 6).setValues([[now, auth.email, JSON.stringify(content), GEMINI_MODEL, '', '']]); }
 
   return { ok: true, content: content, generatedAt: now.toISOString() };
 }
@@ -1428,8 +1436,38 @@ function handleGetBCKQKDAggregate(body) {
     if (String(values[i][0]) === periodId) {
       var content = {};
       try { content = JSON.parse(values[i][3] || '{}'); } catch (e) {}
-      return { ok: true, content: content, generatedAt: values[i][1] ? new Date(values[i][1]).toISOString() : '', generatedBy: values[i][2] };
+      // cột 6-7 (EditedAt/EditedBy) chỉ có giá trị nếu Admin từng bấm "Lưu" sau khi sửa tay — sheet cũ tạo
+      // trước tính năng này (hoặc bản ghi chưa từng bị sửa tay) sẽ rỗng, undefined nếu thiếu hẳn cột.
+      var editedAt = values[i][5] ? new Date(values[i][5]).toISOString() : '';
+      var editedBy = values[i][6] || '';
+      return {
+        ok: true, content: content,
+        generatedAt: values[i][1] ? new Date(values[i][1]).toISOString() : '', generatedBy: values[i][2],
+        editedAt: editedAt, editedBy: editedBy
+      };
     }
   }
   return { ok: true, content: null };
+}
+
+// Admin sửa tay trực tiếp trên báo cáo tổng hợp AI đã tạo (VD: AI gộp ý chưa chuẩn, số liệu cần đính chính) —
+// ghi đè ContentJson, giữ nguyên GeneratedAt/GeneratedBy/Model gốc (để vẫn biết bản AI gốc tạo lúc nào, ai bấm),
+// chỉ cập nhật thêm EditedAt/EditedBy để phân biệt "đây là bản đã qua tay Admin chỉnh sửa".
+function handleUpdateBCKQKDAggregate(body) {
+  var auth = requireAdmin(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var periodId = String(body.periodId || '');
+  if (!periodId) return { ok: false, error: 'missing_period' };
+  var content = body.content;
+  if (!content || typeof content !== 'object') return { ok: false, error: 'bad_schema' };
+  var ss = getBCKQKDSpreadsheet();
+  var sheets = ensureBCKQKDSheets(ss);
+  var values = sheets.aggSh.getDataRange().getValues();
+  var rowIdx = -1;
+  for (var i = 1; i < values.length; i++) { if (String(values[i][0]) === periodId) { rowIdx = i + 1; break; } }
+  if (rowIdx === -1) return { ok: false, error: 'aggregate_not_found' };
+  var now = new Date();
+  sheets.aggSh.getRange(rowIdx, 4, 1, 1).setValue(JSON.stringify(content));
+  sheets.aggSh.getRange(rowIdx, 6, 1, 2).setValues([[now, auth.email]]);
+  return { ok: true, editedAt: now.toISOString(), editedBy: auth.email };
 }

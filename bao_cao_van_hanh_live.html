@@ -1080,6 +1080,7 @@ const LOGIN_ERR_MSG = {
   missing_label: 'Vui lòng nhập tên/nhãn cho kỳ báo cáo',
   bad_schema: 'Cấu trúc biểu mẫu không hợp lệ',
   no_submissions: 'Chưa có ai nộp báo cáo giải trình cho kỳ này',
+  aggregate_not_found: 'Kỳ này chưa có báo cáo tổng hợp — bấm "✨ Tổng hợp lại bằng AI" trước khi sửa',
   ai_not_configured: 'Chưa cấu hình AI (thiếu GEMINI_API_KEY ở phía máy chủ)',
   ai_rate_limited: 'AI đang bị giới hạn tần suất gọi, vui lòng thử lại sau ít phút',
   ai_network_error: 'Lỗi kết nối tới máy chủ AI',
@@ -4561,6 +4562,11 @@ async function bkSaveSubmission(periodId){
 }
 
 // ---------- 2. BÁO CÁO TỔNG HỢP (AI gộp toàn bộ bài nộp) ----------
+// BK_AGG_STATE giữ bản đang xem (periodId + content + mốc thời gian) để nút "✏️ Sửa nội dung" (Admin) dùng lại
+// mà không phải gọi lại backend; bkAggRepeatState là state riêng cho các bảng lặp trong CHẾ ĐỘ SỬA báo cáo
+// tổng hợp — tách biệt hoàn toàn với bkRepeatState (dùng cho form AM nộp báo cáo) để 2 luồng không đè lên nhau.
+window.BK_AGG_STATE = { periodId: null, content: null, generatedAt: '', generatedBy: '', editedAt: '', editedBy: '' };
+window.bkAggRepeatState = {}; // itemId -> mảng dòng đang chỉnh sửa ở CHẾ ĐỘ SỬA báo cáo tổng hợp (window., không phải let — xem ghi chú tương tự tại window.bkRepeatState)
 function bkOnAggPeriodChange(){
   const periodId = document.getElementById('bkAggPeriodSelect').value;
   const genBtn = document.getElementById('bkGenerateAggBtn');
@@ -4574,13 +4580,21 @@ async function bkRenderAggregate(periodId){
   const res = await callBackend('getBCKQKDAggregate', { token: AUTH.session.token, periodId: periodId });
   if (!res.ok) { wrap.innerHTML = '<div class="bk-lock-banner" style="background:#FEF2F2;border-color:#F5C2C2;color:#C0392B">'+esc(errMsg(res.error))+'</div>'; return; }
   if (!res.content) { wrap.innerHTML = '<div class="mut" style="padding:20px">Chưa có báo cáo tổng hợp cho kỳ này.'+(BK_DATA.isAdmin?' Bấm "✨ Tổng hợp lại bằng AI" ở trên để tạo.':'')+'</div>'; return; }
-  wrap.innerHTML = bkRenderAggregateContent(res.content, res.generatedAt, res.generatedBy);
+  BK_AGG_STATE = { periodId: periodId, content: res.content, generatedAt: res.generatedAt, generatedBy: res.generatedBy, editedAt: res.editedAt, editedBy: res.editedBy };
+  wrap.innerHTML = bkRenderAggregateContent(res.content, res.generatedAt, res.generatedBy, res.editedAt, res.editedBy);
 }
-function bkRenderAggregateContent(content, generatedAt, generatedBy){
+function bkRenderAggregateContent(content, generatedAt, generatedBy, editedAt, editedBy){
   let html = '';
   html += '<div class="bk-section-card">';
-  if (generatedAt) html += '<div class="mut" style="font-size:11px;margin-bottom:10px">Tổng hợp lúc '+esc(bkFmtDateTime(generatedAt))+(generatedBy?' bởi '+esc(generatedBy):'')+'</div>';
-  if (content.executiveSummary) html += '<div class="bk-item-label">Tóm tắt điều hành</div><div style="font-size:13px;line-height:1.6;margin-bottom:6px">'+esc(content.executiveSummary).replace(/\n/g,'<br>')+'</div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">';
+  let metaLine = '';
+  if (generatedAt) metaLine += 'Tổng hợp lúc '+esc(bkFmtDateTime(generatedAt))+(generatedBy?' bởi '+esc(generatedBy):'');
+  // đánh dấu rõ nếu Admin đã từng chỉnh tay sau khi AI tạo — người đọc cần biết đây không còn thuần AI nữa.
+  if (editedAt) metaLine += (metaLine ? ' · ' : '') + '<b style="color:var(--ghn-blue)">đã chỉnh sửa bởi '+esc(editedBy)+' lúc '+esc(bkFmtDateTime(editedAt))+'</b>';
+  html += '<div class="mut" style="font-size:11px">'+metaLine+'</div>';
+  if (BK_DATA.isAdmin) html += '<button class="row-action-btn" onclick="bkAggEnterEditMode()">✏️ Sửa nội dung</button>';
+  html += '</div>';
+  if (content.executiveSummary) html += '<div class="bk-item-label" style="margin-top:10px">Tóm tắt điều hành</div><div style="font-size:13px;line-height:1.6;margin-bottom:6px">'+esc(content.executiveSummary).replace(/\n/g,'<br>')+'</div>';
   html += '</div>';
 
   const bySection = {}; (content.sections||[]).forEach(s => bySection[s.id] = s);
@@ -4595,6 +4609,157 @@ function bkRenderAggregateContent(content, generatedAt, generatedBy){
     html += '</div>';
   });
   return html;
+}
+
+// ---------- 2b. CHẾ ĐỘ SỬA báo cáo tổng hợp (Admin) — mọi ô render lại thành ô nhập giống hệt form AM nộp
+// báo cáo (textarea/input/bảng lặp thêm-xoá dòng được), để Admin đính chính số liệu hoặc viết lại nhận định
+// nếu AI gộp ý chưa chuẩn, KHÔNG phải tổng hợp lại từ đầu bằng AI (vốn sẽ ghi đè mất mọi chỉnh sửa tay trước đó).
+function bkAggEnterEditMode(){
+  const st = BK_AGG_STATE;
+  if (!st.content) return;
+  bkAggRepeatState = {};
+  document.getElementById('bkAggWrap').innerHTML = bkRenderAggregateEditForm(st.content);
+}
+function bkAggCancelEdit(){
+  if (BK_AGG_STATE.periodId) bkRenderAggregate(BK_AGG_STATE.periodId);
+}
+function bkRenderAggregateEditForm(content){
+  let html = '<div class="bk-section-card">';
+  html += '<div class="bk-item-label">Tóm tắt điều hành</div>';
+  html += '<textarea class="bk-item-textarea" id="bkAggField-executiveSummary">'+esc(content.executiveSummary||'')+'</textarea>';
+  html += '</div>';
+  const bySection = {}; (content.sections||[]).forEach(s => bySection[s.id] = s);
+  (BK_DATA.schema.sections||[]).forEach(section => {
+    const cSec = bySection[section.id];
+    html += '<div class="bk-section-card"><div class="bk-section-title">'+esc(section.title)+'</div>';
+    const byItem = {}; ((cSec && cSec.items) || []).forEach(it => byItem[it.id] = it);
+    (section.items||[]).forEach(item => {
+      const cItem = byItem[item.id];
+      html += bkRenderAggregateEditItem(item, cItem ? cItem.value : null);
+    });
+    html += '</div>';
+  });
+  html += '<div class="kh-form-actions" style="border-top:none;justify-content:flex-start;flex-wrap:wrap">' +
+    '<button class="kh-action-btn done" onclick="bkSaveAggregateEdit()">💾 Lưu nội dung đã sửa</button>' +
+    '<button class="row-action-btn" onclick="bkAggCancelEdit()">✕ Huỷ, quay lại xem</button>' +
+    '</div>';
+  return html;
+}
+function bkRenderAggregateEditItem(item, value){
+  if (item.type === 'richtext') {
+    return '<div class="bk-item-block"><div class="bk-item-label">'+esc(item.label)+'</div>' +
+      '<textarea class="bk-item-textarea" id="bkAggField-'+esc(item.id)+'">'+esc(value||'')+'</textarea></div>';
+  }
+  if (item.type === 'kpi_table') {
+    let t = '<div class="bk-item-block">';
+    if (item.title) t += '<div class="bk-item-label">'+esc(item.title)+'</div>';
+    t += '<div class="kh-table-wrap" style="max-height:none"><table class="bk-kpi-table"><thead><tr><th>Chỉ tiêu</th>';
+    (item.cols||[]).forEach(c => t += '<th>'+esc(c)+'</th>');
+    t += '</tr></thead><tbody>';
+    (item.rows||[]).forEach(row => {
+      const rv = (value && value[row.id]) || {};
+      t += '<tr><td class="bk-row-label">'+esc(row.label)+'</td>';
+      (item.cols||[]).forEach((c, cIdx) => {
+        const fid = 'bkAggKpi-'+esc(item.id)+'-'+esc(row.id)+'-c'+cIdx;
+        const v = rv['c'+cIdx] !== undefined && rv['c'+cIdx] !== null ? rv['c'+cIdx] : '';
+        t += '<td><input type="text" id="'+fid+'" value="'+attrEsc(v)+'"></td>';
+      });
+      t += '</tr>';
+    });
+    t += '</tbody></table></div></div>';
+    return t;
+  }
+  if (item.type === 'repeatable_table') {
+    const rows = Array.isArray(value) ? value : [];
+    bkAggRepeatState[item.id] = rows.map(r => Object.assign({}, r));
+    return '<div class="bk-item-block" id="bkAggRTableWrap-'+esc(item.id)+'">' + bkAggRepeatableTableInner(item) + '</div>';
+  }
+  return '';
+}
+function bkAggRepeatableTableInner(item){
+  const rows = bkAggRepeatState[item.id] || [];
+  let t = '';
+  if (item.title) t += '<div class="bk-item-label">'+esc(item.title)+'</div>';
+  t += '<div class="bk-rtable-wrap"><table class="bk-rtable"><thead><tr>';
+  (item.columns||[]).forEach(c => t += '<th>'+esc(c.label)+'</th>');
+  t += '<th></th></tr></thead><tbody>';
+  if (!rows.length) t += '<tr><td colspan="'+((item.columns||[]).length + 1)+'" style="text-align:center;color:var(--muted);padding:14px">Chưa có dòng nào — bấm "+ Thêm dòng" bên dưới</td></tr>';
+  rows.forEach((row, rIdx) => {
+    t += '<tr>';
+    (item.columns||[]).forEach(c => {
+      const v = row[c.id] !== undefined ? row[c.id] : '';
+      if (c.type === 'select') {
+        t += '<td><select onchange="bkAggSetRepeatCell(\''+esc(item.id)+'\','+rIdx+',\''+esc(c.id)+'\',this.value)">' +
+          '<option value=""></option>' +
+          (c.options||[]).map(o => '<option value="'+attrEsc(o)+'"'+(o===v?' selected':'')+'>'+esc(o)+'</option>').join('') +
+          '</select></td>';
+      } else if (c.type === 'date') {
+        t += '<td><input type="date" value="'+attrEsc(v)+'" onchange="bkAggSetRepeatCell(\''+esc(item.id)+'\','+rIdx+',\''+esc(c.id)+'\',this.value)"></td>';
+      } else {
+        t += '<td><input type="text" value="'+attrEsc(v)+'" onchange="bkAggSetRepeatCell(\''+esc(item.id)+'\','+rIdx+',\''+esc(c.id)+'\',this.value)"></td>';
+      }
+    });
+    t += '<td><button type="button" class="row-action-btn danger" onclick="bkAggRemoveRepeatRow(\''+esc(item.id)+'\','+rIdx+')">✕</button></td>';
+    t += '</tr>';
+  });
+  t += '</tbody></table></div>';
+  t += '<button type="button" class="row-action-btn bk-rtable-addbtn" onclick="bkAggAddRepeatRow(\''+esc(item.id)+'\')">+ Thêm dòng</button>';
+  return t;
+}
+function bkAggSetRepeatCell(itemId, rIdx, colId, val){
+  if (!bkAggRepeatState[itemId]) return;
+  if (!bkAggRepeatState[itemId][rIdx]) bkAggRepeatState[itemId][rIdx] = {};
+  bkAggRepeatState[itemId][rIdx][colId] = val;
+}
+function bkAggAddRepeatRow(itemId){
+  if (!bkAggRepeatState[itemId]) bkAggRepeatState[itemId] = [];
+  bkAggRepeatState[itemId].push({});
+  const wrap = document.getElementById('bkAggRTableWrap-'+itemId);
+  const item = bkFindItemById(itemId);
+  if (wrap && item) wrap.innerHTML = bkAggRepeatableTableInner(item);
+}
+function bkAggRemoveRepeatRow(itemId, rIdx){
+  if (!bkAggRepeatState[itemId]) return;
+  bkAggRepeatState[itemId].splice(rIdx, 1);
+  const wrap = document.getElementById('bkAggRTableWrap-'+itemId);
+  const item = bkFindItemById(itemId);
+  if (wrap && item) wrap.innerHTML = bkAggRepeatableTableInner(item);
+}
+async function bkSaveAggregateEdit(){
+  const periodId = BK_AGG_STATE.periodId;
+  if (!periodId) return;
+  const summaryEl = document.getElementById('bkAggField-executiveSummary');
+  const sections = [];
+  (BK_DATA.schema.sections||[]).forEach(section => {
+    const items = [];
+    (section.items||[]).forEach(item => {
+      let value = null;
+      if (item.type === 'richtext') {
+        const el = document.getElementById('bkAggField-'+item.id);
+        value = el ? el.value : '';
+      } else if (item.type === 'kpi_table') {
+        const rowsOut = {};
+        (item.rows||[]).forEach(row => {
+          const rowOut = {};
+          (item.cols||[]).forEach((c, cIdx) => {
+            const el = document.getElementById('bkAggKpi-'+item.id+'-'+row.id+'-c'+cIdx);
+            if (el) rowOut['c'+cIdx] = el.value;
+          });
+          rowsOut[row.id] = rowOut;
+        });
+        value = rowsOut;
+      } else if (item.type === 'repeatable_table') {
+        value = (bkAggRepeatState[item.id] || []).filter(r => Object.keys(r).some(k => String(r[k]||'').trim() !== ''));
+      }
+      items.push({ id: item.id, type: item.type, value: value });
+    });
+    sections.push({ id: section.id, items: items });
+  });
+  const content = { sections: sections, executiveSummary: summaryEl ? summaryEl.value : '' };
+  const res = await callBackend('updateBCKQKDAggregate', { token: AUTH.session.token, periodId: periodId, content: content });
+  if (!res.ok) { alert('Lưu thất bại: ' + errMsg(res.error)); return; }
+  alert('Đã lưu nội dung đã sửa.');
+  await bkRenderAggregate(periodId);
 }
 function bkRenderAggregateItem(item, value){
   if (item.type === 'richtext') {
@@ -4643,7 +4808,11 @@ async function bkGenerateAggregate(){
   try {
     const res = await callBackend('generateBCKQKDAggregate', { token: AUTH.session.token, periodId: periodId });
     if (!res.ok) { alert('Tổng hợp thất bại: ' + errMsg(res.error)); return; }
-    document.getElementById('bkAggWrap').innerHTML = bkRenderAggregateContent(res.content, res.generatedAt, BK_DATA.myName || BK_DATA.myEmail);
+    // "Tổng hợp lại bằng AI" luôn cho ra bản HOÀN TOÀN MỚI (backend đã xoá EditedAt/EditedBy cũ) — nên
+    // editedAt/editedBy ở đây phải để rỗng, không giữ lại của lần chỉnh tay trước, tránh hiện nhầm ghi chú.
+    const genBy = BK_DATA.myName || BK_DATA.myEmail;
+    BK_AGG_STATE = { periodId: periodId, content: res.content, generatedAt: res.generatedAt, generatedBy: genBy, editedAt: '', editedBy: '' };
+    document.getElementById('bkAggWrap').innerHTML = bkRenderAggregateContent(res.content, res.generatedAt, genBy, '', '');
   } catch (e) {
     alert('Lỗi kết nối: ' + e.message);
   } finally {
