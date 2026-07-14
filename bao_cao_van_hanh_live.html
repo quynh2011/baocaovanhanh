@@ -437,10 +437,73 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .section-placeholder h2{font-size:21px;color:var(--text);margin-bottom:8px;font-weight:700}
 .section-placeholder p{font-size:13px;max-width:420px;margin:0 auto}
 
+/* ================= LỊCH LÀM VIỆC (Cảnh báo hạn / Lịch họp / Công việc / Công việc cá nhân) ================= */
+#sectionLichLamViec .vh-pane{max-width:1340px;margin:0 auto;padding:18px 28px 60px}
+.llv-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.llv-toolbar select{font-family:var(--f);font-size:12.5px;padding:7px 10px;border-radius:8px;border:1px solid var(--border-strong);background:#fff;color:var(--text)}
+.llv-legend{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);font-family:var(--mono);margin-right:auto}
+.llv-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-left:10px}
+.llv-dot:first-child{margin-left:0}
+.llv-dot-tre{background:#E0357A}
+.llv-dot-sap{background:#E8A100}
+.llv-dot-con{background:#1E9E5A}
+.llv-btn-ghost{font-family:var(--f);font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--border-strong);background:#fff;color:var(--muted);cursor:pointer}
+.llv-btn-ghost:hover{background:var(--bg)}
+.llv-btn-primary{font-family:var(--f);font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;border:none;background:var(--ghn-orange);color:#fff;cursor:pointer}
+.llv-btn-primary:hover{background:var(--ghn-orange-dark)}
+.llv-error{background:#FDECEC;border:1px solid #F3B4B4;color:#B3261E;font-size:12.5px;padding:9px 13px;border-radius:8px;margin-bottom:12px}
+.llv-loading,.llv-empty{color:var(--hint);font-size:12.5px;padding:22px;text-align:center}
+.llv-card{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:16px}
+.llv-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.llv-card-head h3{font-size:14px;font-weight:700}
+.llv-group-heading{font-size:13px;font-weight:700;margin:18px 0 8px;padding-left:10px;border-left:3px solid var(--ghn-blue);color:var(--text)}
+.llv-group-heading:first-child{margin-top:0}
+.llv-task-card{display:flex;align-items:center;gap:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:9px;padding:11px 14px;margin-bottom:8px;flex-wrap:wrap}
+.llv-task-card.llv-tre{border-left:4px solid #E0357A}
+.llv-task-card.llv-sap{border-left:4px solid #E8A100}
+.llv-task-card.llv-con{border-left:4px solid #1E9E5A}
+.llv-task-main{flex:1;min-width:220px}
+.llv-task-title{font-size:13px;font-weight:600;color:var(--text)}
+.llv-task-sub{font-size:11.5px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+.llv-badge{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;font-family:var(--mono)}
+.llv-badge-tre{background:#FCE4EC;color:#C2185B}
+.llv-badge-sap{background:#FFF4D6;color:#9A6B00}
+.llv-badge-con{background:#E3F5EA;color:#1E7E45}
+.llv-badge-done{background:#EDEBE7;color:#6B6860}
+.llv-prio{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;font-family:var(--mono)}
+.llv-prio-Cao{background:var(--ghn-orange-light);color:var(--ghn-orange-dark)}
+.llv-prio-TrungBinh{background:var(--ghn-blue-light);color:var(--ghn-blue-dark)}
+.llv-prio-Thap{background:#F0F0EE;color:var(--muted)}
+.llv-task-actions{display:flex;align-items:center;gap:6px}
+.llv-task-actions select{font-family:var(--f);font-size:11.5px;padding:5px 8px;border-radius:6px;border:1px solid var(--border-strong)}
+.llv-task-actions button{font-family:var(--f);font-size:11px;padding:5px 9px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;color:var(--muted);cursor:pointer}
+.llv-task-actions button:hover{background:#FDECEC;color:#B3261E;border-color:#F3B4B4}
+.llv-task-form{background:var(--bg);border:1px dashed var(--border-strong);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.llv-task-form input,.llv-task-form select,.llv-task-form textarea{font-family:var(--f);font-size:12.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border-strong);background:#fff;width:100%;box-sizing:border-box}
+.llv-task-form textarea{grid-column:1/-1;min-height:60px;resize:vertical}
+.llv-task-form-actions{grid-column:1/-1;display:flex;gap:8px}
+.llv-cal-form{background:var(--bg);border:1px dashed var(--border-strong);border-radius:10px;padding:14px 16px;margin-bottom:12px;display:flex;flex-direction:column;gap:9px}
+.llv-cal-form input[type=text]{font-family:var(--f);font-size:12.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border-strong)}
+.llv-cal-form label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.llv-cal-form-actions{display:flex;gap:8px}
+.llv-cal-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border)}
+.llv-cal-item:last-child{border-bottom:none}
+.llv-cal-item-name{font-size:12.5px;font-weight:600}
+.llv-cal-item-sub{font-size:11px;color:var(--hint);font-family:var(--mono)}
+.llv-tag-shared{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--ghn-blue-light);color:var(--ghn-blue-dark);margin-left:6px}
+.llv-agenda-day{font-size:12.5px;font-weight:700;color:var(--ghn-blue-dark);margin:14px 0 6px;font-family:var(--mono)}
+.llv-agenda-day:first-child{margin-top:0}
+.llv-agenda-item{display:flex;gap:12px;padding:8px 0;border-bottom:0.5px solid var(--border);align-items:baseline}
+.llv-agenda-item:last-child{border-bottom:none}
+.llv-agenda-time{font-family:var(--mono);font-size:11.5px;color:var(--muted);flex-shrink:0;width:52px}
+.llv-agenda-title{font-size:12.5px;font-weight:600;color:var(--text)}
+.llv-agenda-loc{font-size:11px;color:var(--hint)}
+
 @media (max-width:640px){
   .dbb-fab-wrap{right:14px;bottom:14px}
   .dbb-fab{width:54px;height:54px;font-size:11px}
   .vh-subtabs{padding:12px 12px 0}
+  #sectionLichLamViec .vh-pane{padding:14px 12px 50px}
 }
 </style>
 </head>
@@ -652,6 +715,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     <button class="dbb-sub-btn" id="navBtn-sectionTruyThu" onclick="switchSection('sectionTruyThu')">🧾 Truy thu</button>
     <button class="dbb-sub-btn" id="navBtn-sectionCapacity" onclick="switchSection('sectionCapacity')">📦 Capacity</button>
     <button class="dbb-sub-btn" id="navBtn-sectionNhanSu" onclick="switchSection('sectionNhanSu')">👥 Nhân sự</button>
+    <button class="dbb-sub-btn" id="navBtn-sectionLichLamViec" onclick="switchSection('sectionLichLamViec')">🗓️ Lịch làm việc</button>
     <button class="dbb-sub-btn" id="navBtn-sectionComingSoon" onclick="switchSection('sectionComingSoon')">✨ Sắp ra mắt</button>
   </div>
   <button class="dbb-fab" id="dbbFab" onclick="toggleDbbMenu()"><span>DBB</span></button>
@@ -1021,6 +1085,79 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     <p>Đang chờ cấu trúc dữ liệu cụ thể để triển khai.</p>
   </div>
 </div>
+<!-- ================= SECTION: LỊCH LÀM VIỆC (Cảnh báo hạn / Lịch họp / Công việc / Công việc cá nhân) ================= -->
+<div id="sectionLichLamViec" class="app-section">
+  <div class="vh-subtabs">
+    <button class="vh-subtab-btn active" id="llvTabBtn-canhbao" onclick="switchLLVTab('canhbao')">⏰ Cảnh báo hạn</button>
+    <button class="vh-subtab-btn" id="llvTabBtn-lichhop" onclick="switchLLVTab('lichhop')">🗓️ Lịch họp</button>
+    <button class="vh-subtab-btn" id="llvTabBtn-congviec" onclick="switchLLVTab('congviec')">✅ Công việc</button>
+    <button class="vh-subtab-btn" id="llvTabBtn-canhan" onclick="switchLLVTab('canhan')">📌 Công việc cá nhân</button>
+  </div>
+
+  <!-- ---- Cảnh báo hạn ---- -->
+  <div id="llvCanhBao" class="vh-pane active">
+    <div class="llv-toolbar">
+      <div class="llv-legend">
+        <span class="llv-dot llv-dot-tre"></span> Trễ hạn
+        <span class="llv-dot llv-dot-sap"></span> Sắp trễ (≤3 ngày)
+        <span class="llv-dot llv-dot-con"></span> Còn hạn
+      </div>
+      <button class="llv-btn-ghost" onclick="loadLichLamViec(true)">🔄 Làm mới</button>
+    </div>
+    <div id="llvCanhBaoError" class="llv-error" style="display:none"></div>
+    <div id="llvCanhBaoBody"><div class="llv-loading">Đang tải công việc...</div></div>
+  </div>
+
+  <!-- ---- Lịch họp ---- -->
+  <div id="llvLichHop" class="vh-pane">
+    <div class="llv-card">
+      <div class="llv-card-head">
+        <h3>Lịch của tôi</h3>
+        <button class="llv-btn-ghost" onclick="llvToggleCalForm()">+ Thêm lịch (link iCal)</button>
+      </div>
+      <div id="llvCalForm" class="llv-cal-form" style="display:none">
+        <input type="text" id="llvCalTen" placeholder="Tên lịch (VD: Lịch họp của tôi)">
+        <input type="text" id="llvCalUrl" placeholder="Link iCal (.ics) — lấy ở Cài đặt Google Calendar > Tích hợp > Địa chỉ bí mật dạng iCal">
+        <label id="llvCalChiaSeWrap" style="display:none"><input type="checkbox" id="llvCalChiaSe"> Chia sẻ chung (mọi người đều thấy sự kiện)</label>
+        <div class="llv-cal-form-actions">
+          <button class="llv-btn-primary" onclick="llvSaveCalendar()">Lưu lịch</button>
+          <button class="llv-btn-ghost" onclick="llvToggleCalForm(false)">Huỷ</button>
+        </div>
+        <div id="llvCalFormError" class="llv-error" style="display:none"></div>
+      </div>
+      <div id="llvCalList"><div class="llv-loading">Đang tải...</div></div>
+    </div>
+    <div class="llv-card">
+      <div class="llv-card-head"><h3>Sự kiện sắp tới (60 ngày)</h3></div>
+      <div id="llvAgenda"><div class="llv-loading">Đang tải lịch họp...</div></div>
+    </div>
+  </div>
+
+  <!-- ---- Công việc (giao việc nhóm) ---- -->
+  <div id="llvCongViec" class="vh-pane">
+    <div class="llv-toolbar">
+      <select id="llvCVFilterHangMuc" onchange="renderLLVCongViec()"><option value="">Tất cả hạng mục</option></select>
+      <select id="llvCVFilterTrangThai" onchange="renderLLVCongViec()"><option value="">Tất cả trạng thái</option></select>
+      <button class="llv-btn-primary" id="llvBtnGiaoViec" style="display:none" onclick="llvToggleTaskForm('congviec')">+ Giao việc mới</button>
+      <button class="llv-btn-ghost" onclick="loadLichLamViec(true)">🔄 Làm mới</button>
+    </div>
+    <div id="llvCVForm" class="llv-task-form" style="display:none"></div>
+    <div id="llvCVError" class="llv-error" style="display:none"></div>
+    <div id="llvCVList"><div class="llv-loading">Đang tải công việc...</div></div>
+  </div>
+
+  <!-- ---- Công việc cá nhân ---- -->
+  <div id="llvCaNhan" class="vh-pane">
+    <div class="llv-toolbar">
+      <button class="llv-btn-primary" onclick="llvToggleTaskForm('canhan')">+ Thêm việc cá nhân</button>
+      <button class="llv-btn-ghost" onclick="loadLichLamViec(true)">🔄 Làm mới</button>
+    </div>
+    <div id="llvCNForm" class="llv-task-form" style="display:none"></div>
+    <div id="llvCNError" class="llv-error" style="display:none"></div>
+    <div id="llvCNList"><div class="llv-loading">Đang tải việc cá nhân...</div></div>
+  </div>
+</div>
+
 <div id="sectionComingSoon" class="app-section">
   <div class="section-placeholder">
     <div class="sp-icon">✨</div>
@@ -1064,6 +1201,11 @@ window.MODULE_DEFS = [
   { id: 'truythu', label: 'Truy thu', cap: 'section' },
   { id: 'capacity', label: 'Capacity', cap: 'section' },
   { id: 'nhansu', label: 'Nhân sự', cap: 'section' },
+  { id: 'lichlamviec', label: 'Lịch làm việc', cap: 'section' },
+  { id: 'llv_canhbao', label: 'Cảnh báo hạn', cap: 'tab' },
+  { id: 'llv_lichhop', label: 'Lịch họp', cap: 'tab' },
+  { id: 'llv_congviec', label: 'Công việc', cap: 'tab' },
+  { id: 'llv_canhan', label: 'Công việc cá nhân', cap: 'tab' },
   { id: 'sapramat', label: 'Sắp ra mắt', cap: 'section' }
 ];
 // Ánh xạ id id-DOM nút bấm menu/tab thật trên trang -> moduleId, dùng cho applyModuleVisibilityToDom().
@@ -1071,6 +1213,9 @@ window.MODULE_DOM_MAP = {
   vanhanh: 'navBtn-sectionVanHanh', kinhdoanh: 'navBtn-sectionKinhDoanh',
   truythu: 'navBtn-sectionTruyThu', capacity: 'navBtn-sectionCapacity',
   nhansu: 'navBtn-sectionNhanSu', sapramat: 'navBtn-sectionComingSoon',
+  lichlamviec: 'navBtn-sectionLichLamViec',
+  llv_canhbao: 'llvTabBtn-canhbao', llv_lichhop: 'llvTabBtn-lichhop',
+  llv_congviec: 'llvTabBtn-congviec', llv_canhan: 'llvTabBtn-canhan',
   vh_ngay: 'vhTabBtn-ngay', vh_tuan: 'vhTabBtn-tuan', vh_thang: 'vhTabBtn-thang',
   kd_ngay: 'kdTabBtn-ngay', kd_tuan: 'kdTabBtn-tuan', kd_thang: 'kdTabBtn-thang',
   kd_kehoach: 'kdTabBtn-kehoach', kd_bckqkd: 'kdTabBtn-bckqkd',
@@ -1104,7 +1249,8 @@ const MODULE_TAB_GROUPS = [
   { switchFn: 'switchVanHanhTab', items: [['ngay','vh_ngay'],['tuan','vh_tuan'],['thang','vh_thang']] },
   { switchFn: 'switchKDTab', items: [['ngay','kd_ngay'],['tuan','kd_tuan'],['thang','kd_thang'],['kehoach','kd_kehoach'],['bckqkd','kd_bckqkd']] },
   { switchFn: 'switchKHTab', items: [['lap','kd_kehoach_lap'],['capnhat','kd_kehoach_capnhat'],['baocaokh','kd_kehoach_baocaokh'],['tongquan','kd_kehoach_tongquan'],['kinhdoanh','kd_kehoach_kinhdoanh'],['bieudo','kd_kehoach_bieudo']] },
-  { switchFn: 'switchBCKQKDTab', items: [['submit','kd_bckqkd_submit'],['aggregate','kd_bckqkd_aggregate']] }
+  { switchFn: 'switchBCKQKDTab', items: [['submit','kd_bckqkd_submit'],['aggregate','kd_bckqkd_aggregate']] },
+  { switchFn: 'switchLLVTab', items: [['canhbao','llv_canhbao'],['lichhop','llv_lichhop'],['congviec','llv_congviec'],['canhan','llv_canhan']] }
 ];
 // Áp dụng modVisible() lên toàn bộ nút menu/tab thật trên DOM — gọi lại mỗi khi đăng nhập xong, hoặc mỗi khi
 // Admin bật/tắt "Xem trước theo quyền".
@@ -1116,7 +1262,7 @@ function applyModuleVisibilityToDom(){
   // nếu section đang active bị ẩn đi, tự chuyển sang mục còn hiển thị đầu tiên để tránh màn hình trắng
   const activeSection = document.querySelector('.app-section.active');
   if (activeSection && !modVisible(sectionIdToModuleId(activeSection.id))) {
-    const firstVisible = ['vanhanh','kinhdoanh','truythu','capacity','nhansu','sapramat'].find(id => modVisible(id));
+    const firstVisible = ['vanhanh','kinhdoanh','truythu','capacity','nhansu','lichlamviec','sapramat'].find(id => modVisible(id));
     if (firstVisible) switchSection(moduleIdToSectionId(firstVisible));
   }
   // tương tự cho từng nhóm tab con (Vận hành Ngày/Tuần/Tháng, Kinh doanh Ngày/Tuần/Tháng/Kế hoạch/BCKQKD, ...)
@@ -1133,11 +1279,13 @@ function applyModuleVisibilityToDom(){
 }
 function sectionIdToModuleId(sectionId){
   return { sectionVanHanh: 'vanhanh', sectionKinhDoanh: 'kinhdoanh', sectionTruyThu: 'truythu',
-    sectionCapacity: 'capacity', sectionNhanSu: 'nhansu', sectionComingSoon: 'sapramat' }[sectionId] || '';
+    sectionCapacity: 'capacity', sectionNhanSu: 'nhansu', sectionLichLamViec: 'lichlamviec',
+    sectionComingSoon: 'sapramat' }[sectionId] || '';
 }
 function moduleIdToSectionId(moduleId){
   return { vanhanh: 'sectionVanHanh', kinhdoanh: 'sectionKinhDoanh', truythu: 'sectionTruyThu',
-    capacity: 'sectionCapacity', nhansu: 'sectionNhanSu', sapramat: 'sectionComingSoon' }[moduleId] || 'sectionVanHanh';
+    capacity: 'sectionCapacity', nhansu: 'sectionNhanSu', lichlamviec: 'sectionLichLamViec',
+    sapramat: 'sectionComingSoon' }[moduleId] || 'sectionVanHanh';
 }
 
 function setPreviewRole(role){
@@ -4477,7 +4625,7 @@ document.addEventListener('click', function(e){
     menu.classList.remove('open'); fab.classList.remove('open');
   }
 });
-const ALL_SECTIONS = ['sectionVanHanh','sectionKinhDoanh','sectionTruyThu','sectionCapacity','sectionNhanSu','sectionComingSoon'];
+const ALL_SECTIONS = ['sectionVanHanh','sectionKinhDoanh','sectionTruyThu','sectionCapacity','sectionNhanSu','sectionLichLamViec','sectionComingSoon'];
 function switchSection(id){
   ALL_SECTIONS.forEach(s => {
     const el = document.getElementById(s);
@@ -4489,6 +4637,7 @@ function switchSection(id){
   if (menu) menu.classList.remove('open');
   if (fab) fab.classList.remove('open');
   if (id === 'sectionKinhDoanh') loadKinhDoanh();
+  if (id === 'sectionLichLamViec') loadLichLamViec();
   if (typeof window.scrollTo === 'function') window.scrollTo(0,0);
 }
 function switchVanHanhTab(tab){
@@ -4512,6 +4661,364 @@ function switchKDTab(tab){
   });
   if (tab === 'kehoach') loadKeHoachKinhDoanh();
   if (tab === 'bckqkd') loadBCKQKD();
+}
+
+// ================= LỊCH LÀM VIỆC (Cảnh báo hạn / Lịch họp / Công việc / Công việc cá nhân) =================
+// 4 tab con này ẩn/hiện theo ĐÚNG cơ chế hạng mục & phân quyền chung của toàn web (modVisible/applyModuleVisibilityToDom
+// ở trên) — không cần thêm logic phân quyền riêng ở đây, chỉ cần enforce ĐÚNG quy tắc nghiệp vụ (ai được giao
+// việc cho ai, ai xem được việc nào) đã được BACKEND kiểm tra lại lần nữa cho chắc (client chỉ ẩn/hiện nút cho gọn).
+window.LLV_LOADED = false;
+window.LLV_TASKS = [];
+window.LLV_META = { myEmail: '', myRole: '', canAssignOthers: false, categories: [], statuses: [], priorities: [] };
+window.LLV_USERS = [];
+window.LLV_CAL_LOADED = false;
+window.LLV_CALENDARS = [];
+window.LLV_EVENTS = [];
+
+function llvCategoryLabel(id){
+  const c = (window.LLV_META.categories||[]).find(x => x.id === id);
+  return c ? c.label : (id || 'Không hạng mục');
+}
+function llvFmtDate(iso){
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+}
+function llvFmtDateTime(iso){
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return llvFmtDate(iso)+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+// Phân loại đúng theo yêu cầu: "Trễ hạn" (hồng) / "Sắp trễ" (vàng, hạn trong ≤3 ngày tới) / "Còn hạn" (xanh).
+// Việc đã Hoàn thành hoặc không đặt hạn chót thì không cảnh báo (coi như trung tính, không thuộc 3 màu trên).
+function llvDeadlineClass(hanChot, trangThai){
+  if (!hanChot || trangThai === 'Hoàn thành') return '';
+  const now = new Date();
+  const due = new Date(hanChot);
+  if (isNaN(due.getTime())) return '';
+  const diffDays = (due - now) / (24*60*60*1000);
+  if (diffDays < 0) return 'tre';
+  if (diffDays <= 3) return 'sap';
+  return 'con';
+}
+function llvBadgeHtml(hanChot, trangThai){
+  if (trangThai === 'Hoàn thành') return '<span class="llv-badge llv-badge-done">✓ Hoàn thành</span>';
+  const cls = llvDeadlineClass(hanChot, trangThai);
+  if (cls === 'tre') return '<span class="llv-badge llv-badge-tre">Trễ hạn</span>';
+  if (cls === 'sap') return '<span class="llv-badge llv-badge-sap">Sắp trễ</span>';
+  if (cls === 'con') return '<span class="llv-badge llv-badge-con">Còn hạn</span>';
+  return '';
+}
+function llvPrioClass(p){
+  return { 'Cao': 'llv-prio-Cao', 'Trung bình': 'llv-prio-TrungBinh', 'Thấp': 'llv-prio-Thap' }[p] || 'llv-prio-TrungBinh';
+}
+
+async function loadLichLamViec(force){
+  if (window.LLV_LOADED && !force) return;
+  const errEl = document.getElementById('llvCanhBaoError');
+  if (errEl) errEl.style.display = 'none';
+  try {
+    const [taskRes, userRes] = await Promise.all([
+      callBackend('getTasks', { token: AUTH.session.token }),
+      callBackend('getAssignableUsers', { token: AUTH.session.token })
+    ]);
+    if (!taskRes.ok) throw new Error(taskRes.error || 'load_failed');
+    window.LLV_TASKS = taskRes.tasks || [];
+    window.LLV_META = {
+      myEmail: taskRes.myEmail, myRole: taskRes.myRole, canAssignOthers: !!taskRes.canAssignOthers,
+      categories: taskRes.categories || [], statuses: taskRes.statuses || [], priorities: taskRes.priorities || []
+    };
+    window.LLV_USERS = (userRes && userRes.ok) ? (userRes.users || []) : [];
+    window.LLV_LOADED = true;
+    llvPopulateFilterOptions();
+    renderLLVCanhBao();
+    renderLLVCongViec();
+    renderLLVCaNhan();
+    const btnGiao = document.getElementById('llvBtnGiaoViec');
+    if (btnGiao) btnGiao.style.display = window.LLV_META.canAssignOthers ? '' : 'none';
+  } catch(e) {
+    if (errEl) { errEl.textContent = 'Không tải được dữ liệu công việc: ' + e.message; errEl.style.display = 'block'; }
+  }
+  // Lịch họp tải riêng (nặng hơn, phải fetch nhiều link iCal ở backend) — chỉ tải khi user thật sự mở tab đó,
+  // hoặc nếu tab đó đang active sẵn lúc gọi hàm này (VD F5 lại trang khi đang ở tab Lịch họp).
+  const lichhopPane = document.getElementById('llvLichHop');
+  if (lichhopPane && lichhopPane.classList.contains('active')) loadLLVCalendar();
+}
+
+function llvPopulateFilterOptions(){
+  const selHm = document.getElementById('llvCVFilterHangMuc');
+  if (selHm) {
+    const cur = selHm.value;
+    selHm.innerHTML = '<option value="">Tất cả hạng mục</option>' +
+      window.LLV_META.categories.map(c => '<option value="'+esc(c.id)+'">'+esc(c.label)+'</option>').join('');
+    selHm.value = cur;
+  }
+  const selTt = document.getElementById('llvCVFilterTrangThai');
+  if (selTt) {
+    const cur = selTt.value;
+    selTt.innerHTML = '<option value="">Tất cả trạng thái</option>' +
+      window.LLV_META.statuses.map(s => '<option value="'+esc(s)+'">'+esc(s)+'</option>').join('');
+    selTt.value = cur;
+  }
+}
+
+function switchLLVTab(tab){
+  const paneIds = { canhbao: 'llvCanhBao', lichhop: 'llvLichHop', congviec: 'llvCongViec', canhan: 'llvCaNhan' };
+  ['canhbao','lichhop','congviec','canhan'].forEach(t => {
+    const pane = document.getElementById(paneIds[t]);
+    if (pane) pane.classList.toggle('active', t===tab);
+    const btn = document.getElementById('llvTabBtn-'+t);
+    if (btn) btn.classList.toggle('active', t===tab);
+  });
+  if (tab === 'lichhop') loadLLVCalendar();
+}
+
+// ---- Cảnh báo hạn: nhóm theo Hạng mục web hiện có, mỗi nhóm sắp Trễ hạn lên đầu rồi tới Sắp trễ/Còn hạn ----
+function renderLLVCanhBao(){
+  const body = document.getElementById('llvCanhBaoBody');
+  if (!body) return;
+  const tasks = window.LLV_TASKS.filter(t => !t.laCaNhan && t.hanChot); // cảnh báo hạn áp dụng cho việc TEAM có hạn chót
+  if (!tasks.length) { body.innerHTML = '<div class="llv-empty">Chưa có công việc nào có hạn chót để cảnh báo.</div>'; return; }
+  const order = { tre: 0, sap: 1, con: 2, '': 3 };
+  const groups = {};
+  tasks.forEach(t => {
+    const key = t.hangMuc || '__khac__';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(t);
+  });
+  let html = '';
+  Object.keys(groups).forEach(key => {
+    const label = key === '__khac__' ? 'Không thuộc hạng mục' : llvCategoryLabel(key);
+    const rows = groups[key].slice().sort((a,b) => {
+      const ca = order[llvDeadlineClass(a.hanChot,a.trangThai)]; const cb = order[llvDeadlineClass(b.hanChot,b.trangThai)];
+      if (ca !== cb) return ca - cb;
+      return new Date(a.hanChot) - new Date(b.hanChot);
+    });
+    const nTre = rows.filter(t => llvDeadlineClass(t.hanChot,t.trangThai)==='tre').length;
+    const nSap = rows.filter(t => llvDeadlineClass(t.hanChot,t.trangThai)==='sap').length;
+    html += '<div class="llv-group-heading">'+esc(label)+
+      (nTre ? ' · <span style="color:#C2185B">'+nTre+' trễ hạn</span>' : '') +
+      (nSap ? ' · <span style="color:#9A6B00">'+nSap+' sắp trễ</span>' : '') + '</div>';
+    rows.forEach(t => { html += llvTaskCardHtml(t, false); });
+  });
+  body.innerHTML = html;
+}
+
+function llvTaskCardHtml(t, showActions){
+  const cls = llvDeadlineClass(t.hanChot, t.trangThai);
+  const canManage = window.LLV_META.myRole === 'Admin' || window.LLV_META.myRole === 'Quản lý' ||
+    t.nguoiGiaoEmail === window.LLV_META.myEmail || (t.laCaNhan && t.nguoiThucHienEmail === window.LLV_META.myEmail);
+  const canUpdateStatus = canManage || t.nguoiThucHienEmail === window.LLV_META.myEmail;
+  let html = '<div class="llv-task-card'+(cls ? ' llv-'+cls : '')+'">';
+  html += '<div class="llv-task-main">';
+  html += '<div class="llv-task-title">'+esc(t.tieuDe)+' <span class="llv-prio '+llvPrioClass(t.mucDoUuTien)+'">'+esc(t.mucDoUuTien)+'</span></div>';
+  html += '<div class="llv-task-sub">';
+  if (!t.laCaNhan) html += (t.hangMuc ? esc(llvCategoryLabel(t.hangMuc))+' · ' : '') + '👤 '+esc(t.nguoiThucHienTen || t.nguoiThucHienEmail);
+  html += (t.hanChot ? ' · Hạn: '+llvFmtDate(t.hanChot) : ' · Không có hạn chót');
+  if (t.moTa) html += '<br>'+esc(t.moTa);
+  html += '</div></div>';
+  html += llvBadgeHtml(t.hanChot, t.trangThai);
+  if (showActions) {
+    html += '<div class="llv-task-actions">';
+    if (canUpdateStatus) {
+      html += '<select onchange="llvUpdateStatus(\''+t.id+'\', this.value)">' +
+        window.LLV_META.statuses.map(s => '<option value="'+esc(s)+'"'+(s===t.trangThai?' selected':'')+'>'+esc(s)+'</option>').join('') + '</select>';
+    } else {
+      html += '<span class="llv-badge" style="background:var(--bg);color:var(--muted)">'+esc(t.trangThai)+'</span>';
+    }
+    if (canManage) html += '<button onclick="llvDeleteTask(\''+t.id+'\')" title="Xoá">🗑️</button>';
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+// ---- Công việc (team) ----
+function renderLLVCongViec(){
+  const list = document.getElementById('llvCVList');
+  if (!list) return;
+  const fHm = (document.getElementById('llvCVFilterHangMuc')||{}).value || '';
+  const fTt = (document.getElementById('llvCVFilterTrangThai')||{}).value || '';
+  let tasks = window.LLV_TASKS.filter(t => !t.laCaNhan);
+  if (fHm) tasks = tasks.filter(t => t.hangMuc === fHm);
+  if (fTt) tasks = tasks.filter(t => t.trangThai === fTt);
+  if (!tasks.length) { list.innerHTML = '<div class="llv-empty">Không có công việc nào khớp bộ lọc.</div>'; return; }
+  tasks = tasks.slice().sort((a,b) => (a.hanChot?new Date(a.hanChot):8640000000000000) - (b.hanChot?new Date(b.hanChot):8640000000000000));
+  list.innerHTML = tasks.map(t => llvTaskCardHtml(t, true)).join('');
+}
+
+// ---- Công việc cá nhân ----
+function renderLLVCaNhan(){
+  const list = document.getElementById('llvCNList');
+  if (!list) return;
+  let tasks = window.LLV_TASKS.filter(t => t.laCaNhan);
+  if (!tasks.length) { list.innerHTML = '<div class="llv-empty">Chưa có việc cá nhân nào — bấm "+ Thêm việc cá nhân" để tạo.</div>'; return; }
+  tasks = tasks.slice().sort((a,b) => {
+    if ((a.trangThai==='Hoàn thành') !== (b.trangThai==='Hoàn thành')) return a.trangThai==='Hoàn thành' ? 1 : -1;
+    return (a.hanChot?new Date(a.hanChot):8640000000000000) - (b.hanChot?new Date(b.hanChot):8640000000000000);
+  });
+  list.innerHTML = tasks.map(t => llvTaskCardHtml(t, true)).join('');
+}
+
+// ---- Form tạo việc (dùng chung 1 khung, khác nhau ở field "Hạng mục"/"Người thực hiện" — việc cá nhân không có) ----
+function llvToggleTaskForm(context){
+  const formId = context === 'canhan' ? 'llvCNForm' : 'llvCVForm';
+  const form = document.getElementById(formId);
+  if (!form) return;
+  const isVisible = !!form.style.display && form.style.display !== 'none';
+  if (isVisible) { form.style.display = 'none'; form.innerHTML = ''; return; }
+  const isPersonal = context === 'canhan';
+  let html = '';
+  html += '<input type="text" id="llvForm-'+context+'-tieuDe" placeholder="Tiêu đề công việc *">';
+  if (!isPersonal) {
+    html += '<select id="llvForm-'+context+'-hangMuc"><option value="">Không thuộc hạng mục</option>' +
+      window.LLV_META.categories.map(c => '<option value="'+esc(c.id)+'">'+esc(c.label)+'</option>').join('') + '</select>';
+    if (window.LLV_META.canAssignOthers) {
+      html += '<select id="llvForm-'+context+'-nguoiThucHien">' +
+        window.LLV_USERS.map(u => '<option value="'+esc(u.email)+'"'+(u.email===window.LLV_META.myEmail?' selected':'')+'>'+esc(u.name)+' ('+esc(u.role)+')</option>').join('') + '</select>';
+    }
+  }
+  html += '<select id="llvForm-'+context+'-mucDo">' +
+    window.LLV_META.priorities.map(p => '<option value="'+esc(p)+'"'+(p==='Trung bình'?' selected':'')+'>'+esc(p)+'</option>').join('') + '</select>';
+  html += '<input type="date" id="llvForm-'+context+'-hanChot">';
+  html += '<textarea id="llvForm-'+context+'-moTa" placeholder="Mô tả (không bắt buộc)"></textarea>';
+  html += '<div class="llv-task-form-actions"><button class="llv-btn-primary" onclick="llvSaveTask(\''+context+'\')">Lưu</button>' +
+    '<button class="llv-btn-ghost" onclick="llvToggleTaskForm(\''+context+'\')">Huỷ</button></div>';
+  form.innerHTML = html;
+  form.style.display = 'grid';
+}
+
+async function llvSaveTask(context){
+  const isPersonal = context === 'canhan';
+  const tieuDeEl = document.getElementById('llvForm-'+context+'-tieuDe');
+  const tieuDe = tieuDeEl ? tieuDeEl.value : '';
+  if (!tieuDe.trim()) { alert('Vui lòng nhập tiêu đề công việc.'); return; }
+  const payload = { token: AUTH.session.token, tieuDe: tieuDe.trim(), laCaNhan: isPersonal };
+  const moTaEl = document.getElementById('llvForm-'+context+'-moTa'); if (moTaEl) payload.moTa = moTaEl.value;
+  const hanEl = document.getElementById('llvForm-'+context+'-hanChot'); if (hanEl && hanEl.value) payload.hanChot = hanEl.value;
+  const mdEl = document.getElementById('llvForm-'+context+'-mucDo'); if (mdEl) payload.mucDoUuTien = mdEl.value;
+  if (!isPersonal) {
+    const hmEl = document.getElementById('llvForm-'+context+'-hangMuc'); if (hmEl) payload.hangMuc = hmEl.value;
+    const ntEl = document.getElementById('llvForm-'+context+'-nguoiThucHien');
+    payload.nguoiThucHienEmail = ntEl ? ntEl.value : window.LLV_META.myEmail;
+  }
+  const errId = isPersonal ? 'llvCNError' : 'llvCVError';
+  const errEl = document.getElementById(errId);
+  if (errEl) errEl.style.display = 'none';
+  const res = await callBackend('createTask', payload);
+  if (!res.ok) { if (errEl) { errEl.textContent = 'Không tạo được công việc: ' + (res.error||''); errEl.style.display='block'; } return; }
+  llvToggleTaskForm(context);
+  await loadLichLamViec(true);
+}
+
+async function llvUpdateStatus(id, trangThai){
+  const res = await callBackend('updateTaskStatus', { token: AUTH.session.token, id: id, trangThai: trangThai });
+  if (!res.ok) { alert('Không cập nhật được trạng thái: ' + (res.error||'')); }
+  await loadLichLamViec(true);
+}
+
+async function llvDeleteTask(id){
+  if (!confirm('Xoá công việc này? Không thể hoàn tác.')) return;
+  const res = await callBackend('deleteTask', { token: AUTH.session.token, id: id });
+  if (!res.ok) { alert('Không xoá được: ' + (res.error||'')); return; }
+  await loadLichLamViec(true);
+}
+
+// ---- Lịch họp ----
+function llvToggleCalForm(show){
+  const form = document.getElementById('llvCalForm');
+  if (!form) return;
+  const willShow = show === undefined ? form.style.display === 'none' : show;
+  form.style.display = willShow ? 'flex' : 'none';
+  const wrap = document.getElementById('llvCalChiaSeWrap');
+  if (wrap) wrap.style.display = window.LLV_META.canAssignOthers ? 'flex' : 'none';
+  if (willShow) {
+    const tenEl = document.getElementById('llvCalTen'); if (tenEl) tenEl.value = '';
+    const urlEl = document.getElementById('llvCalUrl'); if (urlEl) urlEl.value = '';
+    const cbEl = document.getElementById('llvCalChiaSe'); if (cbEl) cbEl.checked = false;
+    const errEl = document.getElementById('llvCalFormError'); if (errEl) errEl.style.display = 'none';
+  }
+}
+
+async function llvSaveCalendar(){
+  const ten = (document.getElementById('llvCalTen')||{}).value || '';
+  const url = (document.getElementById('llvCalUrl')||{}).value || '';
+  const chiaSe = (document.getElementById('llvCalChiaSe')||{}).checked || false;
+  const errEl = document.getElementById('llvCalFormError');
+  if (errEl) errEl.style.display = 'none';
+  if (!/^https?:\/\//i.test(url.trim())) {
+    if (errEl) { errEl.textContent = 'Link iCal không hợp lệ — phải bắt đầu bằng http:// hoặc https://'; errEl.style.display='block'; }
+    return;
+  }
+  const res = await callBackend('saveCalendarConfig', { token: AUTH.session.token, tenLich: ten.trim(), icalUrl: url.trim(), chiaSeChung: chiaSe });
+  if (!res.ok) { if (errEl) { errEl.textContent = 'Không lưu được lịch: ' + (res.error||''); errEl.style.display='block'; } return; }
+  llvToggleCalForm(false);
+  await loadLLVCalendar(true);
+}
+
+async function llvDeleteCalendar(id){
+  if (!confirm('Xoá lịch này? Sự kiện từ lịch này sẽ không còn hiển thị nữa.')) return;
+  const res = await callBackend('deleteCalendarConfig', { token: AUTH.session.token, id: id });
+  if (!res.ok) { alert('Không xoá được: ' + (res.error||'')); return; }
+  await loadLLVCalendar(true);
+}
+
+async function loadLLVCalendar(force){
+  if (window.LLV_CAL_LOADED && !force) return;
+  const calList = document.getElementById('llvCalList');
+  const agenda = document.getElementById('llvAgenda');
+  try {
+    const [cfgRes, evRes] = await Promise.all([
+      callBackend('getCalendarConfigs', { token: AUTH.session.token }),
+      callBackend('getCalendarEvents', { token: AUTH.session.token })
+    ]);
+    if (cfgRes.ok) { window.LLV_CALENDARS = cfgRes.calendars || []; renderLLVCalList(); }
+    if (evRes.ok) { window.LLV_EVENTS = evRes.events || []; renderLLVAgenda(); }
+    window.LLV_CAL_LOADED = true;
+  } catch(e) {
+    if (calList) calList.innerHTML = '<div class="llv-empty">Không tải được danh sách lịch.</div>';
+    if (agenda) agenda.innerHTML = '<div class="llv-empty">Không tải được sự kiện lịch họp.</div>';
+  }
+}
+
+function renderLLVCalList(){
+  const el = document.getElementById('llvCalList');
+  if (!el) return;
+  if (!window.LLV_CALENDARS.length) { el.innerHTML = '<div class="llv-empty">Chưa có lịch nào — thêm link iCal của bạn ở trên.</div>'; return; }
+  el.innerHTML = window.LLV_CALENDARS.map(c => {
+    const canDel = c.laCuaToi || window.LLV_META.myRole === 'Admin';
+    return '<div class="llv-cal-item"><div><span class="llv-cal-item-name">'+esc(c.tenLich)+'</span>' +
+      (c.chiaSeChung ? '<span class="llv-tag-shared">Chia sẻ chung</span>' : '') +
+      '<div class="llv-cal-item-sub">'+esc(c.email)+(c.laCuaToi?' · của tôi':'')+'</div></div>' +
+      (canDel ? '<button class="llv-btn-ghost" onclick="llvDeleteCalendar(\''+c.id+'\')">Xoá</button>' : '') + '</div>';
+  }).join('');
+}
+
+function renderLLVAgenda(){
+  const el = document.getElementById('llvAgenda');
+  if (!el) return;
+  if (!window.LLV_EVENTS.length) { el.innerHTML = '<div class="llv-empty">Không có sự kiện nào trong 60 ngày tới. Thêm lịch iCal của bạn ở mục "Lịch của tôi" để xem lịch họp tại đây.</div>'; return; }
+  const days = {};
+  window.LLV_EVENTS.forEach(ev => {
+    const d = new Date(ev.start);
+    const key = d.toDateString();
+    if (!days[key]) days[key] = [];
+    days[key].push(ev);
+  });
+  const dowLabels = ['CN','Th 2','Th 3','Th 4','Th 5','Th 6','Th 7'];
+  let html = '';
+  Object.keys(days).forEach(key => {
+    const d = new Date(days[key][0].start);
+    html += '<div class="llv-agenda-day">'+llvFmtDate(d.toISOString())+' — '+dowLabels[d.getDay()]+'</div>';
+    days[key].forEach(ev => {
+      html += '<div class="llv-agenda-item"><div class="llv-agenda-time">'+(ev.allDay ? 'Cả ngày' : llvFmtDateTime(ev.start).split(' ')[1])+'</div>' +
+        '<div><div class="llv-agenda-title">'+esc(ev.title)+(ev.calendarName ? ' <span class="llv-tag-shared">'+esc(ev.calendarName)+'</span>' : '')+'</div>' +
+        (ev.location ? '<div class="llv-agenda-loc">📍 '+esc(ev.location)+'</div>' : '') + '</div></div>';
+    });
+  });
+  el.innerHTML = html;
 }
 
 // ================= BÁO CÁO KẾT QUẢ KINH DOANH (BCKQKD) =================

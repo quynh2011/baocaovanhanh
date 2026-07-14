@@ -124,8 +124,20 @@ const MODULE_DEFS = [
   { id: 'truythu', label: 'Truy thu', cap: 'section', chaId: '' },
   { id: 'capacity', label: 'Capacity', cap: 'section', chaId: '' },
   { id: 'nhansu', label: 'Nhân sự', cap: 'section', chaId: '' },
+  { id: 'lichlamviec', label: 'Lịch làm việc', cap: 'section', chaId: '' },
+  { id: 'llv_canhbao', label: 'Lịch làm việc › Cảnh báo hạn', cap: 'tab', chaId: 'lichlamviec' },
+  { id: 'llv_lichhop', label: 'Lịch làm việc › Lịch họp', cap: 'tab', chaId: 'lichlamviec' },
+  { id: 'llv_congviec', label: 'Lịch làm việc › Công việc', cap: 'tab', chaId: 'lichlamviec' },
+  { id: 'llv_canhan', label: 'Lịch làm việc › Công việc cá nhân', cap: 'tab', chaId: 'lichlamviec' },
   { id: 'sapramat', label: 'Sắp ra mắt', cap: 'section', chaId: '' }
 ];
+// Danh sách hạng mục web dùng làm "Hạng mục" gắn cho từng công việc trong "Lịch làm việc" — CHỈ lấy các mục
+// cấp section (trừ chính "Lịch làm việc"), theo đúng lựa chọn của user: dùng lại hạng mục web hiện có thay vì
+// tạo danh sách riêng, để đồng bộ với hệ thống phân quyền hạng mục đã có.
+function getTaskCategoryOptions() {
+  return MODULE_DEFS.filter(function (m) { return m.cap === 'section' && m.id !== 'lichlamviec'; })
+    .map(function (m) { return { id: m.id, label: m.label }; });
+}
 const MODULE_CONFIG_SHEET_NAME = 'CauHinhHangMuc';
 const MODULE_CONFIG_HEADERS = ['ModuleId', 'TenHienThi', 'BatTat', 'QuyenAdmin', 'QuyenQuanLy', 'QuyenNhanVienXuLy', 'QuyenNhanVien'];
 
@@ -235,6 +247,16 @@ function doPost(e) {
     if (action === 'updateBCKQKDAggregate') return jsonOut(handleUpdateBCKQKDAggregate(body));
     if (action === 'getModuleConfig') return jsonOut(handleGetModuleConfig(body));
     if (action === 'updateModuleConfig') return jsonOut(handleUpdateModuleConfig(body));
+    if (action === 'getAssignableUsers') return jsonOut(handleGetAssignableUsers(body));
+    if (action === 'getTasks') return jsonOut(handleGetTasks(body));
+    if (action === 'createTask') return jsonOut(handleCreateTask(body));
+    if (action === 'updateTask') return jsonOut(handleUpdateTask(body));
+    if (action === 'updateTaskStatus') return jsonOut(handleUpdateTaskStatus(body));
+    if (action === 'deleteTask') return jsonOut(handleDeleteTask(body));
+    if (action === 'getCalendarConfigs') return jsonOut(handleGetCalendarConfigs(body));
+    if (action === 'saveCalendarConfig') return jsonOut(handleSaveCalendarConfig(body));
+    if (action === 'deleteCalendarConfig') return jsonOut(handleDeleteCalendarConfig(body));
+    if (action === 'getCalendarEvents') return jsonOut(handleGetCalendarEvents(body));
     return jsonOut({ ok: false, error: 'unknown_action' });
   } catch (err) {
     return jsonOut({ ok: false, error: 'server_error', detail: String(err) });
@@ -570,6 +592,17 @@ function requireActiveUser(token) {
   var found = findUserRow(sh, email);
   if (!found || found.values[COL.ACTIVE - 1] !== true) return { error: 'account_inactive' };
   return { email: email, name: String(found.values[COL.HOTEN - 1] || email) };
+}
+
+// Giống requireActiveUser nhưng có thêm "role" — dùng cho các API cần biết cấp quyền (Admin/Quản lý/Nhân viên xử
+// lý/Nhân viên) để quyết định hành vi, ví dụ: mục "Lịch làm việc" (giao việc, quản lý lịch chia sẻ chung...).
+function requireActiveUserFull(token) {
+  var email = verifyToken(token);
+  if (!email) return { error: 'session_expired' };
+  var sh = getMainSheet();
+  var found = findUserRow(sh, email);
+  if (!found || found.values[COL.ACTIVE - 1] !== true) return { error: 'account_inactive' };
+  return { email: email, name: String(found.values[COL.HOTEN - 1] || email), role: String(found.values[COL.VAITRO - 1] || '') };
 }
 
 function getKeHoachSpreadsheet() {
@@ -1610,4 +1643,457 @@ function handleUpdateBCKQKDAggregate(body) {
   sheets.aggSh.getRange(rowIdx, 4, 1, 1).setValue(JSON.stringify(content));
   sheets.aggSh.getRange(rowIdx, 6, 1, 2).setValues([[now, auth.email]]);
   return { ok: true, editedAt: now.toISOString(), editedBy: auth.email };
+}
+
+// ================================================================================================
+// ====== LỊCH LÀM VIỆC — (1) Công việc/giao việc + cảnh báo hạn, (2) Lịch họp (đọc từ link iCal) ======
+// Dùng CHUNG hệ thống đăng nhập/phân quyền "Main" — hiển thị/ẩn 4 tab con qua MODULE_DEFS
+// (llv_canhbao/llv_lichhop/llv_congviec/llv_canhan) như mọi hạng mục khác, Admin cấu hình ở trang
+// "Cấu hình" > "Hạng mục & Phân quyền" y hệt các mục còn lại — KHÔNG cần thêm cơ chế phân quyền riêng.
+// ================================================================================================
+const CONGVIEC_SHEET_NAME = 'CongViec';
+const CONGVIEC_HEADERS = ['Id', 'TieuDe', 'MoTa', 'HangMuc', 'MucDoUuTien', 'NguoiGiaoEmail', 'NguoiGiaoTen',
+  'NguoiThucHienEmail', 'NguoiThucHienTen', 'NgayTao', 'HanChot', 'TrangThai', 'LaCaNhan', 'NgayHoanThanh', 'LichSuJson'];
+const TASK_STATUSES = ['Chưa bắt đầu', 'Đang thực hiện', 'Chờ duyệt', 'Hoàn thành'];
+const TASK_PRIORITIES = ['Cao', 'Trung bình', 'Thấp'];
+
+function ensureCongViecSheet(ss) {
+  var sh = ss.getSheetByName(CONGVIEC_SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(CONGVIEC_SHEET_NAME);
+    sh.getRange(1, 1, 1, CONGVIEC_HEADERS.length).setValues([CONGVIEC_HEADERS]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function taskRowToObj(r) {
+  var lichSu = [];
+  try { lichSu = JSON.parse(r[14] || '[]'); } catch (e) {}
+  return {
+    id: String(r[0] || ''), tieuDe: String(r[1] || ''), moTa: String(r[2] || ''), hangMuc: String(r[3] || ''),
+    mucDoUuTien: String(r[4] || 'Trung bình'),
+    nguoiGiaoEmail: String(r[5] || ''), nguoiGiaoTen: String(r[6] || ''),
+    nguoiThucHienEmail: String(r[7] || ''), nguoiThucHienTen: String(r[8] || ''),
+    ngayTao: r[9] ? new Date(r[9]).toISOString() : '',
+    hanChot: r[10] ? new Date(r[10]).toISOString() : '',
+    trangThai: String(r[11] || 'Chưa bắt đầu'),
+    laCaNhan: r[12] === true,
+    ngayHoanThanh: r[13] ? new Date(r[13]).toISOString() : '',
+    lichSu: lichSu
+  };
+}
+
+// Ai được XEM danh sách "Công việc" nhóm (không tính việc cá nhân): Admin/Quản lý thấy TOÀN BỘ (cần cái nhìn
+// tổng thể để điều phối); Nhân viên xử lý/Nhân viên chỉ thấy việc mình được giao HOẶC việc do chính mình tạo/giao.
+function canSeeAllTeamTasks(role) { return role === 'Admin' || role === 'Quản lý'; }
+// Ai được GIAO việc cho NGƯỜI KHÁC (nguoiThucHien khác chính mình): chỉ Admin/Quản lý — theo đúng lựa chọn của user.
+function canAssignOthers(role) { return role === 'Admin' || role === 'Quản lý'; }
+
+function handleGetAssignableUsers(body) {
+  var auth = requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var sh = getMainSheet();
+  var values = sh.getDataRange().getValues();
+  var users = [];
+  for (var i = 1; i < values.length; i++) {
+    var r = values[i];
+    var em = normEmail(r[COL.EMAIL - 1]);
+    if (!em || r[COL.ACTIVE - 1] !== true) continue;
+    users.push({ email: em, name: String(r[COL.HOTEN - 1] || em), role: String(r[COL.VAITRO - 1] || '') });
+  }
+  return { ok: true, users: users, categories: getTaskCategoryOptions(), statuses: TASK_STATUSES, priorities: TASK_PRIORITIES };
+}
+
+function handleGetTasks(body) {
+  var auth = requireActiveUserFull(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureCongViecSheet(ss);
+  var values = sh.getDataRange().getValues();
+  var seeAll = canSeeAllTeamTasks(auth.role);
+  var tasks = [];
+  for (var i = 1; i < values.length; i++) {
+    var r = values[i];
+    if (!r[0]) continue;
+    var isPersonal = r[12] === true;
+    var thucHien = normEmail(r[7]);
+    var giao = normEmail(r[5]);
+    if (isPersonal) {
+      // Việc cá nhân: CHỈ chủ sở hữu + Admin xem được (Admin toàn quyền mặc định, giống mọi mục khác trong hệ thống).
+      if (thucHien !== auth.email && auth.role !== 'Admin') continue;
+    } else {
+      if (!seeAll && thucHien !== auth.email && giao !== auth.email) continue;
+    }
+    tasks.push(taskRowToObj(r));
+  }
+  return { ok: true, tasks: tasks, myEmail: auth.email, myRole: auth.role, canAssignOthers: canAssignOthers(auth.role),
+    categories: getTaskCategoryOptions(), statuses: TASK_STATUSES, priorities: TASK_PRIORITIES };
+}
+
+function handleCreateTask(body) {
+  var auth = requireActiveUserFull(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var tieuDe = String(body.tieuDe || '').trim();
+  if (!tieuDe) return { ok: false, error: 'missing_title' };
+  var laCaNhan = !!body.laCaNhan;
+  var hanChot = body.hanChot ? new Date(body.hanChot) : null;
+  if (hanChot && isNaN(hanChot.getTime())) return { ok: false, error: 'bad_deadline' };
+  var mucDoUuTien = TASK_PRIORITIES.indexOf(body.mucDoUuTien) !== -1 ? body.mucDoUuTien : 'Trung bình';
+  var hangMuc = String(body.hangMuc || '');
+  if (hangMuc && !getTaskCategoryOptions().some(function (c) { return c.id === hangMuc; })) return { ok: false, error: 'bad_category' };
+
+  var nguoiThucHienEmail, nguoiThucHienTen;
+  if (laCaNhan) {
+    // Việc cá nhân: luôn tự giao cho chính mình, bỏ qua nguoiThucHienEmail gửi lên (nếu có) để tránh nhầm lẫn.
+    nguoiThucHienEmail = auth.email; nguoiThucHienTen = auth.name;
+  } else {
+    nguoiThucHienEmail = normEmail(body.nguoiThucHienEmail) || auth.email;
+    if (nguoiThucHienEmail !== auth.email && !canAssignOthers(auth.role)) {
+      return { ok: false, error: 'forbidden_assign' }; // Nhân viên xử lý/Nhân viên chỉ được tạo việc cho chính mình
+    }
+    if (nguoiThucHienEmail === auth.email) {
+      nguoiThucHienTen = auth.name;
+    } else {
+      var targetFound = findUserRow(getMainSheet(), nguoiThucHienEmail);
+      if (!targetFound || targetFound.values[COL.ACTIVE - 1] !== true) return { ok: false, error: 'assignee_not_found' };
+      nguoiThucHienTen = String(targetFound.values[COL.HOTEN - 1] || nguoiThucHienEmail);
+    }
+  }
+
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureCongViecSheet(ss);
+  var id = Utilities.getUuid();
+  var now = new Date();
+  var lichSu = [{ at: now.toISOString(), by: auth.email, action: 'tao', note: '' }];
+  sh.appendRow([id, tieuDe, String(body.moTa || ''), hangMuc, mucDoUuTien, auth.email, auth.name,
+    nguoiThucHienEmail, nguoiThucHienTen, now, hanChot || '', 'Chưa bắt đầu', laCaNhan, '', JSON.stringify(lichSu)]);
+  return { ok: true, id: id };
+}
+
+// Tìm dòng theo Id, trả về {row, values} hoặc null.
+function findTaskRow(sh, id) {
+  var values = sh.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) { if (String(values[i][0]) === id) return { row: i + 1, values: values[i] }; }
+  return null;
+}
+
+// Có quyền SỬA/XOÁ 1 công việc cụ thể không: Admin/Quản lý luôn được; người tạo (NguoiGiaoEmail) được; chủ việc
+// cá nhân được sửa/xoá chính việc của mình. Nhân viên xử lý/Nhân viên KHÔNG được sửa việc do người khác giao.
+function canEditTask(auth, r) {
+  if (auth.role === 'Admin' || auth.role === 'Quản lý') return true;
+  if (normEmail(r[5]) === auth.email) return true; // người tạo/giao việc
+  if (r[12] === true && normEmail(r[7]) === auth.email) return true; // chủ việc cá nhân
+  return false;
+}
+
+function handleUpdateTask(body) {
+  var auth = requireActiveUserFull(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureCongViecSheet(ss);
+  var found = findTaskRow(sh, String(body.id || ''));
+  if (!found) return { ok: false, error: 'task_not_found' };
+  var r = found.values;
+  if (!canEditTask(auth, r)) return { ok: false, error: 'forbidden' };
+
+  if (body.tieuDe !== undefined) {
+    var tieuDe = String(body.tieuDe || '').trim();
+    if (!tieuDe) return { ok: false, error: 'missing_title' };
+    sh.getRange(found.row, 2).setValue(tieuDe);
+  }
+  if (body.moTa !== undefined) sh.getRange(found.row, 3).setValue(String(body.moTa || ''));
+  if (body.hangMuc !== undefined) {
+    var hangMuc = String(body.hangMuc || '');
+    if (hangMuc && !getTaskCategoryOptions().some(function (c) { return c.id === hangMuc; })) return { ok: false, error: 'bad_category' };
+    sh.getRange(found.row, 4).setValue(hangMuc);
+  }
+  if (body.mucDoUuTien !== undefined && TASK_PRIORITIES.indexOf(body.mucDoUuTien) !== -1) sh.getRange(found.row, 5).setValue(body.mucDoUuTien);
+  if (body.hanChot !== undefined) {
+    var hanChot = body.hanChot ? new Date(body.hanChot) : '';
+    if (hanChot && isNaN(hanChot.getTime())) return { ok: false, error: 'bad_deadline' };
+    sh.getRange(found.row, 11).setValue(hanChot);
+  }
+  // Chỉ Admin/Quản lý được đổi người thực hiện (tránh Nhân viên tự chuyển việc/né việc cho người khác).
+  if (body.nguoiThucHienEmail !== undefined && r[12] !== true) {
+    if (!canAssignOthers(auth.role)) return { ok: false, error: 'forbidden_assign' };
+    var newAssignee = normEmail(body.nguoiThucHienEmail);
+    var targetFound = findUserRow(getMainSheet(), newAssignee);
+    if (!targetFound || targetFound.values[COL.ACTIVE - 1] !== true) return { ok: false, error: 'assignee_not_found' };
+    sh.getRange(found.row, 8, 1, 2).setValues([[newAssignee, String(targetFound.values[COL.HOTEN - 1] || newAssignee)]]);
+  }
+  return { ok: true };
+}
+
+function handleUpdateTaskStatus(body) {
+  var auth = requireActiveUserFull(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var trangThai = String(body.trangThai || '');
+  if (TASK_STATUSES.indexOf(trangThai) === -1) return { ok: false, error: 'bad_status' };
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureCongViecSheet(ss);
+  var found = findTaskRow(sh, String(body.id || ''));
+  if (!found) return { ok: false, error: 'task_not_found' };
+  var r = found.values;
+  // Người được cập nhật tiến độ: người thực hiện, người giao, Admin/Quản lý.
+  var canUpdate = canEditTask(auth, r) || normEmail(r[7]) === auth.email;
+  if (!canUpdate) return { ok: false, error: 'forbidden' };
+
+  var now = new Date();
+  var lichSu = [];
+  try { lichSu = JSON.parse(r[14] || '[]'); } catch (e) {}
+  lichSu.push({ at: now.toISOString(), by: auth.email, action: 'trangthai', note: String(body.ghiChu || ''), tu: r[11], den: trangThai });
+  sh.getRange(found.row, 12).setValue(trangThai);
+  sh.getRange(found.row, 14).setValue(trangThai === 'Hoàn thành' ? now : '');
+  sh.getRange(found.row, 15).setValue(JSON.stringify(lichSu));
+  return { ok: true };
+}
+
+function handleDeleteTask(body) {
+  var auth = requireActiveUserFull(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureCongViecSheet(ss);
+  var found = findTaskRow(sh, String(body.id || ''));
+  if (!found) return { ok: false, error: 'task_not_found' };
+  if (!canEditTask(auth, found.values)) return { ok: false, error: 'forbidden' };
+  sh.deleteRow(found.row);
+  return { ok: true };
+}
+
+// ====== LỊCH HỌP — mỗi user dán link iCal (.ics) công khai của Google Calendar (Cài đặt lịch > "Địa chỉ bí
+// mật dạng iCal" hoặc lịch Public), backend đọc/parse trực tiếp, KHÔNG cần OAuth (theo đúng lựa chọn của user).
+const CAUHINH_LICH_SHEET_NAME = 'CauHinhLich';
+const CAUHINH_LICH_HEADERS = ['Id', 'Email', 'TenLich', 'ICalUrl', 'KichHoat', 'ChiaSeChung', 'NgayThem'];
+
+function ensureCauHinhLichSheet(ss) {
+  var sh = ss.getSheetByName(CAUHINH_LICH_SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(CAUHINH_LICH_SHEET_NAME);
+    sh.getRange(1, 1, 1, CAUHINH_LICH_HEADERS.length).setValues([CAUHINH_LICH_HEADERS]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function handleGetCalendarConfigs(body) {
+  var auth = requireActiveUserFull(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureCauHinhLichSheet(ss);
+  var values = sh.getDataRange().getValues();
+  var isAdmin = auth.role === 'Admin';
+  var calendars = [];
+  for (var i = 1; i < values.length; i++) {
+    var r = values[i];
+    if (!r[0]) continue;
+    var owner = normEmail(r[1]);
+    var chiaSe = r[5] === true;
+    if (!isAdmin && owner !== auth.email && !chiaSe) continue; // riêng tư của người khác thì không thấy
+    calendars.push({
+      id: String(r[0]), email: owner, tenLich: String(r[2] || ''),
+      // Chỉ trả link iCal đầy đủ cho đúng chủ sở hữu hoặc Admin — người khác chỉ cần biết lịch chia sẻ TỒN TẠI
+      // để tick xem sự kiện, không cần thấy nguyên link (link iCal thường coi là bí mật, lộ ra là người khác
+      // đọc được lịch gốc trực tiếp trên Google Calendar).
+      icalUrl: (isAdmin || owner === auth.email) ? String(r[3] || '') : '',
+      kichHoat: r[4] === true, chiaSeChung: chiaSe, laCuaToi: owner === auth.email
+    });
+  }
+  return { ok: true, calendars: calendars };
+}
+
+function handleSaveCalendarConfig(body) {
+  var auth = requireActiveUserFull(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var icalUrl = String(body.icalUrl || '').trim();
+  var tenLich = String(body.tenLich || '').trim() || 'Lịch của tôi';
+  if (!/^https?:\/\//i.test(icalUrl)) return { ok: false, error: 'bad_url' };
+  var chiaSeChung = !!body.chiaSeChung;
+  // Chỉ Admin/Quản lý được đánh dấu "chia sẻ chung" (mọi người đều thấy sự kiện) — Nhân viên xử lý/Nhân viên
+  // chỉ tạo được lịch riêng của mình (chỉ họ + Admin thấy), tránh loạn lịch chung do ai cũng thêm được.
+  if (chiaSeChung && !canAssignOthers(auth.role)) chiaSeChung = false;
+
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureCauHinhLichSheet(ss);
+  var id = String(body.id || '');
+  if (id) {
+    var values = sh.getDataRange().getValues();
+    var rowIdx = -1;
+    for (var i = 1; i < values.length; i++) { if (String(values[i][0]) === id) { rowIdx = i + 1; break; } }
+    if (rowIdx === -1) return { ok: false, error: 'calendar_not_found' };
+    var ownerEmail = normEmail(values[rowIdx - 1][1]);
+    if (ownerEmail !== auth.email && auth.role !== 'Admin') return { ok: false, error: 'forbidden' };
+    sh.getRange(rowIdx, 3, 1, 4).setValues([[tenLich, icalUrl, body.kichHoat !== false, chiaSeChung]]);
+    invalidateCalendarCache();
+    return { ok: true, id: id };
+  }
+  var newId = Utilities.getUuid();
+  sh.appendRow([newId, auth.email, tenLich, icalUrl, true, chiaSeChung, new Date()]);
+  invalidateCalendarCache();
+  return { ok: true, id: newId };
+}
+
+function handleDeleteCalendarConfig(body) {
+  var auth = requireActiveUserFull(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureCauHinhLichSheet(ss);
+  var values = sh.getDataRange().getValues();
+  var rowIdx = -1, ownerEmail = '';
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(body.id || '')) { rowIdx = i + 1; ownerEmail = normEmail(values[i][1]); break; }
+  }
+  if (rowIdx === -1) return { ok: false, error: 'calendar_not_found' };
+  if (ownerEmail !== auth.email && auth.role !== 'Admin') return { ok: false, error: 'forbidden' };
+  sh.deleteRow(rowIdx);
+  invalidateCalendarCache();
+  return { ok: true };
+}
+
+// Cache tổng hợp sự kiện lịch họp 5 phút (tương tự cơ chế cache Gemini/Xaphuong đã dùng trong file này) — vì
+// UrlFetchApp đọc iCal của nhiều người có thể chậm nếu gọi lại mỗi lần mở trang. Dùng 1 cache key CHUNG (không
+// theo từng email) vì danh sách lịch chia sẻ chung ảnh hưởng tới nhiều người — join bảng quyền xem lại ở bước
+// lọc kết quả (KHÔNG cache riêng theo từng user) để tránh cache bùng nổ theo số lượng nhân viên.
+function invalidateCalendarCache() { CacheService.getScriptCache().remove('calevents_all_v1'); }
+
+function handleGetCalendarEvents(body) {
+  var auth = requireActiveUserFull(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureCauHinhLichSheet(ss);
+  var values = sh.getDataRange().getValues();
+  var cache = CacheService.getScriptCache();
+  var allEventsByCalId = {};
+  var cached = cache.get('calevents_all_v1');
+  if (cached) {
+    try { allEventsByCalId = JSON.parse(cached); } catch (e) { allEventsByCalId = {}; }
+  }
+  var needCache = false;
+  var rangeStart = new Date();
+  var rangeEnd = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000); // cửa sổ 60 ngày tới
+
+  var visibleCalendars = [];
+  var isAdmin = auth.role === 'Admin';
+  for (var i = 1; i < values.length; i++) {
+    var r = values[i];
+    if (!r[0] || r[4] !== true) continue; // bỏ qua lịch đã tắt (KichHoat=false)
+    var owner = normEmail(r[1]);
+    var chiaSe = r[5] === true;
+    if (!isAdmin && owner !== auth.email && !chiaSe) continue;
+    visibleCalendars.push({ id: String(r[0]), email: owner, tenLich: String(r[2] || ''), url: String(r[3] || '') });
+  }
+
+  var events = [];
+  visibleCalendars.forEach(function (cal) {
+    var raw = allEventsByCalId[cal.id];
+    if (!raw) {
+      needCache = true;
+      try {
+        var resp = UrlFetchApp.fetch(cal.url, { muteHttpExceptions: true, followRedirects: true });
+        if (resp.getResponseCode() === 200) {
+          var parsed = parseICS(resp.getContentText());
+          raw = expandICSEvents(parsed, rangeStart, rangeEnd);
+        } else { raw = []; }
+      } catch (e) { raw = []; }
+      allEventsByCalId[cal.id] = raw;
+    }
+    raw.forEach(function (ev) {
+      events.push(Object.assign({}, ev, { calendarId: cal.id, calendarName: cal.tenLich, calendarOwner: cal.email }));
+    });
+  });
+
+  if (needCache) cache.put('calevents_all_v1', JSON.stringify(allEventsByCalId), 300);
+  events.sort(function (a, b) { return new Date(a.start) - new Date(b.start); });
+  return { ok: true, events: events };
+}
+
+// ---- Parser iCal (.ics) tối giản — đủ dùng cho lịch họp Google Calendar: unfold dòng gấp theo RFC5545, tách
+// từng VEVENT, đọc SUMMARY/DTSTART/DTEND/LOCATION/RRULE. KHÔNG hỗ trợ đầy đủ chuẩn iCal (VD EXDATE, múi giờ
+// phức tạp...) — đủ tốt cho nhu cầu xem lịch họp sắp tới, không phải app lịch đầy đủ tính năng.
+function unfoldICSLines(text) {
+  var rawLines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+  var lines = [];
+  rawLines.forEach(function (line) {
+    if ((line[0] === ' ' || line[0] === '\t') && lines.length) lines[lines.length - 1] += line.slice(1);
+    else lines.push(line);
+  });
+  return lines;
+}
+function parseICSDate(raw) {
+  // raw dạng "20260720T090000Z" (UTC), "20260720T090000" (giờ địa phương/floating) hoặc "20260720" (cả ngày).
+  var s = String(raw || '').trim();
+  var m = s.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$/);
+  if (!m) return null;
+  var y = +m[1], mo = +m[2] - 1, d = +m[3];
+  if (!m[4]) return { date: new Date(y, mo, d), allDay: true };
+  var hh = +m[4], mi = +m[5], ss = +m[6];
+  if (m[7] === 'Z') return { date: new Date(Date.UTC(y, mo, d, hh, mi, ss)), allDay: false };
+  return { date: new Date(y, mo, d, hh, mi, ss), allDay: false }; // floating/TZID: coi như giờ địa phương script
+}
+function parseICSPropLine(line) {
+  var colonIdx = line.indexOf(':');
+  if (colonIdx === -1) return null;
+  var left = line.slice(0, colonIdx);
+  var value = line.slice(colonIdx + 1);
+  var semiIdx = left.indexOf(';');
+  var name = (semiIdx === -1 ? left : left.slice(0, semiIdx)).toUpperCase();
+  return { name: name, value: value };
+}
+function parseICS(text) {
+  var lines = unfoldICSLines(text);
+  var events = [];
+  var cur = null;
+  lines.forEach(function (line) {
+    var trimmed = line.trim();
+    if (trimmed === 'BEGIN:VEVENT') { cur = { summary: '', location: '', description: '', dtstart: '', dtend: '', rrule: '', allDay: false }; return; }
+    if (trimmed === 'END:VEVENT') { if (cur) events.push(cur); cur = null; return; }
+    if (!cur) return;
+    var prop = parseICSPropLine(trimmed);
+    if (!prop) return;
+    if (prop.name === 'SUMMARY') cur.summary = prop.value.replace(/\\,/g, ',').replace(/\\n/gi, ' ');
+    else if (prop.name === 'LOCATION') cur.location = prop.value.replace(/\\,/g, ',');
+    else if (prop.name === 'DESCRIPTION') cur.description = prop.value.replace(/\\n/gi, ' ').replace(/\\,/g, ',');
+    else if (prop.name === 'DTSTART') cur.dtstart = prop.value;
+    else if (prop.name === 'DTEND') cur.dtend = prop.value;
+    else if (prop.name === 'RRULE') cur.rrule = prop.value;
+  });
+  return events;
+}
+// Khai triển sự kiện lặp lại (RRULE) trong khoảng [rangeStart, rangeEnd] — chỉ hỗ trợ FREQ=DAILY/WEEKLY/MONTHLY
+// kèm INTERVAL/COUNT/UNTIL cơ bản, giới hạn tối đa 300 lần lặp/sự kiện để tránh vòng lặp vô hạn.
+function expandICSEvents(rawEvents, rangeStart, rangeEnd) {
+  var out = [];
+  rawEvents.forEach(function (ev) {
+    var st = parseICSDate(ev.dtstart);
+    if (!st) return;
+    var en = parseICSDate(ev.dtend);
+    var durationMs = en ? (en.date.getTime() - st.date.getTime()) : (60 * 60 * 1000);
+    if (!ev.rrule) {
+      if (st.date >= rangeStart && st.date <= rangeEnd) {
+        out.push({ title: ev.summary, start: st.date.toISOString(), end: new Date(st.date.getTime() + durationMs).toISOString(), allDay: st.allDay, location: ev.location });
+      }
+      return;
+    }
+    var parts = {};
+    ev.rrule.split(';').forEach(function (p) { var kv = p.split('='); if (kv.length === 2) parts[kv[0].toUpperCase()] = kv[1]; });
+    var freq = parts.FREQ; var interval = parseInt(parts.INTERVAL || '1', 10) || 1;
+    var count = parts.COUNT ? parseInt(parts.COUNT, 10) : null;
+    var until = parts.UNTIL ? (parseICSDate(parts.UNTIL) || {}).date : null;
+    if (!freq) return;
+    var occ = new Date(st.date.getTime());
+    var n = 0;
+    while (occ <= rangeEnd && n < 300) {
+      if (count !== null && n >= count) break;
+      if (until && occ > until) break;
+      if (occ >= rangeStart) {
+        out.push({ title: ev.summary, start: occ.toISOString(), end: new Date(occ.getTime() + durationMs).toISOString(), allDay: st.allDay, location: ev.location });
+      }
+      if (freq === 'DAILY') occ = new Date(occ.getFullYear(), occ.getMonth(), occ.getDate() + interval, occ.getHours(), occ.getMinutes(), occ.getSeconds());
+      else if (freq === 'WEEKLY') occ = new Date(occ.getFullYear(), occ.getMonth(), occ.getDate() + 7 * interval, occ.getHours(), occ.getMinutes(), occ.getSeconds());
+      else if (freq === 'MONTHLY') occ = new Date(occ.getFullYear(), occ.getMonth() + interval, occ.getDate(), occ.getHours(), occ.getMinutes(), occ.getSeconds());
+      else break; // FREQ khác (YEARLY, hiếm gặp cho lịch họp) — bỏ qua, không khai triển
+      n++;
+    }
+  });
+  return out;
 }
