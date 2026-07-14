@@ -90,6 +90,107 @@ const MAIN_HEADERS = ['Email', 'Họ và tên', 'PasswordHash', 'Salt', 'Active'
 // không cần tick (xem getPermissions()). Admin bật/tắt các quyền này cho từng nhân viên qua trang "Cấu hình"
 // trong web (không cần vào thẳng Google Sheet).
 
+// ====== 4 CẤP QUYỀN (cột VaiTro sheet Main nhận 1 trong 4 giá trị này — 'Admin' luôn có toàn quyền, không
+// phụ thuộc ma trận hạng mục bên dưới) ======
+const ROLES = ['Admin', 'Quản lý', 'Nhân viên xử lý', 'Nhân viên'];
+const ROLE_FIELD = { 'Admin': 'admin', 'Quản lý': 'quanLy', 'Nhân viên xử lý': 'nhanVienXuLy', 'Nhân viên': 'nhanVien' };
+
+// ====== DANH MỤC HẠNG MỤC (menu/tab) TOÀN WEB — nguồn dữ liệu gốc cố định trong code, chỉ 2 cột BatTat +
+// 4 cột quyền (theo ModuleId) là được Admin chỉnh qua trang "Cấu hình" > "Hạng mục & Phân quyền" (lưu ở sheet
+// "CauHinhHangMuc"). "cap" dùng để canh lề/nhóm hiển thị trong bảng cấu hình (section > tab > subtab).
+// "chaId" = hạng mục cha trực tiếp (rỗng nếu là section gốc) — CHỈ dùng để hiển thị phân cấp, KHÔNG tự động suy
+// luận ẩn/hiện (mỗi hạng mục có cờ BatTat + quyền riêng, độc lập — nếu ẩn hạng mục cha thì FE tự ẩn luôn nút cha
+// trên menu, các hạng mục con dù đang bật vẫn không hiển thị được vì nút cha đã biến mất, không cần logic suy diễn
+// phức tạp ở backend).
+const MODULE_DEFS = [
+  { id: 'vanhanh', label: 'Vận hành', cap: 'section', chaId: '' },
+  { id: 'vh_ngay', label: 'Vận hành › Ngày', cap: 'tab', chaId: 'vanhanh' },
+  { id: 'vh_tuan', label: 'Vận hành › Tuần', cap: 'tab', chaId: 'vanhanh' },
+  { id: 'vh_thang', label: 'Vận hành › Tháng', cap: 'tab', chaId: 'vanhanh' },
+  { id: 'kinhdoanh', label: 'Kinh doanh', cap: 'section', chaId: '' },
+  { id: 'kd_ngay', label: 'Kinh doanh › Ngày', cap: 'tab', chaId: 'kinhdoanh' },
+  { id: 'kd_tuan', label: 'Kinh doanh › Tuần', cap: 'tab', chaId: 'kinhdoanh' },
+  { id: 'kd_thang', label: 'Kinh doanh › Tháng', cap: 'tab', chaId: 'kinhdoanh' },
+  { id: 'kd_kehoach', label: 'Kinh doanh › Kế hoạch kinh doanh', cap: 'tab', chaId: 'kinhdoanh' },
+  { id: 'kd_kehoach_lap', label: 'Kế hoạch KD › Lập Kế Hoạch', cap: 'subtab', chaId: 'kd_kehoach' },
+  { id: 'kd_kehoach_capnhat', label: 'Kế hoạch KD › Cập Nhật Tiến Độ', cap: 'subtab', chaId: 'kd_kehoach' },
+  { id: 'kd_kehoach_baocaokh', label: 'Kế hoạch KD › Báo Cáo Kế Hoạch', cap: 'subtab', chaId: 'kd_kehoach' },
+  { id: 'kd_kehoach_tongquan', label: 'Kế hoạch KD › Báo Cáo Tổng Quan', cap: 'subtab', chaId: 'kd_kehoach' },
+  { id: 'kd_kehoach_kinhdoanh', label: 'Kế hoạch KD › Báo Cáo Kinh Doanh', cap: 'subtab', chaId: 'kd_kehoach' },
+  { id: 'kd_kehoach_bieudo', label: 'Kế hoạch KD › Biểu Đồ', cap: 'subtab', chaId: 'kd_kehoach' },
+  { id: 'kd_bckqkd', label: 'Kinh doanh › Báo Cáo Kết Quả KD', cap: 'tab', chaId: 'kinhdoanh' },
+  { id: 'kd_bckqkd_submit', label: 'BCKQKD › Nộp Báo Cáo', cap: 'subtab', chaId: 'kd_bckqkd' },
+  { id: 'kd_bckqkd_aggregate', label: 'BCKQKD › Báo Cáo Tổng Hợp', cap: 'subtab', chaId: 'kd_bckqkd' },
+  { id: 'truythu', label: 'Truy thu', cap: 'section', chaId: '' },
+  { id: 'capacity', label: 'Capacity', cap: 'section', chaId: '' },
+  { id: 'nhansu', label: 'Nhân sự', cap: 'section', chaId: '' },
+  { id: 'sapramat', label: 'Sắp ra mắt', cap: 'section', chaId: '' }
+];
+const MODULE_CONFIG_SHEET_NAME = 'CauHinhHangMuc';
+const MODULE_CONFIG_HEADERS = ['ModuleId', 'TenHienThi', 'BatTat', 'QuyenAdmin', 'QuyenQuanLy', 'QuyenNhanVienXuLy', 'QuyenNhanVien'];
+
+// Tạo sheet "CauHinhHangMuc" nếu chưa có, mặc định TẤT CẢ hạng mục Bật + cả 4 quyền đều được xem — tức là
+// giữ NGUYÊN hành vi hiện tại (mọi tài khoản đã đăng nhập đều thấy mọi mục) cho tới khi Admin chủ động vào
+// "Cấu hình" > "Hạng mục & Phân quyền" để ẩn bớt/giới hạn theo quyền. Nếu về sau MODULE_DEFS có thêm hạng mục
+// mới (code cập nhật) mà sheet cũ chưa có dòng tương ứng, hàm này tự thêm dòng còn thiếu (mặc định Bật + đủ
+// quyền) — không cần Admin tự tạo lại từ đầu mỗi lần code có tính năng mới.
+function ensureModuleConfigSheet(ss) {
+  var sh = ss.getSheetByName(MODULE_CONFIG_SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(MODULE_CONFIG_SHEET_NAME);
+    sh.getRange(1, 1, 1, MODULE_CONFIG_HEADERS.length).setValues([MODULE_CONFIG_HEADERS]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  var values = sh.getDataRange().getValues();
+  var existingIds = {};
+  for (var i = 1; i < values.length; i++) { if (values[i][0]) existingIds[String(values[i][0])] = true; }
+  var missingRows = [];
+  MODULE_DEFS.forEach(function (m) {
+    if (!existingIds[m.id]) missingRows.push([m.id, m.label, true, true, true, true, true]);
+  });
+  if (missingRows.length) {
+    sh.getRange(sh.getLastRow() + 1, 1, missingRows.length, MODULE_CONFIG_HEADERS.length).setValues(missingRows);
+  }
+  var lastRow = Math.max(sh.getLastRow(), 2);
+  sh.getRange(2, 3, Math.max(lastRow - 1, 30), 5).insertCheckboxes();
+  return sh;
+}
+
+// Đọc toàn bộ bảng cấu hình hạng mục, trả về map moduleId -> { batTat, admin, quanLy, nhanVienXuLy, nhanVien }.
+function readModuleConfigMap(sh) {
+  var values = sh.getDataRange().getValues();
+  var map = {};
+  for (var i = 1; i < values.length; i++) {
+    var r = values[i];
+    if (!r[0]) continue;
+    map[String(r[0])] = {
+      row: i + 1, batTat: r[2] === true, admin: r[3] === true,
+      quanLy: r[4] === true, nhanVienXuLy: r[5] === true, nhanVien: r[6] === true
+    };
+  }
+  return map;
+}
+
+// Tính sẵn "hạng mục nào user với role X được thấy" — dùng để nhúng thẳng vào response login/validateSession,
+// tránh mỗi user phải gọi thêm 1 API riêng chỉ để biết ẩn/hiện menu nào. Admin luôn thấy hết (bypass), giống hệt
+// quy ước "Admin luôn có toàn quyền mặc định" đã áp dụng cho 3 quyền tải HTML/copy/chụp màn hình phía trên.
+function computeModuleAccessForRole(role) {
+  var access = {};
+  if (role === 'Admin') {
+    MODULE_DEFS.forEach(function (m) { access[m.id] = true; });
+    return access;
+  }
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureModuleConfigSheet(ss);
+  var map = readModuleConfigMap(sh);
+  var field = ROLE_FIELD[role] || 'nhanVien';
+  MODULE_DEFS.forEach(function (m) {
+    var cfg = map[m.id];
+    access[m.id] = !!(cfg && cfg.batTat && cfg[field]);
+  });
+  return access;
+}
+
 // ====== ĐIỂM VÀO WEB APP ======
 function doGet(e) {
   return ContentService.createTextOutput('GHN Report Backend OK').setMimeType(ContentService.MimeType.TEXT);
@@ -132,6 +233,8 @@ function doPost(e) {
     if (action === 'generateBCKQKDAggregate') return jsonOut(handleGenerateBCKQKDAggregate(body));
     if (action === 'getBCKQKDAggregate') return jsonOut(handleGetBCKQKDAggregate(body));
     if (action === 'updateBCKQKDAggregate') return jsonOut(handleUpdateBCKQKDAggregate(body));
+    if (action === 'getModuleConfig') return jsonOut(handleGetModuleConfig(body));
+    if (action === 'updateModuleConfig') return jsonOut(handleUpdateModuleConfig(body));
     return jsonOut({ ok: false, error: 'unknown_action' });
   } catch (err) {
     return jsonOut({ ok: false, error: 'server_error', detail: String(err) });
@@ -178,7 +281,7 @@ function handleLogin(body) {
 
   var token = makeToken(email);
   var role = String(r[COL.VAITRO - 1] || '');
-  return { ok: true, token: token, email: email, name: String(r[COL.HOTEN - 1] || ''), role: role, permissions: getPermissions(role, r) };
+  return { ok: true, token: token, email: email, name: String(r[COL.HOTEN - 1] || ''), role: role, permissions: getPermissions(role, r), moduleAccess: computeModuleAccessForRole(role) };
 }
 
 function handleValidateSession(body) {
@@ -188,7 +291,7 @@ function handleValidateSession(body) {
   var found = findUserRow(sh, email);
   if (!found || found.values[COL.ACTIVE - 1] !== true) return { ok: false, error: 'account_inactive' };
   var role = String(found.values[COL.VAITRO - 1] || '');
-  return { ok: true, email: email, name: String(found.values[COL.HOTEN - 1] || ''), role: role, permissions: getPermissions(role, found.values) };
+  return { ok: true, email: email, name: String(found.values[COL.HOTEN - 1] || ''), role: role, permissions: getPermissions(role, found.values), moduleAccess: computeModuleAccessForRole(role) };
 }
 
 // ====== PHÂN QUYỀN (tải HTML / copy dữ liệu / chụp màn hình) — chỉ áp dụng cho non-Admin ======
@@ -256,7 +359,7 @@ function handleVerifySessionOtp(body) {
   sh.getRange(found.row, COL.DANGNHAPGANNHAT).setValue(new Date());
   var token = makeToken(email);
   var role = String(r[COL.VAITRO - 1] || '');
-  return { ok: true, token: token, email: email, name: String(r[COL.HOTEN - 1] || ''), role: role, permissions: getPermissions(role, r) };
+  return { ok: true, token: token, email: email, name: String(r[COL.HOTEN - 1] || ''), role: role, permissions: getPermissions(role, r), moduleAccess: computeModuleAccessForRole(role) };
 }
 
 // ====== TRANG "CẤU HÌNH" CHO ADMIN — quản lý quyền tải HTML / copy dữ liệu / chụp màn hình từng nhân viên ======
@@ -268,6 +371,43 @@ function requireAdmin(token) {
   if (!found || found.values[COL.ACTIVE - 1] !== true) return { error: 'account_inactive' };
   if (String(found.values[COL.VAITRO - 1] || '') !== 'Admin') return { error: 'forbidden' };
   return { sh: sh, email: email };
+}
+
+// ====== "CẤU HÌNH" > "HẠNG MỤC & PHÂN QUYỀN" (Admin bật/tắt + gán 4 quyền cho từng hạng mục menu/tab) ======
+function handleGetModuleConfig(body) {
+  var auth = requireAdmin(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureModuleConfigSheet(ss);
+  var map = readModuleConfigMap(sh);
+  var modules = MODULE_DEFS.map(function (m) {
+    var cfg = map[m.id] || { batTat: true, admin: true, quanLy: true, nhanVienXuLy: true, nhanVien: true };
+    return {
+      id: m.id, label: m.label, cap: m.cap, chaId: m.chaId,
+      batTat: cfg.batTat, admin: true, // cột Admin luôn true, chỉ hiển thị tham khảo, không cho tick tắt
+      quanLy: cfg.quanLy, nhanVienXuLy: cfg.nhanVienXuLy, nhanVien: cfg.nhanVien
+    };
+  });
+  return { ok: true, modules: modules };
+}
+
+var MODULE_CONFIG_EDITABLE_FIELDS = { batTat: 3, quanLy: 5, nhanVienXuLy: 6, nhanVien: 7 };
+function handleUpdateModuleConfig(body) {
+  var auth = requireAdmin(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var moduleId = String(body.moduleId || '');
+  var field = String(body.field || '');
+  var col = MODULE_CONFIG_EDITABLE_FIELDS[field];
+  if (!col) return { ok: false, error: 'invalid_field' };
+  if (!MODULE_DEFS.some(function (m) { return m.id === moduleId; })) return { ok: false, error: 'invalid_module' };
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureModuleConfigSheet(ss);
+  var values = sh.getDataRange().getValues();
+  var row = -1;
+  for (var i = 1; i < values.length; i++) { if (String(values[i][0]) === moduleId) { row = i + 1; break; } }
+  if (row === -1) return { ok: false, error: 'invalid_module' };
+  sh.getRange(row, col).setValue(!!body.value);
+  return { ok: true };
 }
 
 function handleGetUserList(body) {

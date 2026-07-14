@@ -242,6 +242,27 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .active-switch .slider:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:2.5px;background:#fff;border-radius:50%;transition:.15s}
 .active-switch input:checked + .slider{background:var(--ghn-blue)}
 .active-switch input:checked + .slider:before{transform:translateX(15px)}
+.cfgm-tabbar{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0}
+.cfgm-tab-btn{font-family:var(--f);font-size:12.5px;font-weight:600;background:none;border:none;border-bottom:2px solid transparent;
+  padding:9px 4px;margin-right:14px;cursor:pointer;color:var(--muted)}
+.cfgm-tab-btn.active{color:var(--ghn-blue);border-bottom-color:var(--ghn-blue)}
+.cfgm-pane{display:none}
+.cfgm-pane.active{display:block}
+.cfgm-preview-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--border);
+  border-radius:10px;padding:10px 12px;margin-bottom:14px}
+.cfgm-preview-label{font-size:11.5px;font-weight:700;color:var(--muted);margin-right:2px}
+.cfgm-preview-btn{font-family:var(--mono);font-size:11.5px;background:#fff;border:1px solid var(--border-strong);color:var(--text);
+  padding:5px 11px;border-radius:20px;cursor:pointer;font-weight:600}
+.cfgm-preview-btn:hover{background:var(--ghn-blue-light)}
+.cfgm-preview-btn.exit{margin-left:auto;background:#FEF2F2;border-color:#F5C2C2;color:#C0392B}
+.module-table td.mod-label{font-weight:600}
+.module-table td.mod-label.cap-tab{padding-left:24px;font-weight:500}
+.module-table td.mod-label.cap-subtab{padding-left:42px;font-weight:400;color:var(--muted)}
+.preview-banner{position:fixed;top:0;left:0;right:0;z-index:9999;background:#B8390E;color:#fff;font-family:var(--mono);
+  font-size:12.5px;text-align:center;padding:9px 14px;display:flex;align-items:center;justify-content:center;gap:12px}
+.preview-banner button{font-family:var(--mono);font-size:11.5px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);
+  padding:5px 12px;border-radius:20px;cursor:pointer;font-weight:600}
+.preview-banner button:hover{background:rgba(255,255,255,.3)}
 .row-action-btn{font-family:var(--mono);font-size:10.5px;border:1px solid var(--border-strong);background:#fff;color:var(--muted);padding:4px 8px;border-radius:6px;cursor:pointer;margin-right:4px;white-space:nowrap}
 .row-action-btn:hover{border-color:var(--ghn-blue);color:var(--ghn-blue)}
 .row-action-btn.danger:hover{border-color:#C0392B;color:#C0392B}
@@ -543,41 +564,82 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 <div class="modal-overlay" id="configModal">
   <div class="modal-card wide">
     <h3>⚙️ Cấu hình <span class="modal-x" onclick="closeConfigModal()">✕ Đóng</span></h3>
-    <div class="perm-hint">Quản lý toàn bộ tài khoản nhân viên ngay tại đây — không cần mở Google Sheet nữa. Tài khoản không phải Admin mặc định KHÔNG có quyền nào ở 3 cột bên dưới (giống 1 Google Sheet đã khoá). Admin luôn có toàn quyền. Mọi thay đổi lưu ngay lập tức.</div>
-    <div class="login-error" id="configError"></div>
-    <div class="login-notice" id="configNotice"></div>
-    <div class="config-toolbar">
-      <button class="config-add-btn" id="configAddToggleBtn" onclick="toggleAddUserForm()">+ Thêm nhân viên</button>
+    <div class="cfgm-tabbar">
+      <button class="cfgm-tab-btn active" id="cfgmTabBtn-accounts" onclick="switchConfigTab('accounts')">👤 Tài khoản</button>
+      <button class="cfgm-tab-btn" id="cfgmTabBtn-modules" onclick="switchConfigTab('modules')">🗂️ Hạng mục &amp; Phân quyền</button>
     </div>
-    <div class="config-add-form" id="configAddForm">
-      <input type="text" id="addUserName" placeholder="Họ và tên">
-      <input type="email" id="addUserEmail" placeholder="email@ghn.vn">
-      <select class="role-select" id="addUserRole">
-        <option value="Nhân viên">Nhân viên</option>
-        <option value="Admin">Admin</option>
-      </select>
-      <div class="config-add-actions">
-        <button class="row-action-btn" onclick="toggleAddUserForm()">Huỷ</button>
-        <button class="config-add-btn" onclick="submitAddUser()">Tạo tài khoản</button>
+
+    <div id="cfgmPane-accounts" class="cfgm-pane active">
+      <div class="perm-hint">Quản lý toàn bộ tài khoản nhân viên ngay tại đây — không cần mở Google Sheet nữa. Tài khoản không phải Admin mặc định KHÔNG có quyền nào ở 3 cột bên dưới (giống 1 Google Sheet đã khoá). Admin luôn có toàn quyền. Mọi thay đổi lưu ngay lập tức.</div>
+      <div class="login-error" id="configError"></div>
+      <div class="login-notice" id="configNotice"></div>
+      <div class="config-toolbar">
+        <button class="config-add-btn" id="configAddToggleBtn" onclick="toggleAddUserForm()">+ Thêm nhân viên</button>
       </div>
+      <div class="config-add-form" id="configAddForm">
+        <input type="text" id="addUserName" placeholder="Họ và tên">
+        <input type="email" id="addUserEmail" placeholder="email@ghn.vn">
+        <select class="role-select" id="addUserRole">
+          <option value="Nhân viên">Nhân viên</option>
+          <option value="Nhân viên xử lý">Nhân viên xử lý</option>
+          <option value="Quản lý">Quản lý</option>
+          <option value="Admin">Admin</option>
+        </select>
+        <div class="config-add-actions">
+          <button class="row-action-btn" onclick="toggleAddUserForm()">Huỷ</button>
+          <button class="config-add-btn" onclick="submitAddUser()">Tạo tài khoản</button>
+        </div>
+      </div>
+      <table class="perm-table">
+        <thead>
+          <tr>
+            <th>Nhân viên</th>
+            <th class="pc">Vai trò</th>
+            <th class="pc">Hoạt động</th>
+            <th class="pc">Tải HTML</th>
+            <th class="pc">Copy dữ liệu</th>
+            <th class="pc">Chụp màn hình</th>
+            <th class="pc">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="configUserList">
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Đang tải danh sách…</td></tr>
+        </tbody>
+      </table>
     </div>
-    <table class="perm-table">
-      <thead>
-        <tr>
-          <th>Nhân viên</th>
-          <th class="pc">Vai trò</th>
-          <th class="pc">Hoạt động</th>
-          <th class="pc">Tải HTML</th>
-          <th class="pc">Copy dữ liệu</th>
-          <th class="pc">Chụp màn hình</th>
-          <th class="pc">Thao tác</th>
-        </tr>
-      </thead>
-      <tbody id="configUserList">
-        <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Đang tải danh sách…</td></tr>
-      </tbody>
-    </table>
+
+    <div id="cfgmPane-modules" class="cfgm-pane">
+      <div class="perm-hint">Bật/tắt từng hạng mục (menu/tab) trên toàn web và chọn quyền nào được xem — tránh để mục "sắp ra mắt" hiện chờ, hoặc ẩn bớt mục chưa muốn công bố. Admin luôn thấy hết, không phụ thuộc bảng này. Mọi thay đổi lưu ngay lập tức.</div>
+      <div class="login-error" id="cfgmModulesError"></div>
+      <div class="cfgm-preview-bar">
+        <span class="cfgm-preview-label">👁 Xem trước theo quyền:</span>
+        <button class="cfgm-preview-btn" onclick="setPreviewRole('Admin')">Admin</button>
+        <button class="cfgm-preview-btn" onclick="setPreviewRole('Quản lý')">Quản lý</button>
+        <button class="cfgm-preview-btn" onclick="setPreviewRole('Nhân viên xử lý')">Nhân viên xử lý</button>
+        <button class="cfgm-preview-btn" onclick="setPreviewRole('Nhân viên')">Nhân viên</button>
+        <button class="cfgm-preview-btn exit" onclick="exitPreviewRole()">✕ Thoát xem trước</button>
+      </div>
+      <table class="perm-table module-table">
+        <thead>
+          <tr>
+            <th>Hạng mục</th>
+            <th class="pc">Bật/Tắt</th>
+            <th class="pc">Admin</th>
+            <th class="pc">Quản lý</th>
+            <th class="pc">NV xử lý</th>
+            <th class="pc">Nhân viên</th>
+          </tr>
+        </thead>
+        <tbody id="cfgmModuleList">
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Đang tải…</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
+</div>
+<div class="preview-banner" id="previewBanner" style="display:none">
+  🔍 Đang xem trước web dưới quyền: <b id="previewBannerRole"></b>
+  <button onclick="exitPreviewRole()">Thoát xem trước</button>
 </div>
 
 <div id="appRoot" style="display:none">
@@ -974,6 +1036,123 @@ const SHEET_ID = "1j3KarXqurcP0GxPE3A4qSxVXs2nfkUM87QscsY5_DtU";
 const SHEET_NAMES = ['01_Scorecard','02_OPR','03_ODR','04_FD','05_RotLC','06_BL_LC_36H','07_GTC',
   '08_BL_Giao_120H','09_BL_LC_Tra_48H','10_BL_Tra_120H','11_KTC_ChoNhap','12_KTC_NhapXuat','13_KTC_Ton24H'];
 
+// ================= HẠNG MỤC & PHÂN QUYỀN (4 quyền: Admin/Quản lý/Nhân viên xử lý/Nhân viên) =================
+// Danh sách này PHẢI khớp chính xác id/thứ tự với MODULE_DEFS bên Code.gs — dùng để: (1) build bảng cấu hình
+// "Hạng mục & Phân quyền" cho Admin, (2) ẩn/hiện nút menu/tab thật trên toàn web theo moduleAccess trả về từ
+// backend lúc đăng nhập, (3) mô phỏng "Xem trước theo quyền" ở phía client (không cần gọi lại backend).
+window.ROLES = ['Admin', 'Quản lý', 'Nhân viên xử lý', 'Nhân viên'];
+window.ROLE_FIELD = { 'Admin': 'admin', 'Quản lý': 'quanLy', 'Nhân viên xử lý': 'nhanVienXuLy', 'Nhân viên': 'nhanVien' };
+window.MODULE_DEFS = [
+  { id: 'vanhanh', label: 'Vận hành', cap: 'section' },
+  { id: 'vh_ngay', label: 'Ngày', cap: 'tab' },
+  { id: 'vh_tuan', label: 'Tuần', cap: 'tab' },
+  { id: 'vh_thang', label: 'Tháng', cap: 'tab' },
+  { id: 'kinhdoanh', label: 'Kinh doanh', cap: 'section' },
+  { id: 'kd_ngay', label: 'Ngày', cap: 'tab' },
+  { id: 'kd_tuan', label: 'Tuần', cap: 'tab' },
+  { id: 'kd_thang', label: 'Tháng', cap: 'tab' },
+  { id: 'kd_kehoach', label: 'Kế hoạch kinh doanh', cap: 'tab' },
+  { id: 'kd_kehoach_lap', label: 'Lập Kế Hoạch', cap: 'subtab' },
+  { id: 'kd_kehoach_capnhat', label: 'Cập Nhật Tiến Độ', cap: 'subtab' },
+  { id: 'kd_kehoach_baocaokh', label: 'Báo Cáo Kế Hoạch', cap: 'subtab' },
+  { id: 'kd_kehoach_tongquan', label: 'Báo Cáo Tổng Quan', cap: 'subtab' },
+  { id: 'kd_kehoach_kinhdoanh', label: 'Báo Cáo Kinh Doanh', cap: 'subtab' },
+  { id: 'kd_kehoach_bieudo', label: 'Biểu Đồ', cap: 'subtab' },
+  { id: 'kd_bckqkd', label: 'Báo Cáo Kết Quả KD', cap: 'tab' },
+  { id: 'kd_bckqkd_submit', label: 'Nộp Báo Cáo', cap: 'subtab' },
+  { id: 'kd_bckqkd_aggregate', label: 'Báo Cáo Tổng Hợp', cap: 'subtab' },
+  { id: 'truythu', label: 'Truy thu', cap: 'section' },
+  { id: 'capacity', label: 'Capacity', cap: 'section' },
+  { id: 'nhansu', label: 'Nhân sự', cap: 'section' },
+  { id: 'sapramat', label: 'Sắp ra mắt', cap: 'section' }
+];
+// Ánh xạ id id-DOM nút bấm menu/tab thật trên trang -> moduleId, dùng cho applyModuleVisibilityToDom().
+window.MODULE_DOM_MAP = {
+  vanhanh: 'navBtn-sectionVanHanh', kinhdoanh: 'navBtn-sectionKinhDoanh',
+  truythu: 'navBtn-sectionTruyThu', capacity: 'navBtn-sectionCapacity',
+  nhansu: 'navBtn-sectionNhanSu', sapramat: 'navBtn-sectionComingSoon',
+  vh_ngay: 'vhTabBtn-ngay', vh_tuan: 'vhTabBtn-tuan', vh_thang: 'vhTabBtn-thang',
+  kd_ngay: 'kdTabBtn-ngay', kd_tuan: 'kdTabBtn-tuan', kd_thang: 'kdTabBtn-thang',
+  kd_kehoach: 'kdTabBtn-kehoach', kd_bckqkd: 'kdTabBtn-bckqkd',
+  kd_kehoach_lap: 'khTabBtn-lap', kd_kehoach_capnhat: 'khTabBtn-capnhat', kd_kehoach_baocaokh: 'khTabBtn-baocaokh',
+  kd_kehoach_tongquan: 'khTabBtn-tongquan', kd_kehoach_kinhdoanh: 'khTabBtn-kinhdoanh', kd_kehoach_bieudo: 'khTabBtn-bieudo',
+  kd_bckqkd_submit: 'bkTabBtn-submit', kd_bckqkd_aggregate: 'bkTabBtn-aggregate'
+};
+window.PREVIEW_ROLE = null; // null = không đang xem trước (dùng quyền thật của session) — khác "Admin" nghĩa là Admin đang giả lập xem web như 1 quyền khác
+window.MODULE_CONFIG_CACHE = null; // cache bảng cấu hình hạng mục đầy đủ (chỉ Admin tải được) — dùng để mô phỏng xem trước không cần gọi lại backend mỗi lần đổi quyền xem thử
+
+// Hạng mục X có hiển thị được không, dưới góc nhìn quyền hiện tại (thật hoặc đang xem trước)?
+function modVisible(moduleId){
+  if (window.PREVIEW_ROLE) {
+    if (window.PREVIEW_ROLE === 'Admin') return true;
+    const cfg = window.MODULE_CONFIG_CACHE || [];
+    const row = cfg.find(m => m.id === moduleId);
+    if (!row) return true; // chưa tải được config thì mặc định hiện (an toàn, tránh trắng trang)
+    const field = window.ROLE_FIELD[window.PREVIEW_ROLE] || 'nhanVien';
+    return !!(row.batTat && row[field]);
+  }
+  const role = AUTH.session && AUTH.session.role;
+  if (role === 'Admin') return true;
+  const access = (AUTH.session && AUTH.session.moduleAccess) || {};
+  return access[moduleId] !== false; // mặc định true nếu backend cũ chưa trả moduleAccess (an toàn ngược)
+}
+
+// Các nhóm tab con cần tự chuyển sang mục còn hiển thị đầu tiên nếu tab đang active bị ẩn đi (VD Admin vừa tắt
+// "Kế hoạch KD > Biểu Đồ" trong khi nhân viên đang xem đúng tab đó) — không áp dụng cho periods/builder (2 tab
+// nội bộ luôn hardcode chỉ Admin, không nằm trong hệ thống hạng mục này).
+const MODULE_TAB_GROUPS = [
+  { switchFn: 'switchVanHanhTab', items: [['ngay','vh_ngay'],['tuan','vh_tuan'],['thang','vh_thang']] },
+  { switchFn: 'switchKDTab', items: [['ngay','kd_ngay'],['tuan','kd_tuan'],['thang','kd_thang'],['kehoach','kd_kehoach'],['bckqkd','kd_bckqkd']] },
+  { switchFn: 'switchKHTab', items: [['lap','kd_kehoach_lap'],['capnhat','kd_kehoach_capnhat'],['baocaokh','kd_kehoach_baocaokh'],['tongquan','kd_kehoach_tongquan'],['kinhdoanh','kd_kehoach_kinhdoanh'],['bieudo','kd_kehoach_bieudo']] },
+  { switchFn: 'switchBCKQKDTab', items: [['submit','kd_bckqkd_submit'],['aggregate','kd_bckqkd_aggregate']] }
+];
+// Áp dụng modVisible() lên toàn bộ nút menu/tab thật trên DOM — gọi lại mỗi khi đăng nhập xong, hoặc mỗi khi
+// Admin bật/tắt "Xem trước theo quyền".
+function applyModuleVisibilityToDom(){
+  Object.keys(window.MODULE_DOM_MAP).forEach(moduleId => {
+    const btn = document.getElementById(window.MODULE_DOM_MAP[moduleId]);
+    if (btn) btn.style.display = modVisible(moduleId) ? '' : 'none';
+  });
+  // nếu section đang active bị ẩn đi, tự chuyển sang mục còn hiển thị đầu tiên để tránh màn hình trắng
+  const activeSection = document.querySelector('.app-section.active');
+  if (activeSection && !modVisible(sectionIdToModuleId(activeSection.id))) {
+    const firstVisible = ['vanhanh','kinhdoanh','truythu','capacity','nhansu','sapramat'].find(id => modVisible(id));
+    if (firstVisible) switchSection(moduleIdToSectionId(firstVisible));
+  }
+  // tương tự cho từng nhóm tab con (Vận hành Ngày/Tuần/Tháng, Kinh doanh Ngày/Tuần/Tháng/Kế hoạch/BCKQKD, ...)
+  MODULE_TAB_GROUPS.forEach(group => {
+    const activeItem = group.items.find(it => {
+      const btnId = window.MODULE_DOM_MAP[it[1]];
+      const btn = btnId && document.getElementById(btnId);
+      return btn && btn.classList.contains('active');
+    });
+    if (!activeItem || modVisible(activeItem[1])) return;
+    const firstVisible = group.items.find(it => modVisible(it[1]));
+    if (firstVisible && typeof window[group.switchFn] === 'function') window[group.switchFn](firstVisible[0]);
+  });
+}
+function sectionIdToModuleId(sectionId){
+  return { sectionVanHanh: 'vanhanh', sectionKinhDoanh: 'kinhdoanh', sectionTruyThu: 'truythu',
+    sectionCapacity: 'capacity', sectionNhanSu: 'nhansu', sectionComingSoon: 'sapramat' }[sectionId] || '';
+}
+function moduleIdToSectionId(moduleId){
+  return { vanhanh: 'sectionVanHanh', kinhdoanh: 'sectionKinhDoanh', truythu: 'sectionTruyThu',
+    capacity: 'sectionCapacity', nhansu: 'sectionNhanSu', sapramat: 'sectionComingSoon' }[moduleId] || 'sectionVanHanh';
+}
+
+function setPreviewRole(role){
+  window.PREVIEW_ROLE = role;
+  const banner = document.getElementById('previewBanner');
+  if (banner) { banner.style.display = 'flex'; document.getElementById('previewBannerRole').textContent = role; }
+  applyModuleVisibilityToDom();
+}
+function exitPreviewRole(){
+  window.PREVIEW_ROLE = null;
+  const banner = document.getElementById('previewBanner');
+  if (banner) banner.style.display = 'none';
+  applyModuleVisibilityToDom();
+}
+
 // ================= XÁC THỰC (đăng nhập / phân quyền / đổi mật khẩu) =================
 // URL Web App của Google Apps Script (Deploy > New deployment > Web app). Dán URL dạng
 // https://script.google.com/macros/s/XXXXXXXX/exec vào đây sau khi deploy Code.gs.
@@ -1098,7 +1277,7 @@ async function handleLoginClick(){
   try {
     const res = await callBackend('login', { email, password });
     if (!res.ok) { showLoginError('loginError', errMsg(res.error)); return; }
-    AUTH.save({ token: res.token, email: res.email, name: res.name, role: res.role, permissions: res.permissions, exp: Date.now() + SESSION_CLIENT_TTL_MS });
+    AUTH.save({ token: res.token, email: res.email, name: res.name, role: res.role, permissions: res.permissions, moduleAccess: res.moduleAccess, exp: Date.now() + SESSION_CLIENT_TTL_MS });
     enterApp(res);
   } catch(e) {
     showLoginError('loginError', 'Không kết nối được máy chủ: ' + e.message);
@@ -1221,7 +1400,7 @@ async function handleVerifySessionOtpClick(){
     const res = await callBackend('verifySessionOtp', { email, otp });
     if (!res.ok) { showLoginError('sessionOtpError', errMsg(res.error)); return; }
     if (window.__sessionOtpTimer) clearInterval(window.__sessionOtpTimer);
-    AUTH.save({ token: res.token, email: res.email, name: res.name, role: res.role, permissions: res.permissions, exp: Date.now() + SESSION_CLIENT_TTL_MS });
+    AUTH.save({ token: res.token, email: res.email, name: res.name, role: res.role, permissions: res.permissions, moduleAccess: res.moduleAccess, exp: Date.now() + SESSION_CLIENT_TTL_MS });
     enterApp(res);
   } catch(e) {
     showLoginError('sessionOtpError', 'Không kết nối được máy chủ: ' + e.message);
@@ -1290,8 +1469,65 @@ async function openConfigModal(){
     tbody.innerHTML = '';
     showLoginError('configError', 'Không kết nối được máy chủ: ' + e.message);
   }
+  window.MODULE_CONFIG_CACHE = null; // buộc tải lại mới nhất mỗi lần mở modal (tránh hiện dữ liệu cũ nếu đã sửa ở phiên trước)
+  window.__cfgmModulesLoaded = false;
 }
 function closeConfigModal(){ document.getElementById('configModal').classList.remove('open'); }
+
+function switchConfigTab(tab){
+  ['accounts','modules'].forEach(t => {
+    const pane = document.getElementById('cfgmPane-' + t); if (pane) pane.classList.toggle('active', t === tab);
+    const btn = document.getElementById('cfgmTabBtn-' + t); if (btn) btn.classList.toggle('active', t === tab);
+  });
+  if (tab === 'modules' && !window.__cfgmModulesLoaded) loadModuleConfig();
+}
+
+async function loadModuleConfig(){
+  const tbody = document.getElementById('cfgmModuleList');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Đang tải…</td></tr>';
+  try {
+    const res = await callBackend('getModuleConfig', { token: AUTH.session.token });
+    if (!res.ok) { tbody.innerHTML = ''; showLoginError('cfgmModulesError', errMsg(res.error)); return; }
+    window.__cfgmModulesLoaded = true;
+    window.MODULE_CONFIG_CACHE = res.modules || [];
+    renderModuleConfigList(window.MODULE_CONFIG_CACHE);
+  } catch(e) {
+    tbody.innerHTML = '';
+    showLoginError('cfgmModulesError', 'Không kết nối được máy chủ: ' + e.message);
+  }
+}
+
+function renderModuleConfigList(modules){
+  const tbody = document.getElementById('cfgmModuleList');
+  if (!modules.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Chưa có hạng mục nào</td></tr>'; return; }
+  const capClass = { section: '', tab: 'cap-tab', subtab: 'cap-subtab' };
+  const chk = (moduleId, field, checked, disabled) =>
+    '<input type="checkbox" class="perm-toggle"' + (checked ? ' checked' : '') + (disabled ? ' disabled' : '') +
+    ' onchange="toggleModuleFlag(\'' + moduleId + '\',\'' + field + '\',this.checked)">';
+  tbody.innerHTML = modules.map(m => {
+    return '<tr>' +
+      '<td class="mod-label ' + (capClass[m.cap] || '') + '">' + esc(m.label) + '</td>' +
+      '<td class="pc">' + chk(m.id, 'batTat', m.batTat, false) + '</td>' +
+      '<td class="pc">' + chk(m.id, 'admin', true, true) + '</td>' +
+      '<td class="pc">' + chk(m.id, 'quanLy', m.quanLy, false) + '</td>' +
+      '<td class="pc">' + chk(m.id, 'nhanVienXuLy', m.nhanVienXuLy, false) + '</td>' +
+      '<td class="pc">' + chk(m.id, 'nhanVien', m.nhanVien, false) + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+async function toggleModuleFlag(moduleId, field, checked){
+  // cập nhật cache cục bộ ngay (để "Xem trước theo quyền" phản ánh tức thì) — rồi mới gọi backend lưu thật.
+  const row = (window.MODULE_CONFIG_CACHE || []).find(m => m.id === moduleId);
+  if (row) row[field] = checked;
+  try {
+    const res = await callBackend('updateModuleConfig', { token: AUTH.session.token, moduleId, field, value: checked });
+    if (!res.ok) { showLoginError('cfgmModulesError', errMsg(res.error)); return; }
+    if (window.PREVIEW_ROLE) applyModuleVisibilityToDom();
+  } catch(e) {
+    showLoginError('cfgmModulesError', 'Không kết nối được máy chủ: ' + e.message);
+  }
+}
 
 function configNotify(msg){
   const notice = document.getElementById('configNotice');
@@ -1312,9 +1548,10 @@ function renderConfigUserList(users){
     const em = attrEsc(u.email);
     const nameCell = '<div class="perm-row-name">' + esc(u.name || '(chưa có tên)') + (u.active ? '' : '<span class="perm-inactive-badge">Ngừng hoạt động</span>') + '</div>'
       + '<div class="perm-row-email">' + esc(u.email) + '</div>';
+    const uRole = u.role || 'Nhân viên';
     const roleCell = '<select class="role-select" onchange="updateUserRole(\'' + em + '\',this.value)">'
-      + '<option value="Nhân viên"' + (isAdmin ? '' : ' selected') + '>Nhân viên</option>'
-      + '<option value="Admin"' + (isAdmin ? ' selected' : '') + '>Admin</option></select>';
+      + ROLES.map(rl => '<option value="' + attrEsc(rl) + '"' + (uRole === rl ? ' selected' : '') + '>' + esc(rl) + '</option>').join('')
+      + '</select>';
     const activeCell = '<label class="active-switch"><input type="checkbox" ' + (u.active ? 'checked' : '') + ' onchange="updateUserActive(\'' + em + '\',this.checked)"><span class="slider"></span></label>';
     const permCell = (field) => isAdmin
       ? '<span class="perm-admin-badge">Toàn quyền</span>'
@@ -1438,6 +1675,7 @@ function enterApp(user){
   document.querySelectorAll('.export-btn').forEach(btn => { btn.style.display = (isAdmin || perms.taiHtml) ? '' : 'none'; });
   document.getElementById('userMenuConfigItem').style.display = isAdmin ? '' : 'none';
   applyDataProtection(user, perms);
+  applyModuleVisibilityToDom();
   main().catch(e => { document.getElementById('loadingNote').style.display='none'; showError('Lỗi tổng thể: '+e.message); });
   startPresenceTracking();
 }
