@@ -2315,24 +2315,53 @@ function parseGroupedSheet(table, opt){
     weekLabels.push(firstToken(colLabel(table, opt.weekStartIdx + w*opt.weekStep), 'Kỳ ' + (w+1)));
   }
   // đọc ĐÚNG tiêu đề cột con (VD "Đơn"/"%OnT", "Vol LấyTC"/"%Rớt", "% Vol"/"%FD"...) trực tiếp từ sheet —
-  // không đoán/hardcode — để tự nhận ra khi cột "vol" thực ra là % (VD user đổi "Đơn" thành "% Vol")
+  // không đoán/hardcode — để tự nhận ra khi cột "vol" thực ra là % (VD user đổi "Đơn" thành "% Vol").
+  // LƯU Ý QUAN TRỌNG: các sheet 02_OPR/03_ODR/04_FD/07_GTC (và 24_KD_BanMoiAM) có 2 DÒNG tiêu đề trong Sheet —
+  // dòng 1 (đọc vào table.cols, VD "2026/24") chỉ có nhãn kỳ; nhãn cột con THẬT ("Đơn"/"%OnT", "% Vol"/"%FD"...)
+  // lại nằm ở DÒNG DỮ LIỆU ĐẦU TIÊN (table.rows[0]) vì sheetToTableShape() ở backend chỉ lấy 1 dòng làm header.
+  // Dòng đó vẫn tự động bị vòng lặp bên dưới bỏ qua (cột đầu rỗng -> coi như dòng trống) nên không ảnh hưởng gì
+  // tới dữ liệu — chỉ cần đọc thẳng nhãn cột con từ đó khi phát hiện đúng dạng "dòng tiêu đề phụ" này, thay vì
+  // đọc từ table.cols (vốn KHÔNG có chữ "%", khiến volIsPct luôn sai thành false và cột Vol dạng % hiển thị 0).
+  const subHeaderRow = (function(){
+    const r0 = table.rows && table.rows[0];
+    if (!r0) return null;
+    if (cell(r0, opt.targetIdx) !== null) return null; // có target => dòng dữ liệu thật, không phải header phụ
+    if (rawCell0(r0).trim()) return null; // có nhãn ở cột đầu => dòng chia nhóm/dữ liệu, không phải header phụ
+    const v = cell(r0, opt.weekStartIdx);
+    return (typeof v === 'string' && v.trim()) ? r0 : null;
+  })();
   let volLabel = null, pctLabel = null, volIsPct = false, khLabel = null, revLabel = null;
   if (!opt.singleValue && !opt.tripleValue && weeksCount > 0) {
-    const raw1 = colLabel(table, opt.weekStartIdx).trim();
-    const wkTok = firstToken(raw1, '');
-    const sub1 = (wkTok && raw1.indexOf(wkTok) === 0) ? raw1.slice(wkTok.length).trim() : raw1;
-    const sub2 = colLabel(table, opt.weekStartIdx + 1).trim();
+    let sub1, sub2;
+    if (subHeaderRow) {
+      sub1 = String(cell(subHeaderRow, opt.weekStartIdx) || '').trim();
+      sub2 = String(cell(subHeaderRow, opt.weekStartIdx + 1) || '').trim();
+    } else {
+      const raw1 = colLabel(table, opt.weekStartIdx).trim();
+      const wkTok = firstToken(raw1, '');
+      sub1 = (wkTok && raw1.indexOf(wkTok) === 0) ? raw1.slice(wkTok.length).trim() : raw1;
+      sub2 = colLabel(table, opt.weekStartIdx + 1).trim();
+    }
     volLabel = sub1 || 'Vol';
     pctLabel = sub2 || '%';
     volIsPct = sub1.indexOf('%') !== -1;
   } else if (opt.tripleValue && weeksCount > 0) {
     // bảng 3 cột/tuần (VD Sản lượng | Số lượng KH | Doanh Thu) — đọc động cả 3 nhãn cột con từ sheet
-    const raw1 = colLabel(table, opt.weekStartIdx).trim();
-    const wkTok = firstToken(raw1, '');
-    const sub1 = (wkTok && raw1.indexOf(wkTok) === 0) ? raw1.slice(wkTok.length).trim() : raw1;
+    let sub1, sub2b, sub3;
+    if (subHeaderRow) {
+      sub1 = String(cell(subHeaderRow, opt.weekStartIdx) || '').trim();
+      sub2b = String(cell(subHeaderRow, opt.weekStartIdx + 1) || '').trim();
+      sub3 = String(cell(subHeaderRow, opt.weekStartIdx + 2) || '').trim();
+    } else {
+      const raw1 = colLabel(table, opt.weekStartIdx).trim();
+      const wkTok = firstToken(raw1, '');
+      sub1 = (wkTok && raw1.indexOf(wkTok) === 0) ? raw1.slice(wkTok.length).trim() : raw1;
+      sub2b = colLabel(table, opt.weekStartIdx + 1).trim();
+      sub3 = colLabel(table, opt.weekStartIdx + 2).trim();
+    }
     volLabel = sub1 || 'Sản lượng';
-    khLabel = colLabel(table, opt.weekStartIdx + 1).trim() || 'Số lượng KH';
-    revLabel = colLabel(table, opt.weekStartIdx + 2).trim() || 'Doanh Thu';
+    khLabel = sub2b || 'Số lượng KH';
+    revLabel = sub3 || 'Doanh Thu';
   }
   const groups = [];
   let topLabel = opt.dim1HeaderPrefix ? extractSwallowedFirstLabel(table, opt.dim1HeaderPrefix) : '';
