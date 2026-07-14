@@ -462,6 +462,29 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .llv-task-card.llv-tre{border-left:4px solid #E0357A}
 .llv-task-card.llv-sap{border-left:4px solid #E8A100}
 .llv-task-card.llv-con{border-left:4px solid #1E9E5A}
+.llv-task-card.llv-card-done{opacity:.5}
+.llv-task-card.llv-card-done .llv-task-title{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--hint)}
+.llv-task-card.llv-card-active{box-shadow:0 0 0 1.5px var(--ghn-blue) inset,0 2px 8px rgba(0,99,170,.12);background:var(--ghn-blue-light)}
+.llv-task-card.llv-card-active .llv-task-title::before{content:"⚡ ";color:var(--ghn-blue)}
+.llv-cal-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.llv-cal-nav{display:flex;align-items:center;gap:8px}
+.llv-cal-nav h3{font-size:15px;font-weight:700;margin-left:6px;min-width:110px}
+.llv-cal-grid{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:10px}
+.llv-cal-dow{display:grid;grid-template-columns:repeat(7,1fr);background:var(--bg);border-bottom:1px solid var(--border)}
+.llv-cal-dow div{padding:7px 4px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);font-family:var(--mono)}
+.llv-cal-cells{display:grid;grid-template-columns:repeat(7,1fr)}
+.llv-cal-cell{min-height:88px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px 5px 4px;cursor:pointer;transition:background .12s}
+.llv-cal-cell:nth-child(7n){border-right:none}
+.llv-cal-cell:hover{background:var(--bg)}
+.llv-cal-cell-out{background:#FBFAF8}
+.llv-cal-cell-out .llv-cal-daynum{color:var(--hint)}
+.llv-cal-cell-today .llv-cal-daynum{background:var(--ghn-orange);color:#fff;border-radius:50%}
+.llv-cal-cell-sel{background:var(--ghn-blue-light);box-shadow:inset 0 0 0 1.5px var(--ghn-blue)}
+.llv-cal-daynum{font-size:12px;font-weight:700;width:20px;height:20px;display:flex;align-items:center;justify-content:center;margin-bottom:3px;font-family:var(--mono)}
+.llv-cal-pill{font-size:10.5px;line-height:1.4;padding:1.5px 5px;border-radius:4px;color:#fff;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.llv-cal-more{font-size:10px;color:var(--muted);font-weight:600;padding-left:2px}
+.llv-cal-day-detail{border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;padding:12px 14px;margin-top:-1px}
+.llv-cal-day-detail-head{font-size:12.5px;font-weight:700;color:var(--ghn-blue);margin-bottom:8px;font-family:var(--mono)}
 .llv-task-main{flex:1;min-width:220px}
 .llv-task-title{font-size:13px;font-weight:600;color:var(--text)}
 .llv-task-sub{font-size:11.5px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
@@ -1128,12 +1151,22 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
       <div id="llvCalList"><div class="llv-loading">Đang tải...</div></div>
     </div>
     <div class="llv-card">
-      <div class="llv-card-head"><h3>Sự kiện sắp tới (60 ngày)</h3></div>
-      <div id="llvAgenda"><div class="llv-loading">Đang tải lịch họp...</div></div>
+      <div class="llv-cal-toolbar">
+        <div class="llv-cal-nav">
+          <button class="llv-btn-ghost" onclick="llvCalGridNav(-1)">‹</button>
+          <button class="llv-btn-ghost" onclick="llvCalGridToday()">Hôm nay</button>
+          <button class="llv-btn-ghost" onclick="llvCalGridNav(1)">›</button>
+          <h3 id="llvCalMonthTitle"></h3>
+        </div>
+      </div>
+      <div class="llv-cal-grid">
+        <div class="llv-cal-dow"><div>CN</div><div>Th 2</div><div>Th 3</div><div>Th 4</div><div>Th 5</div><div>Th 6</div><div>Th 7</div></div>
+        <div id="llvCalCells" class="llv-cal-cells"><div class="llv-loading">Đang tải lịch họp...</div></div>
+      </div>
+      <div id="llvCalDayDetail" class="llv-cal-day-detail" style="display:none"></div>
     </div>
   </div>
-
-  <!-- ---- Công việc (giao việc nhóm) ---- -->
+<!-- ---- Công việc (giao việc nhóm) ---- -->
   <div id="llvCongViec" class="vh-pane">
     <div class="llv-toolbar">
       <select id="llvCVFilterHangMuc" onchange="renderLLVCongViec()"><option value="">Tất cả hạng mục</option></select>
@@ -4674,6 +4707,8 @@ window.LLV_USERS = [];
 window.LLV_CAL_LOADED = false;
 window.LLV_CALENDARS = [];
 window.LLV_EVENTS = [];
+window.LLV_CAL_CURSOR = new Date();
+window.LLV_CAL_SELECTED_DAY = null;
 
 function llvCategoryLabel(id){
   const c = (window.LLV_META.categories||[]).find(x => x.id === id);
@@ -4808,10 +4843,15 @@ function renderLLVCanhBao(){
 
 function llvTaskCardHtml(t, showActions){
   const cls = llvDeadlineClass(t.hanChot, t.trangThai);
+  const isDone = t.trangThai === 'Hoàn thành';
+  const isActive = t.trangThai === 'Đang thực hiện';
   const canManage = window.LLV_META.myRole === 'Admin' || window.LLV_META.myRole === 'Quản lý' ||
     t.nguoiGiaoEmail === window.LLV_META.myEmail || (t.laCaNhan && t.nguoiThucHienEmail === window.LLV_META.myEmail);
   const canUpdateStatus = canManage || t.nguoiThucHienEmail === window.LLV_META.myEmail;
-  let html = '<div class="llv-task-card'+(cls ? ' llv-'+cls : '')+'">';
+  let cardCls = 'llv-task-card'+(cls ? ' llv-'+cls : '');
+  if (isDone) cardCls += ' llv-card-done';
+  else if (isActive) cardCls += ' llv-card-active';
+  let html = '<div class="'+cardCls+'">';
   html += '<div class="llv-task-main">';
   html += '<div class="llv-task-title">'+esc(t.tieuDe)+' <span class="llv-prio '+llvPrioClass(t.mucDoUuTien)+'">'+esc(t.mucDoUuTien)+'</span></div>';
   html += '<div class="llv-task-sub">';
@@ -4968,18 +5008,15 @@ async function llvDeleteCalendar(id){
 async function loadLLVCalendar(force){
   if (window.LLV_CAL_LOADED && !force) return;
   const calList = document.getElementById('llvCalList');
-  const agenda = document.getElementById('llvAgenda');
+  const cells = document.getElementById('llvCalCells');
   try {
-    const [cfgRes, evRes] = await Promise.all([
-      callBackend('getCalendarConfigs', { token: AUTH.session.token }),
-      callBackend('getCalendarEvents', { token: AUTH.session.token })
-    ]);
+    const cfgRes = await callBackend('getCalendarConfigs', { token: AUTH.session.token });
     if (cfgRes.ok) { window.LLV_CALENDARS = cfgRes.calendars || []; renderLLVCalList(); }
-    if (evRes.ok) { window.LLV_EVENTS = evRes.events || []; renderLLVAgenda(); }
     window.LLV_CAL_LOADED = true;
+    await llvLoadEventsForGrid();
   } catch(e) {
     if (calList) calList.innerHTML = '<div class="llv-empty">Không tải được danh sách lịch.</div>';
-    if (agenda) agenda.innerHTML = '<div class="llv-empty">Không tải được sự kiện lịch họp.</div>';
+    if (cells) cells.innerHTML = '<div class="llv-empty">Không tải được sự kiện lịch họp.</div>';
   }
 }
 
@@ -4996,28 +5033,113 @@ function renderLLVCalList(){
   }).join('');
 }
 
-function renderLLVAgenda(){
-  const el = document.getElementById('llvAgenda');
-  if (!el) return;
-  if (!window.LLV_EVENTS.length) { el.innerHTML = '<div class="llv-empty">Không có sự kiện nào trong 60 ngày tới. Thêm lịch iCal của bạn ở mục "Lịch của tôi" để xem lịch họp tại đây.</div>'; return; }
-  const days = {};
-  window.LLV_EVENTS.forEach(ev => {
-    const d = new Date(ev.start);
-    const key = d.toDateString();
-    if (!days[key]) days[key] = [];
-    days[key].push(ev);
+function llvDateKey(d){
+  const dt = (d instanceof Date) ? d : new Date(d);
+  return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+}
+
+async function llvLoadEventsForGrid(){
+  const cells = document.getElementById('llvCalCells');
+  const cur = window.LLV_CAL_CURSOR;
+  const gridStart = new Date(cur.getFullYear(), cur.getMonth(), 1);
+  gridStart.setDate(gridStart.getDate() - gridStart.getDay() - 7);
+  const gridEnd = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
+  gridEnd.setDate(gridEnd.getDate() + (6 - gridEnd.getDay()) + 7);
+  if (cells) cells.innerHTML = '<div class="llv-loading">Đang tải lịch họp...</div>';
+  try {
+    const evRes = await callBackend('getCalendarEvents', { token: AUTH.session.token, rangeStart: gridStart.toISOString(), rangeEnd: gridEnd.toISOString() });
+    if (evRes.ok) window.LLV_EVENTS = evRes.events || [];
+  } catch(e) {
+    if (cells) cells.innerHTML = '<div class="llv-empty">Không tải được sự kiện lịch họp.</div>';
+    return;
+  }
+  renderLLVCalGrid();
+}
+
+function llvCalGridNav(delta){
+  const cur = window.LLV_CAL_CURSOR;
+  window.LLV_CAL_CURSOR = new Date(cur.getFullYear(), cur.getMonth() + delta, 1);
+  llvLoadEventsForGrid();
+}
+
+function llvCalGridToday(){
+  window.LLV_CAL_CURSOR = new Date();
+  window.LLV_CAL_SELECTED_DAY = llvDateKey(new Date());
+  llvLoadEventsForGrid();
+}
+
+function llvCalColor(name){
+  let h = 0;
+  const s = String(name || '');
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return CHART_COLORS[h % CHART_COLORS.length];
+}
+
+function renderLLVCalGrid(){
+  const cells = document.getElementById('llvCalCells');
+  const titleEl = document.getElementById('llvCalMonthTitle');
+  if (!cells) return;
+  const cur = window.LLV_CAL_CURSOR;
+  const monthLabels = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+  if (titleEl) titleEl.textContent = monthLabels[cur.getMonth()] + ' ' + cur.getFullYear();
+  const first = new Date(cur.getFullYear(), cur.getMonth(), 1);
+  const startDay = new Date(first);
+  startDay.setDate(startDay.getDate() - startDay.getDay());
+  const todayKey = llvDateKey(new Date());
+  const byDay = {};
+  (window.LLV_EVENTS || []).forEach(ev => {
+    const key = llvDateKey(new Date(ev.start));
+    if (!byDay[key]) byDay[key] = [];
+    byDay[key].push(ev);
   });
-  const dowLabels = ['CN','Th 2','Th 3','Th 4','Th 5','Th 6','Th 7'];
   let html = '';
-  Object.keys(days).forEach(key => {
-    const d = new Date(days[key][0].start);
-    html += '<div class="llv-agenda-day">'+llvFmtDate(d.toISOString())+' — '+dowLabels[d.getDay()]+'</div>';
-    days[key].forEach(ev => {
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(startDay);
+    d.setDate(d.getDate() + i);
+    const key = llvDateKey(d);
+    const inMonth = d.getMonth() === cur.getMonth();
+    const evs = byDay[key] || [];
+    let cls = 'llv-cal-cell';
+    if (!inMonth) cls += ' llv-cal-cell-out';
+    if (key === todayKey) cls += ' llv-cal-cell-today';
+    if (key === window.LLV_CAL_SELECTED_DAY) cls += ' llv-cal-cell-sel';
+    html += '<div class="'+cls+'" onclick="llvCalSelectDay(\''+key+'\')">';
+    html += '<div class="llv-cal-daynum">'+d.getDate()+'</div>';
+    const shown = evs.slice(0, 3);
+    shown.forEach(ev => {
+      html += '<div class="llv-cal-pill" style="background:'+llvCalColor(ev.calendarName || ev.calendarId)+'" title="'+esc(ev.title)+'">'+(ev.allDay ? '' : llvFmtDateTime(ev.start).split(' ')[1]+' ')+esc(ev.title)+'</div>';
+    });
+    if (evs.length > 3) html += '<div class="llv-cal-more">+'+(evs.length - 3)+' khác</div>';
+    html += '</div>';
+  }
+  cells.innerHTML = html;
+  renderLLVCalDayDetail();
+}
+
+function llvCalSelectDay(key){
+  window.LLV_CAL_SELECTED_DAY = (window.LLV_CAL_SELECTED_DAY === key) ? null : key;
+  renderLLVCalGrid();
+}
+
+function renderLLVCalDayDetail(){
+  const el = document.getElementById('llvCalDayDetail');
+  if (!el) return;
+  const key = window.LLV_CAL_SELECTED_DAY;
+  if (!key) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const evs = (window.LLV_EVENTS || []).filter(ev => llvDateKey(new Date(ev.start)) === key);
+  const d = new Date(key + 'T00:00:00');
+  const dowLabels = ['CN','Th 2','Th 3','Th 4','Th 5','Th 6','Th 7'];
+  let html = '<div class="llv-cal-day-detail-head">'+llvFmtDate(d.toISOString())+' — '+dowLabels[d.getDay()]+'</div>';
+  if (!evs.length) {
+    html += '<div class="llv-empty">Không có sự kiện nào trong ngày này.</div>';
+  } else {
+    evs.forEach(ev => {
       html += '<div class="llv-agenda-item"><div class="llv-agenda-time">'+(ev.allDay ? 'Cả ngày' : llvFmtDateTime(ev.start).split(' ')[1])+'</div>' +
         '<div><div class="llv-agenda-title">'+esc(ev.title)+(ev.calendarName ? ' <span class="llv-tag-shared">'+esc(ev.calendarName)+'</span>' : '')+'</div>' +
         (ev.location ? '<div class="llv-agenda-loc">📍 '+esc(ev.location)+'</div>' : '') + '</div></div>';
     });
-  });
+  }
+  el.style.display = 'block';
   el.innerHTML = html;
 }
 
