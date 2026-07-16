@@ -1292,12 +1292,33 @@ function applyModuleVisibilityToDom(){
     const btn = document.getElementById(window.MODULE_DOM_MAP[moduleId]);
     if (btn) btn.style.display = modVisible(moduleId) ? '' : 'none';
   });
+  // Ẩn cả NỘI DUNG section cấp cao (không chỉ nút menu) khi tài khoản không có quyền — trước đây chỉ ẩn nút,
+  // nên section "Vận hành" (mặc định sẵn class "active" trong HTML gốc) vẫn hiển thị nội dung dù tài khoản
+  // không được cấp quyền module nào (đặc biệt rõ khi tài khoản chưa được cấp quyền BẤT KỲ hạng mục nào).
+  const SECTION_MODULE_IDS = ['vanhanh','kinhdoanh','truythu','capacity','nhansu','lichlamviec','sapramat'];
+  SECTION_MODULE_IDS.forEach(id => {
+    const secEl = document.getElementById(moduleIdToSectionId(id));
+    if (secEl) secEl.style.display = modVisible(id) ? '' : 'none';
+  });
   // nếu section đang active bị ẩn đi, tự chuyển sang mục còn hiển thị đầu tiên để tránh màn hình trắng
   const activeSection = document.querySelector('.app-section.active');
   if (activeSection && !modVisible(sectionIdToModuleId(activeSection.id))) {
-    const firstVisible = ['vanhanh','kinhdoanh','truythu','capacity','nhansu','lichlamviec','sapramat'].find(id => modVisible(id));
+    const firstVisible = SECTION_MODULE_IDS.find(id => modVisible(id));
     if (firstVisible) switchSection(moduleIdToSectionId(firstVisible));
   }
+  // Tài khoản không có quyền vào BẤT KỲ hạng mục cấp cao nào (chưa được Admin cấp quyền gì) — hiện thông
+  // báo rõ ràng thay vì để lộ mặc định section Vận hành hoặc để trắng trang.
+  const anyVisible = SECTION_MODULE_IDS.some(id => modVisible(id));
+  let noAccessEl = document.getElementById('noModuleAccessNotice');
+  if (!noAccessEl) {
+    noAccessEl = document.createElement('div');
+    noAccessEl.id = 'noModuleAccessNotice';
+    noAccessEl.style.cssText = 'max-width:640px;margin:80px auto;padding:28px 24px;text-align:center;font-family:var(--f);color:var(--muted);border:1px solid var(--border);border-radius:12px;background:var(--surface)';
+    noAccessEl.innerHTML = '<div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:8px">Tài khoản chưa được cấp quyền truy cập</div><div style="font-size:13.5px;line-height:1.6">Vui lòng liên hệ Admin để được cấp quyền xem báo cáo.</div>';
+    const appRoot = document.getElementById('appRoot');
+    if (appRoot) appRoot.appendChild(noAccessEl);
+  }
+  noAccessEl.style.display = anyVisible ? 'none' : '';
   // tương tự cho từng nhóm tab con (Vận hành Ngày/Tuần/Tháng, Kinh doanh Ngày/Tuần/Tháng/Kế hoạch/BCKQKD, ...)
   MODULE_TAB_GROUPS.forEach(group => {
     const activeItem = group.items.find(it => {
@@ -6143,7 +6164,24 @@ if (window.__STATIC_SNAPSHOT__) {
   // không bắt gõ lại mật khẩu) — nếu không còn nhớ email nào cả thì giữ nguyên màn hình đăng nhập thường.
   const existing = AUTH.load();
   if (existing) {
-    enterApp(existing);
+    // Luôn xác thực lại + lấy QUYỀN MỚI NHẤT (permissions/moduleAccess/vai trò) từ server mỗi lần mở lại
+    // trang, thay vì tin thẳng dữ liệu quyền đã lưu trong localStorage từ lần đăng nhập trước — nếu không,
+    // Admin đổi quyền xong, tài khoản đó dù bấm F5/mở lại trang vẫn thấy quyền CŨ cho tới khi đăng xuất và
+    // đăng nhập lại từ đầu. Gọi validateSession TRƯỚC khi enterApp() để tránh gọi enterApp() 2 lần (enterApp
+    // có tác dụng phụ như setInterval trong startPresenceTracking() — gọi 2 lần sẽ tạo timer trùng lặp).
+    callBackend('validateSession', { token: existing.token }).then(function(res){
+      if (res && res.ok) {
+        existing.role = res.role;
+        existing.name = res.name;
+        existing.permissions = res.permissions;
+        existing.moduleAccess = res.moduleAccess;
+        AUTH.save(existing);
+      }
+      enterApp(existing);
+    }).catch(function(){
+      // Không gọi được server (mất mạng, ...) — vẫn cho vào bằng quyền đã lưu để không chặn người dùng.
+      enterApp(existing);
+    });
   } else {
     const lastEmail = localStorage.getItem(LAST_EMAIL_KEY);
     if (lastEmail) showOtpReloginStep(lastEmail);
