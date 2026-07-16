@@ -1701,9 +1701,22 @@ async function toggleModuleFlag(moduleId, field, checked){
   // cập nhật cache cục bộ ngay (để "Xem trước theo quyền" phản ánh tức thì) — rồi mới gọi backend lưu thật.
   const row = (window.MODULE_CONFIG_CACHE || []).find(m => m.id === moduleId);
   if (row) row[field] = checked;
+  // Tick quyền cho 1 vai trò (Quản lý / NV xử lý / Nhân viên) mà cột "Bật/Tắt" đang tắt thì vai trò đó
+  // vẫn KHÔNG thấy được hạng mục (xem computeModuleAccessForRole ở backend: batTat && cfg[field]) — dễ
+  // gây hiểu lầm "tick mà không có tác dụng". Nên tự động bật luôn "Bật/Tắt" trong trường hợp này.
+  const roleFields = ['quanLy', 'nhanVienXuLy', 'nhanVien'];
+  const needAutoEnable = checked && roleFields.indexOf(field) !== -1 && row && !row.batTat;
   try {
     const res = await callBackend('updateModuleConfig', { token: AUTH.session.token, moduleId, field, value: checked });
     if (!res.ok) { showLoginError('cfgmModulesError', errMsg(res.error)); return; }
+    if (needAutoEnable) {
+      const res2 = await callBackend('updateModuleConfig', { token: AUTH.session.token, moduleId, field: 'batTat', value: true });
+      if (res2.ok) {
+        row.batTat = true;
+        renderModuleConfigList(window.MODULE_CONFIG_CACHE);
+        configNotify('Đã tự động bật hiển thị hạng mục vì vừa cấp quyền cho vai trò.');
+      }
+    }
     if (window.PREVIEW_ROLE) applyModuleVisibilityToDom();
   } catch(e) {
     showLoginError('cfgmModulesError', 'Không kết nối được máy chủ: ' + e.message);
