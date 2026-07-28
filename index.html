@@ -267,6 +267,13 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .row-action-btn:hover{border-color:var(--ghn-blue);color:var(--ghn-blue)}
 .row-action-btn.danger:hover{border-color:#C0392B;color:#C0392B}
 
+/* ===== Time-travel: xem lại báo cáo như kỳ quá khứ (áp dụng chung cho Vận hành/Kinh doanh Ngày-Tuần-Tháng) ===== */
+.vh-cutoff-picker{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.vh-cutoff-picker select{font-family:var(--mono);font-size:12.5px;padding:5px 8px;border-radius:8px;border:1px solid var(--border-strong);background:#fff;cursor:pointer}
+.vh-cutoff-banner{display:flex;align-items:center;flex-wrap:wrap;gap:10px;background:#FFF4E0;border:1px solid #E8B84B;color:#8A5A00;font-family:var(--mono);font-size:12px;padding:9px 14px;border-radius:10px;margin-bottom:14px}
+.vh-cutoff-banner button{font-family:var(--mono);font-size:11px;background:#8A5A00;color:#fff;border:none;padding:5px 12px;border-radius:20px;cursor:pointer;font-weight:600}
+.vh-cutoff-banner button:hover{background:#6E4700}
+
 /* ===== Kế hoạch kinh doanh (Kế hoạch / Kết quả / Tiến độ) ===== */
 .kh-subpane{display:none}
 .kh-subpane.active{display:block}
@@ -765,6 +772,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     <div class="meta">Modify by - Pham Van Quynh - DBB Live Report<br>Cập nhật lúc: <span id="updatedAt">—</span><br><button class="refresh-btn" onclick="location.reload()">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
   </div>
 
+  <div id="vhCutoffBar"></div>
   <div id="errBanner"></div>
   <div id="loadingNote" class="load-progress">
     <span>Đang tải dữ liệu từ Google Sheet…</span>
@@ -3279,6 +3287,72 @@ function getWeekRangeInfo(data){
   if (!best || !best.length) return null;
   return { count: best.length, from: best[0], to: best[best.length-1], latest: best[best.length-1] };
 }
+// giống getWeekRangeInfo nhưng trả về NGUYÊN MẢNG weekLabels đầy đủ (không chỉ đầu/cuối) — dùng để liệt kê
+// lựa chọn trong ô chọn kỳ xem lại quá khứ.
+function getFullWeekLabels(data){
+  let best = null;
+  METRIC_META.forEach(m => {
+    const p = data[m.key];
+    if (p && p.weekLabels && p.weekLabels.length && (!best || p.weekLabels.length > best.length)) best = p.weekLabels;
+  });
+  return best || [];
+}
+
+// ================= TIME-TRAVEL: xem lại báo cáo NHƯ TẠI 1 kỳ quá khứ (không tải lại từ Sheet) =================
+// Ý tưởng: hầu hết các hàm tính toán trong file này (màu đạt/chưa đạt, Δ so kỳ trước, Tổng quan tuần, biểu đồ
+// trend, Tỷ trọng, nhận xét...) đều theo đúng 1 quy ước: "phần tử CUỐI CÙNG của mảng weeks/weekLabels = kỳ
+// hiện tại". Nhờ quy ước đó, muốn "coi kỳ N là kỳ hiện tại" chỉ cần CẮT (slice) toàn bộ mảng weekLabels và
+// từng rec.weeks của MỌI chỉ số tới đúng vị trí kỳ N, làm ở ĐÚNG 1 CHỖ DUY NHẤT này — không cần sửa lại bất
+// kỳ hàm tính toán/hiển thị nào khác. Hàm này thuần túy (không sửa dữ liệu gốc — trả về bản sao đã cắt), nên
+// dùng lại được cho cả Kinh doanh / Ngày / Tháng sau này (chỉ cần dữ liệu có đúng hình dạng {weekLabels, groups:
+// [{rows:[{weeks:[...]}]}]} như OPR/ODR/FD... hiện tại), không phụ thuộc gì riêng vào Vận Hành Tuần.
+// LƯU Ý: mục "0. Scorecard chi tiết" (parseScorecard/renderScorecard) KHÔNG cắt được theo cơ chế này, vì sheet
+// 01_Scorecard chỉ lưu đúng 2 cột (kỳ này/kỳ trước liền kề), không có lịch sử nhiều kỳ để cắt lùi xa hơn — mục
+// đó sẽ luôn hiện đúng 2 kỳ mới nhất của Sheet bất kể đang chọn xem lại kỳ nào (đã cảnh báo rõ trong banner).
+function applyWeekCutoff(rawData, cutoffLabel){
+  if (!cutoffLabel) return rawData; // không chọn kỳ nào khác = mặc định = dữ liệu đầy đủ, y hệt hành vi trước khi có tính năng này
+  const out = {};
+  Object.keys(rawData).forEach(key => {
+    const src = rawData[key];
+    if (!src || !src.weekLabels || !src.groups) { out[key] = src; return; } // VD data.scorecard không có dạng này -> giữ nguyên
+    const idx = src.weekLabels.indexOf(cutoffLabel);
+    if (idx === -1 || idx === src.weekLabels.length - 1) { out[key] = src; return; } // không tìm thấy hoặc đã đúng kỳ mới nhất -> khỏi cắt
+    out[key] = {
+      ...src,
+      weeksCount: idx + 1,
+      weekLabels: src.weekLabels.slice(0, idx + 1),
+      groups: src.groups.map(g => Object.assign({}, g, {
+        rows: g.rows.map(r => Object.assign({}, r, { weeks: r.weeks.slice(0, idx + 1) }))
+      }))
+    };
+  });
+  return out;
+}
+// Dựng/cập nhật thanh chọn kỳ + banner cảnh báo "đang xem lại quá khứ" phía trên báo cáo Vận Hành Tuần.
+// containerId/rawData/cutoffGetter/cutoffSetter tham số hoá để tái dùng được cho Kinh doanh/Ngày/Tháng sau này.
+function renderCutoffPicker(containerId, rawData, cutoffLabel, onChangeFnName){
+  const bar = document.getElementById(containerId);
+  if (!bar) return;
+  if (!rawData) { bar.innerHTML = ''; return; }
+  const labels = getFullWeekLabels(rawData);
+  if (labels.length < 2) { bar.innerHTML = ''; return; } // chỉ 0-1 kỳ thì không có gì để "xem lại quá khứ"
+  const latest = labels[labels.length - 1];
+  const cur = cutoffLabel || latest;
+  const opts = labels.map(l => '<option value="'+attrEsc(l)+'"'+(l===cur?' selected':'')+'>'+esc(l)+(l===latest?' (mới nhất)':'')+'</option>').join('');
+  let html = '<div class="vh-cutoff-picker">🕰️ Xem báo cáo như kỳ hiện tại: <select onchange="'+onChangeFnName+'(this.value)">'+opts+'</select></div>';
+  if (cutoffLabel && cutoffLabel !== latest) {
+    html += '<div class="vh-cutoff-banner">⏪ Đang xem lại báo cáo NHƯ TẠI kỳ <b>'+esc(cutoffLabel)+'</b> (không phải kỳ mới nhất — '+esc(latest)+'). '
+      + 'Mục "0. Scorecard chi tiết" vẫn hiện đúng 2 kỳ gần nhất do sheet nguồn chỉ lưu 2 kỳ, không đổi theo lựa chọn này.'
+      + '<button type="button" onclick="'+onChangeFnName+'(null)">Về kỳ mới nhất</button></div>';
+  }
+  bar.innerHTML = html;
+}
+function setVHCutoff(label){
+  window.VH_CUTOFF_LABEL = (label === null || label === undefined || label === '') ? null : label;
+  renderVanHanhReport();
+  if (typeof window.scrollTo === 'function') window.scrollTo(0,0);
+}
+
 function buildSummaryBanner(data){
   const cards = [];
   function push(name, val, target, dir, unit, anchor){
@@ -5929,7 +6003,9 @@ async function main(){
   loadProgress.finish('loadingNote');
   document.getElementById('updatedAt').textContent = new Date().toLocaleString('vi-VN');
 
-  const data = {
+  // Cache dữ liệu ĐẦY ĐỦ (chưa cắt theo kỳ) — dùng lại mỗi khi đổi kỳ xem lại (time-travel) mà KHÔNG cần tải
+  // lại từ Google Sheet, xem renderVanHanhReport()/applyWeekCutoff() ở trên.
+  window.RAW_VH_DATA = {
     scorecard: tables['01_Scorecard'] ? parseScorecard(tables['01_Scorecard']) : {groups:[],METRICS:[]},
     opr: tables['02_OPR'] ? parseExtra2(tables['02_OPR'], 'Khách hàng') : {weeksCount:0,weekLabels:[],groups:[]},
     odr: tables['03_ODR'] ? parseExtra2(tables['03_ODR'], 'Khách hàng') : {weeksCount:0,weekLabels:[],groups:[]},
@@ -5944,6 +6020,15 @@ async function main(){
     ktcnhapxuat: tables['12_KTC_NhapXuat'] ? parseKTCTuyen(tables['12_KTC_NhapXuat']) : {weeksCount:0,weekLabels:[],groups:[]},
     ktcton24h: tables['13_KTC_Ton24H'] ? parseExtra1(tables['13_KTC_Ton24H'], 'KTC') : {weeksCount:0,weekLabels:[],groups:[]}
   };
+  renderVanHanhReport();
+}
+// Dựng + hiển thị TOÀN BỘ báo cáo Vận Hành Tuần từ window.RAW_VH_DATA đã cache (không gọi lại backend), áp
+// dụng đúng kỳ đang chọn xem (window.VH_CUTOFF_LABEL — null = kỳ mới nhất, y hệt hành vi mặc định trước khi
+// có tính năng "xem lại quá khứ"). Gọi lại hàm này mỗi khi đổi kỳ xem qua setVHCutoff().
+function renderVanHanhReport(){
+  if (!window.RAW_VH_DATA) return;
+  const data = applyWeekCutoff(window.RAW_VH_DATA, window.VH_CUTOFF_LABEL);
+  renderCutoffPicker('vhCutoffBar', window.RAW_VH_DATA, window.VH_CUTOFF_LABEL, 'setVHCutoff');
 
   safeRun('subtitle tuần', () => {
     const subEl = document.getElementById('subtitleLine');
@@ -6001,8 +6086,9 @@ async function main(){
   });
 
   document.getElementById('reportBody').innerHTML = out;
-  // bản rule-based đã hiện xong ở trên — giờ mới âm thầm gọi AI nâng cấp toàn bộ Vận hành, không chặn UI.
-  opsEnhanceWithAI();
+  // Chỉ âm thầm nâng cấp nhận xét AI khi đang xem đúng KỲ MỚI NHẤT — xem lại quá khứ giữ nguyên bản rule-based
+  // (đủ chính xác, không tốn quota AI vô ích, tránh nhận định AI bị hiểu nhầm là "hiện tại" khi đang xem 1 kỳ đã qua).
+  if (!window.VH_CUTOFF_LABEL) opsEnhanceWithAI();
 }
 if (window.__STATIC_SNAPSHOT__) {
   // Đây là file đã được xuất ra qua nút "Xuất file HTML" (chỉ Admin mới thấy nút này) — HTML đã có
