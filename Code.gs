@@ -3345,34 +3345,48 @@ function VHSNAP_getOpsAnalysis(overview, groups) {
   return { ok: true, analysis: analysis };
 }
 
-// ---- 5. Lấy CSS + link font MỚI NHẤT từ đúng trang web live (tự động, không lo lệch giao diện về sau) ----
-function VHSNAP_getLiveCss() {
+// ---- 5. Lấy CSS + mainScript + khung "Mục lục" nổi MỚI NHẤT từ đúng trang web live (tự động, không lo lệch
+// giao diện/mã tương tác về sau) — dùng để đóng gói file snapshot INTERACTIVE Y HỆT bản "Xuất file HTML" tay
+// (bấm đổi chế độ biểu đồ, tick từng AM/Vùng được), thay vì chỉ là ảnh chụp số liệu tĩnh.
+function VHSNAP_getLiveAssets() {
+  var empty = { cssHead: '', scriptSrc: '', tocHtml: '' };
   try {
     var resp = UrlFetchApp.fetch(VHSNAP_LIVE_URL, { muteHttpExceptions: true, followRedirects: true });
-    if (resp.getResponseCode() !== 200) return '';
+    if (resp.getResponseCode() !== 200) return empty;
     var html = resp.getContentText();
     var fontMatch = html.match(/<link[^>]+fonts\.googleapis[^>]*>/);
     var styleMatch = html.match(/<style[\s\S]*?<\/style>/);
-    return (fontMatch ? fontMatch[0] : '') + (styleMatch ? styleMatch[0] : '');
+    var scriptMatch = html.match(/<script id="mainScript">([\s\S]*?)<\/script>/); // lấy đúng lần khớp ĐẦU TIÊN (script thật, không phải chuỗi mẫu bên trong exportStaticHtml)
+    var tocMatch = html.match(/<button class="toc-fab"[\s\S]*?(?=<div class="page">)/); // nút "☰ Mục lục" nổi + khung mục lục của đúng pane Vận Hành Tuần
+    return {
+      cssHead: (fontMatch ? fontMatch[0] : '') + (styleMatch ? styleMatch[0] : ''),
+      scriptSrc: scriptMatch ? scriptMatch[1] : '',
+      tocHtml: tocMatch ? tocMatch[0] : ''
+    };
   } catch (e) {
-    return ''; // lỗi lấy CSS -> vẫn gửi file (chỉ mất style, không mất số liệu) thay vì chặn cả snapshot
+    return empty; // lỗi lấy asset -> vẫn gửi file (chỉ mất style/tương tác, không mất số liệu) thay vì chặn cả snapshot
   }
 }
 
-// ---- 6. Ghép trang HTML hoàn chỉnh, độc lập (mở được ngay, không cần đăng nhập/tải thêm gì) ----
-function VHSNAP_wrapSnapshotPage(built, cssHead, exportedAt) {
+// ---- 6. Ghép trang HTML hoàn chỉnh, độc lập, INTERACTIVE (bấm đổi chế độ biểu đồ được) — đúng cấu trúc
+// window.__STATIC_SNAPSHOT__ + <script id="mainScript"> mà exportStaticHtml() (nút "Xuất file HTML") đang dùng,
+// nên mở file snapshot Telegram ra dùng được y hệt bản xuất tay, không cần đăng nhập/tải lại gì.
+function VHSNAP_wrapSnapshotPage(built, assets, chartSnapshot, exportedAt) {
   var head = '<meta charset="UTF-8">' +
     '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">' +
-    '<title>Báo Cáo Vận Hành Tuần — GHN (Snapshot tự động)</title>' + cssHead;
+    '<title>Báo Cáo Vận Hành Tuần — GHN (Snapshot tự động)</title>' + assets.cssHead;
   var header = '<div class="report-header" id="top"><div><h1>Báo Cáo Vận Hành Tuần <span class="rh-tag">Snapshot</span></h1>' +
     '<div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">' + VHSNAP_esc(built.subtitle) + '</div></div>' +
-    '<div class="meta">📦 Snapshot tự động lưu trữ qua Telegram (không tương tác, không tự cập nhật)<br>Xuất lúc: ' + VHSNAP_esc(exportedAt) + '</div></div>';
-  var footer = '<div class="report-footer"><div class="legend">Bản snapshot tĩnh — đúng số liệu tại thời điểm xuất, biểu đồ hiển thị được nhưng không bấm đổi chế độ (không nhúng mã tương tác đầy đủ). Xem bản đầy đủ tại: <a href="' + VHSNAP_LIVE_URL + '">' + VHSNAP_LIVE_URL + '</a></div></div>';
+    '<div class="meta">📦 Snapshot tự động lưu trữ qua Telegram<br>Xuất lúc: ' + VHSNAP_esc(exportedAt) + '</div></div>';
+  var footer = '<div class="report-footer"><div class="legend">Bản snapshot lưu trữ — đúng số liệu tại thời điểm xuất, không tự cập nhật thêm. Xem bản đang chạy trực tiếp tại: <a href="' + VHSNAP_LIVE_URL + '">' + VHSNAP_LIVE_URL + '</a></div></div>';
   var body = '<div class="page">' + header +
     '<div id="summaryBannerWrap">' + built.summaryHtml + '</div>' +
     '<div id="reportBody">' + built.bodyHtml + '</div>' +
     footer + '</div>';
-  return '<!DOCTYPE html>\n<html lang="vi">\n<head>\n' + head + '\n</head>\n<body>\n' + body + '\n</body>\n</html>';
+  var snapshotJson = JSON.stringify({ chartStore: chartSnapshot.chartStore, chartState: chartSnapshot.chartState, exportedAt: exportedAt }).replace(/</g, '\\u003c');
+  var scripts = '\n<script>window.__STATIC_SNAPSHOT__ = ' + snapshotJson + ';<\/script>' +
+    (assets.scriptSrc ? '\n<script id="mainScript">' + assets.scriptSrc + '<\/script>' : ''); // thiếu mainScript (lỗi fetch) -> vẫn là file tĩnh xem được, chỉ mất phần bấm tương tác
+  return '<!DOCTYPE html>\n<html lang="vi">\n<head>\n' + head + '\n</head>\n<body>\n' + (assets.tocHtml || '') + '\n' + body + scripts + '\n</body>\n</html>';
 }
 
 // ---- 7. Gửi file tài liệu (HTML) qua Telegram Bot API — dùng chung TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID (Script Properties) ----
@@ -3414,8 +3428,8 @@ function vhSnapshotWeeklyJob() {
     var tables = VHSNAP_getTables();
     var data = VHSNAP_parseAll(tables);
 
-    VHSNAP_FACTS = {};
-    VHSNAP_renderBody(data, null, null); // PASS 1: chỉ để thu thập VHSNAP_FACTS, bỏ HTML
+    VHSNAP_FACTS = {}; VHSNAP_CHART_SEQ = 0; VHSNAP_CHART_STORE = {}; VHSNAP_CHART_STATE = {};
+    VHSNAP_renderBody(data, null, null); // PASS 1: chỉ để thu thập VHSNAP_FACTS, bỏ HTML + bỏ luôn chart id của pass này
 
     var overview = VHSNAP_FACTS.overview || { highlights: [], lowlights: [] };
     var groupIds = Object.keys(VHSNAP_FACTS).filter(function (k) { return k !== 'overview'; });
@@ -3434,12 +3448,20 @@ function vhSnapshotWeeklyJob() {
       }
     }
 
-    VHSNAP_FACTS = {};
-    var built = VHSNAP_renderBody(data, aiOverview, aiGroups); // PASS 2: bản cuối, có văn AI nếu gọi được
+    VHSNAP_FACTS = {}; VHSNAP_CHART_SEQ = 0; VHSNAP_CHART_STORE = {}; VHSNAP_CHART_STATE = {};
+    var built = VHSNAP_renderBody(data, aiOverview, aiGroups); // PASS 2: bản cuối, có văn AI nếu gọi được — id chart (ch0, ch1...) của pass này khớp ĐÚNG với chartStore/chartState thu thập ngay bên dưới
 
-    var css = VHSNAP_getLiveCss();
+    // chụp lại đúng trạng thái CHART_STORE/CHART_STATE của PASS 2 (đúng id đã in ra trong built.bodyHtml) để
+    // nhúng vào file — giống hệt exportStaticHtml() phía client chụp lại CHART_STORE/CHART_STATE hiện có.
+    var chartStoreOut = {}, chartStateOut = {};
+    Object.keys(VHSNAP_CHART_STORE).forEach(function (id) { chartStoreOut[id] = VHSNAP_CHART_STORE[id]; });
+    Object.keys(VHSNAP_CHART_STATE).forEach(function (id) {
+      chartStateOut[id] = { mode: VHSNAP_CHART_STATE[id].mode, hidden: Array.from(VHSNAP_CHART_STATE[id].hidden) };
+    });
+
+    var assets = VHSNAP_getLiveAssets();
     var exportedAt = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm dd/MM/yyyy');
-    var html = VHSNAP_wrapSnapshotPage(built, css, exportedAt);
+    var html = VHSNAP_wrapSnapshotPage(built, assets, { chartStore: chartStoreOut, chartState: chartStateOut }, exportedAt);
 
     var weekTag = built.wkInfo ? String(built.wkInfo.latest).replace(/[^0-9A-Za-z]/g, '') : 'khongro';
     var dateTag = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmm');
