@@ -2097,3 +2097,1389 @@ function expandICSEvents(rawEvents, rangeStart, rangeEnd) {
   });
   return out;
 }
+
+
+// ============================================================================================
+// SNAPSHOT TỰ ĐỘNG — Báo Cáo Vận Hành Tuần — gửi TELEGRAM lưu trữ (tính năng mới, độc lập hoàn toàn)
+// ============================================================================================
+// TOÀN BỘ code trong khối này (tiền tố VHSNAP_) là CODE MỚI, KHÔNG sửa/gọi lại bất kỳ hàm nào đang
+// phục vụ web live ngoài việc ĐỌC (không ghi) DATA_SHEET_NAMES/SHEET_ID/sheetToTableShape/buildOpsAIPrompt/
+// GEMINI_MODEL/md5Hex đã có sẵn — nên không ảnh hưởng gì tới doPost()/web đang chạy.
+//
+// Ý tưởng: các hàm bên dưới là BẢN SAO gần như nguyên văn của phần render/parse phía CLIENT (file
+// bao_cao_van_hanh_live.html, thẻ <script id="mainScript">) — chỉ đổi tên (thêm tiền tố VHSNAP_ để
+// không trùng tên với bất kỳ hàm nào khác trong Code.gs) và bỏ các chỗ đụng tới `document` (đổi
+// `wrap.innerHTML = X` thành `return X`) vì Apps Script không có DOM. Mọi công thức tính toán GIỮ Y
+// NGUYÊN — không tính lại/suy diễn gì khác so với web live.
+//
+// !!! LƯU Ý ĐỒNG BỘ QUAN TRỌNG: nếu sau này sửa logic parse/tính toán/hiển thị trong mainScript (vd sửa
+// tiếp shareCell, parseGroupedSheet, buildGroupAnalysis...) ở bao_cao_van_hanh_live.html, PHẢI đồng bộ
+// lại đúng hàm tương ứng (VHSNAP_...) bên dưới, nếu không bản snapshot gửi Telegram sẽ dần lệch số/lệch
+// logic so với web đang chạy. Đánh dấu ngày đồng bộ gần nhất ở đây: 2026-07-28.
+
+var VHSNAP_FACTS = {}; // facts thuần (không HTML) thu thập trong PASS 1 để gửi cho AI viết lại văn phong
+
+var VHSNAP_CHART_SEQ = 0;
+var VHSNAP_CHART_STORE = {};
+var VHSNAP_CHART_STATE = {};
+// ---- Hằng số (copy nguyên văn từ mainScript) ----
+var VHSNAP_CHART_COLORS = [
+ "#0063AA",
+ "#F15A22",
+ "#1D9E75",
+ "#8B6B00",
+ "#7B4FA6",
+ "#C04A1A",
+ "#0F6E56",
+ "#3B7DD8",
+ "#A63603",
+ "#556B2F",
+ "#B0413E",
+ "#2E86AB"
+];
+
+var VHSNAP_METRIC_META = [
+ {
+  "key": "opr",
+  "dir": "ge",
+  "unit": "pct",
+  "num": "1",
+  "title": "OPR — %Ontime lấy hàng",
+  "firstColLabel": "Đối tượng",
+  "shortName": "OPR"
+ },
+ {
+  "key": "odr",
+  "dir": "ge",
+  "unit": "pct",
+  "num": "2",
+  "title": "ODR — %Ontime giao hàng",
+  "firstColLabel": "Đối tượng",
+  "shortName": "ODR"
+ },
+ {
+  "key": "fd",
+  "dir": "le",
+  "unit": "pct",
+  "num": "3",
+  "title": "FD — %Giao thất bại",
+  "firstColLabel": "Đối tượng",
+  "shortName": "FD"
+ },
+ {
+  "key": "rotlc",
+  "dir": "le",
+  "unit": "pct",
+  "num": "4",
+  "title": "%RớtLC — Rớt luân chuyển",
+  "firstColLabel": "Vùng",
+  "shortName": "RớtLC"
+ },
+ {
+  "key": "bl36h",
+  "dir": "le",
+  "unit": "pct",
+  "num": "5",
+  "title": "%&gt;36H — Backlog luân chuyển",
+  "firstColLabel": "Vùng",
+  "shortName": "BL LC>36H"
+ },
+ {
+  "key": "gtc",
+  "dir": "ge",
+  "unit": "pct",
+  "num": "6",
+  "title": "%GTC — Giao thành công",
+  "firstColLabel": "Vùng",
+  "shortName": "GTC"
+ },
+ {
+  "key": "blgiao120",
+  "dir": "le",
+  "unit": "pct",
+  "num": "7",
+  "title": "%&gt;120H — Backlog giao",
+  "firstColLabel": "Vùng",
+  "shortName": "BL Giao>120H"
+ },
+ {
+  "key": "bltra48h",
+  "dir": "le",
+  "unit": "pct",
+  "num": "8",
+  "title": "%&gt;48H — Backlog luân chuyển trả",
+  "firstColLabel": "Vùng",
+  "shortName": "BL LC Trả>48H"
+ },
+ {
+  "key": "bltra120h",
+  "dir": "le",
+  "unit": "pct",
+  "num": "9",
+  "title": "%&gt;120H — Backlog trả",
+  "firstColLabel": "Vùng",
+  "shortName": "BL Trả>120H"
+ },
+ {
+  "key": "ktcton24h",
+  "dir": "le",
+  "unit": "pct",
+  "num": "12",
+  "title": "KTC — %Tồn xuất &gt;24H",
+  "firstColLabel": "KTC",
+  "shortName": "KTC Tồn>24H",
+  "summaryCaNuoc": true
+ }
+];
+
+var VHSNAP_NOTES = {
+ "opr": "<div class=\"opr-note\"><div class=\"opr-note-title\">Công thức và cách đo</div><div class=\"opr-note-body\">\n  <p>Mỗi nhóm khách hàng có SLA (cam kết thời gian lấy hàng) riêng. OPR đo riêng theo SLA từng nhóm. %toàn quốc & Grand Total = bình quân có trọng số đơn (Σ đơn ontime ÷ Σ đơn).</p>\n  <div class=\"opr-sla-grid\">\n  <div class=\"opr-sla-card\"><div class=\"opr-sla-kh\">Shopee · Shopee Bulky · SME</div><div class=\"opr-sla-target\">Target <span class=\"opr-target-val\">90%</span></div><div class=\"opr-sla-rule\">Đơn tạo trước 19:00 → lấy hàng trong ngày</div></div>\n  <div class=\"opr-sla-card\"><div class=\"opr-sla-kh\">TTS</div><div class=\"opr-sla-target\">Target <span class=\"opr-target-val\">80%</span></div><div class=\"opr-sla-rule\">Tạo trước 9:00 → lấy trước 12:00 trưa; 9:00–19:00 → lấy trong ngày; sau 19:00 → lấy trước 12:00 hôm sau</div></div>\n  </div></div></div>",
+ "odr": "<div class=\"opr-note\"><div class=\"opr-note-title\">Công thức và cách đo</div><div class=\"opr-note-body\">\n  <p>ODR (On-time Delivery Rate) đo tỷ lệ đơn giao đúng hạn theo SLA từng khách hàng.</p>\n  <div class=\"opr-sla-grid\">\n  <div class=\"opr-sla-card\"><div class=\"opr-sla-kh\">Shopee · Bulky · SME</div><div class=\"opr-sla-target\">Target <span class=\"opr-target-val\">≥ 90%</span></div><div class=\"opr-sla-rule\">Đơn giao đúng hạn theo SLA</div></div>\n  <div class=\"opr-sla-card\"><div class=\"opr-sla-kh\">TTS</div><div class=\"opr-sla-target\">Target <span class=\"opr-target-val\">≥ 96%</span></div><div class=\"opr-sla-rule\">Đơn giao đúng hạn theo SLA TTS</div></div>\n  </div></div></div>",
+ "fd": "<div class=\"opr-note\"><div class=\"opr-note-title\">Công thức và cách đo</div><div class=\"opr-note-body\">\n  <p>FD (Failed Delivery Rate) = Số đơn giao thất bại ÷ Tổng đơn cần giao × 100%. Thấp là tốt.</p>\n  <div class=\"opr-sla-grid\">\n  <div class=\"opr-sla-card\"><div class=\"opr-sla-kh\">Shopee/Bulky/SME</div><div class=\"opr-sla-target\">Target <span class=\"opr-target-val\">≤ 3%</span></div><div class=\"opr-sla-rule\">%FD = Đơn thất bại ÷ Tổng đơn cần giao</div></div>\n  <div class=\"opr-sla-card\"><div class=\"opr-sla-kh\">TTS</div><div class=\"opr-sla-target\">Target <span class=\"opr-target-val\">≤ 4.5%</span></div><div class=\"opr-sla-rule\">Áp cho đơn COD</div></div>\n  </div></div></div>",
+ "rotlc": "<div class=\"opr-note\"><div class=\"opr-note-title\">Công thức và cách đo</div><div class=\"opr-note-body\">\n  <p>%RớtLC = Đơn lấy thành công nhưng chưa xuất khỏi kho đúng hạn ÷ Tổng đơn lấy thành công × 100%. Thấp là tốt. Target ≤ 2%.</p></div></div>",
+ "bl36h": "<div class=\"opr-note\"><div class=\"opr-note-title\">Công thức và cách đo</div><div class=\"opr-note-body\">\n  <p>%&gt;36H = Số đơn tồn trong luân chuyển quá 36 giờ ÷ Tổng backlog luân chuyển × 100%. Snapshot cuối tuần. Target ≤ 2%.</p></div></div>",
+ "gtc": "<div class=\"opr-note\"><div class=\"opr-note-title\">Công thức và cách đo</div><div class=\"opr-note-body\">\n  <p>%GTC = Số đơn giao thành công ÷ Số đơn cần giao × 100%. Cao là tốt. Target ≥ 65%. Tất cả = Ca 1 + Ca 2 + Hàng tồn.</p></div></div>",
+ "blgiao120": "<div class=\"opr-note\"><div class=\"opr-note-title\">Công thức và cách đo</div><div class=\"opr-note-body\">\n  <p>%&gt;120H = Số đơn tồn trong giao hàng quá 120 giờ (5 ngày) ÷ Tổng backlog giao × 100%. Target ≤ 2%.</p></div></div>",
+ "bltra48h": "<div class=\"opr-note\"><div class=\"opr-note-title\">Công thức và cách đo</div><div class=\"opr-note-body\">\n  <p>%&gt;48H = Số đơn hoàn trả tồn trong luân chuyển quá 48 giờ ÷ Tổng backlog LC trả × 100%. Snapshot cuối tuần. Target ≤ 2%.</p></div></div>",
+ "bltra120h": "<div class=\"opr-note\"><div class=\"opr-note-title\">Công thức và cách đo</div><div class=\"opr-note-body\">\n  <p>%&gt;120H (trả) = Số đơn hoàn trả tồn quá 120 giờ trong khâu giao trả về người gửi ÷ Tổng backlog trả × 100%. Target ≤ 2%.</p></div></div>",
+ "ktccho": "<div class=\"opr-note\"><div class=\"opr-note-title\">Công thức và cách đo</div><div class=\"opr-note-body\">\n  <p>Leadtime chờ nhập = Thời gian xe chờ tại cổng KTC đến khi được nhập kho (phút). Dùng P90. Target ≤ 15 phút. Dòng \"Cả nước\" là P90 toàn hệ thống, nhập tay riêng.</p></div></div>",
+ "ktcnhapxuat": "<div class=\"opr-note\"><div class=\"opr-note-title\">Công thức và cách đo</div><div class=\"opr-note-body\">\n  <p>Leadtime nhập→xuất = Thời gian từ khi đơn được nhập vào KTC đến khi xuất đi (phút), P90. Đo theo 3 tuyến: Nội tỉnh / Nội vùng.</p></div></div>",
+ "ktcton24h": "<div class=\"opr-note\"><div class=\"opr-note-title\">Công thức và cách đo</div><div class=\"opr-note-body\">\n  <p>%Tồn xuất &gt;24H = Số đơn tồn tại KTC chờ xuất quá 24 giờ ÷ Tổng đơn tồn × 100%. Target ≤ 2%.</p></div></div>"
+};
+
+var VHSNAP_AI_HL_POS_WORDS = [
+ "tăng trưởng",
+ "cải thiện liên tục",
+ "cải thiện",
+ "phục hồi",
+ "tích cực",
+ "tốt nhất",
+ "đạt target",
+ "vượt mục tiêu",
+ "vượt",
+ "đạt"
+];
+
+var VHSNAP_AI_HL_NEG_WORDS = [
+ "xấu đi liên tục",
+ "xấu đi",
+ "sụt giảm",
+ "suy giảm",
+ "chưa đạt target",
+ "chưa đạt",
+ "kém nhất",
+ "rủi ro",
+ "cần lưu ý",
+ "cần chú ý",
+ "cảnh báo",
+ "thách thức",
+ "nguy cơ",
+ "áp lực",
+ "giảm",
+ "thiếu"
+];
+
+function VHSNAP_esc(s){ return String(s === null || s === undefined ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function VHSNAP_attrEsc(s){ return String(s === null || s === undefined ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function VHSNAP_escRegex(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+function VHSNAP_cell(row, idx){
+  if (!row || !row.c || idx >= row.c.length) return null;
+  const c = row.c[idx];
+  if (!c || c.v === null || c.v === undefined || c.v === '') return null;
+  return c.v;
+}
+
+function VHSNAP_rawCell0(row){ // raw (untrimmed) text of column 0, used to detect leading-space nested dividers
+  if (!row || !row.c || !row.c[0] || row.c[0].v === null || row.c[0].v === undefined) return '';
+  return String(row.c[0].v);
+}
+
+function VHSNAP_colLabel(table, idx){
+  if (!table.cols || idx >= table.cols.length || !table.cols[idx]) return '';
+  return table.cols[idx].label || '';
+}
+
+function VHSNAP_firstToken(s, fallback){
+  const t = String(s||'').trim();
+  if (!t) return fallback;
+  return t.split(/\s+/)[0];
+}
+
+function VHSNAP_normPct(v){ if (v === null || v === undefined) return null; const n = Number(v); if (isNaN(n)) return null; return Math.abs(n) > 1.5 ? n/100 : n; }
+
+function VHSNAP_fmtNum(v){ return (v === null || v === undefined) ? '–' : Math.round(v).toLocaleString('vi-VN'); }
+
+function VHSNAP_fmtPct(v, d=1){ return (v === null || v === undefined) ? '–' : (v*100).toFixed(d) + '%'; }
+
+function VHSNAP_fmtMin(v){ return (v === null || v === undefined) ? '–' : (Math.round(v*10)/10).toLocaleString('vi-VN') + ' p'; }
+
+function VHSNAP_isTotalLabel(s){ return s !== null && s !== undefined && (String(s).indexOf('Tổng ') === 0 || String(s) === 'Grand Total'); }
+
+function VHSNAP_isGrandLabel(s){ return s === 'Grand Total'; }
+
+function VHSNAP_effectiveNcols(table, rawNcols){
+  let n = rawNcols;
+  while (n > 0) {
+    const idx = n - 1;
+    const label = VHSNAP_colLabel(table, idx).trim();
+    if (label) break; // cột cuối cùng còn lại có tiêu đề thật -> dừng cắt
+    let hasData = false;
+    (table.rows||[]).forEach(row => {
+      if (hasData) return;
+      if (VHSNAP_cell(row, idx) !== null) hasData = true;
+    });
+    if (hasData) break; // không có tiêu đề nhưng CÓ dữ liệu -> giữ lại cho an toàn
+    n--;
+  }
+  return n;
+}
+
+function VHSNAP_extractSwallowedFirstLabel(table, prefix){
+  // Gviz gộp dòng chia-nhóm ĐẦU TIÊN (ngay sau 2 dòng header) vào table.cols thay vì table.rows
+  // (vì dòng đó cũng chỉ có chữ ở cột đầu, trông giống header). Khôi phục lại nhãn đó từ table.cols[0].label,
+  // bằng cách cắt bỏ phần tiêu đề cột cố định (VD "Khách hàng", "Vùng"...) ở đầu chuỗi.
+  const raw = VHSNAP_colLabel(table, 0);
+  if (!raw) return '';
+  if (prefix && raw.indexOf(prefix) === 0) return raw.slice(prefix.length).trim();
+  return '';
+}
+
+function VHSNAP_parseGroupedSheet(table, opt){
+  // opt: {targetIdx, dimIdxs:[..], weekStartIdx, weekStep, weeksCountFixedCols, singleValue, dim1HeaderPrefix}
+  const rawNcols = table.cols ? table.cols.length : (table.rows && table.rows[0] ? table.rows[0].c.length : 0);
+  const ncols = VHSNAP_effectiveNcols(table, rawNcols);
+  const weeksCount = Math.max(0, Math.floor((ncols - opt.fixedCols) / opt.weekStep));
+  const weekLabels = [];
+  for (let w = 0; w < weeksCount; w++) {
+    weekLabels.push(VHSNAP_firstToken(VHSNAP_colLabel(table, opt.weekStartIdx + w*opt.weekStep), 'Kỳ ' + (w+1)));
+  }
+  // đọc ĐÚNG tiêu đề cột con (VD "Đơn"/"%OnT", "Vol LấyTC"/"%Rớt", "% Vol"/"%FD"...) trực tiếp từ sheet —
+  // không đoán/hardcode — để tự nhận ra khi cột "vol" thực ra là % (VD user đổi "Đơn" thành "% Vol").
+  // LƯU Ý QUAN TRỌNG: các sheet 02_OPR/03_ODR/04_FD/07_GTC (và 24_KD_BanMoiAM) có 2 DÒNG tiêu đề trong Sheet —
+  // dòng 1 (đọc vào table.cols, VD "2026/24") chỉ có nhãn kỳ; nhãn cột con THẬT ("Đơn"/"%OnT", "% Vol"/"%FD"...)
+  // lại nằm ở DÒNG DỮ LIỆU ĐẦU TIÊN (table.rows[0]) vì sheetToTableShape() ở backend chỉ lấy 1 dòng làm header.
+  // Dòng đó vẫn tự động bị vòng lặp bên dưới bỏ qua (cột đầu rỗng -> coi như dòng trống) nên không ảnh hưởng gì
+  // tới dữ liệu — chỉ cần đọc thẳng nhãn cột con từ đó khi phát hiện đúng dạng "dòng tiêu đề phụ" này, thay vì
+  // đọc từ table.cols (vốn KHÔNG có chữ "%", khiến volIsPct luôn sai thành false và cột Vol dạng % hiển thị 0).
+  const subHeaderRow = (function(){
+    const r0 = table.rows && table.rows[0];
+    if (!r0) return null;
+    if (VHSNAP_cell(r0, opt.targetIdx) !== null) return null; // có target => dòng dữ liệu thật, không phải header phụ
+    if (VHSNAP_rawCell0(r0).trim()) return null; // có nhãn ở cột đầu => dòng chia nhóm/dữ liệu, không phải header phụ
+    const v = VHSNAP_cell(r0, opt.weekStartIdx);
+    return (typeof v === 'string' && v.trim()) ? r0 : null;
+  })();
+  let volLabel = null, pctLabel = null, volIsPct = false, khLabel = null, revLabel = null;
+  if (!opt.singleValue && !opt.tripleValue && weeksCount > 0) {
+    let sub1, sub2;
+    if (subHeaderRow) {
+      sub1 = String(VHSNAP_cell(subHeaderRow, opt.weekStartIdx) || '').trim();
+      sub2 = String(VHSNAP_cell(subHeaderRow, opt.weekStartIdx + 1) || '').trim();
+    } else {
+      const raw1 = VHSNAP_colLabel(table, opt.weekStartIdx).trim();
+      const wkTok = VHSNAP_firstToken(raw1, '');
+      sub1 = (wkTok && raw1.indexOf(wkTok) === 0) ? raw1.slice(wkTok.length).trim() : raw1;
+      sub2 = VHSNAP_colLabel(table, opt.weekStartIdx + 1).trim();
+    }
+    volLabel = sub1 || 'Vol';
+    pctLabel = sub2 || '%';
+    volIsPct = sub1.indexOf('%') !== -1;
+  } else if (opt.tripleValue && weeksCount > 0) {
+    // bảng 3 cột/tuần (VD Sản lượng | Số lượng KH | Doanh Thu) — đọc động cả 3 nhãn cột con từ sheet
+    let sub1, sub2b, sub3;
+    if (subHeaderRow) {
+      sub1 = String(VHSNAP_cell(subHeaderRow, opt.weekStartIdx) || '').trim();
+      sub2b = String(VHSNAP_cell(subHeaderRow, opt.weekStartIdx + 1) || '').trim();
+      sub3 = String(VHSNAP_cell(subHeaderRow, opt.weekStartIdx + 2) || '').trim();
+    } else {
+      const raw1 = VHSNAP_colLabel(table, opt.weekStartIdx).trim();
+      const wkTok = VHSNAP_firstToken(raw1, '');
+      sub1 = (wkTok && raw1.indexOf(wkTok) === 0) ? raw1.slice(wkTok.length).trim() : raw1;
+      sub2b = VHSNAP_colLabel(table, opt.weekStartIdx + 1).trim();
+      sub3 = VHSNAP_colLabel(table, opt.weekStartIdx + 2).trim();
+    }
+    volLabel = sub1 || 'Sản lượng';
+    khLabel = sub2b || 'Số lượng KH';
+    revLabel = sub3 || 'Doanh Thu';
+  }
+  const groups = [];
+  let topLabel = opt.dim1HeaderPrefix ? VHSNAP_extractSwallowedFirstLabel(table, opt.dim1HeaderPrefix) : '';
+  let current = null;
+  (table.rows||[]).forEach(row => {
+    const targetRaw = VHSNAP_cell(row, opt.targetIdx);
+    const target = opt.targetIsPct ? VHSNAP_normPct(targetRaw) : targetRaw;
+    if (target === null || target === undefined) {
+      const raw = VHSNAP_rawCell0(row);
+      const isNested = /^\s/.test(raw);
+      const trimmed = raw.trim();
+      if (!trimmed) return; // dòng hoàn toàn trống, bỏ qua
+      if (!isNested) { topLabel = trimmed; current = null; }
+      else { current = { label: topLabel ? (topLabel + ' — ' + trimmed) : trimmed, rows: [] }; groups.push(current); }
+      return;
+    }
+    const dims = opt.dimIdxs.map(i => VHSNAP_cell(row, i));
+    const weeks = [];
+    for (let w = 0; w < weeksCount; w++) {
+      if (opt.singleValue) weeks.push({ val: VHSNAP_cell(row, opt.weekStartIdx + w*opt.weekStep) });
+      else if (opt.tripleValue) {
+        weeks.push({
+          vol: VHSNAP_cell(row, opt.weekStartIdx + w*opt.weekStep),
+          khCount: VHSNAP_cell(row, opt.weekStartIdx + w*opt.weekStep + 1),
+          rev: VHSNAP_cell(row, opt.weekStartIdx + w*opt.weekStep + 2)
+        });
+      } else {
+        const rawVol = VHSNAP_cell(row, opt.weekStartIdx + w*opt.weekStep);
+        weeks.push({ vol: volIsPct ? VHSNAP_normPct(rawVol) : rawVol, pct: VHSNAP_normPct(VHSNAP_cell(row, opt.weekStartIdx + w*opt.weekStep + 1)) });
+      }
+    }
+    const label = dims.length > 1 ? dims[dims.length-1] : dims[0];
+    const rec = { dims, dim1: dims[0], dim2: dims.length>1?dims[1]:undefined, label, target, weeks,
+      trip: opt.tripIdx !== undefined ? VHSNAP_cell(row, opt.tripIdx) : undefined,
+      isTotalRow: VHSNAP_isTotalLabel(label), isGrand: VHSNAP_isGrandLabel(label) };
+    if (!current) { current = { label: topLabel, rows: [] }; groups.push(current); }
+    current.rows.push(rec);
+  });
+  // bỏ các group rỗng (divider không có dòng dữ liệu nào theo sau, ví dụ divider cấp 1 của GTC đã được nối vào divider cấp 2)
+  return { weeksCount, weekLabels, volLabel, pctLabel, volIsPct, khLabel, revLabel, groups: groups.filter(g => g.rows.length > 0) };
+}
+
+function VHSNAP_parseExtra1(table, dim1HeaderPrefix){ // 05,06,08,09,10,13 : dim1,target,tuần...,delta
+  return VHSNAP_parseGroupedSheet(table, { targetIdx: 1, targetIsPct: true, dimIdxs: [0], weekStartIdx: 2, weekStep: 2, fixedCols: 3, dim1HeaderPrefix });
+}
+
+function VHSNAP_parseExtra2(table, dim1HeaderPrefix){ // 02_OPR,03_ODR,04_FD,07_GTC : dim1,dim2,target,tuần...,delta
+  return VHSNAP_parseGroupedSheet(table, { targetIdx: 2, targetIsPct: true, dimIdxs: [0,1], weekStartIdx: 3, weekStep: 2, fixedCols: 4, dim1HeaderPrefix });
+}
+
+function VHSNAP_parseKTCP90(table){ // 11 : dim1,target,tuần(đơn),delta,trip — trip nằm ngay sau cột delta
+  const rawNcols = table.cols ? table.cols.length : (table.rows && table.rows[0] ? table.rows[0].c.length : 0);
+  const ncols = VHSNAP_effectiveNcols(table, rawNcols);
+  const weeksCount = Math.max(0, ncols - 4);
+  const res = VHSNAP_parseGroupedSheet(table, { targetIdx: 1, targetIsPct: false, dimIdxs: [0], weekStartIdx: 2, weekStep: 1, fixedCols: 4, singleValue: true, tripIdx: 2 + weeksCount + 1 });
+  return res;
+}
+
+function VHSNAP_parseKTCTuyen(table){ // 12 : tuyen,ktc,target(chuỗi),tuần(đơn),delta,trip
+  const rawNcols = table.cols ? table.cols.length : (table.rows && table.rows[0] ? table.rows[0].c.length : 0);
+  const ncols = VHSNAP_effectiveNcols(table, rawNcols);
+  const weeksCount = Math.max(0, ncols - 5);
+  return VHSNAP_parseGroupedSheet(table, { targetIdx: 2, targetIsPct: false, dimIdxs: [0,1], weekStartIdx: 3, weekStep: 1, fixedCols: 5, singleValue: true, tripIdx: 3 + weeksCount + 1, dim1HeaderPrefix: 'Tuyến' });
+}
+
+function VHSNAP_parseScorecard(table){
+  const METRICS = [
+    {key:'slLay',label:'SL lấy'}, {key:'slGiao',label:'SL giao'},
+    {key:'oprShopee',label:'OPR Shopee',target:0.90,dir:'ge'},{key:'oprBulky',label:'OPR Bulky',target:0.90,dir:'ge'},
+    {key:'oprTTS',label:'OPR TTS',target:0.80,dir:'ge'},{key:'oprSME',label:'OPR SME',target:0.90,dir:'ge'},
+    {key:'odrShopee',label:'ODR Shopee',target:0.90,dir:'ge'},{key:'odrBulky',label:'ODR Bulky',target:0.90,dir:'ge'},
+    {key:'odrTTS',label:'ODR TTS',target:0.96,dir:'ge'},{key:'odrSME',label:'ODR SME',target:0.90,dir:'ge'},
+    {key:'fd',label:'FD',target:0.03,dir:'le'},{key:'rotlc',label:'RớtLC',target:0.02,dir:'le'},
+    {key:'gtc',label:'GTC',target:0.65,dir:'ge'},{key:'blGiao120',label:'BL Giao>120H',target:0.02,dir:'le'},
+    {key:'blTra120',label:'BL Trả>120H',target:0.02,dir:'le'}
+  ];
+  const groups = [];
+  const groupMap = {};
+  (table.rows||[]).forEach(row => {
+    const dim1 = VHSNAP_cell(row,0), dim2 = VHSNAP_cell(row,1);
+    if (dim2 === null) return;
+    const rec = {dim1, dim2, m:{}};
+    METRICS.forEach((mDef, i) => {
+      const isPctMetric = mDef.target !== undefined;
+      const w25raw = VHSNAP_cell(row, 2+i*2), w24raw = VHSNAP_cell(row, 2+i*2+1);
+      rec.m[mDef.key] = { w25: isPctMetric ? VHSNAP_normPct(w25raw) : w25raw, w24: isPctMetric ? VHSNAP_normPct(w24raw) : w24raw };
+    });
+    rec.isTotalRow = VHSNAP_isTotalLabel(dim2);
+    const gKey = dim1 === null ? '(khác)' : String(dim1);
+    if (!groupMap[gKey]) { groupMap[gKey] = {label: gKey, rows: []}; groups.push(groupMap[gKey]); groupMap[gKey]._key = gKey; }
+    groupMap[gKey].rows.push(rec);
+  });
+  return { groups, METRICS };
+}
+
+function VHSNAP_chartValOf(rec, wk){ return wk.pct !== undefined ? wk.pct : wk.val; }
+
+function VHSNAP_classFor(v, target, dir){
+  if (v === null || v === undefined || target === null || target === undefined || isNaN(target)) return '';
+  return dir === 'ge' ? (v >= target ? 'good' : 'bad') : (v <= target ? 'good' : 'bad');
+}
+
+function VHSNAP_sortRowsForDisplay(rows, dir){
+  if (!dir) return rows; // không có hướng tốt/xấu rõ ràng (VD KTC Nhập→Xuất) -> giữ nguyên thứ tự sheet
+  const totals = rows.filter(r => r.isTotalRow || r.isGrand);
+  const detail = rows.filter(r => !r.isTotalRow && !r.isGrand);
+  const valOf = r => { const wk = r.weeks[r.weeks.length-1]; return VHSNAP_chartValOf(r, wk); };
+  detail.sort((a,b) => {
+    const va = valOf(a), vb = valOf(b);
+    const aMissing = va === null || va === undefined, bMissing = vb === null || vb === undefined;
+    if (aMissing && bMissing) return 0;
+    if (aMissing) return 1; // dòng thiếu dữ liệu đẩy xuống cuối (trước dòng Tổng)
+    if (bMissing) return -1;
+    return dir === 'ge' ? (va - vb) : (vb - va); // ge: thấp (tệ) trước; le: cao (tệ) trước
+  });
+  return detail.concat(totals);
+}
+
+function VHSNAP_weekTds(rec, dir, volIsPct){
+  let html = '';
+  rec.weeks.forEach((wk, i) => {
+    const isLast = i === rec.weeks.length-1;
+    const wfirst = i>0 ? ' wfirst' : '';
+    if (wk.pct !== undefined) {
+      const volStr = volIsPct ? VHSNAP_fmtPct(wk.vol) : VHSNAP_fmtNum(wk.vol);
+      html += '<td class="'+wfirst+(volIsPct?' pct':'')+'">'+volStr+'</td>';
+      const cls = isLast ? VHSNAP_classFor(wk.pct, rec.target, dir) : 'pct';
+      html += '<td class="'+cls+'">'+VHSNAP_fmtPct(wk.pct)+'</td>';
+    } else {
+      const cls = isLast ? VHSNAP_classFor(wk.val, rec.target, dir) : '';
+      html += '<td class="'+wfirst+' '+cls+'">'+VHSNAP_fmtMin(wk.val)+'</td>';
+    }
+  });
+  return html;
+}
+
+function VHSNAP_deltaForRec(rec, dir){
+  const n = rec.weeks.length;
+  if (n < 2) return '<td class="delta mut">–</td>';
+  const curr = rec.weeks[n-1].pct !== undefined ? rec.weeks[n-1].pct : rec.weeks[n-1].val;
+  const prev = rec.weeks[n-2].pct !== undefined ? rec.weeks[n-2].pct : rec.weeks[n-2].val;
+  const isPctMetric = rec.weeks[n-1].pct !== undefined;
+  if (curr === null || prev === null || curr === undefined || prev === undefined) return '<td class="delta mut">–</td>';
+  const diff = curr - prev;
+  const dispDiff = isPctMetric ? Math.abs(diff*100).toFixed(1)+'pp' : Math.abs(diff).toFixed(1)+' p';
+  if (Math.abs(diff) < (isPctMetric ? 0.0005 : 0.05)) return '<td class="delta mut">— 0.0'+(isPctMetric?'pp':' p')+'</td>';
+  const arrow = diff > 0 ? '▲' : '▼';
+  const isGood = dir === 'ge' ? diff > 0 : diff < 0;
+  const cls = isGood ? 'dn' : 'up';
+  return '<td class="delta"><span class="'+cls+'">'+arrow+' '+dispDiff+'</span></td>';
+}
+
+function VHSNAP_rowHtml(label, rec, dir, opts){
+  opts = opts || {};
+  const rowClass = opts.rowClass ? ' class="'+opts.rowClass+'"' : '';
+  return '<tr'+rowClass+'><td>'+VHSNAP_esc(label)+'</td>'+VHSNAP_weekTds(rec, dir, opts.volIsPct)+VHSNAP_deltaForRec(rec, dir)+(opts.extraCell||'')+'</tr>';
+}
+
+function VHSNAP_theadHtmlDyn(firstColLabel, volLabel, pctLabel, weekLabels, deltaLabel, extraColLabel){
+  let h1 = '<tr><th rowspan="2">'+VHSNAP_esc(firstColLabel)+'</th>';
+  let h2 = '<tr class="subhead">';
+  weekLabels.forEach((w,i) => {
+    h1 += '<th colspan="2" class="'+(i>0?'wsep':'')+'">'+VHSNAP_esc(w)+'</th>';
+    h2 += '<th class="'+(i>0?'wsep':'')+'">'+VHSNAP_esc(volLabel)+'</th><th>'+VHSNAP_esc(pctLabel)+'</th>';
+  });
+  h1 += '<th rowspan="2" class="cdelta">'+VHSNAP_esc(deltaLabel)+'</th>';
+  if (extraColLabel) h1 += '<th rowspan="2">'+VHSNAP_esc(extraColLabel)+'</th>';
+  h2 += '</tr>';
+  return '<thead>'+h1+'</tr>'+h2+'</thead>';
+}
+
+function VHSNAP_theadSingleHtmlDyn(firstColLabel, valLabel, weekLabels, deltaLabel, extraColLabel){
+  let h1 = '<tr><th rowspan="2">'+VHSNAP_esc(firstColLabel)+'</th>';
+  let h2 = '<tr class="subhead">';
+  weekLabels.forEach((w,i) => {
+    h1 += '<th class="'+(i>0?'wsep':'')+'">'+VHSNAP_esc(w)+'</th>';
+    h2 += '<th class="'+(i>0?'wsep':'')+'">'+VHSNAP_esc(valLabel)+'</th>';
+  });
+  h1 += '<th rowspan="2" class="cdelta">'+VHSNAP_esc(deltaLabel)+'</th>';
+  if (extraColLabel) h1 += '<th rowspan="2">'+VHSNAP_esc(extraColLabel)+'</th>';
+  h2 += '</tr>';
+  return '<thead>'+h1+'</tr>'+h2+'</thead>';
+}
+
+function VHSNAP_shareCell(rec, groupRows, isPctMetric, volIsPct){
+  if (rec.isTotalRow || rec.isGrand) return '<td class="mut">–</td>';
+  const last = rec.weeks[rec.weeks.length-1];
+  const v = isPctMetric ? last.vol : last.val;
+  if (v === null || v === undefined) return '<td class="mut">–</td>';
+  // nếu cột "vol" của sheet vốn ĐÃ là % chia sẻ sẵn (VD "% Vol"), dùng thẳng giá trị đó làm Tỷ trọng,
+  // không cộng dồn lại (cộng % của các dòng không có ý nghĩa toán học đúng)
+  if (volIsPct) return '<td>'+(v*100).toFixed(1)+'%</td>';
+  // MẪU SỐ: ưu tiên lấy đúng dòng "Tổng .../Grand Total" CÓ SẴN trong nhóm (tổng THẬT do sheet cung cấp) —
+  // bắt buộc phải vậy vì có những bảng (VD "Top 10 Bưu cục") sheet CHỈ liệt kê 1 phần đối tượng (top N), còn
+  // dòng Tổng mới phản ánh đúng tổng của CẢ VÙNG/toàn bộ đối tượng thật (không phải chỉ tổng các dòng đang
+  // hiển thị). Chỉ khi nhóm không có sẵn dòng Tổng nào mới fallback về cộng dồn các dòng hiển thị (giữ đúng
+  // hành vi cũ cho các bảng liệt kê đầy đủ, nơi tổng-các-dòng vốn đã bằng đúng tổng thật).
+  const totalRow = groupRows.find(r => r.isTotalRow || r.isGrand);
+  let denom = null;
+  if (totalRow) {
+    const tl = totalRow.weeks[totalRow.weeks.length-1];
+    const tv = isPctMetric ? tl.vol : tl.val;
+    if (tv !== null && tv !== undefined && tv > 0) denom = tv;
+  }
+  if (denom === null) {
+    let sum = 0, any = false;
+    groupRows.forEach(r => {
+      if (r.isTotalRow || r.isGrand) return;
+      const rl = r.weeks[r.weeks.length-1];
+      const rv = isPctMetric ? rl.vol : rl.val;
+      if (rv !== null && rv !== undefined) { sum += rv; any = true; }
+    });
+    if (any && sum > 0) denom = sum;
+  }
+  if (denom === null) return '<td class="mut">–</td>';
+  return '<td>'+(v/denom*100).toFixed(1)+'%</td>';
+}
+
+function VHSNAP_kdProjectionRatio(periodType){
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (periodType === 'tuần') {
+    const wd = yesterday.getDay(); // 0=CN..6=T7
+    const iso = wd === 0 ? 7 : wd; // T2=1 .. CN=7
+    return iso >= 7 ? 1 : 7/iso;
+  }
+  const dom = yesterday.getDate();
+  const dim = new Date(yesterday.getFullYear(), yesterday.getMonth()+1, 0).getDate();
+  return dom >= dim ? 1 : dim/dom;
+}
+
+function VHSNAP_smoothPathD(points){
+  if (points.length === 0) return '';
+  if (points.length === 1) return 'M'+points[0][0]+','+points[0][1];
+  let d = 'M'+points[0][0].toFixed(1)+','+points[0][1].toFixed(1);
+  for (let i = 0; i < points.length-1; i++) {
+    const p0 = points[i-1] || points[i];
+    const p1 = points[i];
+    const p2 = points[i+1];
+    const p3 = points[i+2] || p2;
+    const cp1x = p1[0] + (p2[0]-p0[0])/6, cp1y = p1[1] + (p2[1]-p0[1])/6;
+    const cp2x = p2[0] - (p3[0]-p1[0])/6, cp2y = p2[1] - (p3[1]-p1[1])/6;
+    d += ' C'+cp1x.toFixed(1)+','+cp1y.toFixed(1)+' '+cp2x.toFixed(1)+','+cp2y.toFixed(1)+' '+p2[0].toFixed(1)+','+p2[1].toFixed(1);
+  }
+  return d;
+}
+
+function VHSNAP_renderChartSVG(lines, weekLabels, periodType){
+  if (!lines.length) return '<div class="mut" style="font-size:12px;padding:10px 0">Không có dòng nào được chọn để vẽ.</div>';
+  let vals = [];
+  lines.forEach(({rec}) => rec.weeks.forEach(wk => { const v = VHSNAP_chartValOf(rec, wk); if (v !== null && v !== undefined) vals.push(v); }));
+  if (vals.length < 2) return '<div class="mut" style="font-size:12px;padding:10px 0">Chưa đủ dữ liệu để vẽ trend.</div>';
+  // dự kiến hết kỳ (nếu có periodType và kỳ cuối cùng chưa hoàn tất) — tính TRƯỚC khi xác định lo/hi để trục Y
+  // co giãn vừa khít bao gồm cả điểm dự kiến, theo đúng nguyên lý run-rate của renderKDMiniChart, áp dụng cho
+  // TỪNG đường đang vẽ (mỗi đường có thể có 1 điểm dự kiến riêng, tách ra ("fork") từ kỳ trước đã hoàn tất).
+  const projList = [];
+  if (periodType) {
+    const ratio = VHSNAP_kdProjectionRatio(periodType);
+    if (ratio > 1.02) {
+      const lastIdx = weekLabels.length - 1;
+      lines.forEach((ln, li) => {
+        const rec = ln.rec;
+        const wkLast = rec.weeks[lastIdx];
+        const actual = wkLast ? VHSNAP_chartValOf(rec, wkLast) : null;
+        if (actual === null || actual === undefined) return;
+        let prevIdx = -1;
+        for (let i = lastIdx-1; i >= 0; i--) { const v = VHSNAP_chartValOf(rec, rec.weeks[i]); if (v !== null && v !== undefined) { prevIdx = i; break; } }
+        if (prevIdx < 0) return;
+        const value = actual * ratio;
+        projList.push({ li, lastIdx, prevIdx, value });
+        vals.push(value);
+      });
+    }
+  }
+  let lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+  if (lo === hi) { lo -= Math.abs(lo*0.1)||0.05; hi += Math.abs(hi*0.1)||0.05; }
+  const padv = (hi-lo)*0.15; lo -= padv; hi += padv;
+  const W = 780, H = 190, padL = 8, padR = 8, padT = 12, padB = 22;
+  const n = weekLabels.length;
+  const xFor = i => padL + (W-padL-padR) * (i/(n-1));
+  const yFor = v => padT + (H-padT-padB) * (1 - (v-lo)/(hi-lo));
+  let svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:170px;display:block" preserveAspectRatio="none">';
+  for (let i=0;i<n;i++) svg += '<text x="'+xFor(i).toFixed(0)+'" y="'+(H-6)+'" font-size="9" fill="#9E9B93" text-anchor="middle" font-family="monospace">'+VHSNAP_esc(weekLabels[i])+'</text>';
+  lines.forEach(({rec, color}) => {
+    const pts = [];
+    rec.weeks.forEach((wk,i) => { const v = VHSNAP_chartValOf(rec, wk); if (v !== null && v !== undefined) pts.push([xFor(i), yFor(v)]); });
+    if (pts.length < 2) return;
+    const isPctMetric = rec.weeks[0].pct !== undefined;
+    const titleTxt = VHSNAP_esc(rec.label) + ' — ' + weekLabels.map((w,i)=>{ const wk=rec.weeks[i]; const v=VHSNAP_chartValOf(rec,wk); return w+': '+(v===null||v===undefined?'–':(isPctMetric?(v*100).toFixed(1)+'%':v));}).join(', ');
+    svg += '<path d="'+VHSNAP_smoothPathD(pts)+'" fill="none" stroke="'+color+'" stroke-width="2" opacity="0.92"><title>'+titleTxt+'</title></path>';
+    pts.forEach(p => { svg += '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2.4" fill="'+color+'"></circle>'; });
+  });
+  // đường nét đứt dự kiến hết kỳ — tách ("fork") từ kỳ TRƯỚC đã hoàn tất, cùng gốc với đường liền nét tại đó.
+  projList.forEach(p => {
+    const ln = lines[p.li];
+    const rec = ln.rec, color = ln.color;
+    const prevVal = VHSNAP_chartValOf(rec, rec.weeks[p.prevIdx]);
+    const x0 = xFor(p.prevIdx), y0 = yFor(prevVal);
+    const x1 = xFor(p.lastIdx), y1 = yFor(p.value);
+    svg += '<line x1="'+x0.toFixed(1)+'" y1="'+y0.toFixed(1)+'" x2="'+x1.toFixed(1)+'" y2="'+y1.toFixed(1)+'" stroke="'+color+'" stroke-width="2" stroke-dasharray="4,3" opacity="0.8"/>';
+    svg += '<circle cx="'+x1.toFixed(1)+'" cy="'+y1.toFixed(1)+'" r="3.6" fill="#fff" stroke="'+color+'" stroke-width="2"><title>≈ dự kiến hết kỳ</title></circle>';
+  });
+  svg += '</svg>';
+  return svg;
+}
+
+function VHSNAP_renderChartInner(id){
+  const st = VHSNAP_CHART_STORE[id], state = VHSNAP_CHART_STATE[id];
+  if (!st) return '';
+  const { group, weekLabels, entityLabel, periodType } = st;
+  const detailRows = group.rows.filter(r => !r.isTotalRow && !r.isGrand);
+  const totalRec = group.rows.find(r => r.isGrand) || group.rows.find(r => r.isTotalRow);
+  const colorFor = (label) => VHSNAP_CHART_COLORS[Math.max(0, detailRows.findIndex(r => r.label === label)) % VHSNAP_CHART_COLORS.length];
+
+  let head = '<div style="display:flex;gap:8px;margin-bottom:2px;flex-wrap:wrap">';
+  head += '<button type="button" class="chart-toggle-btn'+(state.mode==='total'?' active':'')+'" onclick="setChartMode(\''+id+'\',\'total\')">Xu hướng chung (Tổng/Grand Total)</button>';
+  head += '<button type="button" class="chart-toggle-btn'+(state.mode==='detail'?' active':'')+'" onclick="setChartMode(\''+id+'\',\'detail\')">Xu hướng từng '+VHSNAP_esc(entityLabel)+' ('+detailRows.length+')</button>';
+  head += '</div>';
+
+  let lines;
+  if (state.mode === 'total') {
+    lines = totalRec ? [{ rec: totalRec, color: '#0063AA' }] : [];
+  } else {
+    lines = detailRows.filter(r => !state.hidden.has(r.label)).map(r => ({ rec: r, color: colorFor(r.label) }));
+  }
+
+  let body;
+  if (state.mode === 'total' && !totalRec) {
+    body = '<div class="mut" style="font-size:12px;padding:10px 0">Nhóm này chưa có dòng Tổng/Grand Total để hiển thị.</div>';
+  } else {
+    body = VHSNAP_renderChartSVG(lines, weekLabels, periodType);
+  }
+
+  let legend = '<div class="trend-legend">';
+  if (state.mode === 'detail') {
+    const allChecked = detailRows.length > 0 && detailRows.every(r => !state.hidden.has(r.label));
+    if (detailRows.length > 1) {
+      legend += '<label class="lg-item" style="cursor:pointer;font-weight:700;border-right:1px solid var(--border);padding-right:10px;margin-right:2px"><input type="checkbox" '+(allChecked?'checked':'')+' onchange="toggleAllChartLines(\''+id+'\', this)" style="margin:0 4px 0 0">Chọn tất cả</label>';
+    }
+    detailRows.forEach(r => {
+      const checked = !state.hidden.has(r.label);
+      legend += '<label class="lg-item" style="cursor:pointer"><input type="checkbox" '+(checked?'checked':'')+' onchange="toggleChartLine(\''+id+'\', this, '+VHSNAP_attrEsc(JSON.stringify(r.label))+')" style="margin:0 4px 0 0"><span class="lg-dot" style="background:'+colorFor(r.label)+'"></span>'+VHSNAP_esc(r.label)+'</label>';
+    });
+  } else if (totalRec) {
+    legend += '<span class="lg-item"><span class="lg-dot" style="background:#0063AA"></span>'+VHSNAP_esc(totalRec.label)+'</span>';
+  }
+  legend += '</div>';
+
+  return head + body + legend;
+}
+
+function VHSNAP_chartContainerHtml(group, weekLabels, entityLabel, periodType){
+  if (!weekLabels || weekLabels.length < 2) return '';
+  const id = 'ch' + (VHSNAP_CHART_SEQ++);
+  VHSNAP_CHART_STORE[id] = { group, weekLabels, entityLabel, periodType };
+  VHSNAP_CHART_STATE[id] = { mode: 'detail', hidden: new Set() };
+  return '<div class="tbl-wrap trend-chart-wrap" id="chartwrap-'+id+'">' + VHSNAP_renderChartInner(id) + '</div>';
+}
+
+function VHSNAP_trendDescriptor(vals, dir, isPctMetric){
+  const clean = vals.filter(v => v !== null && v !== undefined);
+  if (clean.length < 3) return null;
+  const eps = isPctMetric ? 0.0008 : 0.3;
+  const diffs = [];
+  for (let i = 1; i < clean.length; i++) diffs.push(clean[i] - clean[i-1]);
+  const up = diffs.filter(d => d > eps).length, down = diffs.filter(d => d < -eps).length;
+  const improving = dir === 'ge' ? up : down;
+  const worsening = dir === 'ge' ? down : up;
+  if (worsening === 0 && improving > 0) return { text: 'cải thiện liên tục qua các kỳ gần đây', cls: 'good' };
+  if (improving === 0 && worsening > 0) return { text: 'xấu đi liên tục qua các kỳ gần đây', cls: 'bad' };
+  if (improving > worsening) return { text: 'nhìn chung cải thiện dù còn dao động', cls: 'good' };
+  if (worsening > improving) return { text: 'nhìn chung xấu đi dù còn dao động', cls: 'bad' };
+  return { text: 'đi ngang', cls: 'flat' };
+}
+
+function VHSNAP_fmtPointVal(p, v){ return p.unit === 'min' ? (Math.round(v*10)/10).toLocaleString('vi-VN')+' p' : (v*100).toFixed(1)+'%'; }
+
+function VHSNAP_opsPhrase(p){
+  const dirWord = p.curr > p.prev ? { v: 'tăng', to: 'lên' } : (p.curr < p.prev ? { v: 'giảm', to: 'xuống' } : null);
+  let base = VHSNAP_esc(p.name) + ' ' + (dirWord ? (dirWord.v + ' từ ' + VHSNAP_fmtPointVal(p, p.prev) + ' ' + dirWord.to + ' ' + VHSNAP_fmtPointVal(p, p.curr)) : ('đi ngang ở ' + VHSNAP_fmtPointVal(p, p.curr)));
+  base += (p.missed ? ' (chưa đạt target)' : '');
+  // quy trách nhiệm cụ thể: nêu tên AM/vùng kém nhất TRONG chính nhóm đó ở kỳ mới nhất
+  if (p.worstNote && p.worstNote.label && p.worstNote.label !== p.name) {
+    base += ' — kém nhất trong nhóm: <b>' + VHSNAP_esc(p.worstNote.label) + '</b> (' + VHSNAP_fmtPointVal(p, p.worstNote.v) + ')';
+  }
+  // xu hướng nhiều kỳ (không chỉ so kỳ liền trước) để thấy đây là vấn đề dai dẳng hay chỉ 1 kỳ bất thường
+  const td = VHSNAP_trendDescriptor(p.allVals, p.dir, p.isPctMetric);
+  if (td) base += ' · ' + td.text;
+  return base;
+}
+
+function VHSNAP_opsComputeOverview(data){
+  const points = VHSNAP_collectMetricPoints(data);
+  if (!points.length) return { highlights: [], lowlights: [] };
+  const scored = points.map(p => {
+    const diff = p.curr - p.prev;
+    const isPctMetric = p.unit !== 'min';
+    const eps = isPctMetric ? 0.0005 : 0.05;
+    const flat = Math.abs(diff) < eps;
+    const goodTrend = !flat && (p.dir === 'ge' ? diff > 0 : diff < 0);
+    const badTrend = !flat && !goodTrend;
+    const missed = (p.target !== null && p.target !== undefined && !isNaN(p.target))
+      ? (p.dir === 'ge' ? p.curr < p.target : p.curr > p.target) : false;
+    return Object.assign({}, p, { diff, isPctMetric, flat, goodTrend, badTrend, missed });
+  });
+  // điểm sáng — ưu tiên 1: đang cải thiện rõ rệt (mức cải thiện lớn nhất trước)
+  let highlights = scored.filter(p => p.goodTrend).sort((a,b) => Math.abs(b.diff) - Math.abs(a.diff)).slice(0,6);
+  // nếu không đủ tin "đang cải thiện" (VD toàn bộ đang đi ngang/xấu đi), vẫn cần có điểm sáng:
+  // bổ sung các chỉ số đang ĐẠT target với biên độ an toàn nhất, để luôn phản ánh "cái gì đang ổn"
+  if (highlights.length < 4) {
+    const already = new Set(highlights.map(p => p.name));
+    // chỉ bổ sung các điểm ĐANG ỔN ĐỊNH/đi ngang và đạt target — loại trừ badTrend để tránh 1 chỉ số vừa lên
+    // "Điểm sáng" (vì vẫn đạt target) vừa lên "Điểm cần cải thiện" (vì đang xấu đi), gây mâu thuẫn khó hiểu
+    const metWell = scored
+      .filter(p => !already.has(p.name) && !p.missed && !p.badTrend && p.target !== null && p.target !== undefined && !isNaN(p.target))
+      .map(p => Object.assign({}, p, { margin: p.dir === 'ge' ? (p.curr - p.target) : (p.target - p.curr) }))
+      .filter(p => p.margin > 0)
+      .sort((a,b) => b.margin - a.margin);
+    for (const p of metWell) {
+      if (highlights.length >= 6) break;
+      highlights.push(p);
+    }
+  }
+  // điểm cần cải thiện: ưu tiên vừa xấu đi vừa chưa đạt target, sau đó tới xấu đi, sau đó tới chưa đạt target (dù đi ngang)
+  const lowlightPool = scored.filter(p => p.badTrend || p.missed);
+  let lowlights = lowlightPool.sort((a,b) => {
+    const score = x => (x.missed?2:0) + (x.badTrend?1:0);
+    const s = score(b) - score(a);
+    return s !== 0 ? s : Math.abs(b.diff) - Math.abs(a.diff);
+  }).slice(0,6);
+  // id ổn định theo vị trí (hl0, hl1... / ll0, ll1...) — dùng để khớp với text AI trả về theo đúng dòng.
+  // LƯU Ý: 1 chỉ số có thể vừa là "điểm sáng" (đang cải thiện) vừa là "điểm cần cải thiện" (vẫn chưa đạt
+  // target) — 2 mảng có thể tham chiếu CHUNG 1 object nguồn từ `scored`, nên phải CLONE khi gán id để tránh
+  // ghi đè id của nhau (nếu không, object chung sẽ bị đổi id 2 lần và 1 trong 2 chỗ tra cứu theo id sẽ sai).
+  highlights = highlights.map((p,i) => Object.assign({}, p, { id: 'hl'+i }));
+  lowlights = lowlights.map((p,i) => Object.assign({}, p, { id: 'll'+i }));
+  return { highlights, lowlights };
+}
+
+function VHSNAP_opsCompactPoint(p){
+  const td = VHSNAP_trendDescriptor(p.allVals, p.dir, p.isPctMetric);
+  return {
+    id: p.id, name: p.name,
+    prev: VHSNAP_fmtPointVal(p, p.prev), curr: VHSNAP_fmtPointVal(p, p.curr),
+    missed: p.missed,
+    worst: (p.worstNote && p.worstNote.label && p.worstNote.label !== p.name) ? { label: p.worstNote.label, val: VHSNAP_fmtPointVal(p, p.worstNote.v) } : null,
+    trendText: td ? td.text : null
+  };
+}
+
+function VHSNAP_highlightAiText(text, names){
+  if (!text) return '';
+  const escaped = VHSNAP_esc(text);
+  const uniqNames = Array.from(new Set((names||[]).filter(n => n !== null && n !== undefined && String(n).trim()).map(n => VHSNAP_esc(String(n).trim()))))
+    .sort((a,b) => b.length - a.length);
+  const sortedPos = VHSNAP_AI_HL_POS_WORDS.slice().sort((a,b)=>b.length-a.length).map(VHSNAP_esc);
+  const sortedNeg = VHSNAP_AI_HL_NEG_WORDS.slice().sort((a,b)=>b.length-a.length).map(VHSNAP_esc);
+  const groups = [];
+  if (uniqNames.length) groups.push('(?<name>' + uniqNames.map(VHSNAP_escRegex).join('|') + ')');
+  groups.push('(?<neg>' + sortedNeg.map(VHSNAP_escRegex).join('|') + ')');
+  groups.push('(?<pos>' + sortedPos.map(VHSNAP_escRegex).join('|') + ')');
+  groups.push('(?<num>-?\\d+[.,]?\\d*\\s?(?:%|pp\\b|phút\\b|k\\b|M\\b|B\\b))');
+  const re = new RegExp(groups.join('|'), 'g');
+  return escaped.replace(re, function(m){
+    const g = arguments[arguments.length - 1]; // named groups object (luôn là arg cuối khi regex có named group)
+    if (g && g.name) return '<b style="color:#0063AA">'+m+'</b>';
+    if (g && g.neg) return '<b style="color:#C0392B">'+m+'</b>';
+    if (g && g.pos) return '<b style="color:#1D9E75">'+m+'</b>';
+    return '<b>'+m+'</b>';
+  });
+}
+
+function VHSNAP_collectMetricPoints(data){
+  // lấy dòng đại diện (Grand Total / Tổng / Cả nước, hoặc dòng cuối cùng nếu không có) của MỖI nhóm trong MỖI chỉ số
+  const points = [];
+  function addFromParsed(parsed, dir, unit, namePrefix, anchor){
+    (parsed.groups||[]).forEach(g => {
+      const rec = g.rows.find(r=>r.isGrand) || g.rows.find(r=>r.isTotalRow) || g.rows[g.rows.length-1];
+      if (!rec) return;
+      const n = rec.weeks.length;
+      if (n < 2) return;
+      const curr = VHSNAP_chartValOf(rec, rec.weeks[n-1]);
+      const prev = VHSNAP_chartValOf(rec, rec.weeks[n-2]);
+      if (curr === null || curr === undefined || prev === null || prev === undefined) return;
+      const name = namePrefix + (g.label ? ' — ' + g.label : '');
+      // tìm đối tượng (AM/vùng) kém nhất trong CHÍNH nhóm này ở kỳ mới nhất, để quy trách nhiệm cụ thể thay vì chỉ nêu tên chỉ số chung chung
+      const detailRows = g.rows.filter(r => !r.isTotalRow && !r.isGrand);
+      let worstNote = null;
+      if (detailRows.length > 1) {
+        const withVal = detailRows.map(r => ({ r, v: VHSNAP_chartValOf(r, r.weeks[r.weeks.length-1]) })).filter(x => x.v !== null && x.v !== undefined);
+        if (withVal.length) {
+          const sorted = withVal.slice().sort((a,b) => dir==='ge' ? a.v-b.v : b.v-a.v);
+          worstNote = { label: sorted[0].r.label, v: sorted[0].v };
+        }
+      }
+      const allVals = rec.weeks.map(wk => VHSNAP_chartValOf(rec, wk));
+      points.push({ name, dir, unit, curr, prev, target: rec.target, anchor, worstNote, allVals });
+    });
+  }
+  VHSNAP_METRIC_META.forEach(m => addFromParsed(data[m.key], m.dir, m.unit, m.shortName, '#'+m.key));
+  addFromParsed(data.ktccho, 'le', 'min', 'KTC Chờ nhập', '#ktccho');
+  return points;
+}
+
+function VHSNAP_achievementRatio(val, target, dir){
+  if (dir === 'ge') { if (!(target > 0)) return val >= target ? 1 : 0; return val/target; }
+  return (val > 0) ? target/val : (val <= target ? 1 : 0);
+}
+
+function VHSNAP_getWeekRangeInfo(data){
+  let best = null;
+  VHSNAP_METRIC_META.forEach(m => {
+    const p = data[m.key];
+    if (p && p.weekLabels && p.weekLabels.length && (!best || p.weekLabels.length > best.length)) best = p.weekLabels;
+  });
+  if (!best || !best.length) return null;
+  return { count: best.length, from: best[0], to: best[best.length-1], latest: best[best.length-1] };
+}
+
+function VHSNAP_findByLabel(parsed, label){
+  for (const g of parsed.groups) for (const r of g.rows) if (r.label === label) return r;
+  return null;
+}
+
+function VHSNAP_lastWeekOf(rec){ return rec.weeks[rec.weeks.length-1]; }
+
+function VHSNAP_opsAssembleOverviewHtml(data, aiMap){
+  const ov = VHSNAP_opsComputeOverview(data);
+  VHSNAP_FACTS.overview = { highlights: ov.highlights.map(VHSNAP_opsCompactPoint), lowlights: ov.lowlights.map(VHSNAP_opsCompactPoint) };
+  if (!ov.highlights.length && !ov.lowlights.length) return '';
+  function lineHtml(p){
+    const ai = aiMap && typeof aiMap[p.id] === 'string' && aiMap[p.id].trim();
+    return '<div class="aline" id="al-'+p.id+'">• ' + (ai ? VHSNAP_esc(ai) + ' <span style="font-size:9px;color:#7B4FA6">✨</span>' : VHSNAP_opsPhrase(p)) + '</div>';
+  }
+  const goodHasAI = !!(aiMap && ov.highlights.some(p => typeof aiMap[p.id] === 'string' && aiMap[p.id].trim()));
+  const badHasAI = !!(aiMap && ov.lowlights.some(p => typeof aiMap[p.id] === 'string' && aiMap[p.id].trim()));
+  const aiTag = ' <span style="font-size:9.5px;font-weight:600;color:#7B4FA6;font-family:var(--mono)">✨ AI</span>';
+  let html = '<div style="margin-top:14px">';
+  if (ov.highlights.length) {
+    html += '<div class="comment green" id="cmt-ov-good"><b>🟢 Điểm sáng ('+ov.highlights.length+'):</b>'+(goodHasAI?aiTag:'') + ov.highlights.map(lineHtml).join('') + '</div>';
+  }
+  if (ov.lowlights.length) {
+    html += '<div class="comment red" id="cmt-ov-bad"><b>🔴 Điểm cần cải thiện ('+ov.lowlights.length+'):</b>'+(badHasAI?aiTag:'') + ov.lowlights.map(lineHtml).join('') + '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function VHSNAP_buildGroupAnalysis(group, dir, id, ctxLabel, fmtOverride, aiText){
+  const rows = group.rows.filter(r => !r.isTotalRow && !r.isGrand);
+  if (!rows.length) return '';
+  const withVal = rows.map(r => {
+    const wk = r.weeks[r.weeks.length-1];
+    const v = VHSNAP_chartValOf(r, wk);
+    return { r, v };
+  }).filter(x => x.v !== null && x.v !== undefined);
+  if (!withVal.length) return '';
+  const isPctMetric = withVal[0].r.weeks[0].pct !== undefined;
+  // fmtOverride: dùng khi giá trị không phải % lẫn không phải phút (VD Sản lượng/Số lượng KH/Doanh thu của
+  // bảng Bán mới) — để không bị mặc định format nhầm thành "X phút" như các chỉ số Vận hành gốc.
+  const fmtV = fmtOverride ? fmtOverride : (v => isPctMetric ? VHSNAP_fmtPct(v) : VHSNAP_fmtMin(v));
+  const fmtGap = fmtOverride ? (v => fmtOverride(Math.abs(v))) : (v => isPctMetric ? Math.abs(v*100).toFixed(1)+'pp' : Math.abs(v).toFixed(1)+' p');
+  // gap: khoảng cách tới target THEO ĐÚNG hướng tốt/xấu — dương = đạt (dư ra bấy nhiêu), âm = chưa đạt (thiếu bấy nhiêu)
+  const scoredRows = withVal.map(x => {
+    const hasTarget = x.r.target !== null && x.r.target !== undefined && !isNaN(x.r.target);
+    const gap = hasTarget ? (dir==='ge' ? x.v-x.r.target : x.r.target-x.v) : null;
+    return Object.assign({}, x, { gap, status: gap===null ? null : (gap>=0?'good':'bad') });
+  });
+  const good = scoredRows.filter(x => x.status==='good');
+  const bad = scoredRows.filter(x => x.status==='bad').sort((a,b) => a.gap-b.gap); // thiếu nhiều nhất lên đầu
+  const sorted = withVal.slice().sort((a,b) => dir==='ge' ? b.v-a.v : a.v-b.v);
+  const best = sorted[0], worst = sorted[sorted.length-1];
+
+  let parts = [];
+  parts.push('<b>'+good.length+'/'+withVal.length+'</b> đạt target ở kỳ mới nhất');
+  if (best) parts.push('tốt nhất: <b>'+VHSNAP_esc(best.r.label)+'</b> ('+fmtV(best.v)+')');
+  // liệt kê CỤ THỂ ai/vùng nào chưa đạt kèm mức thiếu hụt — để quy trách nhiệm rõ ràng, không chỉ nêu 1 người tệ nhất
+  if (bad.length) {
+    const maxShow = 5;
+    const badList = bad.slice(0, maxShow).map(x => VHSNAP_esc(x.r.label)+' ('+fmtV(x.v)+', thiếu '+fmtGap(x.gap)+')').join(', ');
+    parts.push('<b>chưa đạt ('+bad.length+')</b>: '+badList+(bad.length>maxShow ? ' và '+(bad.length-maxShow)+' khác' : ''));
+  } else if (worst && (!best || worst.r.label !== best.r.label)) {
+    parts.push('kém nhất: <b>'+VHSNAP_esc(worst.r.label)+'</b> ('+fmtV(worst.v)+')');
+  }
+  // nếu 1 đối tượng chiếm phần lớn phần "chưa đạt" (VD >50% số dòng chưa đạt) -> gọi thẳng đây là vấn đề tập trung
+  if (bad.length >= 2 && bad.length === withVal.length) {
+    parts.push('<b>toàn bộ đối tượng trong nhóm đều chưa đạt target</b> — cần rà soát nguyên nhân chung, không phải vấn đề riêng lẻ');
+  }
+  const totalRec = group.rows.find(r => r.isGrand) || group.rows.find(r => r.isTotalRow);
+  let totalTrendText = null, totalLabel = null;
+  if (totalRec) {
+    const n = totalRec.weeks.length;
+    if (n >= 2) {
+      const curr = VHSNAP_chartValOf(totalRec, totalRec.weeks[n-1]), prev = VHSNAP_chartValOf(totalRec, totalRec.weeks[n-2]);
+      if (curr !== null && prev !== null && curr !== undefined && prev !== undefined) {
+        const diff = curr - prev;
+        const isGoodTrend = dir === 'ge' ? diff > 0 : diff < 0;
+        const eps = isPctMetric ? 0.0005 : 0.05;
+        const dirTxt = Math.abs(diff) < eps ? 'đi ngang so kỳ trước' : (isGoodTrend ? 'cải thiện so kỳ trước' : 'xấu đi so kỳ trước');
+        // xu hướng NHIỀU kỳ (không chỉ so kỳ liền trước) — phân biệt vấn đề dai dẳng hay chỉ 1 kỳ bất thường
+        const allVals = totalRec.weeks.map(wk => VHSNAP_chartValOf(totalRec, wk));
+        const td = VHSNAP_trendDescriptor(allVals, dir, isPctMetric);
+        const trendTxt = td ? (dirTxt + '; xét cả '+allVals.length+' kỳ thì ' + td.text + ' (' + allVals.filter(v=>v!==null&&v!==undefined).map(fmtV).join(' → ') + ')') : dirTxt;
+        parts.push('<b>'+VHSNAP_esc(totalRec.label)+'</b> đang <b>'+trendTxt+'</b>');
+        totalTrendText = trendTxt;
+        totalLabel = totalRec.label;
+      }
+    }
+  }
+  const ratio = good.length / withVal.length;
+  const cls = ratio >= 0.7 ? 'green' : (ratio <= 0.3 ? 'red' : 'yellow');
+  // lưu facts (số liệu thuần, không HTML) để gửi cho AI viết lại văn phong — AI không tự tính lại số nào ở đây
+  if (id) {
+    VHSNAP_FACTS[id] = {
+      id, label: ctxLabel || group.label || '',
+      goodCount: good.length, total: withVal.length,
+      best: best ? { label: best.r.label, val: fmtV(best.v) } : null,
+      worst: (!bad.length && worst && (!best || worst.r.label !== best.r.label)) ? { label: worst.r.label, val: fmtV(worst.v) } : null,
+      badList: bad.slice(0,5).map(x => ({ label: x.r.label, val: fmtV(x.v), gap: fmtGap(x.gap) })),
+      badExtra: bad.length > 5 ? bad.length - 5 : 0,
+      allBad: bad.length >= 2 && bad.length === withVal.length,
+      totalLabel, totalTrendText
+    };
+  }
+  const idAttr = id ? ' id="cmt-'+id+'"' : '';
+  // nếu có sẵn văn AI (đã gọi Gemini xong ở PASS 2) -> dùng thẳng thay cho bản rule-based, y hệt cách
+  // opsEnhanceWithAI() patch DOM phía client, chỉ khác là build HTML string ngay từ đầu (không patch sau).
+  if (aiText && String(aiText).trim()) {
+    const aiNames = [best && best.r.label, worst && worst.r.label, totalLabel].concat(bad.slice(0,5).map(x => x.r.label));
+    const bodyHtml = VHSNAP_highlightAiText(aiText, aiNames) + ' <span style="font-size:9px;color:#7B4FA6">✨</span>';
+    return '<div class="comment '+cls+'"'+idAttr+'>'+bodyHtml+'</div>';
+  }
+  return '<div class="comment '+cls+'"'+idAttr+'>'+parts.join(' · ')+'.</div>';
+}
+
+function VHSNAP_renderParsedVolPct(parsed, dir, firstColLabel, withShare, groupId, ctxLabel, aiMap){
+  const volLabel = parsed.volLabel || 'Vol', pctLabel = parsed.pctLabel || '%', volIsPct = !!parsed.volIsPct;
+  let out = '';
+  parsed.groups.forEach((gOrig, gi) => {
+    const g = { label: gOrig.label, rows: VHSNAP_sortRowsForDisplay(gOrig.rows, dir) };
+    const colCount = 1 + parsed.weeksCount*2 + 1 + (withShare?1:0);
+    let body = '';
+    g.rows.forEach(rec => {
+      const rowClass = rec.isGrand ? 'grand-row' : (rec.isTotalRow ? 'total-row' : '');
+      const extra = withShare ? VHSNAP_shareCell(rec, g.rows, true, volIsPct) : '';
+      body += VHSNAP_rowHtml(rec.label, rec, dir, {rowClass, extraCell: extra, volIsPct});
+    });
+    out += '<div class="tbl-wrap"><table>'+VHSNAP_theadHtmlDyn(firstColLabel, volLabel, pctLabel, parsed.weekLabels, 'Δ (kỳ mới nhất)', withShare?'Tỷ trọng':null)+'<tbody>'+body+'</tbody></table></div>';
+    out += VHSNAP_chartContainerHtml(g, parsed.weekLabels, firstColLabel);
+    out += VHSNAP_buildGroupAnalysis(g, dir, groupId, ctxLabel, undefined, aiMap && groupId ? aiMap[groupId] : null);
+  });
+  return out;
+}
+
+function VHSNAP_renderParsedSingle(parsed, dir, firstColLabel, valLabel, groupId, ctxLabel, aiMap){
+  let out = '';
+  parsed.groups.forEach(gOrig => {
+    const g = { label: gOrig.label, rows: VHSNAP_sortRowsForDisplay(gOrig.rows, dir) };
+    let body = '';
+    g.rows.forEach(rec => {
+      const rowClass = rec.isTotalRow ? 'total-row' : '';
+      const extra = rec.trip !== undefined ? '<td>'+VHSNAP_fmtNum(rec.trip)+'</td>' : '';
+      body += VHSNAP_rowHtml(rec.label, rec, dir, {rowClass, extraCell: extra});
+    });
+    out += '<div class="tbl-wrap"><table>'+VHSNAP_theadSingleHtmlDyn(firstColLabel, valLabel, parsed.weekLabels, 'Δ', g.rows[0] && g.rows[0].trip!==undefined ? 'Tổng trip' : null)+'<tbody>'+body+'</tbody></table></div>';
+    out += VHSNAP_chartContainerHtml(g, parsed.weekLabels, firstColLabel);
+    if (dir) out += VHSNAP_buildGroupAnalysis(g, dir, groupId, ctxLabel, undefined, aiMap && groupId ? aiMap[groupId] : null);
+  });
+  return out;
+}
+
+function VHSNAP_partBanner(id, num, title){
+  return '<div class="part-banner" id="'+id+'" onclick="toggleSection(this)"><span class="pb-num">'+num+'</span><span class="pb-title">'+title+'</span><span class="collapse-arrow">▾</span></div><div class="metric-body">';
+}
+
+function VHSNAP_groupHeadingHtml(label, num, isSubsection, fallback){
+  const text = (label && label.length) ? label : (fallback || ('Nhóm ' + num));
+  return isSubsection
+    ? '<div class="subsection-title"><span class="sub-num">'+num+'</span> '+VHSNAP_esc(text)+'</div>'
+    : '<div class="block-header"><span class="bh-num">'+num+'</span> '+VHSNAP_esc(text)+'</div>';
+}
+
+function VHSNAP_renderSectionVolPct(parsed, dir, numPrefix, firstColLabel, metricTitle, aiMap){
+  let out = '';
+  parsed.groups.forEach((g, gi) => {
+    const num = numPrefix + '.' + (gi+1);
+    out += VHSNAP_groupHeadingHtml(g.label, num, gi>0);
+    const groupId = 'm'+numPrefix+'-'+gi;
+    const ctxLabel = (metricTitle||'') + (g.label ? ' — '+g.label : '');
+    out += VHSNAP_renderParsedVolPct({weeksCount: parsed.weeksCount, weekLabels: parsed.weekLabels, volLabel: parsed.volLabel, pctLabel: parsed.pctLabel, volIsPct: parsed.volIsPct, groups:[g]}, dir, firstColLabel, true, groupId, ctxLabel, aiMap);
+  });
+  return out;
+}
+
+function VHSNAP_arrowSpanInline(curr, prev, dir){
+  if (curr === null || prev === null || curr === undefined || prev === undefined) return '';
+  const diff = curr - prev;
+  if (Math.abs(diff) < 0.0005) return '';
+  const arrow = diff > 0 ? '▲' : '▼';
+  const isGood = dir === 'ge' ? diff > 0 : diff < 0;
+  const cls = isGood ? 'dn' : 'up';
+  return ' <span class="'+cls+'" style="font-size:8px">'+arrow+'</span>';
+}
+
+function VHSNAP_renderScorecard(sc){
+  const M = sc.METRICS;
+  const nonMetricCols = 3; // Vùng/AM + SL lấy + SL giao
+  let h1 = '<tr><th rowspan="2">Đối tượng</th><th rowspan="2">SL lấy</th><th rowspan="2">SL giao</th>' +
+    '<th colspan="4" class="wsep">OPR %OnT theo KH</th><th colspan="4" class="wsep">ODR theo KH</th>' +
+    '<th rowspan="2" class="wsep">FD</th><th rowspan="2">RớtLC</th><th rowspan="2">GTC</th>' +
+    '<th rowspan="2">BL Giao&gt;120H</th><th rowspan="2">BL Trả&gt;120H</th><th rowspan="2">#đỏ</th></tr>';
+  let h2 = '<tr class="subhead"><th class="wsep">Shopee</th><th>Bulky</th><th>TTS</th><th>SME</th>' +
+    '<th class="wsep">Shopee</th><th>Bulky</th><th>TTS</th><th>SME</th></tr>';
+  function metricCell(rec, key, isFirst){
+    const mDef = M.find(m=>m.key===key);
+    const v = rec.m[key];
+    const cls = VHSNAP_classFor(v.w25, mDef.target, mDef.dir);
+    return '<td class="'+(isFirst?'wfirst ':'')+cls+'">'+VHSNAP_fmtPct(v.w25)+VHSNAP_arrowSpanInline(v.w25, v.w24, mDef.dir)+'</td>';
+  }
+  function countRed(rec){
+    let n = 0;
+    M.forEach(m => { if (m.target !== undefined) { const cls = VHSNAP_classFor(rec.m[m.key].w25, m.target, m.dir); if (cls==='bad') n++; } });
+    return n;
+  }
+  function metricsRowHtml(rec, rowClassAttr){
+    let row = '<tr'+rowClassAttr+'><td>'+VHSNAP_esc(rec.dim2)+'</td><td>'+VHSNAP_fmtNum(rec.m.slLay.w25)+'</td><td>'+VHSNAP_fmtNum(rec.m.slGiao.w25)+'</td>';
+    row += metricCell(rec,'oprShopee',true)+metricCell(rec,'oprBulky')+metricCell(rec,'oprTTS')+metricCell(rec,'oprSME');
+    row += metricCell(rec,'odrShopee',true)+metricCell(rec,'odrBulky')+metricCell(rec,'odrTTS')+metricCell(rec,'odrSME');
+    row += metricCell(rec,'fd',true)+metricCell(rec,'rotlc')+metricCell(rec,'gtc')+metricCell(rec,'blGiao120')+metricCell(rec,'blTra120');
+    row += '<td><b>'+countRed(rec)+'</b></td></tr>';
+    return row;
+  }
+  let body = '';
+  sc.groups.forEach(g => {
+    body += '<tr class="group-row"><td colspan="17">'+VHSNAP_esc(g.label)+'</td></tr>';
+    // sắp theo #đỏ giảm dần — ai nhiều chỉ số chưa đạt (đỏ) nhất lên trên; dòng Tổng/Grand Total luôn giữ ở cuối
+    const totals = g.rows.filter(r => r.isTotalRow);
+    const detail = g.rows.filter(r => !r.isTotalRow).slice().sort((a,b) => countRed(b) - countRed(a));
+    detail.concat(totals).forEach(rec => {
+      body += metricsRowHtml(rec, rec.isTotalRow ? ' class="total-row"' : '');
+    });
+  });
+  if (!body) body = '<tr><td colspan="17" class="mut" style="text-align:center">Chưa có dữ liệu trong tab 01_Scorecard</td></tr>';
+  return '<div class="tbl-wrap"><table><thead>'+h1+h2+'</thead><tbody>'+body+'</tbody></table></div>';
+}
+
+function VHSNAP_buildSummaryBannerHtml(data, aiOverviewMap){
+  const cards = [];
+  function push(name, val, target, dir, unit, anchor){
+    if (val === null || val === undefined || target === null || target === undefined) return;
+    const ok = dir==='ge'? val>=target : val<=target;
+    const ratio = VHSNAP_achievementRatio(val, target, dir);
+    const status = ok ? 'ok' : (ratio >= 0.9 ? 'near' : 'bad');
+    cards.push({name, val, target, dir, unit: unit||'pct', anchor: anchor||'#scorecard', ok, status});
+  }
+  // Duyệt qua CHÍNH XÁC danh sách VHSNAP_METRIC_META (nguồn cấu hình duy nhất, dùng chung với phần render chi tiết) —
+  // đảm bảo KHÔNG BAO GIỜ có chỉ số nào "có dữ liệu nhưng thiếu trong tổng quan" như trước đây (GTC/BL36H từng
+  // bị bỏ sót vì có 1 danh sách hardcode riêng ở đây không khớp danh sách render). Tự chọn cách hiển thị theo
+  // quy mô nhóm đầu tiên: nhóm nhỏ (VD 4-5 loại khách hàng cố định) → hiện từng dòng; nhóm lớn (nhiều vùng/AM)
+  // → chỉ hiện dòng Tổng/Grand Total để tổng quan không bị rối.
+  VHSNAP_METRIC_META.forEach(m => {
+    const parsed = data[m.key];
+    if (!parsed || !parsed.groups.length) return;
+    if (m.summaryCaNuoc) {
+      const rec = VHSNAP_findByLabel(parsed, 'Cả nước');
+      if (rec) push(m.shortName+' (Cả nước)', VHSNAP_lastWeekOf(rec).pct, rec.target, m.dir, null, '#'+m.key);
+      return;
+    }
+    const g0 = parsed.groups[0];
+    const detailRows = g0.rows.filter(r => !r.isTotalRow && !r.isGrand);
+    const totalRec = g0.rows.find(r=>r.isGrand) || g0.rows.find(r=>r.isTotalRow);
+    if (detailRows.length > 0 && detailRows.length <= 6) {
+      detailRows.forEach(rec => push(m.shortName+' '+rec.label, VHSNAP_lastWeekOf(rec).pct, rec.target, m.dir, null, '#'+m.key));
+    } else if (totalRec) {
+      push(m.shortName+' ('+(totalRec.label||'Toàn hệ thống')+')', VHSNAP_lastWeekOf(totalRec).pct, totalRec.target, m.dir, null, '#'+m.key);
+    } else if (detailRows.length) {
+      detailRows.forEach(rec => push(m.shortName+' '+rec.label, VHSNAP_lastWeekOf(rec).pct, rec.target, m.dir, null, '#'+m.key));
+    }
+  });
+  // KTC Chờ nhập: đơn vị phút riêng + render qua VHSNAP_renderParsedSingle (không nằm trong VHSNAP_METRIC_META) nên xử lý tay
+  const ktcChoCaNuoc = VHSNAP_findByLabel(data.ktccho, 'Cả nước');
+  if (ktcChoCaNuoc) push('KTC Chờ nhập (Cả nước)', VHSNAP_lastWeekOf(ktcChoCaNuoc).val, ktcChoCaNuoc.target, 'le', 'min', '#ktccho');
+
+  if (cards.length === 0) {
+    return '<div class="empty-note">Chưa có dữ liệu (hoặc chưa có ô Target hợp lệ) trong Google Sheet — điền số liệu vào các tab rồi bấm "Làm mới dữ liệu" để báo cáo tự cập nhật.</div>';
+  }
+  const good = cards.filter(c=>c.status==='ok'), near = cards.filter(c=>c.status==='near'), bad = cards.filter(c=>c.status==='bad');
+  function cardHtml(c){
+    const valStr = c.unit==='min' ? VHSNAP_fmtMin(c.val) : VHSNAP_fmtPct(c.val);
+    const thStr = c.unit==='min' ? (c.dir==='ge'?'≥ ':'≤ ')+c.target+' phút' : (c.dir==='ge'?'≥ ':'≤ ')+(c.target*100).toFixed(1)+'%';
+    const cls = c.status==='ok' ? 'green' : (c.status==='near' ? 'yellow' : 'red');
+    return '<a href="'+c.anchor+'" class="sg-card '+cls+'" title="'+VHSNAP_attrEsc(c.name+' — Target '+thStr)+'"><div class="sgc-name">'+VHSNAP_esc(c.name)+'</div><div class="sgc-val">'+valStr+'</div><div class="sgc-thresh">'+VHSNAP_esc(thStr)+'</div></a>';
+  }
+  function groupHtml(cls, icon, label, arr){
+    return '<div class="sg-group '+cls+'"><div class="sg-label">'+icon+' '+label+' ('+arr.length+')</div>' +
+      (arr.length ? '<div class="sg-cards">'+arr.map(cardHtml).join('')+'</div>' : '<div class="sg-empty">Không có chỉ số nào</div>') +
+      '</div>';
+  }
+  const wkInfo = VHSNAP_getWeekRangeInfo(data);
+  const bannerTitle = wkInfo ? ('📊 Tổng quan tuần ' + VHSNAP_esc(wkInfo.latest)) : '📊 Tổng quan kỳ mới nhất';
+  return '<div class="summary-banner"><div class="sb-title">'+bannerTitle+'</div>' +
+    '<div class="sb-sub">'+cards.length+' chỉ số có dữ liệu · '+good.length+' đạt target · '+near.length+' gần đạt · '+bad.length+' chưa đạt</div></div>' +
+    '<div class="summary-grid">' +
+    groupHtml('sg-green', '🟢', 'Đạt target', good) +
+    groupHtml('sg-yellow', '🟡', 'Gần đạt (≥90% mục tiêu)', near) +
+    groupHtml('sg-red', '🔴', 'Chưa đạt', bad) +
+    '</div>' +
+    '<div id="opsOverviewWrap">' + VHSNAP_opsAssembleOverviewHtml(data, aiOverviewMap) + '</div>';
+}
+
+// ---- Đường dẫn web live (dùng để tự lấy CSS mới nhất khi xuất snapshot + gắn link trong file xuất) ----
+var VHSNAP_LIVE_URL = 'https://baocaovanhanh.vercel.app/';
+
+// ---- 1. Ghép toàn bộ tables thô (từ Sheet) thành object data đã parse — Y HỆT logic RAW_VH_DATA trong main() ----
+function VHSNAP_parseAll(tables) {
+  return {
+    scorecard: tables['01_Scorecard'] ? VHSNAP_parseScorecard(tables['01_Scorecard']) : { groups: [], METRICS: [] },
+    opr: tables['02_OPR'] ? VHSNAP_parseExtra2(tables['02_OPR'], 'Khách hàng') : { weeksCount: 0, weekLabels: [], groups: [] },
+    odr: tables['03_ODR'] ? VHSNAP_parseExtra2(tables['03_ODR'], 'Khách hàng') : { weeksCount: 0, weekLabels: [], groups: [] },
+    fd: tables['04_FD'] ? VHSNAP_parseExtra2(tables['04_FD'], 'Khách hàng') : { weeksCount: 0, weekLabels: [], groups: [] },
+    rotlc: tables['05_RotLC'] ? VHSNAP_parseExtra1(tables['05_RotLC'], 'Vùng') : { weeksCount: 0, weekLabels: [], groups: [] },
+    bl36h: tables['06_BL_LC_36H'] ? VHSNAP_parseExtra1(tables['06_BL_LC_36H'], 'Vùng') : { weeksCount: 0, weekLabels: [], groups: [] },
+    gtc: tables['07_GTC'] ? VHSNAP_parseExtra2(tables['07_GTC'], 'Loại hàng') : { weeksCount: 0, weekLabels: [], groups: [] },
+    blgiao120: tables['08_BL_Giao_120H'] ? VHSNAP_parseExtra1(tables['08_BL_Giao_120H'], 'Vùng') : { weeksCount: 0, weekLabels: [], groups: [] },
+    bltra48h: tables['09_BL_LC_Tra_48H'] ? VHSNAP_parseExtra1(tables['09_BL_LC_Tra_48H'], 'Vùng') : { weeksCount: 0, weekLabels: [], groups: [] },
+    bltra120h: tables['10_BL_Tra_120H'] ? VHSNAP_parseExtra1(tables['10_BL_Tra_120H'], 'Vùng') : { weeksCount: 0, weekLabels: [], groups: [] },
+    ktccho: tables['11_KTC_ChoNhap'] ? VHSNAP_parseKTCP90(tables['11_KTC_ChoNhap']) : { weeksCount: 0, weekLabels: [], groups: [] },
+    ktcnhapxuat: tables['12_KTC_NhapXuat'] ? VHSNAP_parseKTCTuyen(tables['12_KTC_NhapXuat']) : { weeksCount: 0, weekLabels: [], groups: [] },
+    ktcton24h: tables['13_KTC_Ton24H'] ? VHSNAP_parseExtra1(tables['13_KTC_Ton24H'], 'KTC') : { weeksCount: 0, weekLabels: [], groups: [] }
+  };
+}
+
+// ---- 2. Dựng phần thân báo cáo (subtitle + summary banner + reportBody) — Y HỆT cấu trúc renderVanHanhReport() ----
+// Gọi 2 LẦN (PASS 1 để thu thập facts thuần, PASS 2 với văn AI thật) — xem vhSnapshotWeeklyJob() bên dưới.
+function VHSNAP_renderBody(data, aiOverviewMap, aiGroupsMap) {
+  var wkInfo = VHSNAP_getWeekRangeInfo(data);
+  var subtitle = wkInfo
+    ? ('12 chỉ số vận hành · ' + wkInfo.count + ' tuần (từ ' + wkInfo.from + ' đến ' + wkInfo.to + ')')
+    : '12 chỉ số vận hành';
+
+  var summaryHtml = VHSNAP_buildSummaryBannerHtml(data, aiOverviewMap);
+
+  var out = '';
+  out += VHSNAP_partBanner('scorecard', '0', '🗺️ Scorecard');
+  out += VHSNAP_renderScorecard(data.scorecard);
+  out += '</div>';
+
+  VHSNAP_METRIC_META.filter(function (m) { return m.key !== 'ktcton24h'; }).forEach(function (m) {
+    out += VHSNAP_partBanner(m.key, m.num, m.title);
+    out += VHSNAP_NOTES[m.key];
+    out += VHSNAP_renderSectionVolPct(data[m.key], m.dir, m.num, m.firstColLabel, m.title, aiGroupsMap);
+    out += '</div>';
+  });
+
+  out += VHSNAP_partBanner('ktccho', '10', 'KTC — Leadtime chờ nhập');
+  out += VHSNAP_NOTES.ktccho;
+  (data.ktccho.groups.length ? data.ktccho.groups : [{ label: '', rows: [] }]).forEach(function (g, i) {
+    out += VHSNAP_groupHeadingHtml(g.label, '10.' + (i + 1), i > 0, 'Theo KTC');
+    var groupId = 'ktccho-' + i;
+    var ctxLabel = 'KTC — Leadtime chờ nhập' + (g.label ? ' — ' + g.label : '');
+    out += VHSNAP_renderParsedSingle({ weeksCount: data.ktccho.weeksCount, weekLabels: data.ktccho.weekLabels, groups: [g] }, 'le', 'KTC', 'P90 phút', groupId, ctxLabel, aiGroupsMap);
+  });
+  out += '</div>';
+
+  out += VHSNAP_partBanner('ktcnhapxuat', '11', 'KTC — Leadtime nhập→xuất');
+  out += VHSNAP_NOTES.ktcnhapxuat;
+  data.ktcnhapxuat.groups.forEach(function (g, i) {
+    out += VHSNAP_groupHeadingHtml(g.label, '11.' + (i + 1), true, 'Tuyến ' + (i + 1));
+    out += VHSNAP_renderParsedSingle({ weeksCount: data.ktcnhapxuat.weeksCount, weekLabels: data.ktcnhapxuat.weekLabels, groups: [g] }, null, 'KTC', 'P90 phút');
+  });
+  out += '</div>';
+
+  var ktcton24hMeta = VHSNAP_METRIC_META.filter(function (m) { return m.key === 'ktcton24h'; })[0];
+  out += VHSNAP_partBanner(ktcton24hMeta.key, ktcton24hMeta.num, ktcton24hMeta.title);
+  out += VHSNAP_NOTES[ktcton24hMeta.key];
+  out += VHSNAP_renderSectionVolPct(data[ktcton24hMeta.key], ktcton24hMeta.dir, ktcton24hMeta.num, ktcton24hMeta.firstColLabel, ktcton24hMeta.title, aiGroupsMap);
+  out += '</div>';
+
+  return { subtitle: subtitle, summaryHtml: summaryHtml, bodyHtml: out, wkInfo: wkInfo };
+}
+
+// ---- 3. Lấy dữ liệu thô từ Sheet — Y HỆT handleGetReportData() nhưng KHÔNG cần token (gọi nội bộ, không qua HTTP) ----
+function VHSNAP_getTables() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var tables = {};
+  DATA_SHEET_NAMES.forEach(function (name) {
+    var s = ss.getSheetByName(name);
+    tables[name] = s ? sheetToTableShape(s) : { cols: [], rows: [] };
+  });
+  return tables;
+}
+
+// ---- 4. Gọi Gemini viết nhận xét AI — Y HỆT handleGetOpsAnalysis() nhưng KHÔNG cần token (gọi nội bộ) ----
+// Dùng lại buildOpsAIPrompt/GEMINI_MODEL/GEMINI_CACHE_TTL_SEC/md5Hex đã có sẵn trong Code.gs (không định nghĩa lại).
+function VHSNAP_getOpsAnalysis(overview, groups) {
+  var apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  if (!apiKey) return { ok: false, error: 'ai_not_configured' };
+  var hasOverview = (overview.highlights && overview.highlights.length) || (overview.lowlights && overview.lowlights.length);
+  if (!hasOverview && !groups.length) return { ok: false, error: 'no_data' };
+
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'opsai_' + md5Hex(JSON.stringify({ overview: overview, groups: groups }));
+  var cached = cache.get(cacheKey);
+  if (cached) return { ok: true, analysis: JSON.parse(cached), cached: true };
+
+  var prompt = buildOpsAIPrompt(overview, groups);
+  var resp;
+  try {
+    resp = UrlFetchApp.fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + apiKey,
+      {
+        method: 'post',
+        contentType: 'application/json',
+        muteHttpExceptions: true,
+        payload: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.75, responseMimeType: 'application/json' }
+        })
+      }
+    );
+  } catch (err) {
+    return { ok: false, error: 'ai_network_error', detail: String(err) };
+  }
+  var code = resp.getResponseCode();
+  if (code === 429) return { ok: false, error: 'ai_rate_limited' };
+  if (code !== 200) return { ok: false, error: 'ai_http_' + code, detail: resp.getContentText().slice(0, 300) };
+
+  var data;
+  try { data = JSON.parse(resp.getContentText()); } catch (err) { return { ok: false, error: 'ai_bad_json' }; }
+  var text = data && data.candidates && data.candidates[0] && data.candidates[0].content &&
+    data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+  if (!text) return { ok: false, error: 'ai_empty_response' };
+
+  var cleaned = String(text).replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+  var analysis;
+  try { analysis = JSON.parse(cleaned); } catch (err) { return { ok: false, error: 'ai_parse_error' }; }
+
+  cache.put(cacheKey, JSON.stringify(analysis), GEMINI_CACHE_TTL_SEC);
+  return { ok: true, analysis: analysis };
+}
+
+// ---- 5. Lấy CSS + link font MỚI NHẤT từ đúng trang web live (tự động, không lo lệch giao diện về sau) ----
+function VHSNAP_getLiveCss() {
+  try {
+    var resp = UrlFetchApp.fetch(VHSNAP_LIVE_URL, { muteHttpExceptions: true, followRedirects: true });
+    if (resp.getResponseCode() !== 200) return '';
+    var html = resp.getContentText();
+    var fontMatch = html.match(/<link[^>]+fonts\.googleapis[^>]*>/);
+    var styleMatch = html.match(/<style[\s\S]*?<\/style>/);
+    return (fontMatch ? fontMatch[0] : '') + (styleMatch ? styleMatch[0] : '');
+  } catch (e) {
+    return ''; // lỗi lấy CSS -> vẫn gửi file (chỉ mất style, không mất số liệu) thay vì chặn cả snapshot
+  }
+}
+
+// ---- 6. Ghép trang HTML hoàn chỉnh, độc lập (mở được ngay, không cần đăng nhập/tải thêm gì) ----
+function VHSNAP_wrapSnapshotPage(built, cssHead, exportedAt) {
+  var head = '<meta charset="UTF-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">' +
+    '<title>Báo Cáo Vận Hành Tuần — GHN (Snapshot tự động)</title>' + cssHead;
+  var header = '<div class="report-header" id="top"><div><h1>Báo Cáo Vận Hành Tuần <span class="rh-tag">Snapshot</span></h1>' +
+    '<div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">' + VHSNAP_esc(built.subtitle) + '</div></div>' +
+    '<div class="meta">📦 Snapshot tự động lưu trữ qua Telegram (không tương tác, không tự cập nhật)<br>Xuất lúc: ' + VHSNAP_esc(exportedAt) + '</div></div>';
+  var footer = '<div class="report-footer"><div class="legend">Bản snapshot tĩnh — đúng số liệu tại thời điểm xuất, biểu đồ hiển thị được nhưng không bấm đổi chế độ (không nhúng mã tương tác đầy đủ). Xem bản đầy đủ tại: <a href="' + VHSNAP_LIVE_URL + '">' + VHSNAP_LIVE_URL + '</a></div></div>';
+  var body = '<div class="page">' + header +
+    '<div id="summaryBannerWrap">' + built.summaryHtml + '</div>' +
+    '<div id="reportBody">' + built.bodyHtml + '</div>' +
+    footer + '</div>';
+  return '<!DOCTYPE html>\n<html lang="vi">\n<head>\n' + head + '\n</head>\n<body>\n' + body + '\n</body>\n</html>';
+}
+
+// ---- 7. Gửi file tài liệu (HTML) qua Telegram Bot API — dùng chung TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID (Script Properties) ----
+function VHSNAP_sendTelegramDocument(filename, htmlContent, caption) {
+  var token = PropertiesService.getScriptProperties().getProperty('TELEGRAM_BOT_TOKEN');
+  var chatId = PropertiesService.getScriptProperties().getProperty('TELEGRAM_CHAT_ID');
+  if (!token || !chatId) throw new Error('Chưa cấu hình TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID trong Script Properties (Project Settings > Script Properties).');
+  var blob = Utilities.newBlob(htmlContent, 'text/html', filename);
+  var resp = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendDocument', {
+    method: 'post',
+    muteHttpExceptions: true,
+    payload: { chat_id: chatId, document: blob, caption: caption || '' }
+  });
+  var code = resp.getResponseCode();
+  if (code !== 200) throw new Error('Gửi Telegram thất bại (HTTP ' + code + '): ' + resp.getContentText().slice(0, 300));
+  return JSON.parse(resp.getContentText());
+}
+
+// gửi tin nhắn text đơn giản (dùng để báo lỗi nếu quá trình tạo snapshot thất bại, để không "im lặng chết")
+function VHSNAP_sendTelegramMessage(text) {
+  var token = PropertiesService.getScriptProperties().getProperty('TELEGRAM_BOT_TOKEN');
+  var chatId = PropertiesService.getScriptProperties().getProperty('TELEGRAM_CHAT_ID');
+  if (!token || !chatId) return;
+  UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+    method: 'post',
+    muteHttpExceptions: true,
+    payload: { chat_id: chatId, text: text }
+  });
+}
+
+// ---- 8. JOB CHẠY TỰ ĐỘNG THEO TRIGGER (Thứ Hai 23h hàng tuần, giờ dự án Apps Script — xem vhSnapshotInstallWeeklyTrigger) ----
+// Luồng: lấy dữ liệu Sheet -> parse -> PASS 1 dựng bản rule-based để thu thập facts -> gọi Gemini 1 LẦN DUY NHẤT
+// cho toàn trang (giống hệt cơ chế opsEnhanceWithAI phía client) -> PASS 2 dựng lại bản cuối có văn AI (nếu có,
+// nếu AI lỗi/hết quota thì fallback về bản rule-based, không chặn việc gửi Telegram) -> đóng gói trang HTML hoàn
+// chỉnh -> gửi file qua Telegram. Toàn bộ hàm dưới tiền tố VHSNAP_/vhSnapshot — KHÔNG đụng tới bất kỳ hàm nào
+// khác đang phục vụ web live, nên an toàn tuyệt đối với web đang chạy dù job này lỗi bất kỳ bước nào.
+function vhSnapshotWeeklyJob() {
+  try {
+    var tables = VHSNAP_getTables();
+    var data = VHSNAP_parseAll(tables);
+
+    VHSNAP_FACTS = {};
+    VHSNAP_renderBody(data, null, null); // PASS 1: chỉ để thu thập VHSNAP_FACTS, bỏ HTML
+
+    var overview = VHSNAP_FACTS.overview || { highlights: [], lowlights: [] };
+    var groupIds = Object.keys(VHSNAP_FACTS).filter(function (k) { return k !== 'overview'; });
+    var groups = groupIds.map(function (k) { return VHSNAP_FACTS[k]; });
+
+    var aiOverview = null, aiGroups = null;
+    if (overview.highlights.length || overview.lowlights.length || groups.length) {
+      try {
+        var aiRes = VHSNAP_getOpsAnalysis(overview, groups);
+        if (aiRes && aiRes.ok && aiRes.analysis) {
+          aiOverview = aiRes.analysis.overview || null;
+          aiGroups = aiRes.analysis.groups || null;
+        }
+      } catch (aiErr) {
+        // AI lỗi/hết quota -> vẫn tiếp tục xuất bản rule-based bên dưới, không chặn snapshot
+      }
+    }
+
+    VHSNAP_FACTS = {};
+    var built = VHSNAP_renderBody(data, aiOverview, aiGroups); // PASS 2: bản cuối, có văn AI nếu gọi được
+
+    var css = VHSNAP_getLiveCss();
+    var exportedAt = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm dd/MM/yyyy');
+    var html = VHSNAP_wrapSnapshotPage(built, css, exportedAt);
+
+    var weekTag = built.wkInfo ? String(built.wkInfo.latest).replace(/[^0-9A-Za-z]/g, '') : 'khongro';
+    var dateTag = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmm');
+    var filename = 'BaoCaoVanHanh_Tuan' + weekTag + '_Xuat' + dateTag + '.html';
+    var caption = '📊 Báo Cáo Vận Hành Tuần' + (built.wkInfo ? ' — kỳ ' + built.wkInfo.latest : '') +
+      ' — snapshot tự động lúc ' + exportedAt + (aiOverview || aiGroups ? ' (đã có nhận xét AI)' : ' (bản rule-based, AI không khả dụng)');
+
+    VHSNAP_sendTelegramDocument(filename, html, caption);
+  } catch (err) {
+    try {
+      VHSNAP_sendTelegramMessage('⚠️ Lỗi khi tạo Snapshot Báo Cáo Vận Hành Tuần tự động (' + new Date().toISOString() + '): ' + err.message);
+    } catch (e2) { /* không để lỗi báo lỗi làm hỏng log gốc */ }
+    throw err; // vẫn ném ra để lỗi hiện trong Apps Script > Executions, tiện tra sau
+  }
+}
+
+// ---- 9. CÀI ĐẶT TRIGGER (chạy TAY 1 LẦN DUY NHẤT trong Apps Script editor, chọn hàm này rồi bấm Run) ----
+// Idempotent: luôn xoá trigger cũ (nếu có) của đúng hàm vhSnapshotWeeklyJob trước khi tạo lại, chạy lại nhiều
+// lần không bị tạo trùng nhiều trigger. LƯU Ý: giờ "23h" tính theo múi giờ đặt ở Project Settings > Time zone
+// của chính Apps Script project này — hãy đảm bảo project đang đặt múi giờ (GMT+7) Asia/Ho_Chi_Minh.
+function vhSnapshotInstallWeeklyTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'vhSnapshotWeeklyJob') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('vhSnapshotWeeklyJob')
+    .timeBased()
+    .onWeekDay(ScriptApp.WeekDay.MONDAY)
+    .atHour(23)
+    .nearMinute(0)
+    .create();
+  var tz = Session.getScriptTimeZone();
+  Logger.log('Đã tạo trigger chạy vhSnapshotWeeklyJob() vào ~23h Thứ Hai hàng tuần, theo múi giờ project: ' + tz +
+    (tz.indexOf('Ho_Chi_Minh') === -1 && tz.indexOf('+07') === -1 ? ' — CẢNH BÁO: múi giờ project KHÔNG PHẢI giờ Việt Nam, vào Project Settings đổi lại Time zone = (GMT+07:00) Asia/Ho_Chi_Minh rồi chạy lại hàm này.' : ' (đúng giờ Việt Nam).'));
+}
+
+// (tuỳ chọn) gỡ trigger nếu cần tắt tính năng — chạy tay khi muốn dừng gửi snapshot tự động
+function vhSnapshotRemoveWeeklyTrigger() {
+  var n = 0;
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'vhSnapshotWeeklyJob') { ScriptApp.deleteTrigger(t); n++; }
+  });
+  Logger.log('Đã gỡ ' + n + ' trigger của vhSnapshotWeeklyJob.');
+}
