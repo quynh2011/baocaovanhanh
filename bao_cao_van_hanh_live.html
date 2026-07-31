@@ -444,6 +444,69 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .section-placeholder h2{font-size:21px;color:var(--text);margin-bottom:8px;font-weight:700}
 .section-placeholder p{font-size:13px;max-width:420px;margin:0 auto}
 
+/* ================= KẾ HOẠCH VẬN HÀNH EVENT ================= */
+#sectionKeHoachEvent .page{max-width:1340px;margin:0 auto;padding:18px 28px 60px}
+.ev-topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:1340px;margin:0 auto;padding:14px 28px 0}
+.ev-topbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-right:auto}
+.ev-topbar-right{display:flex;align-items:center;gap:8px}
+.ev-lbl{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:600}
+.ev-topbar select{font-family:var(--f);font-size:12.5px;padding:7px 10px;border-radius:8px;border:1px solid var(--border-strong);background:#fff;color:var(--text);min-width:220px}
+.ev-period-info{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.ev-btn-ghost{font-family:var(--f);font-size:12px;padding:7px 13px;border-radius:8px;border:1px solid var(--border-strong);background:#fff;color:var(--text);cursor:pointer}
+.ev-btn-ghost:hover{background:var(--bg-soft)}
+.ev-btn{font-family:var(--f);font-size:12.5px;font-weight:600;padding:8px 16px;border-radius:8px;border:none;background:var(--ghn-blue);color:#fff;cursor:pointer}
+.ev-btn:hover{filter:brightness(1.08)}
+.ev-btn.warn{background:#C0392B}
+.ev-loading{max-width:1340px;margin:16px auto;padding:0 28px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.ev-error{max-width:1340px;margin:16px auto;padding:11px 16px;background:#FDECEA;border:1px solid #E8B4AE;color:#8A2C20;border-radius:9px;font-size:12.5px}
+.ev-empty{padding:28px;text-align:center;color:var(--muted);font-size:13px;background:var(--bg-soft);border:1px dashed var(--border-strong);border-radius:10px}
+/* thẻ KPI tổng quan */
+.ev-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:20px}
+.ev-kpi{background:#fff;border:1px solid var(--border);border-left:4px solid var(--ghn-blue);border-radius:10px;padding:13px 15px}
+.ev-kpi.peak{border-left-color:#C0392B}
+.ev-kpi.good{border-left-color:#1D9E75}
+.ev-kpi.warn{border-left-color:#E8A100}
+.ev-kpi-name{font-family:var(--mono);font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.ev-kpi-val{font-size:23px;font-weight:700;color:var(--text);line-height:1.15}
+.ev-kpi-sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px}
+.ev-kpi-sub .up{color:#C0392B;font-weight:600}
+.ev-kpi-sub .dn{color:#1D9E75;font-weight:600}
+/* bảng theo ngày: cột ngày hẹp, đánh dấu ngày đỉnh / ngoài kỳ */
+.ev-daytable td.ev-peak,.ev-daytable th.ev-peak{background:#FDECEA;font-weight:700}
+.ev-daytable td.ev-base,.ev-daytable th.ev-base{background:var(--bg-soft);color:var(--muted)}
+.ev-daytable th{white-space:nowrap;font-size:10.5px}
+.ev-daytable td{font-size:11.5px;text-align:right}
+.ev-daytable td:first-child,.ev-daytable th:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1}
+.ev-daytable tr.total-row td:first-child{background:var(--bg-soft)}
+/* thanh %CAP */
+.ev-bar{position:relative;height:15px;background:var(--bg-soft);border-radius:4px;overflow:hidden;min-width:90px}
+.ev-bar span{position:absolute;left:0;top:0;bottom:0;background:#1D9E75}
+.ev-bar.warn span{background:#E8A100}
+.ev-bar.bad span{background:#C0392B}
+.ev-bar-txt{font-family:var(--mono);font-size:10.5px;margin-left:6px}
+/* nhãn nhóm BC */
+.ev-tag{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.ev-tag.g1{background:#E4F5EE;color:#0F6E56}
+.ev-tag.g2{background:#FDF3DC;color:#8A5A00}
+.ev-tag.g3{background:#FDECEA;color:#A5281B}
+/* biểu mẫu nhập */
+.ev-form-sec{margin-bottom:26px}
+.ev-form-sec>h3{font-size:15px;font-weight:700;color:var(--text);margin:0 0 12px;padding-bottom:7px;border-bottom:2px solid var(--ghn-blue)}
+.ev-item{margin-bottom:18px}
+.ev-item>label{display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:6px}
+.ev-item textarea{width:100%;min-height:78px;font-family:var(--f);font-size:12.5px;padding:9px 11px;border-radius:8px;border:1px solid var(--border-strong);resize:vertical;box-sizing:border-box}
+.ev-item input[type=text],.ev-item input[type=number],.ev-item input[type=date],.ev-item select{font-family:var(--f);font-size:12.5px;padding:6px 9px;border-radius:7px;border:1px solid var(--border-strong);box-sizing:border-box;width:100%}
+.ev-rt-table input{width:100%}
+.ev-rt-actions{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ev-hint{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px}
+.ev-save-bar{position:sticky;bottom:0;background:rgba(255,255,255,.96);border-top:1px solid var(--border);padding:12px 0;margin-top:20px;display:flex;gap:10px;align-items:center;z-index:5}
+.ev-readonly{background:#FFF4E0;border:1px solid #E8B84B;color:#8A5A00;font-family:var(--mono);font-size:12px;padding:9px 14px;border-radius:9px;margin-bottom:14px}
+@media (max-width:768px){
+  #sectionKeHoachEvent .page{padding:14px 12px 50px}
+  .ev-topbar{padding:12px 12px 0}
+  .ev-kpi-val{font-size:19px}
+}
+
 /* ================= LỊCH LÀM VIỆC (Cảnh báo hạn / Lịch họp / Công việc / Công việc cá nhân) ================= */
 #sectionLichLamViec .vh-pane{max-width:1340px;margin:0 auto;padding:18px 28px 60px}
 .llv-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
@@ -722,6 +785,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     <button class="dbb-sub-btn" id="navBtn-sectionTruyThu" onclick="switchSection('sectionTruyThu')">🧾 Truy thu</button>
     <button class="dbb-sub-btn" id="navBtn-sectionCapacity" onclick="switchSection('sectionCapacity')">📦 Capacity</button>
     <button class="dbb-sub-btn" id="navBtn-sectionNhanSu" onclick="switchSection('sectionNhanSu')">👥 Nhân sự</button>
+    <button class="dbb-sub-btn" id="navBtn-sectionKeHoachEvent" onclick="switchSection('sectionKeHoachEvent')">🎯 Kế hoạch Event</button>
     <button class="dbb-sub-btn" id="navBtn-sectionLichLamViec" onclick="switchSection('sectionLichLamViec')">🗓️ Lịch làm việc</button>
     <button class="dbb-sub-btn" id="navBtn-sectionComingSoon" onclick="switchSection('sectionComingSoon')">✨ Sắp ra mắt</button>
   </div>
@@ -1093,6 +1157,48 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     <p>Đang chờ cấu trúc dữ liệu cụ thể để triển khai.</p>
   </div>
 </div>
+<!-- ================= SECTION: KẾ HOẠCH VẬN HÀNH EVENT =================
+     Cấu trúc 8 tab bám ĐÚNG mục VII "Cấu trúc Báo cáo Kế hoạch Event chuẩn" của tài liệu hướng dẫn.
+     Số liệu sản lượng đọc tự động từ 3 tab Forecast (31_FC_Lay/32_FC_Giao/33_FC_KTC) — không nhập tay;
+     phần định tính (mục tiêu, CAP, nhân sự, phân nhóm BC, checklist...) nhập qua biểu mẫu Admin cấu hình. -->
+<div id="sectionKeHoachEvent" class="app-section">
+  <div class="ev-topbar">
+    <div class="ev-topbar-left">
+      <label class="ev-lbl">Kỳ Event</label>
+      <select id="evPeriodSelect" onchange="evOnPeriodChange()"></select>
+      <span id="evPeriodInfo" class="ev-period-info"></span>
+    </div>
+    <div class="ev-topbar-right">
+      <button class="ev-btn-ghost" onclick="loadKeHoachEvent(true)">🔄 Làm mới</button>
+      <button class="ev-btn-ghost" id="evAdminBtn" style="display:none" onclick="evSwitchTab('admin')">⚙️ Quản trị</button>
+    </div>
+  </div>
+
+  <div class="vh-subtabs">
+    <button class="vh-subtab-btn active" id="evTabBtn-tongquan" onclick="evSwitchTab('tongquan')">📈 Tổng quan</button>
+    <button class="vh-subtab-btn" id="evTabBtn-muctieu" onclick="evSwitchTab('muctieu')">🎯 I. Mục tiêu</button>
+    <button class="vh-subtab-btn" id="evTabBtn-lay" onclick="evSwitchTab('lay')">📥 II.1 Volume Lấy</button>
+    <button class="vh-subtab-btn" id="evTabBtn-giao" onclick="evSwitchTab('giao')">📤 II.2 Volume Giao</button>
+    <button class="vh-subtab-btn" id="evTabBtn-nhombc" onclick="evSwitchTab('nhombc')">🏢 III. Nhóm Bưu cục</button>
+    <button class="vh-subtab-btn" id="evTabBtn-checklist" onclick="evSwitchTab('checklist')">✅ IV. Checklist</button>
+    <button class="vh-subtab-btn" id="evTabBtn-escalation" onclick="evSwitchTab('escalation')">📣 V. Escalation</button>
+    <button class="vh-subtab-btn" id="evTabBtn-ktc" onclick="evSwitchTab('ktc')">🏭 VI. KTC/KCT</button>
+  </div>
+
+  <div id="evLoading" class="ev-loading">Đang tải dữ liệu Forecast…</div>
+  <div id="evError" class="ev-error" style="display:none"></div>
+
+  <div id="evPaneTongquan"   class="vh-pane active"><div class="page"><div id="evTongquanBody"></div></div></div>
+  <div id="evPaneMuctieu"    class="vh-pane"><div class="page"><div id="evMuctieuBody"></div></div></div>
+  <div id="evPaneLay"        class="vh-pane"><div class="page"><div id="evLayBody"></div></div></div>
+  <div id="evPaneGiao"       class="vh-pane"><div class="page"><div id="evGiaoBody"></div></div></div>
+  <div id="evPaneNhombc"     class="vh-pane"><div class="page"><div id="evNhombcBody"></div></div></div>
+  <div id="evPaneChecklist"  class="vh-pane"><div class="page"><div id="evChecklistBody"></div></div></div>
+  <div id="evPaneEscalation" class="vh-pane"><div class="page"><div id="evEscalationBody"></div></div></div>
+  <div id="evPaneKtc"        class="vh-pane"><div class="page"><div id="evKtcBody"></div></div></div>
+  <div id="evPaneAdmin"      class="vh-pane"><div class="page"><div id="evAdminBody"></div></div></div>
+</div>
+
 <!-- ================= SECTION: LỊCH LÀM VIỆC (Cảnh báo hạn / Lịch họp / Công việc / Công việc cá nhân) ================= -->
 <div id="sectionLichLamViec" class="app-section">
   <div class="vh-subtabs">
@@ -4714,7 +4820,7 @@ document.addEventListener('click', function(e){
     menu.classList.remove('open'); fab.classList.remove('open');
   }
 });
-const ALL_SECTIONS = ['sectionVanHanh','sectionKinhDoanh','sectionTruyThu','sectionCapacity','sectionNhanSu','sectionLichLamViec','sectionComingSoon'];
+const ALL_SECTIONS = ['sectionVanHanh','sectionKinhDoanh','sectionTruyThu','sectionCapacity','sectionNhanSu','sectionKeHoachEvent','sectionLichLamViec','sectionComingSoon'];
 function switchSection(id){
   ALL_SECTIONS.forEach(s => {
     const el = document.getElementById(s);
@@ -4726,6 +4832,7 @@ function switchSection(id){
   if (menu) menu.classList.remove('open');
   if (fab) fab.classList.remove('open');
   if (id === 'sectionKinhDoanh') loadKinhDoanh();
+  if (id === 'sectionKeHoachEvent') loadKeHoachEvent();
   if (id === 'sectionLichLamViec') loadLichLamViec();
   if (typeof window.scrollTo === 'function') window.scrollTo(0,0);
 }
@@ -6003,6 +6110,10 @@ async function main(){
   loadProgress.finish('loadingNote');
   document.getElementById('updatedAt').textContent = new Date().toLocaleString('vi-VN');
 
+  // Cache TOÀN BỘ bảng thô vừa tải (kể cả 3 tab Forecast của Kế hoạch Event) để các phần khác dùng lại mà
+  // không phải gọi backend lần nữa — xem loadKeHoachEvent().
+  window.ALL_TABLES = tables;
+
   // Cache dữ liệu ĐẦY ĐỦ (chưa cắt theo kỳ) — dùng lại mỗi khi đổi kỳ xem lại (time-travel) mà KHÔNG cần tải
   // lại từ Google Sheet, xem renderVanHanhReport()/applyWeekCutoff() ở trên.
   window.RAW_VH_DATA = {
@@ -6090,6 +6201,867 @@ function renderVanHanhReport(){
   // (đủ chính xác, không tốn quota AI vô ích, tránh nhận định AI bị hiểu nhầm là "hiện tại" khi đang xem 1 kỳ đã qua).
   if (!window.VH_CUTOFF_LABEL) opsEnhanceWithAI();
 }
+// ============================================================================================
+// KẾ HOẠCH VẬN HÀNH EVENT — engine phân tích Forecast + toàn bộ màn hình
+// ============================================================================================
+// Nguồn số liệu: 3 tab Forecast của Capacity team (31_FC_Lay / 32_FC_Giao / 33_FC_KTC) đã được đưa vào
+// DATA_SHEET_NAMES nên về sẵn cùng lượt getReportData — KHÔNG gọi thêm backend, không nhập tay dòng nào.
+// Phần định tính (mục tiêu, CAP, nhân sự, phân nhóm BC, checklist, escalation, KTC) nhập qua biểu mẫu do
+// Admin cấu hình (EVENT_Config), lưu theo từng người vào EVENT_Submissions — cùng cơ chế với Báo Cáo KQKD.
+window.EV = { loaded: false, loading: false, curTab: 'tongquan', curEventId: null, data: null };
+
+// ---------- tiện ích số: ô Forecast có thể là số, hoặc chuỗi có dấu phẩy ngăn nghìn ("19,165") ----------
+function evNum(v){
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return v;
+  const s = String(v).replace(/[,\s]/g,'');
+  if (!s || s === '-') return null;
+  const n = Number(s);
+  return isNaN(n) ? null : n;
+}
+function evFmt(v){ return (v === null || v === undefined) ? '–' : Math.round(v).toLocaleString('vi-VN'); }
+function evFmtPct(v, d){ return (v === null || v === undefined) ? '–' : (v*100).toFixed(d===undefined?1:d)+'%'; }
+function evFmtDelta(v){
+  if (v === null || v === undefined) return '<span class="mut">–</span>';
+  const cls = v > 0 ? 'up' : 'dn';
+  return '<span class="'+cls+'">'+(v>0?'+':'')+(v*100).toFixed(1)+'%</span>';
+}
+
+// ---------- nhận diện cột ngày từ chính nhãn cột ("T5 16/07 ✅ACT" / "T6 31/07 📊FC") ----------
+// Đọc theo nhãn chứ không theo vị trí cố định -> Capacity team thêm/bớt ngày vẫn tự chạy đúng.
+const EV_DAY_RE = /(\d{1,2})\s*\/\s*(\d{1,2})/;
+function evParseDayLabel(label){
+  const raw = String(label || '').trim();
+  if (!raw || /tổng/i.test(raw)) return null; // bỏ cột "Tổng 60d"
+  const m = raw.match(EV_DAY_RE);
+  if (!m) return null;
+  const dd = parseInt(m[1],10), mm = parseInt(m[2],10);
+  if (!(dd>=1 && dd<=31 && mm>=1 && mm<=12)) return null;
+  return { label: raw, dd, mm,
+    key: String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0'),
+    short: String(dd).padStart(2,'0')+'/'+String(mm).padStart(2,'0'),
+    isAct: /ACT/i.test(raw) };
+}
+// ---------- parser tab Lấy/Giao: Vùng|Tỉnh|ID|BC|Sàn + N cột ngày + Tổng ----------
+function evParseFCWide(table, opt){
+  opt = opt || {};
+  const dimIdxs = opt.dimIdxs || [0,1,3,4];
+  const cols = (table && table.cols) || [];
+  const days = [];
+  cols.forEach((c,i) => { const d = evParseDayLabel(c && c.label); if (d) days.push(Object.assign({colIdx:i}, d)); });
+  const rows = [];
+  ((table && table.rows) || []).forEach(r => {
+    const at = (i) => (r.c && r.c[i] && r.c[i].v !== null && r.c[i].v !== undefined) ? r.c[i].v : null;
+    const bc = at(dimIdxs[2]), san = at(dimIdxs[3]);
+    if (!bc || !san) return;
+    const byDay = days.map(d => evNum(at(d.colIdx)));
+    rows.push({ vung:String(at(dimIdxs[0])||''), tinh:String(at(dimIdxs[1])||''), bc:String(bc), san:String(san),
+      byDay, total: byDay.reduce((s,v)=>s+(v||0),0) });
+  });
+  return { days, rows };
+}
+// ---------- parser tab KTC: header nhiều dòng + dòng chia nhóm "▸ DBB" + số có dấu phẩy ----------
+// Dòng ngày trong sheet KTC KHÔNG đủ mọi cột nên mượn danh sách ngày từ tab Lấy rồi ánh xạ theo vị trí,
+// bắt đầu từ cột C (index 2) — đã đối chiếu khớp thứ trong tuần ở dòng tiêu đề.
+function evParseFCKTC(table, refDays){
+  const startIdx = 2;
+  const days = (refDays||[]).map((d,i) => Object.assign({}, d, { colIdx: startIdx+i }));
+  const rows = [];
+  ((table && table.rows) || []).forEach(r => {
+    const at = (i) => (r.c && r.c[i] && r.c[i].v !== null && r.c[i].v !== undefined) ? r.c[i].v : null;
+    const kho = at(0), nhom = at(1);
+    if (!kho || !nhom) return;
+    if (/^\s*▸/.test(String(kho))) return;
+    if (/^source$/i.test(String(nhom).trim())) return;
+    const byDay = days.map(d => evNum(at(d.colIdx)));
+    if (!byDay.some(v => v !== null)) return; // loại dòng tiêu đề "Kho | Nhóm hàng | ..." (không có ô số nào)
+    rows.push({ kho:String(kho), nhom:String(nhom), byDay, total: byDay.reduce((s,v)=>s+(v||0),0) });
+  });
+  return { days, rows };
+}
+// ---------- đánh dấu ngày: trong kỳ / ngày nền / ngày đỉnh ----------
+function evMarkDays(days, cfg){
+  cfg = cfg || {};
+  const toKey = (s) => { const m = String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? (m[2]+'-'+m[3]) : null; };
+  const startK = toKey(cfg.startDate), endK = toKey(cfg.endDate), peakK = toKey(cfg.peakDate);
+  return days.map(d => ({ ...d,
+    inEvent: (startK && endK) ? (d.key >= startK && d.key <= endK) : false,
+    isBase: d.isAct && (!startK || d.key < startK),   // nền = số THẬT đã chạy, trước kỳ Event
+    isPeak: peakK ? (d.key === peakK) : false }));
+}
+function evGroupBy(parsed, keyFn){
+  const map = {}, order = [];
+  parsed.rows.forEach(r => {
+    const k = keyFn(r);
+    if (k === null || k === undefined || k === '') return;
+    if (!map[k]) { map[k] = { label:String(k), byDay: parsed.days.map(()=>0), total:0, rows:[] }; order.push(k); }
+    const g = map[k];
+    r.byDay.forEach((v,i) => { if (v !== null) g.byDay[i] += v; });
+    g.total += r.total; g.rows.push(r);
+  });
+  return order.map(k => map[k]);
+}
+function evTotalByDay(parsed){
+  const out = parsed.days.map(()=>0);
+  parsed.rows.forEach(r => r.byDay.forEach((v,i) => { if (v !== null) out[i] += v; }));
+  return out;
+}
+function evBaseIdxs(days){ const out=[]; days.forEach((d,i)=>{ if(d.isBase) out.push(i); }); return out; }
+// ---------- phân tích chính: nền ngày thường, ngày đỉnh, %tăng ----------
+function evAnalyze(parsed, cfg){
+  const days = evMarkDays(parsed.days, cfg);
+  const totals = evTotalByDay(parsed);
+  const baseVals = [];
+  days.forEach((d,i) => { if (d.isBase) baseVals.push(totals[i]); });
+  const baseline = baseVals.length ? baseVals.reduce((a,b)=>a+b,0)/baseVals.length : null;
+  let peakIdx = -1;
+  const cand = days.map((d,i)=>({d,i})).filter(x => (cfg && cfg.startDate) ? x.d.inEvent : !x.d.isAct);
+  const pool = cand.length ? cand : days.map((d,i)=>({d,i}));
+  const marked = pool.filter(x => x.d.isPeak)[0];
+  if (marked) peakIdx = marked.i;
+  else pool.forEach(x => { if (peakIdx === -1 || totals[x.i] > totals[peakIdx]) peakIdx = x.i; });
+  const eventIdxs = days.map((d,i)=>(d.inEvent?i:-1)).filter(i=>i>=0);
+  const eventTotal = eventIdxs.reduce((s,i)=>s+totals[i],0);
+  return { days, totals, baseline, peakIdx,
+    peakDay: peakIdx>=0 ? days[peakIdx] : null,
+    peakValue: peakIdx>=0 ? totals[peakIdx] : null,
+    peakVsBase: (peakIdx>=0 && baseline) ? (totals[peakIdx]/baseline - 1) : null,
+    eventDayCount: eventIdxs.length, eventTotal,
+    eventAvg: eventIdxs.length ? eventTotal/eventIdxs.length : null,
+    eventAvgVsBase: (eventIdxs.length && baseline) ? ((eventTotal/eventIdxs.length)/baseline - 1) : null,
+    grandTotal: totals.reduce((a,b)=>a+b,0) };
+}
+function evRankAtPeak(parsed, peakIdx, keyFn, baseIdxs, metaFn){
+  return evGroupBy(parsed, keyFn).map(g => {
+    const peak = peakIdx>=0 ? g.byDay[peakIdx] : null;
+    let base = null;
+    if (baseIdxs && baseIdxs.length) {
+      let s=0,n=0;
+      baseIdxs.forEach(i => { if (g.byDay[i] !== null && g.byDay[i] !== undefined) { s+=g.byDay[i]; n++; } });
+      base = n ? s/n : null;
+    }
+    const meta = metaFn ? metaFn(g) : {};
+    return Object.assign({ label:g.label, peak, base, total:g.total,
+      vsBase: (peak!==null && base) ? (peak/base - 1) : null, byDay:g.byDay }, meta);
+  }).sort((a,b) => (b.peak||0)-(a.peak||0));
+}
+// ---------- khả năng đáp ứng CAP + nhu cầu nhân sự theo Bưu cục ----------
+function evCapacityCheck(rankLay, rankGiao, capMap, opt){
+  opt = opt || {};
+  const giaoMap = {}; (rankGiao||[]).forEach(r => { giaoMap[r.label] = r; });
+  return (rankLay||[]).map(r => {
+    const cap = (capMap && capMap[r.label]) || {};
+    const peakLay = r.peak, peakGiao = giaoMap[r.label] ? giaoMap[r.label].peak : null;
+    const capLay = evNum(cap.capLay), capGiao = evNum(cap.capGiao);
+    const nangSuat = evNum(cap.nangSuat) || opt.defaultNangSuat || null;
+    const hienCo = evNum(cap.nvptttHienCo), dinhBien = evNum(cap.nvptttDinhBien);
+    const useLay = (capLay>0 && peakLay!==null) ? peakLay/capLay : null;
+    const useGiao = (capGiao>0 && peakGiao!==null) ? peakGiao/capGiao : null;
+    const tongTai = (peakLay||0) + (peakGiao||0);
+    const nguoiCan = (nangSuat>0) ? Math.ceil(tongTai/nangSuat) : null;
+    return { bc:r.label, tinh:r.tinh||'', peakLay, peakGiao, capLay, capGiao, useLay, useGiao,
+      overLay: (capLay && peakLay!==null) ? Math.max(0, peakLay-capLay) : null,
+      overGiao: (capGiao && peakGiao!==null) ? Math.max(0, peakGiao-capGiao) : null,
+      nangSuat, hienCo, dinhBien, nguoiCan,
+      thieuNguoi: (nguoiCan!==null && hienCo!==null) ? Math.max(0, nguoiCan-hienCo) : null,
+      pctThieuDinhBien: (dinhBien>0 && hienCo!==null) ? Math.max(0,(dinhBien-hienCo)/dinhBien) : null,
+      maxUse: Math.max(useLay||0, useGiao||0) || null };
+  }).sort((a,b) => (b.maxUse||0)-(a.maxUse||0));
+}
+// ---------- GỢI Ý phân nhóm BC theo đúng tiêu chí bảng "3. Phân loại nhóm Bưu cục" của tài liệu ----------
+// Nhóm 3: vượt CAP (>100%) HOẶC thiếu >25% nhân sự · Nhóm 2: >=85% CAP HOẶC thiếu >=10% · còn lại Nhóm 1.
+// Chỉ là GỢI Ý — người nhập sửa được, vì tài liệu còn tiêu chí định tính mà forecast không thể hiện.
+function evSuggestGroup(row){
+  const use = row.maxUse, pct = row.pctThieuDinhBien;
+  const reasons = []; let group = 1;
+  if (use !== null && use !== undefined) {
+    if (use > 1) { group = 3; reasons.push('Vượt CAP ngày đỉnh ('+Math.round(use*100)+'%)'); }
+    else if (use >= 0.85) { group = Math.max(group,2); reasons.push('Sắp chạm CAP ('+Math.round(use*100)+'%)'); }
+  }
+  if (pct !== null && pct !== undefined) {
+    if (pct > 0.25) { group = 3; reasons.push('Thiếu '+Math.round(pct*100)+'% nhân sự so định biên'); }
+    else if (pct >= 0.10) { group = Math.max(group,2); reasons.push('Thiếu '+Math.round(pct*100)+'% nhân sự'); }
+  }
+  if (!reasons.length) reasons.push('Trong ngưỡng an toàn');
+  return { group, label: {1:'Nhóm 1 - Ổn định',2:'Nhóm 2 - Cảnh báo',3:'Nhóm 3 - Bất ổn'}[group], reasons };
+}
+
+// ================= TẢI DỮ LIỆU & ĐIỀU HƯỚNG =================
+async function loadKeHoachEvent(force){
+  if (window.EV.loading) return;
+  if (window.EV.loaded && !force) { evRenderCurrentTab(); return; }
+  window.EV.loading = true;
+  const loadEl = document.getElementById('evLoading'), errEl = document.getElementById('evError');
+  if (loadEl) { loadEl.style.display = ''; loadEl.textContent = 'Đang tải dữ liệu Forecast…'; }
+  if (errEl) errEl.style.display = 'none';
+  try {
+    // Bảng Forecast: dùng lại lượt getReportData của trang Vận hành nếu đã có, chưa có thì tự gọi 1 lần.
+    if (!window.ALL_TABLES || force) {
+      const res = await callBackend('getReportData', { token: AUTH.session.token });
+      if (!res.ok) throw new Error(errMsg(res.error));
+      window.ALL_TABLES = res.tables;
+    }
+    const ev = await callBackend('getEventData', { token: AUTH.session.token });
+    if (!ev.ok) throw new Error(errMsg(ev.error));
+    window.EV.schema = ev.schema; window.EV.periods = ev.periods || [];
+    window.EV.mySubmissions = ev.mySubmissions || {}; window.EV.isAdmin = !!ev.isAdmin;
+    window.EV.staff = ev.staff || []; window.EV.myEmail = ev.myEmail; window.EV.myName = ev.myName;
+
+    const T = window.ALL_TABLES;
+    const lay = evParseFCWide(T['31_FC_Lay']);
+    const giao = evParseFCWide(T['32_FC_Giao']);
+    const ktc = evParseFCKTC(T['33_FC_KTC'], lay.days.length ? lay.days : giao.days);
+    window.EV.data = { lay, giao, ktc };
+
+    if (!window.EV.curEventId && window.EV.periods.length) window.EV.curEventId = window.EV.periods[window.EV.periods.length-1].eventId;
+    window.EV.loaded = true;
+    if (loadEl) loadEl.style.display = 'none';
+    const adminBtn = document.getElementById('evAdminBtn');
+    if (adminBtn) adminBtn.style.display = window.EV.isAdmin ? '' : 'none';
+    evRenderPeriodSelect();
+    evRenderCurrentTab();
+  } catch (e) {
+    if (loadEl) loadEl.style.display = 'none';
+    if (errEl) { errEl.style.display = ''; errEl.textContent = 'Không tải được Kế hoạch Event: ' + e.message; }
+  } finally { window.EV.loading = false; }
+}
+function evCurPeriod(){
+  return (window.EV.periods || []).filter(p => p.eventId === window.EV.curEventId)[0] || null;
+}
+function evRenderPeriodSelect(){
+  const sel = document.getElementById('evPeriodSelect'), info = document.getElementById('evPeriodInfo');
+  if (!sel) return;
+  const ps = window.EV.periods || [];
+  if (!ps.length) {
+    sel.innerHTML = '<option value="">— Chưa có kỳ Event nào —</option>';
+    if (info) info.textContent = window.EV.isAdmin ? 'Vào ⚙️ Quản trị để tạo kỳ Event đầu tiên' : 'Chờ Admin tạo kỳ Event';
+    return;
+  }
+  sel.innerHTML = ps.map(p => '<option value="'+attrEsc(p.eventId)+'"'+(p.eventId===window.EV.curEventId?' selected':'')+'>'+esc(p.label)+'</option>').join('');
+  const p = evCurPeriod();
+  if (info && p) {
+    const parts = [];
+    if (p.startDate && p.endDate) parts.push(p.startDate+' → '+p.endDate);
+    if (p.peakDate) parts.push('đỉnh ' + p.peakDate);
+    parts.push(p.status === 'closed' ? 'đã đóng' : 'đang mở');
+    info.textContent = parts.join(' · ');
+  }
+}
+function evOnPeriodChange(){
+  window.EV.curEventId = document.getElementById('evPeriodSelect').value;
+  evRenderPeriodSelect();
+  evRenderCurrentTab();
+}
+const EV_TABS = ['tongquan','muctieu','lay','giao','nhombc','checklist','escalation','ktc','admin'];
+function evSwitchTab(tab){
+  window.EV.curTab = tab;
+  EV_TABS.forEach(t => {
+    const pane = document.getElementById('evPane' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (pane) pane.classList.toggle('active', t === tab);
+    const btn = document.getElementById('evTabBtn-'+t);
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  evRenderCurrentTab();
+  if (typeof window.scrollTo === 'function') window.scrollTo(0,0);
+}
+function evRenderCurrentTab(){
+  if (!window.EV.loaded) return;
+  const t = window.EV.curTab;
+  try {
+    if (t === 'tongquan') evRenderTongquan();
+    else if (t === 'lay') evRenderVolume('lay');
+    else if (t === 'giao') evRenderVolume('giao');
+    else if (t === 'nhombc') evRenderNhomBC();
+    else if (t === 'ktc') evRenderKTC();
+    else if (t === 'admin') evRenderAdmin();
+    else evRenderFormTab(t);
+  } catch (e) {
+    const el = document.getElementById('ev' + t.charAt(0).toUpperCase() + t.slice(1) + 'Body');
+    if (el) el.innerHTML = '<div class="ev-error">Lỗi khi dựng mục này: '+esc(e.message)+'</div>';
+  }
+}
+// gom kết quả phân tích cho kỳ đang chọn (dùng chung cho mọi tab)
+function evComputed(){
+  const p = evCurPeriod() || {};
+  const cfg = { startDate:p.startDate, endDate:p.endDate, peakDate:p.peakDate };
+  const D = window.EV.data;
+  const aLay = evAnalyze(D.lay, cfg), aGiao = evAnalyze(D.giao, cfg);
+  const baseIdxLay = evBaseIdxs(aLay.days), baseIdxGiao = evBaseIdxs(aGiao.days);
+  const tinhOf = {};
+  D.lay.rows.forEach(r => { tinhOf[r.bc] = r.tinh; });
+  D.giao.rows.forEach(r => { if (!tinhOf[r.bc]) tinhOf[r.bc] = r.tinh; });
+  const rankBCLay = evRankAtPeak(D.lay, aLay.peakIdx, r=>r.bc, baseIdxLay, g=>({tinh:tinhOf[g.label]||''}));
+  const rankBCGiao = evRankAtPeak(D.giao, aGiao.peakIdx, r=>r.bc, baseIdxGiao, g=>({tinh:tinhOf[g.label]||''}));
+  const capMap = evCapMapFromAnswers();
+  return { cfg, period:p, aLay, aGiao, rankBCLay, rankBCGiao,
+    capChk: evCapacityCheck(rankBCLay, rankBCGiao, capMap), tinhOf };
+}
+// đọc bảng "II.1 CAP và nhân sự" người dùng đã nhập -> map theo tên BC
+function evCapMapFromAnswers(){
+  const sub = (window.EV.mySubmissions || {})[window.EV.curEventId];
+  const rows = (sub && sub.answers && sub.answers.et2) || [];
+  const map = {};
+  (Array.isArray(rows)?rows:[]).forEach(r => { if (r && r.bc) map[String(r.bc).trim()] = r; });
+  return map;
+}
+
+// ================= TAB 0: TỔNG QUAN =================
+function evRenderTongquan(){
+  const el = document.getElementById('evTongquanBody');
+  const D = window.EV.data;
+  if (!D.lay.days.length && !D.giao.days.length) {
+    el.innerHTML = '<div class="ev-empty">Chưa có dữ liệu Forecast.<br><br>Hãy copy 2 tab <b>6_FC_Lay_Daily</b> và <b>7_FC_Giao_Daily</b> (và <b>FC Sorting 60d</b>) từ file Forecast của Capacity team sang Sheet dữ liệu chính, đặt tên lần lượt là <b>31_FC_Lay</b>, <b>32_FC_Giao</b>, <b>33_FC_KTC</b>.</div>';
+    return;
+  }
+  const C = evComputed();
+  const p = C.period;
+  let html = '';
+  if (!p.eventId) {
+    html += '<div class="ev-readonly">Chưa cấu hình kỳ Event nên hệ thống đang tự lấy ngày sản lượng cao nhất làm ngày đỉnh. '+
+      (window.EV.isAdmin ? 'Vào ⚙️ Quản trị để tạo kỳ Event (khung ngày + ngày đỉnh) cho số liệu chuẩn hơn.' : 'Chờ Admin tạo kỳ Event.')+'</div>';
+  }
+  html += '<div class="block-header"><span class="bh-num">0.1</span> Chỉ số then chốt kỳ Event</div>';
+  html += '<div class="ev-kpi-grid">';
+  html += evKpiCard('Ngày đỉnh — Lấy', C.aLay.peakDay ? C.aLay.peakDay.short : '–', evFmt(C.aLay.peakValue)+' đơn · '+evFmtDelta(C.aLay.peakVsBase)+' so nền', 'peak');
+  html += evKpiCard('Ngày đỉnh — Giao', C.aGiao.peakDay ? C.aGiao.peakDay.short : '–', evFmt(C.aGiao.peakValue)+' đơn · '+evFmtDelta(C.aGiao.peakVsBase)+' so nền', 'peak');
+  html += evKpiCard('Nền ngày thường — Lấy', evFmt(C.aLay.baseline), 'TB các ngày thực tế trước kỳ');
+  html += evKpiCard('Nền ngày thường — Giao', evFmt(C.aGiao.baseline), 'TB các ngày thực tế trước kỳ');
+  if (C.aLay.eventDayCount) {
+    html += evKpiCard('Tổng Lấy cả kỳ', evFmt(C.aLay.eventTotal), C.aLay.eventDayCount+' ngày · TB '+evFmt(C.aLay.eventAvg)+'/ngày · '+evFmtDelta(C.aLay.eventAvgVsBase));
+    html += evKpiCard('Tổng Giao cả kỳ', evFmt(C.aGiao.eventTotal), C.aGiao.eventDayCount+' ngày · TB '+evFmt(C.aGiao.eventAvg)+'/ngày · '+evFmtDelta(C.aGiao.eventAvgVsBase));
+  }
+  const over = C.capChk.filter(x => x.maxUse !== null && x.maxUse > 1).length;
+  const hasCap = C.capChk.some(x => x.maxUse !== null);
+  html += evKpiCard('Bưu cục vượt CAP ngày đỉnh', hasCap ? String(over) : '–',
+    hasCap ? ('trên tổng '+C.capChk.filter(x=>x.maxUse!==null).length+' BC đã nhập CAP') : 'Chưa nhập CAP ở mục III',
+    over > 0 ? 'warn' : (hasCap ? 'good' : ''));
+  html += '</div>';
+
+  // đường sản lượng Lấy + Giao theo ngày (tái dùng biểu đồ tương tác sẵn có)
+  html += '<div class="block-header"><span class="bh-num">0.2</span> Đường sản lượng theo ngày (Lấy vs Giao)</div>';
+  const grp = { label:'Toàn Vùng DBB', rows: [
+    evPseudoRec('Sản lượng Lấy', C.aLay.totals),
+    evPseudoRec('Sản lượng Giao', C.aGiao.totals)
+  ]};
+  html += chartContainerHtml(grp, C.aLay.days.map(d=>d.short), 'chỉ số');
+  html += '<div class="ev-hint">Ngày nền (số thực tế đã chạy) và ngày dự báo nằm chung 1 đường để thấy rõ mức nhảy vọt của kỳ Event.</div>';
+
+  // top BC rủi ro nhất
+  html += '<div class="block-header"><span class="bh-num">0.3</span> Top 10 Bưu cục tải cao nhất ngày đỉnh</div>';
+  html += evTopBCTable(C, 10);
+  el.innerHTML = html;
+}
+function evKpiCard(name, val, sub, cls){
+  return '<div class="ev-kpi '+(cls||'')+'"><div class="ev-kpi-name">'+esc(name)+'</div>'+
+    '<div class="ev-kpi-val">'+val+'</div><div class="ev-kpi-sub">'+sub+'</div></div>';
+}
+// tạo "rec" giả đúng khuôn dữ liệu tuần của web (weeks:[{val}]) để tái dùng nguyên biểu đồ/bảng sẵn có
+function evPseudoRec(label, arr){
+  return { label, target:null, isTotalRow:false, isGrand:false, weeks: arr.map(v => ({ val: v })) };
+}
+function evTopBCTable(C, n){
+  const rows = C.rankBCLay.slice(0, n);
+  if (!rows.length) return '<div class="ev-empty">Chưa có dữ liệu Bưu cục.</div>';
+  const giaoMap = {}; C.rankBCGiao.forEach(r => { giaoMap[r.label] = r; });
+  const capByBc = {}; C.capChk.forEach(x => { capByBc[x.bc] = x; });
+  let h = '<div class="tbl-wrap"><table><thead><tr><th>Bưu cục</th><th>Tỉnh</th><th>Lấy ngày đỉnh</th><th>Δ so nền</th><th>Giao ngày đỉnh</th><th>%sử dụng CAP</th><th>Gợi ý nhóm</th></tr></thead><tbody>';
+  rows.forEach(r => {
+    const g = giaoMap[r.label], cap = capByBc[r.label] || {};
+    const sug = evSuggestGroup(cap);
+    h += '<tr><td>'+esc(r.label)+'</td><td>'+esc(r.tinh||'')+'</td>'+
+      '<td>'+evFmt(r.peak)+'</td><td>'+evFmtDelta(r.vsBase)+'</td>'+
+      '<td>'+evFmt(g?g.peak:null)+'</td><td>'+evCapBar(cap.maxUse)+'</td>'+
+      '<td><span class="ev-tag g'+sug.group+'">'+esc(sug.label)+'</span></td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+function evCapBar(use){
+  if (use === null || use === undefined) return '<span class="mut">chưa có CAP</span>';
+  const pct = Math.min(100, use*100), cls = use > 1 ? 'bad' : (use >= 0.85 ? 'warn' : '');
+  return '<div style="display:flex;align-items:center"><div class="ev-bar '+cls+'"><span style="width:'+pct.toFixed(0)+'%"></span></div>'+
+    '<span class="ev-bar-txt">'+(use*100).toFixed(0)+'%</span></div>';
+}
+
+// ================= TAB II.1 / II.2: VOLUME LẤY / GIAO =================
+function evRenderVolume(kind){
+  const el = document.getElementById(kind === 'lay' ? 'evLayBody' : 'evGiaoBody');
+  const D = window.EV.data, parsed = D[kind];
+  const title = kind === 'lay' ? 'Volume Lấy' : 'Volume Giao';
+  const num = kind === 'lay' ? 'II.1' : 'II.2';
+  if (!parsed.days.length) {
+    el.innerHTML = '<div class="ev-empty">Chưa có dữ liệu tab <b>'+(kind==='lay'?'31_FC_Lay':'32_FC_Giao')+'</b> trong Sheet dữ liệu.</div>';
+    return;
+  }
+  const C = evComputed();
+  const a = kind === 'lay' ? C.aLay : C.aGiao;
+  const baseIdxs = evBaseIdxs(a.days);
+  let html = '<div class="block-header"><span class="bh-num">'+num+'.1</span> '+title+' — tổng quan theo ngày</div>';
+  html += evDayTable([{ label:'Toàn Vùng DBB', byDay:a.totals }], a, true);
+  html += '<div class="ev-hint">Cột nền xám = ngày thực tế đã chạy (dùng làm nền so sánh) · cột đỏ = ngày đỉnh.</div>';
+
+  html += '<div class="block-header"><span class="bh-num">'+num+'.2</span> '+title+' theo Sàn/Loại hàng</div>';
+  const bySan = evGroupBy(parsed, r => r.san);
+  html += evDayTable(bySan, a, true);
+  html += chartContainerHtml({ label:'Theo sàn', rows: bySan.map(g => evPseudoRec(g.label, g.byDay)) }, a.days.map(d=>d.short), 'sàn');
+  html += evRankTable(evRankAtPeak(parsed, a.peakIdx, r=>r.san, baseIdxs), 'Sàn/Loại hàng', a);
+
+  html += '<div class="block-header"><span class="bh-num">'+num+'.3</span> '+title+' theo Tỉnh</div>';
+  const byTinh = evGroupBy(parsed, r => r.tinh);
+  html += evDayTable(byTinh, a, true);
+  html += chartContainerHtml({ label:'Theo tỉnh', rows: byTinh.map(g => evPseudoRec(g.label, g.byDay)) }, a.days.map(d=>d.short), 'tỉnh');
+  html += evRankTable(evRankAtPeak(parsed, a.peakIdx, r=>r.tinh, baseIdxs), 'Tỉnh', a);
+
+  html += '<div class="block-header"><span class="bh-num">'+num+'.4</span> '+title+' theo Bưu cục — Top 20 tải cao nhất ngày đỉnh</div>';
+  const rankBC = evRankAtPeak(parsed, a.peakIdx, r=>r.bc, baseIdxs, g=>({tinh:C.tinhOf[g.label]||''}));
+  html += evRankTable(rankBC.slice(0,20), 'Bưu cục', a, true);
+  el.innerHTML = html;
+}
+// bảng ngang theo ngày (mỗi dòng 1 đối tượng, mỗi cột 1 ngày) + cột tổng
+function evDayTable(groups, a, withTotalRow){
+  if (!groups.length) return '<div class="ev-empty">Không có dữ liệu.</div>';
+  let h = '<div class="tbl-wrap"><table class="ev-daytable"><thead><tr><th>Đối tượng</th>';
+  a.days.forEach((d,i) => {
+    const cls = i === a.peakIdx ? 'ev-peak' : (d.isBase ? 'ev-base' : '');
+    h += '<th class="'+cls+'">'+esc(d.short)+'</th>';
+  });
+  h += '<th>Tổng</th></tr></thead><tbody>';
+  groups.forEach(g => {
+    h += '<tr><td>'+esc(g.label)+'</td>';
+    g.byDay.forEach((v,i) => {
+      const cls = i === a.peakIdx ? 'ev-peak' : (a.days[i].isBase ? 'ev-base' : '');
+      h += '<td class="'+cls+'">'+evFmt(v)+'</td>';
+    });
+    h += '<td><b>'+evFmt(g.byDay.reduce((s,v)=>s+(v||0),0))+'</b></td></tr>';
+  });
+  if (withTotalRow && groups.length > 1) {
+    const tot = a.days.map((_,i) => groups.reduce((s,g)=>s+(g.byDay[i]||0),0));
+    h += '<tr class="total-row"><td>Tổng cộng</td>';
+    tot.forEach((v,i) => {
+      const cls = i === a.peakIdx ? 'ev-peak' : (a.days[i].isBase ? 'ev-base' : '');
+      h += '<td class="'+cls+'">'+evFmt(v)+'</td>';
+    });
+    h += '<td><b>'+evFmt(tot.reduce((s,v)=>s+v,0))+'</b></td></tr>';
+  }
+  return h + '</tbody></table></div>';
+}
+// bảng xếp hạng theo tải ngày đỉnh + %tăng so nền + tỷ trọng
+function evRankTable(rank, entityLabel, a, withTinh){
+  if (!rank.length) return '';
+  const sumPeak = rank.reduce((s,r)=>s+(r.peak||0),0);
+  let h = '<div class="tbl-wrap"><table><thead><tr><th>'+esc(entityLabel)+'</th>'+(withTinh?'<th>Tỉnh</th>':'')+
+    '<th>Ngày đỉnh ('+(a.peakDay?a.peakDay.short:'–')+')</th><th>Nền ngày thường</th><th>Δ so nền</th><th>Tỷ trọng ngày đỉnh</th><th>Tổng cả dải</th></tr></thead><tbody>';
+  rank.forEach(r => {
+    h += '<tr><td>'+esc(r.label)+'</td>'+(withTinh?'<td>'+esc(r.tinh||'')+'</td>':'')+
+      '<td>'+evFmt(r.peak)+'</td><td>'+evFmt(r.base)+'</td><td>'+evFmtDelta(r.vsBase)+'</td>'+
+      '<td>'+(sumPeak>0 && r.peak!==null ? (r.peak/sumPeak*100).toFixed(1)+'%' : '–')+'</td>'+
+      '<td>'+evFmt(r.total)+'</td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+
+// ================= TAB III: NHÓM BƯU CỤC =================
+function evRenderNhomBC(){
+  const el = document.getElementById('evNhombcBody');
+  const C = evComputed();
+  let html = '';
+  const hasCap = C.capChk.some(x => x.maxUse !== null);
+  if (!hasCap) {
+    html += '<div class="ev-readonly">Chưa nhập <b>CAP</b> và <b>nhân sự</b> từng Bưu cục nên hệ thống chưa gợi ý phân nhóm được. '+
+      'Điền bảng <b>II.1</b> trong mục <b>🎯 I. Mục tiêu</b> (phần "Năng lực đáp ứng theo Bưu cục") rồi quay lại đây.</div>';
+  }
+  html += '<div class="block-header"><span class="bh-num">III.1</span> Khả năng đáp ứng &amp; nhu cầu nhân sự ngày đỉnh</div>';
+  html += evCapTable(C);
+  html += '<div class="block-header"><span class="bh-num">III.2</span> Gợi ý phân nhóm (theo tiêu chí tài liệu hướng dẫn)</div>';
+  html += evGroupSummary(C);
+  html += '<div class="ev-hint">Tiêu chí: <b>Nhóm 3</b> = vượt CAP ngày đỉnh (&gt;100%) hoặc thiếu &gt;25% nhân sự so định biên · '+
+    '<b>Nhóm 2</b> = từ 85% CAP hoặc thiếu từ 10% nhân sự · <b>Nhóm 1</b> = còn lại. '+
+    'Đây là gợi ý từ số liệu; bạn vẫn cần xác nhận/sửa lại ở biểu mẫu bên dưới vì tài liệu còn tiêu chí định tính (khả năng kiểm soát vận hành, phụ thuộc thời tiết…).</div>';
+  html += '<div class="block-header"><span class="bh-num">III.3</span> Biểu mẫu phân nhóm &amp; phương án ứng phó</div>';
+  html += evFormSectionHtml('e3');
+  el.innerHTML = html;
+}
+function evCapTable(C){
+  const rows = C.capChk.filter(x => x.peakLay !== null || x.peakGiao !== null).slice(0, 60);
+  if (!rows.length) return '<div class="ev-empty">Chưa có dữ liệu Bưu cục từ Forecast.</div>';
+  let h = '<div class="tbl-wrap"><table><thead><tr><th>Bưu cục</th><th>Tỉnh</th><th>Lấy đỉnh</th><th>CAP lấy</th>'+
+    '<th>Giao đỉnh</th><th>CAP giao</th><th>%sử dụng CAP</th><th>Vượt CAP (đơn)</th><th>Người cần</th><th>Hiện có</th><th>Thiếu</th><th>Gợi ý nhóm</th></tr></thead><tbody>';
+  rows.forEach(x => {
+    const sug = evSuggestGroup(x);
+    const over = (x.overLay||0) + (x.overGiao||0);
+    h += '<tr><td>'+esc(x.bc)+'</td><td>'+esc(x.tinh||'')+'</td>'+
+      '<td>'+evFmt(x.peakLay)+'</td><td>'+evFmt(x.capLay)+'</td>'+
+      '<td>'+evFmt(x.peakGiao)+'</td><td>'+evFmt(x.capGiao)+'</td>'+
+      '<td>'+evCapBar(x.maxUse)+'</td>'+
+      '<td>'+(over>0?'<b style="color:#C0392B">'+evFmt(over)+'</b>':'–')+'</td>'+
+      '<td>'+(x.nguoiCan!==null?x.nguoiCan:'–')+'</td><td>'+(x.hienCo!==null?x.hienCo:'–')+'</td>'+
+      '<td>'+(x.thieuNguoi ? '<b style="color:#C0392B">'+x.thieuNguoi+'</b>' : (x.thieuNguoi===0?'0':'–'))+'</td>'+
+      '<td><span class="ev-tag g'+sug.group+'" title="'+attrEsc(sug.reasons.join(' · '))+'">'+esc(sug.label)+'</span></td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+function evGroupSummary(C){
+  const cnt = {1:[],2:[],3:[]};
+  C.capChk.forEach(x => { if (x.peakLay !== null || x.peakGiao !== null) cnt[evSuggestGroup(x).group].push(x); });
+  let h = '<div class="ev-kpi-grid">';
+  [[3,'Nhóm 3 — Bất ổn','warn'],[2,'Nhóm 2 — Cảnh báo','warn'],[1,'Nhóm 1 — Ổn định','good']].forEach(([g,label,cls]) => {
+    h += evKpiCard(label, String(cnt[g].length) + ' BC', cnt[g].slice(0,4).map(x=>x.bc).join(', ') || '—', g===1?'good':(g===3?'peak':'warn'));
+  });
+  h += '</div>';
+  [3,2].forEach(g => {
+    if (!cnt[g].length) return;
+    h += '<div class="subsection-title"><span class="sub-num">III.2.'+(4-g)+'</span> Danh sách '+(g===3?'Nhóm 3 — Bất ổn':'Nhóm 2 — Cảnh báo')+'</div>';
+    h += '<div class="tbl-wrap"><table><thead><tr><th>Bưu cục</th><th>Tỉnh</th><th>Lý do được gợi ý vào nhóm</th></tr></thead><tbody>';
+    cnt[g].forEach(x => { h += '<tr><td>'+esc(x.bc)+'</td><td>'+esc(x.tinh||'')+'</td><td>'+esc(evSuggestGroup(x).reasons.join(' · '))+'</td></tr>'; });
+    h += '</tbody></table></div>';
+  });
+  return h;
+}
+
+// ================= TAB VI: KTC/KCT =================
+function evRenderKTC(){
+  const el = document.getElementById('evKtcBody');
+  const D = window.EV.data;
+  let html = '';
+  if (!D.ktc.rows.length) {
+    html += '<div class="ev-empty">Chưa có dữ liệu tab <b>33_FC_KTC</b> (sản lượng sorting của Kho chuyển tiếp) trong Sheet dữ liệu.</div>';
+  } else {
+    const C = evComputed();
+    const a = C.aLay.days.length ? C.aLay : C.aGiao; // dùng chung mốc ngày/ngày đỉnh với tab Lấy
+    html += '<div class="block-header"><span class="bh-num">VI.1</span> Sản lượng sorting theo Kho chuyển tiếp</div>';
+    const byKho = evGroupBy(D.ktc, r => r.kho);
+    html += evDayTable(byKho, a, true);
+    html += chartContainerHtml({ label:'Theo kho', rows: byKho.map(g => evPseudoRec(g.label, g.byDay)) }, a.days.map(d=>d.short), 'kho');
+    html += '<div class="block-header"><span class="bh-num">VI.2</span> Sản lượng sorting theo Nhóm hàng</div>';
+    // bỏ dòng "Total" của sheet gốc để không cộng trùng khi gộp theo nhóm hàng
+    const detail = { days: D.ktc.days, rows: D.ktc.rows.filter(r => !/^total$/i.test(String(r.nhom).trim())) };
+    const byNhom = evGroupBy(detail, r => r.nhom);
+    html += evDayTable(byNhom, a, true);
+    html += evRankTable(evRankAtPeak(detail, a.peakIdx, r=>r.kho, evBaseIdxs(a.days)), 'Kho chuyển tiếp', a);
+  }
+  html += '<div class="block-header"><span class="bh-num">VI.3</span> Kế hoạch vận hành KTC/KCT &amp; Bưu cục CK</div>';
+  html += evFormSectionHtml('e6');
+  el.innerHTML = html;
+}
+
+// ================= CÁC TAB BIỂU MẪU (I / IV / V) =================
+const EV_TAB_SECTION = { muctieu: ['e1','e2'], checklist: ['e4'], escalation: ['e5'] };
+function evRenderFormTab(tab){
+  const el = document.getElementById('ev' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'Body');
+  if (!el) return;
+  const ids = EV_TAB_SECTION[tab] || [];
+  el.innerHTML = ids.map(evFormSectionHtml).join('') + evSaveBarHtml();
+}
+// Quyền nhập: Admin luôn được; người khác phải nằm trong danh sách reporters của kỳ, kỳ chưa đóng, chưa quá hạn.
+function evCanEdit(){
+  const p = evCurPeriod();
+  if (!p) return false;
+  if (window.EV.isAdmin) return true;
+  const assigned = (p.reporters||[]).some(r => String(r.email||'').toLowerCase() === String(window.EV.myEmail||'').toLowerCase());
+  if (!assigned) return false;
+  if (p.status === 'closed') return false;
+  if (p.deadline && new Date(p.deadline).getTime() < Date.now()) return false;
+  return true;
+}
+function evEditNote(){
+  const p = evCurPeriod();
+  if (!p) return '<div class="ev-readonly">Chưa có kỳ Event nào được tạo — chưa thể nhập liệu.</div>';
+  if (evCanEdit()) return '';
+  const assigned = (p.reporters||[]).some(r => String(r.email||'').toLowerCase() === String(window.EV.myEmail||'').toLowerCase());
+  let why = 'Bạn không nằm trong danh sách người được giao nhập kỳ này';
+  if (assigned && p.status === 'closed') why = 'Kỳ Event này đã đóng';
+  else if (assigned && p.deadline && new Date(p.deadline).getTime() < Date.now()) why = 'Đã quá hạn nhập của kỳ này';
+  return '<div class="ev-readonly">👁️ Chế độ chỉ xem — '+esc(why)+'. Liên hệ Admin nếu cần chỉnh sửa.</div>';
+}
+function evAnswers(){
+  const sub = (window.EV.mySubmissions || {})[window.EV.curEventId];
+  return (sub && sub.answers) || {};
+}
+function evFormSectionHtml(sectionId){
+  const schema = window.EV.schema || { sections: [] };
+  const sec = (schema.sections||[]).filter(s => s.id === sectionId)[0];
+  if (!sec) return '';
+  const ans = evAnswers(), ro = !evCanEdit();
+  let h = evEditNote();
+  h += '<div class="ev-form-sec"><h3>'+esc(sec.title)+'</h3>';
+  (sec.items||[]).forEach(item => { h += evItemHtml(item, ans, ro); });
+  h += '</div>';
+  return h;
+}
+function evItemHtml(item, ans, ro){
+  const dis = ro ? ' disabled' : '';
+  if (item.type === 'richtext') {
+    return '<div class="ev-item"><label>'+esc(item.label||'')+'</label>'+
+      '<textarea id="evf_'+attrEsc(item.id)+'" placeholder="'+attrEsc(item.placeholder||'')+'"'+dis+'>'+esc(ans[item.id]||'')+'</textarea></div>';
+  }
+  if (item.type === 'kpi_table') {
+    const v = ans[item.id] || {};
+    let h = '<div class="ev-item"><label>'+esc(item.title||item.label||'')+'</label><div class="tbl-wrap"><table><thead><tr><th>Chỉ tiêu</th>';
+    (item.cols||[]).forEach(c => { h += '<th>'+esc(c)+'</th>'; });
+    h += '</tr></thead><tbody>';
+    (item.rows||[]).forEach(r => {
+      h += '<tr><td>'+esc(r.label)+(r.note?' <span class="mut" style="font-size:10.5px">'+esc(r.note)+'</span>':'')+'</td>';
+      (item.cols||[]).forEach((c,ci) => {
+        const key = r.id+'__'+ci;
+        h += '<td><input type="text" id="evk_'+attrEsc(item.id)+'_'+attrEsc(key)+'" value="'+attrEsc((v[key]!==undefined?v[key]:''))+'"'+dis+'></td>';
+      });
+      h += '</tr>';
+    });
+    return h + '</tbody></table></div></div>';
+  }
+  if (item.type === 'repeatable_table') {
+    return '<div class="ev-item" id="evrtwrap_'+attrEsc(item.id)+'"><label>'+esc(item.title||item.label||'')+'</label>'+
+      '<div id="evrt_'+attrEsc(item.id)+'">'+evRepeatTableHtml(item, evRepeatRows(item, ans), ro)+'</div>'+
+      (ro ? '' : '<div class="ev-rt-actions"><button class="ev-btn-ghost" onclick="evAddRow('+attrEsc(JSON.stringify(item.id))+')">+ Thêm dòng</button>'+
+        (item.autoFillFrom ? '<button class="ev-btn-ghost" onclick="evAutoFill('+attrEsc(JSON.stringify(item.id))+')">⚡ Đổ sẵn từ Forecast</button>' : '')+'</div>')+
+      '</div>';
+  }
+  return '';
+}
+// dòng hiện có của bảng lặp: ưu tiên dữ liệu đã lưu, chưa có thì lấy defaultRows trong schema
+function evRepeatRows(item, ans){
+  const saved = ans[item.id];
+  if (Array.isArray(saved) && saved.length) return saved;
+  if (Array.isArray(item.defaultRows) && item.defaultRows.length) return item.defaultRows.slice();
+  return [{}];
+}
+function evRepeatTableHtml(item, rows, ro){
+  let h = '<div class="tbl-wrap"><table class="ev-rt-table"><thead><tr>';
+  (item.columns||[]).forEach(c => { h += '<th>'+esc(c.label)+'</th>'; });
+  if (!ro) h += '<th style="width:34px"></th>';
+  h += '</tr></thead><tbody>';
+  rows.forEach((r, ri) => {
+    h += '<tr>';
+    (item.columns||[]).forEach(c => {
+      const val = (r && r[c.id] !== undefined && r[c.id] !== null) ? r[c.id] : '';
+      const id = 'evr_'+item.id+'_'+ri+'_'+c.id;
+      if (c.type === 'select') {
+        h += '<td><select id="'+attrEsc(id)+'"'+(ro?' disabled':'')+'><option value=""></option>'+
+          (c.options||[]).map(o => '<option value="'+attrEsc(o)+'"'+(String(val)===String(o)?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select></td>';
+      } else {
+        const t = c.type === 'number' ? 'number' : (c.type === 'date' ? 'date' : 'text');
+        h += '<td><input type="'+t+'" id="'+attrEsc(id)+'" value="'+attrEsc(val)+'"'+(ro?' disabled':'')+'></td>';
+      }
+    });
+    if (!ro) h += '<td><button class="row-action-btn danger" title="Xoá dòng" onclick="evDelRow('+attrEsc(JSON.stringify(item.id))+','+ri+')">✕</button></td>';
+    h += '</tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+function evFindItem(itemId){
+  let found = null;
+  ((window.EV.schema||{}).sections||[]).forEach(s => (s.items||[]).forEach(it => { if (it.id === itemId) found = it; }));
+  return found;
+}
+// đọc lại các dòng đang hiển thị trên màn (kể cả chưa lưu) để thêm/xoá dòng không mất nội dung đang gõ
+function evReadRepeatRows(item){
+  const rows = [];
+  for (let ri = 0; ; ri++) {
+    const probe = document.getElementById('evr_'+item.id+'_'+ri+'_'+(item.columns[0]||{}).id);
+    if (!probe) break;
+    const r = {};
+    (item.columns||[]).forEach(c => {
+      const el = document.getElementById('evr_'+item.id+'_'+ri+'_'+c.id);
+      if (el) r[c.id] = el.value;
+    });
+    rows.push(r);
+  }
+  return rows;
+}
+function evRerenderRepeat(item, rows){
+  const box = document.getElementById('evrt_'+item.id);
+  if (box) box.innerHTML = evRepeatTableHtml(item, rows, !evCanEdit());
+}
+function evAddRow(itemId){
+  const item = evFindItem(itemId); if (!item) return;
+  const rows = evReadRepeatRows(item); rows.push({});
+  evRerenderRepeat(item, rows);
+}
+function evDelRow(itemId, ri){
+  const item = evFindItem(itemId); if (!item) return;
+  const rows = evReadRepeatRows(item);
+  rows.splice(ri, 1);
+  evRerenderRepeat(item, rows.length ? rows : [{}]);
+}
+// Đổ sẵn dữ liệu từ Forecast để khỏi gõ tay hàng trăm Bưu cục:
+//  - bc_list          : danh sách BC + tỉnh (bảng CAP/nhân sự)
+//  - bc_group_suggest : BC + nhóm gợi ý + lý do (bảng phân nhóm) — chỉ đổ BC thuộc Nhóm 2/3 vì tài liệu
+//                       chỉ bắt buộc nêu phương án cho 2 nhóm này; Nhóm 1 thêm tay nếu muốn.
+function evAutoFill(itemId){
+  const item = evFindItem(itemId); if (!item) return;
+  const C = evComputed();
+  const cur = evReadRepeatRows(item);
+  const existing = {};
+  cur.forEach(r => { if (r.bc) existing[String(r.bc).trim()] = r; });
+  let rows = [];
+  if (item.autoFillFrom === 'bc_list') {
+    const seen = {};
+    C.rankBCLay.concat(C.rankBCGiao).forEach(r => {
+      const bc = r.label;
+      if (seen[bc]) return; seen[bc] = 1;
+      rows.push(Object.assign({ bc, tinh: C.tinhOf[bc] || '' }, existing[bc] || {}));
+    });
+  } else if (item.autoFillFrom === 'bc_group_suggest') {
+    C.capChk.forEach(x => {
+      if (x.peakLay === null && x.peakGiao === null) return;
+      const sug = evSuggestGroup(x);
+      if (sug.group === 1) return;
+      rows.push(Object.assign({ bc: x.bc, nhom: sug.label, thucTrang: sug.reasons.join(' · ') }, existing[x.bc] || {}));
+    });
+    if (!rows.length) { alert('Không có Bưu cục nào thuộc Nhóm 2/3 theo số liệu hiện tại (hoặc chưa nhập CAP/nhân sự ở bảng II.1).'); return; }
+  }
+  if (!rows.length) { alert('Chưa có dữ liệu Forecast để đổ sẵn.'); return; }
+  evRerenderRepeat(item, rows);
+}
+function evSaveBarHtml(){
+  if (!evCanEdit()) return '';
+  const sub = (window.EV.mySubmissions||{})[window.EV.curEventId];
+  const last = sub && sub.updatedAt ? ('Lưu gần nhất: ' + new Date(sub.updatedAt).toLocaleString('vi-VN')) : 'Chưa lưu lần nào';
+  return '<div class="ev-save-bar"><button class="ev-btn" onclick="evSaveSubmission()">💾 Lưu kế hoạch</button>'+
+    '<span class="ev-hint" id="evSaveNote">'+esc(last)+'</span></div>';
+}
+// Gom TOÀN BỘ ô đang hiển thị trên màn hình hiện tại rồi trộn vào bài đã lưu — nhờ vậy lưu ở tab nào cũng
+// không làm mất nội dung đã nhập ở tab khác (mỗi tab chỉ render một phần biểu mẫu).
+function evCollectAnswers(){
+  const out = Object.assign({}, evAnswers());
+  ((window.EV.schema||{}).sections||[]).forEach(s => (s.items||[]).forEach(item => {
+    if (item.type === 'richtext') {
+      const el = document.getElementById('evf_'+item.id);
+      if (el) out[item.id] = el.value;
+    } else if (item.type === 'kpi_table') {
+      const probe = document.getElementById('evk_'+item.id+'_'+((item.rows||[])[0]||{}).id+'__0');
+      if (!probe) return;
+      const v = {};
+      (item.rows||[]).forEach(r => (item.cols||[]).forEach((c,ci) => {
+        const el = document.getElementById('evk_'+item.id+'_'+r.id+'__'+ci);
+        if (el) v[r.id+'__'+ci] = el.value;
+      }));
+      out[item.id] = v;
+    } else if (item.type === 'repeatable_table') {
+      if (!document.getElementById('evrt_'+item.id)) return;
+      const rows = evReadRepeatRows(item).filter(r => Object.keys(r).some(k => String(r[k]||'').trim() !== ''));
+      out[item.id] = rows;
+    }
+  }));
+  return out;
+}
+async function evSaveSubmission(){
+  if (!evCanEdit()) return;
+  const note = document.getElementById('evSaveNote');
+  if (note) note.textContent = 'Đang lưu…';
+  try {
+    const answers = evCollectAnswers();
+    const res = await callBackend('saveEventSubmission', { token: AUTH.session.token, eventId: window.EV.curEventId, answers });
+    if (!res.ok) throw new Error(errMsg(res.error));
+    window.EV.mySubmissions[window.EV.curEventId] = { answers, updatedAt: new Date().toISOString() };
+    if (note) note.textContent = 'Đã lưu lúc ' + new Date().toLocaleString('vi-VN');
+  } catch (e) {
+    if (note) note.textContent = 'Lỗi khi lưu: ' + e.message;
+  }
+}
+
+// ================= TAB QUẢN TRỊ (chỉ Admin) =================
+function evRenderAdmin(){
+  const el = document.getElementById('evAdminBody');
+  if (!window.EV.isAdmin) { el.innerHTML = '<div class="ev-empty">Mục này chỉ dành cho Admin.</div>'; return; }
+  const ps = window.EV.periods || [];
+  let h = '<div class="block-header"><span class="bh-num">A.1</span> Tạo / sửa kỳ Event</div>';
+  h += '<div class="ev-item"><label>Chọn kỳ để sửa (hoặc để trống để tạo mới)</label>'+
+    '<select id="evAdmPeriod" onchange="evAdmLoadPeriod()"><option value="">— Tạo kỳ mới —</option>'+
+    ps.map(p => '<option value="'+attrEsc(p.eventId)+'">'+esc(p.label)+'</option>').join('')+'</select></div>';
+  h += '<div class="ev-form-sec"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">'+
+    '<div class="ev-item"><label>Tên kỳ Event *</label><input type="text" id="evAdmLabel" placeholder="VD: Sale 8/8 — 2026"></div>'+
+    '<div class="ev-item"><label>Ngày bắt đầu</label><input type="date" id="evAdmStart"></div>'+
+    '<div class="ev-item"><label>Ngày kết thúc</label><input type="date" id="evAdmEnd"></div>'+
+    '<div class="ev-item"><label>Ngày đỉnh (để trống = tự tìm)</label><input type="date" id="evAdmPeak"></div>'+
+    '<div class="ev-item"><label>Hạn nhập liệu</label><input type="date" id="evAdmDeadline"></div>'+
+    '<div class="ev-item"><label>Trạng thái</label><select id="evAdmStatus"><option value="open">Đang mở</option><option value="closed">Đã đóng</option></select></div>'+
+    '</div>';
+  h += '<div class="ev-item"><label>Người được giao nhập (AM/nhân sự)</label>'+
+    '<div id="evAdmReporters" style="max-height:210px;overflow:auto;border:1px solid var(--border-strong);border-radius:8px;padding:9px">'+
+    (window.EV.staff||[]).map(s => '<label style="display:block;font-size:12.5px;padding:3px 0"><input type="checkbox" class="evAdmRep" value="'+attrEsc(s.email)+'" data-name="'+attrEsc(s.name)+'"> '+esc(s.name||s.email)+' <span class="mut">('+esc(s.email)+')</span></label>').join('')+
+    '</div><div class="ev-hint">Chỉ những người được tick mới nhập được kế hoạch cho kỳ này (Admin luôn nhập được).</div></div>';
+  h += '<div class="ev-rt-actions"><button class="ev-btn" onclick="evAdmSavePeriod()">💾 Lưu kỳ Event</button>'+
+    '<button class="ev-btn warn" onclick="evAdmDeletePeriod()">🗑 Xoá kỳ đang chọn</button>'+
+    '<span class="ev-hint" id="evAdmNote"></span></div></div>';
+
+  h += '<div class="block-header"><span class="bh-num">A.2</span> Danh sách kỳ Event</div>';
+  if (!ps.length) h += '<div class="ev-empty">Chưa có kỳ Event nào.</div>';
+  else {
+    h += '<div class="tbl-wrap"><table><thead><tr><th>Tên kỳ</th><th>Khung ngày</th><th>Ngày đỉnh</th><th>Hạn nhập</th><th>Người nhập</th><th>Trạng thái</th></tr></thead><tbody>';
+    ps.forEach(p => {
+      h += '<tr><td>'+esc(p.label)+'</td><td>'+esc((p.startDate||'–')+' → '+(p.endDate||'–'))+'</td><td>'+esc(p.peakDate||'tự tìm')+'</td>'+
+        '<td>'+esc(p.deadline ? new Date(p.deadline).toLocaleDateString('vi-VN') : '–')+'</td>'+
+        '<td>'+(p.reporters||[]).length+' người</td><td>'+(p.status==='closed'?'Đã đóng':'Đang mở')+'</td></tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+  h += '<div class="block-header"><span class="bh-num">A.3</span> Thiết kế biểu mẫu</div>';
+  h += '<div class="ev-item"><label>Cấu trúc biểu mẫu (JSON) — thêm/bớt mục, bảng, ô nhập mà không cần sửa code</label>'+
+    '<textarea id="evAdmSchema" style="min-height:280px;font-family:var(--mono);font-size:11.5px">'+esc(JSON.stringify(window.EV.schema||{}, null, 2))+'</textarea>'+
+    '<div class="ev-rt-actions"><button class="ev-btn" onclick="evAdmSaveSchema()">💾 Lưu biểu mẫu</button>'+
+    '<span class="ev-hint" id="evAdmSchemaNote">Loại ô hỗ trợ: <b>richtext</b> (ô viết tự do), <b>kpi_table</b> (bảng chỉ tiêu cố định dòng), <b>repeatable_table</b> (bảng thêm/xoá dòng được).</span></div></div>';
+  el.innerHTML = h;
+}
+function evAdmLoadPeriod(){
+  const id = document.getElementById('evAdmPeriod').value;
+  const p = (window.EV.periods||[]).filter(x => x.eventId === id)[0];
+  const set = (elId, v) => { const e = document.getElementById(elId); if (e) e.value = v || ''; };
+  set('evAdmLabel', p?p.label:''); set('evAdmStart', p?p.startDate:''); set('evAdmEnd', p?p.endDate:'');
+  set('evAdmPeak', p?p.peakDate:''); set('evAdmDeadline', p&&p.deadline ? String(p.deadline).slice(0,10) : '');
+  const st = document.getElementById('evAdmStatus'); if (st) st.value = p ? p.status : 'open';
+  const emails = {}; ((p&&p.reporters)||[]).forEach(r => { emails[String(r.email||'').toLowerCase()] = 1; });
+  document.querySelectorAll('.evAdmRep').forEach(cb => { cb.checked = !!emails[String(cb.value).toLowerCase()]; });
+}
+async function evAdmSavePeriod(){
+  const note = document.getElementById('evAdmNote');
+  const label = document.getElementById('evAdmLabel').value.trim();
+  if (!label) { if (note) note.textContent = 'Cần nhập tên kỳ Event.'; return; }
+  const reporters = [];
+  document.querySelectorAll('.evAdmRep').forEach(cb => { if (cb.checked) reporters.push({ email: cb.value, name: cb.getAttribute('data-name')||'' }); });
+  if (note) note.textContent = 'Đang lưu…';
+  try {
+    const res = await callBackend('saveEventPeriod', { token: AUTH.session.token,
+      eventId: document.getElementById('evAdmPeriod').value || '', label,
+      startDate: document.getElementById('evAdmStart').value,
+      endDate: document.getElementById('evAdmEnd').value,
+      peakDate: document.getElementById('evAdmPeak').value,
+      deadline: document.getElementById('evAdmDeadline').value,
+      status: document.getElementById('evAdmStatus').value, reporters });
+    if (!res.ok) throw new Error(errMsg(res.error));
+    if (note) note.textContent = 'Đã lưu.';
+    window.EV.curEventId = res.eventId;
+    await loadKeHoachEvent(true);
+    evSwitchTab('admin');
+  } catch (e) { if (note) note.textContent = 'Lỗi: ' + e.message; }
+}
+async function evAdmDeletePeriod(){
+  const id = document.getElementById('evAdmPeriod').value;
+  const note = document.getElementById('evAdmNote');
+  if (!id) { if (note) note.textContent = 'Chọn 1 kỳ để xoá.'; return; }
+  if (!confirm('Xoá kỳ Event này? Dữ liệu người dùng đã nhập cho kỳ sẽ không còn hiển thị.')) return;
+  try {
+    const res = await callBackend('deleteEventPeriod', { token: AUTH.session.token, eventId: id });
+    if (!res.ok) throw new Error(errMsg(res.error));
+    window.EV.curEventId = null;
+    await loadKeHoachEvent(true);
+    evSwitchTab('admin');
+  } catch (e) { if (note) note.textContent = 'Lỗi: ' + e.message; }
+}
+async function evAdmSaveSchema(){
+  const note = document.getElementById('evAdmSchemaNote');
+  const raw = document.getElementById('evAdmSchema').value;
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch (e) { if (note) note.textContent = 'JSON không hợp lệ: ' + e.message; return; }
+  if (!parsed || !Array.isArray(parsed.sections)) { if (note) note.textContent = 'JSON phải có mảng "sections".'; return; }
+  if (note) note.textContent = 'Đang lưu…';
+  try {
+    const res = await callBackend('saveEventSchema', { token: AUTH.session.token, schemaJson: JSON.stringify(parsed) });
+    if (!res.ok) throw new Error(errMsg(res.error));
+    window.EV.schema = parsed;
+    if (note) note.textContent = 'Đã lưu biểu mẫu.';
+  } catch (e) { if (note) note.textContent = 'Lỗi: ' + e.message; }
+}
+
 if (window.__STATIC_SNAPSHOT__) {
   // Đây là file đã được xuất ra qua nút "Xuất file HTML" (chỉ Admin mới thấy nút này) — HTML đã có
   // sẵn đầy đủ số liệu ngay trong file, không cần đăng nhập lại để xem bản xuất tĩnh này, chỉ cần

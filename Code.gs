@@ -77,7 +77,12 @@ const ADMIN_NAME = 'Quản trị viên';
 const DATA_SHEET_NAMES = ['01_Scorecard', '02_OPR', '03_ODR', '04_FD', '05_RotLC',
   '06_BL_LC_36H', '07_GTC', '08_BL_Giao_120H', '09_BL_LC_Tra_48H', '10_BL_Tra_120H',
   '11_KTC_ChoNhap', '12_KTC_NhapXuat', '13_KTC_Ton24H',
-  '21_KD_HangNangNhe', '22_KD_HangNang', '23_KD_HangNhe', '24_KD_BanMoi', '24_KD_BanMoiAM'];
+  '21_KD_HangNangNhe', '22_KD_HangNang', '23_KD_HangNhe', '24_KD_BanMoi', '24_KD_BanMoiAM',
+  // Forecast sản lượng cho Kế hoạch Event (copy từ file Forecast của Capacity team sang 3 tab này).
+  // Đưa thẳng vào đây để tái dùng nguyên cơ chế getReportData đã có (đã xác thực token, đã cache phía
+  // client) — KHÔNG cần thêm endpoint mới. Sheet nào chưa tồn tại thì trả về {cols:[],rows:[]}, web tự
+  // hiện "chưa có dữ liệu", không lỗi.
+  '31_FC_Lay', '32_FC_Giao', '33_FC_KTC'];
 
 // Cột trong sheet "Main" (1-indexed)
 const COL = { EMAIL: 1, HOTEN: 2, HASH: 3, SALT: 4, ACTIVE: 5, VAITRO: 6, NGAYTAO: 7,
@@ -257,6 +262,12 @@ function doPost(e) {
     if (action === 'saveCalendarConfig') return jsonOut(handleSaveCalendarConfig(body));
     if (action === 'deleteCalendarConfig') return jsonOut(handleDeleteCalendarConfig(body));
     if (action === 'getCalendarEvents') return jsonOut(handleGetCalendarEvents(body));
+    if (action === 'getEventData') return jsonOut(handleGetEventData(body));
+    if (action === 'saveEventSchema') return jsonOut(handleSaveEventSchema(body));
+    if (action === 'saveEventPeriod') return jsonOut(handleSaveEventPeriod(body));
+    if (action === 'deleteEventPeriod') return jsonOut(handleDeleteEventPeriod(body));
+    if (action === 'saveEventSubmission') return jsonOut(handleSaveEventSubmission(body));
+    if (action === 'getEventSubmissions') return jsonOut(handleGetEventSubmissions(body));
     return jsonOut({ ok: false, error: 'unknown_action' });
   } catch (err) {
     return jsonOut({ ok: false, error: 'server_error', detail: String(err) });
@@ -2098,6 +2109,385 @@ function expandICSEvents(rawEvents, rangeStart, rangeEnd) {
   return out;
 }
 
+
+// ============================================================================================
+// KẾ HOẠCH VẬN HÀNH EVENT (sale lớn: 8/8, 9/9, 11/11...) — theo đúng "Hướng dẫn xây dựng kế hoạch
+// vận hành Event cho các Vùng" (mục I → VII).
+// ============================================================================================
+// Kiến trúc dùng LẠI NGUYÊN pattern của Báo Cáo Kết Quả Kinh Doanh (BCKQKD) đã chạy ổn định:
+//   EVENT_Config      : 1 dòng schema_json — Admin tự thiết kế thêm/bớt mục & ô nhập, không đụng code.
+//   EVENT_Periods     : mỗi kỳ Event 1 dòng (tên, ngày bắt đầu/kết thúc, ngày đỉnh, deadline, người nhập).
+//   EVENT_Submissions : bài nhập của TỪNG người (AM) cho từng kỳ, lưu dạng 1 JSON answers.
+// Phần SỐ LIỆU sản lượng KHÔNG nằm ở đây — đọc thẳng từ 3 tab 31_FC_Lay/32_FC_Giao/33_FC_KTC qua
+// getReportData có sẵn (xem DATA_SHEET_NAMES), nên không phải nhập tay và luôn khớp file Capacity team.
+var EVENT_SHEETS = { CONFIG: 'EVENT_Config', PERIODS: 'EVENT_Periods', SUBMISSIONS: 'EVENT_Submissions' };
+
+function getEventSpreadsheet() { return getKeHoachSpreadsheet(); }
+
+// Biểu mẫu mặc định bám ĐÚNG các mục "VÙNG ĐIỀN" trong tài liệu hướng dẫn. Admin sửa lại được qua màn
+// "Thiết kế biểu mẫu" (cùng cơ chế với BCKQKD) nên đây chỉ là điểm khởi đầu, không phải schema cứng.
+function defaultEventSchema() {
+  return {
+    version: 1,
+    sections: [
+      {
+        id: 'e1', title: 'I. MỤC TIÊU CỦA VÙNG TRONG KỲ EVENT',
+        items: [
+          {
+            type: 'kpi_table', id: 'et1', title: 'I.1. Chỉ tiêu cam kết',
+            cols: ['Mục tiêu kỳ Event', 'Thực tế kỳ Event trước', 'Ghi chú'],
+            rows: [
+              { id: 'gtc', label: '%GTC — Giao thành công' },
+              { id: 'ltc', label: '%LTC — Lấy thành công' },
+              { id: 'dilamPTTT', label: '%đi làm NVPTTT' },
+              { id: 'clearTon', label: 'Tiến độ clear hàng tồn (giờ)' },
+              { id: 'rotLC', label: '%Rớt luân chuyển' }
+            ]
+          },
+          { type: 'richtext', id: 'e1_config', label: 'I.2. Link file config sản lượng/chi phí của Vùng', placeholder: 'Dán link Google Sheet/Drive file config sản lượng & chi phí của Vùng' },
+          { type: 'richtext', id: 'e1_nhandinh', label: 'I.3. Nhận định chung về kỳ Event', placeholder: 'Mức độ khó của kỳ này so với kỳ trước? Điểm cần tập trung nhất? Rủi ro lớn nhất đã nhận diện?' }
+        ]
+      },
+      {
+        id: 'e2', title: 'II. NĂNG LỰC ĐÁP ỨNG THEO BƯU CỤC (CAP & NHÂN SỰ)',
+        items: [
+          {
+            // Bảng này là ĐẦU VÀO quan trọng nhất: có CAP + nhân sự thì web mới tự tính được %sử dụng CAP,
+            // số người còn thiếu và TỰ GỢI Ý phân nhóm 1/2/3 theo đúng tiêu chí trong tài liệu.
+            type: 'repeatable_table', id: 'et2', title: 'II.1. CAP và nhân sự thực tế từng Bưu cục',
+            autoFillFrom: 'bc_list', // web tự đổ sẵn danh sách BC lấy từ tab Forecast, người dùng chỉ điền số
+            columns: [
+              { id: 'bc', label: 'Bưu cục' },
+              { id: 'tinh', label: 'Tỉnh' },
+              { id: 'capLay', label: 'CAP Lấy/ngày (đơn)', type: 'number' },
+              { id: 'capGiao', label: 'CAP Giao/ngày (đơn)', type: 'number' },
+              { id: 'nvptttHienCo', label: 'NVPTTT hiện có', type: 'number' },
+              { id: 'nvptttDinhBien', label: 'NVPTTT định biên', type: 'number' },
+              { id: 'nangSuat', label: 'Năng suất TB (đơn/người/ngày)', type: 'number' },
+              { id: 'ghichu', label: 'Ghi chú' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'e3', title: 'III. PHÂN LOẠI NHÓM BƯU CỤC & PHƯƠNG ÁN ỨNG PHÓ',
+        items: [
+          { type: 'richtext', id: 'e3_tongquan', label: 'III.1. Tổng quan phân nhóm', placeholder: 'Bao nhiêu BC mỗi nhóm? Vấn đề tập trung ở tỉnh/khu vực nào? Nguyên nhân chung?' },
+          {
+            type: 'repeatable_table', id: 'et3', title: 'III.2. Danh sách Bưu cục theo nhóm (Nhóm 2 & 3 bắt buộc nêu rõ PA A/B)',
+            autoFillFrom: 'bc_group_suggest', // web tự gợi ý nhóm dựa trên %CAP ngày đỉnh + %thiếu NVPTTT
+            columns: [
+              { id: 'bc', label: 'Bưu cục' },
+              { id: 'nhom', label: 'Nhóm', type: 'select', options: ['Nhóm 1 - Ổn định', 'Nhóm 2 - Cảnh báo', 'Nhóm 3 - Bất ổn'] },
+              { id: 'thucTrang', label: 'Thực trạng rủi ro' },
+              { id: 'paA', label: 'Phương án A (chủ động)' },
+              { id: 'paB', label: 'Phương án B (khẩn cấp)' },
+              { id: 'pic', label: 'PIC' }
+            ]
+          },
+          {
+            type: 'repeatable_table', id: 'et3b', title: 'III.3. Tỉnh/Quận/BC trọng điểm cần lưu ý',
+            columns: [
+              { id: 'khuvuc', label: 'Tỉnh/Quận/BC' },
+              { id: 'lydo', label: 'Lý do cần quan tâm' },
+              { id: 'phuongAn', label: 'Phương án chuẩn bị' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'e4', title: 'IV. CHECKLIST CÔNG VIỆC CHUẨN BỊ',
+        items: [
+          {
+            type: 'repeatable_table', id: 'et4', title: 'IV.1. Tình trạng chuẩn bị & chi phí dự kiến',
+            defaultRows: [
+              { hangmuc: 'Công cụ dụng cụ + kho bãi' },
+              { hangmuc: 'Bố trí lịch làm, tăng ca, phụ cấp' },
+              { hangmuc: 'Ứng phó tác động ngoài: mất điện' },
+              { hangmuc: 'Ứng phó tác động ngoài: lỗi hệ thống/rớt mạng' },
+              { hangmuc: 'Ứng phó tác động ngoài: mưa giông kéo dài' }
+            ],
+            columns: [
+              { id: 'hangmuc', label: 'Hạng mục' },
+              { id: 'tinhTrang', label: 'Tình trạng hiện tại' },
+              { id: 'duPhong', label: 'Phương án dự phòng' },
+              { id: 'chiPhi', label: 'Chi phí dự kiến (đ)', type: 'number' }
+            ]
+          },
+          {
+            type: 'repeatable_table', id: 'et4b', title: 'IV.2. Chi phí phát sinh dự kiến toàn kỳ',
+            defaultRows: [
+              { khoanMuc: 'Thuê xe' }, { khoanMuc: 'Máy phát điện' }, { khoanMuc: 'Freelancer' },
+              { khoanMuc: 'Thưởng nóng' }, { khoanMuc: 'Phụ cấp tăng ca' }, { khoanMuc: 'Thuê kho tạm' }
+            ],
+            columns: [
+              { id: 'khoanMuc', label: 'Khoản mục' },
+              { id: 'soLuong', label: 'Số lượng', type: 'number' },
+              { id: 'donGia', label: 'Đơn giá (đ)', type: 'number' },
+              { id: 'thanhTien', label: 'Thành tiền (đ)', type: 'number' },
+              { id: 'ghichu', label: 'Căn cứ đề xuất' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'e5', title: 'V. KÊNH BÁO CÁO VẤN ĐỀ (ESCALATION)',
+        items: [
+          {
+            type: 'repeatable_table', id: 'et5', title: 'V.1. Đầu mối phụ trách theo loại vấn đề',
+            defaultRows: [
+              { loaiVanDe: 'Mất điện tại BC' }, { loaiVanDe: 'Lỗi hệ thống/rớt mạng' },
+              { loaiVanDe: 'Quá tải sản lượng vượt CAP' }, { loaiVanDe: 'Thiếu hụt nhân sự nghiêm trọng' },
+              { loaiVanDe: 'Phát sinh chi phí ngoài kế hoạch' }
+            ],
+            columns: [
+              { id: 'loaiVanDe', label: 'Loại vấn đề' },
+              { id: 'taiBC', label: 'Xử lý tại Bưu cục' },
+              { id: 'lenVung', label: 'Báo lên Vùng' },
+              { id: 'nguoiPhuTrach', label: 'Người phụ trách' },
+              { id: 'sdt', label: 'SĐT' }
+            ]
+          },
+          {
+            type: 'repeatable_table', id: 'et5b', title: 'V.2. Đầu mối liên hệ các đơn vị hỗ trợ',
+            defaultRows: [
+              { donVi: 'Capacity team' }, { donVi: 'Phòng Nhân sự / C&B' }, { donVi: 'Tài chính / Vận hành' },
+              { donVi: 'Tech' }, { donVi: 'Network' }
+            ],
+            columns: [
+              { id: 'donVi', label: 'Đơn vị hỗ trợ' },
+              { id: 'dauMoi', label: 'Đầu mối tại Vùng' },
+              { id: 'sdt', label: 'SĐT/Email' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'e6', title: 'VI. KẾ HOẠCH VẬN HÀNH KTC, KCT & NGUỒN LỰC VÙNG TỰ QUẢN',
+        items: [
+          {
+            type: 'repeatable_table', id: 'et6', title: 'VI.1. KTC/KCT thuộc Vùng quản lý',
+            columns: [
+              { id: 'kho', label: 'KTC/KCT' },
+              { id: 'nhanSu', label: 'Nhân sự (số lượng & vai trò)' },
+              { id: 'nguonBu', label: 'Nguồn bù khi thiếu' },
+              { id: 'soXe', label: 'Số xe (tự thuê + điều động)', type: 'number' },
+              { id: 'baiDo', label: 'Bãi đỗ/tập kết & sức chứa tối đa' },
+              { id: 'quaTai', label: 'Phương án khi bãi quá tải' },
+              { id: 'lichLam', label: 'Ca làm việc & người trực từng ca' },
+              { id: 'dauMoi', label: 'Đầu mối phụ trách' }
+            ]
+          },
+          {
+            type: 'repeatable_table', id: 'et6b', title: 'VI.2. Bưu cục CK (cồng kềnh)',
+            columns: [
+              { id: 'bc', label: 'Bưu cục CK' },
+              { id: 'nhanSuCan', label: 'Nhân sự cần có', type: 'number' },
+              { id: 'nguon', label: 'Nguồn tuyển/điều động' },
+              { id: 'sanSang', label: 'Thời điểm sẵn sàng', type: 'date' },
+              { id: 'soXe', label: 'Số xe cần bố trí', type: 'number' },
+              { id: 'nguonXe', label: 'Nguồn xe' },
+              { id: 'lichTrinh', label: 'Lịch trình vận hành trong ngày' }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+}
+
+function ensureEventSheets(ss) {
+  var cfgSh = ss.getSheetByName(EVENT_SHEETS.CONFIG);
+  if (!cfgSh) {
+    cfgSh = ss.insertSheet(EVENT_SHEETS.CONFIG);
+    cfgSh.getRange(1, 1, 1, 2).setValues([['Key', 'Value']]).setFontWeight('bold');
+    cfgSh.getRange(2, 1, 1, 2).setValues([['schema_json', JSON.stringify(defaultEventSchema())]]);
+  }
+  var periodsSh = ss.getSheetByName(EVENT_SHEETS.PERIODS);
+  if (!periodsSh) {
+    periodsSh = ss.insertSheet(EVENT_SHEETS.PERIODS);
+    periodsSh.getRange(1, 1, 1, 10).setValues([['EventId', 'Label', 'StartDate', 'EndDate', 'PeakDate', 'Deadline', 'ReportersJson', 'Status', 'CreatedBy', 'CreatedAt']]).setFontWeight('bold');
+  }
+  var subSh = ss.getSheetByName(EVENT_SHEETS.SUBMISSIONS);
+  if (!subSh) {
+    subSh = ss.insertSheet(EVENT_SHEETS.SUBMISSIONS);
+    subSh.getRange(1, 1, 1, 7).setValues([['EventId', 'ReporterEmail', 'ReporterName', 'SubmittedAt', 'UpdatedAt', 'AnswersJson', 'Locked']]).setFontWeight('bold');
+  }
+  return { cfgSh: cfgSh, periodsSh: periodsSh, subSh: subSh };
+}
+
+function readEventSchema(cfgSh) {
+  var values = cfgSh.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][0] === 'schema_json') {
+      try { return JSON.parse(values[i][1]); } catch (e) { return defaultEventSchema(); }
+    }
+  }
+  return defaultEventSchema();
+}
+
+function eventDateStr(v) {
+  if (!v) return '';
+  if (Object.prototype.toString.call(v) === '[object Date]') return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  return String(v);
+}
+
+function readEventPeriods(periodsSh) {
+  var values = periodsSh.getDataRange().getValues();
+  var out = [];
+  for (var i = 1; i < values.length; i++) {
+    var r = values[i];
+    if (!r[0]) continue;
+    var reporters = [];
+    try { reporters = JSON.parse(r[6] || '[]'); } catch (e) {}
+    out.push({
+      eventId: String(r[0]), label: String(r[1] || ''),
+      startDate: eventDateStr(r[2]), endDate: eventDateStr(r[3]), peakDate: eventDateStr(r[4]),
+      deadline: r[5] ? new Date(r[5]).toISOString() : '',
+      reporters: reporters, status: String(r[7] || 'open'),
+      createdBy: String(r[8] || ''), createdAt: r[9] ? new Date(r[9]).toISOString() : ''
+    });
+  }
+  return out;
+}
+
+function handleGetEventData(body) {
+  var auth = requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var ss = getEventSpreadsheet();
+  var sheets = ensureEventSheets(ss);
+  var schema = readEventSchema(sheets.cfgSh);
+  var periods = readEventPeriods(sheets.periodsSh);
+  var isAdmin = isAdminEmail(auth.email);
+
+  // Bài nhập của CHÍNH người đang đăng nhập (mọi kỳ) — để mở lại đúng nội dung đã lưu.
+  var subValues = sheets.subSh.getDataRange().getValues();
+  var mySubmissions = {};
+  for (var i = 1; i < subValues.length; i++) {
+    var r = subValues[i];
+    if (normEmail(r[1]) !== auth.email) continue;
+    var answers = {};
+    try { answers = JSON.parse(r[5] || '{}'); } catch (e) {}
+    mySubmissions[String(r[0])] = {
+      submittedAt: r[3] ? new Date(r[3]).toISOString() : '', updatedAt: r[4] ? new Date(r[4]).toISOString() : '',
+      answers: answers, locked: r[6] === true
+    };
+  }
+
+  var staff = [];
+  if (isAdmin) {
+    var mainValues = getMainSheet().getDataRange().getValues();
+    for (var j = 1; j < mainValues.length; j++) {
+      var mr = mainValues[j];
+      if (mr[COL.ACTIVE - 1] === true) staff.push({ email: normEmail(mr[COL.EMAIL - 1]), name: String(mr[COL.HOTEN - 1] || '') });
+    }
+  }
+  return { ok: true, schema: schema, periods: periods, mySubmissions: mySubmissions, isAdmin: isAdmin, staff: staff, myEmail: auth.email, myName: auth.name };
+}
+
+function handleSaveEventSchema(body) {
+  var auth = requireAdmin(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var sheets = ensureEventSheets(getEventSpreadsheet());
+  var schema;
+  try { schema = JSON.parse(body.schemaJson); } catch (e) { return { ok: false, error: 'bad_schema' }; }
+  if (!schema || !Array.isArray(schema.sections)) return { ok: false, error: 'bad_schema' };
+  var values = sheets.cfgSh.getDataRange().getValues();
+  var rowIdx = -1;
+  for (var i = 1; i < values.length; i++) { if (values[i][0] === 'schema_json') { rowIdx = i + 1; break; } }
+  if (rowIdx === -1) sheets.cfgSh.appendRow(['schema_json', JSON.stringify(schema)]);
+  else sheets.cfgSh.getRange(rowIdx, 2).setValue(JSON.stringify(schema));
+  return { ok: true };
+}
+
+// Tạo/sửa 1 kỳ Event. Khác BCKQKD ở chỗ có thêm khung ngày (start/end) và ngày đỉnh — 3 mốc này quyết định
+// toàn bộ phần phân tích sản lượng phía web (nền ngày thường = các ngày TRƯỚC startDate).
+function handleSaveEventPeriod(body) {
+  var auth = requireAdmin(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var sheets = ensureEventSheets(getEventSpreadsheet());
+  var eventId = String(body.eventId || '').trim() || ('EV' + Date.now());
+  var label = String(body.label || '').trim();
+  if (!label) return { ok: false, error: 'missing_label' };
+  var row = [
+    label, String(body.startDate || ''), String(body.endDate || ''), String(body.peakDate || ''),
+    body.deadline ? new Date(body.deadline) : '',
+    JSON.stringify(Array.isArray(body.reporters) ? body.reporters : []),
+    String(body.status || 'open')
+  ];
+  var values = sheets.periodsSh.getDataRange().getValues();
+  var rowIdx = -1;
+  for (var i = 1; i < values.length; i++) { if (String(values[i][0]) === eventId) { rowIdx = i + 1; break; } }
+  if (rowIdx === -1) sheets.periodsSh.appendRow([eventId].concat(row).concat([auth.email, new Date()]));
+  else sheets.periodsSh.getRange(rowIdx, 2, 1, 7).setValues([row]);
+  return { ok: true, eventId: eventId };
+}
+
+function handleDeleteEventPeriod(body) {
+  var auth = requireAdmin(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var sheets = ensureEventSheets(getEventSpreadsheet());
+  var eventId = String(body.eventId || '');
+  var values = sheets.periodsSh.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === eventId) { sheets.periodsSh.deleteRow(i + 1); break; }
+  }
+  return { ok: true };
+}
+
+// Người được gán (AM) lưu bài nhập của MÌNH — cùng luật với BCKQKD: phải nằm trong danh sách reporters,
+// chưa quá deadline, kỳ chưa đóng. Admin luôn được phép sửa để xử lý ngoại lệ.
+function handleSaveEventSubmission(body) {
+  var auth = requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var sheets = ensureEventSheets(getEventSpreadsheet());
+  var eventId = String(body.eventId || '');
+  if (!eventId) return { ok: false, error: 'missing_period' };
+
+  var isAdmin = isAdminEmail(auth.email);
+  var period = readEventPeriods(sheets.periodsSh).filter(function (p) { return p.eventId === eventId; })[0];
+  if (!period) return { ok: false, error: 'period_not_found' };
+  if (!isAdmin) {
+    var assigned = period.reporters.some(function (r) { return normEmail(r.email) === auth.email; });
+    if (!assigned) return { ok: false, error: 'not_assigned' };
+    if (period.deadline && new Date(period.deadline).getTime() < Date.now()) return { ok: false, error: 'deadline_passed' };
+    if (period.status === 'closed') return { ok: false, error: 'period_closed' };
+  }
+
+  var answersJson = JSON.stringify(body.answers || {});
+  var values = sheets.subSh.getDataRange().getValues();
+  var rowIdx = -1;
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === eventId && normEmail(values[i][1]) === auth.email) { rowIdx = i + 1; break; }
+  }
+  var now = new Date();
+  if (rowIdx === -1) sheets.subSh.appendRow([eventId, auth.email, auth.name, now, now, answersJson, false]);
+  else sheets.subSh.getRange(rowIdx, 5, 1, 2).setValues([[now, answersJson]]);
+  return { ok: true };
+}
+
+// Xem TOÀN BỘ bài nhập của 1 kỳ. Khác BCKQKD (chỉ Admin): ở đây MỌI người dùng đang hoạt động đều xem được,
+// vì bản kế hoạch Event là tài liệu chung cả Vùng phải nắm để phối hợp, không phải bài giải trình cá nhân.
+function handleGetEventSubmissions(body) {
+  var auth = requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  var sheets = ensureEventSheets(getEventSpreadsheet());
+  var eventId = String(body.eventId || '');
+  var values = sheets.subSh.getDataRange().getValues();
+  var out = [];
+  for (var i = 1; i < values.length; i++) {
+    var r = values[i];
+    if (String(r[0]) !== eventId) continue;
+    var answers = {};
+    try { answers = JSON.parse(r[5] || '{}'); } catch (e) {}
+    out.push({
+      email: normEmail(r[1]), name: String(r[2] || ''),
+      submittedAt: r[3] ? new Date(r[3]).toISOString() : '', updatedAt: r[4] ? new Date(r[4]).toISOString() : '',
+      answers: answers
+    });
+  }
+  return { ok: true, submissions: out };
+}
 
 // ============================================================================================
 // SNAPSHOT TỰ ĐỘNG — Báo Cáo Vận Hành Tuần — gửi TELEGRAM lưu trữ (tính năng mới, độc lập hoàn toàn)
