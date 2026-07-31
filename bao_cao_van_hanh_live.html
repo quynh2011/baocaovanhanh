@@ -446,9 +446,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 
 /* ================= KẾ HOẠCH VẬN HÀNH EVENT ================= */
 #sectionKeHoachEvent .page{max-width:1340px;margin:0 auto;padding:18px 28px 60px}
-.ev-topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:1340px;margin:0 auto;padding:14px 28px 0}
-.ev-topbar-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-right:auto}
-.ev-topbar-right{display:flex;align-items:center;gap:8px}
+.ev-topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:1340px;margin:0 auto;padding:12px 28px 0}
 .ev-lbl{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:600}
 .ev-topbar select{font-family:var(--f);font-size:12.5px;padding:7px 10px;border-radius:8px;border:1px solid var(--border-strong);background:#fff;color:var(--text);min-width:220px}
 .ev-period-info{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
@@ -1162,16 +1160,19 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
      Số liệu sản lượng đọc tự động từ 3 tab Forecast (31_FC_Lay/32_FC_Giao/33_FC_KTC) — không nhập tay;
      phần định tính (mục tiêu, CAP, nhân sự, phân nhóm BC, checklist...) nhập qua biểu mẫu Admin cấu hình. -->
 <div id="sectionKeHoachEvent" class="app-section">
-  <div class="ev-topbar">
-    <div class="ev-topbar-left">
-      <label class="ev-lbl">Kỳ Event</label>
-      <select id="evPeriodSelect" onchange="evOnPeriodChange()"></select>
-      <span id="evPeriodInfo" class="ev-period-info"></span>
-    </div>
-    <div class="ev-topbar-right">
-      <button class="ev-btn-ghost" onclick="loadKeHoachEvent(true)">🔄 Làm mới</button>
-      <button class="ev-btn-ghost" id="evAdminBtn" style="display:none" onclick="evSwitchTab('admin')">⚙️ Quản trị</button>
-    </div>
+  <!-- Nút mục lục nổi + khung mục lục, cùng kiểu với các section khác (Vận hành/Kinh doanh). -->
+  <button class="toc-fab" id="evTocFab" onclick="toggleEvTocPanel()">☰ Mục lục</button>
+  <div class="toc-panel" id="evTocPanel">
+    <div class="toc-panel-title">Chuyển nhanh</div>
+    <a href="javascript:void(0)" class="toc-top" onclick="evSwitchTab('tongquan');closeEvTocPanel()">📈 Tổng quan</a>
+    <a href="javascript:void(0)" onclick="evSwitchTab('muctieu');closeEvTocPanel()"><span class="tnum">I</span>Mục tiêu</a>
+    <a href="javascript:void(0)" onclick="evSwitchTab('lay');closeEvTocPanel()"><span class="tnum">1</span>Volume Lấy</a>
+    <a href="javascript:void(0)" onclick="evSwitchTab('giao');closeEvTocPanel()"><span class="tnum">2</span>Volume Giao</a>
+    <a href="javascript:void(0)" onclick="evSwitchTab('nhombc');closeEvTocPanel()"><span class="tnum">III</span>Nhóm Bưu cục</a>
+    <a href="javascript:void(0)" onclick="evSwitchTab('checklist');closeEvTocPanel()"><span class="tnum">IV</span>Checklist</a>
+    <a href="javascript:void(0)" onclick="evSwitchTab('escalation');closeEvTocPanel()"><span class="tnum">V</span>Escalation</a>
+    <a href="javascript:void(0)" onclick="evSwitchTab('ktc');closeEvTocPanel()"><span class="tnum">VI</span>KTC/KCT</a>
+    <a href="javascript:void(0)" id="evTocAdmin" style="display:none" onclick="evSwitchTab('admin');closeEvTocPanel()"><span class="tnum">⚙</span>Quản trị</a>
   </div>
 
   <div class="vh-subtabs">
@@ -1183,6 +1184,17 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     <button class="vh-subtab-btn" id="evTabBtn-checklist" onclick="evSwitchTab('checklist')">✅ IV. Checklist</button>
     <button class="vh-subtab-btn" id="evTabBtn-escalation" onclick="evSwitchTab('escalation')">📣 V. Escalation</button>
     <button class="vh-subtab-btn" id="evTabBtn-ktc" onclick="evSwitchTab('ktc')">🏭 VI. KTC/KCT</button>
+  </div>
+
+  <!-- Thanh điều khiển đặt DƯỚI hàng tab và căn TRÁI: góc trên-phải màn hình đã bị 2 phần tử cố định chiếm
+       (.user-menu ở right:150px và .toc-fab ở right:18px) nên mọi nút căn phải ở đỉnh trang đều bị che. -->
+  <div class="ev-topbar">
+    <label class="ev-lbl">Kỳ Event</label>
+    <select id="evPeriodSelect" onchange="evOnPeriodChange()"></select>
+    <span id="evPeriodInfo" class="ev-period-info"></span>
+    <button class="ev-btn-ghost" onclick="loadKeHoachEvent(true)">🔄 Làm mới dữ liệu</button>
+    <button class="ev-btn-ghost" onclick="exportStaticHtml()">⬇ Xuất file HTML</button>
+    <button class="ev-btn-ghost" id="evAdminBtn" style="display:none" onclick="evSwitchTab('admin')">⚙️ Quản trị</button>
   </div>
 
   <div id="evLoading" class="ev-loading">Đang tải dữ liệu Forecast…</div>
@@ -2227,7 +2239,17 @@ const EXPORT_PANE_META = {
   vhTuan: { tocFabId: 'tocFab', tocPanelId: 'tocPanel', title: 'Báo Cáo Vận Hành Tuần — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_van_hanh_tuan_' },
   kdTuan: { tocFabId: 'kdTocFab', tocPanelId: 'kdTocPanel', title: 'Báo Cáo Kinh Doanh — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_kinh_doanh_' },
   kdKeHoach: { tocFabId: 'khTocFab', tocPanelId: 'khTocPanel', title: 'Kế Hoạch Kinh Doanh — GHN (Bản xuất tĩnh)', filePrefix: 'ke_hoach_kinh_doanh_' },
-  kdBCKQKD: { tocFabId: 'bkTocFab', tocPanelId: 'bkTocPanel', title: 'Báo Cáo Kết Quả Kinh Doanh — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_ket_qua_kinh_doanh_' }
+  kdBCKQKD: { tocFabId: 'bkTocFab', tocPanelId: 'bkTocPanel', title: 'Báo Cáo Kết Quả Kinh Doanh — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_ket_qua_kinh_doanh_' },
+  // Kế hoạch Event: mỗi tab là 1 pane riêng nên khai báo đủ để xuất đúng tên file theo tab đang xem.
+  evPaneTongquan:   { tocFabId: 'evTocFab', tocPanelId: 'evTocPanel', title: 'Kế Hoạch Event — Tổng quan (Bản xuất tĩnh)', filePrefix: 'ke_hoach_event_tong_quan_' },
+  evPaneMuctieu:    { tocFabId: 'evTocFab', tocPanelId: 'evTocPanel', title: 'Kế Hoạch Event — Mục tiêu (Bản xuất tĩnh)', filePrefix: 'ke_hoach_event_muc_tieu_' },
+  evPaneLay:        { tocFabId: 'evTocFab', tocPanelId: 'evTocPanel', title: 'Kế Hoạch Event — Volume Lấy (Bản xuất tĩnh)', filePrefix: 'ke_hoach_event_volume_lay_' },
+  evPaneGiao:       { tocFabId: 'evTocFab', tocPanelId: 'evTocPanel', title: 'Kế Hoạch Event — Volume Giao (Bản xuất tĩnh)', filePrefix: 'ke_hoach_event_volume_giao_' },
+  evPaneNhombc:     { tocFabId: 'evTocFab', tocPanelId: 'evTocPanel', title: 'Kế Hoạch Event — Nhóm Bưu cục (Bản xuất tĩnh)', filePrefix: 'ke_hoach_event_nhom_buu_cuc_' },
+  evPaneChecklist:  { tocFabId: 'evTocFab', tocPanelId: 'evTocPanel', title: 'Kế Hoạch Event — Checklist (Bản xuất tĩnh)', filePrefix: 'ke_hoach_event_checklist_' },
+  evPaneEscalation: { tocFabId: 'evTocFab', tocPanelId: 'evTocPanel', title: 'Kế Hoạch Event — Escalation (Bản xuất tĩnh)', filePrefix: 'ke_hoach_event_escalation_' },
+  evPaneKtc:        { tocFabId: 'evTocFab', tocPanelId: 'evTocPanel', title: 'Kế Hoạch Event — KTC/KCT (Bản xuất tĩnh)', filePrefix: 'ke_hoach_event_ktc_' },
+  evPaneAdmin:      { tocFabId: 'evTocFab', tocPanelId: 'evTocPanel', title: 'Kế Hoạch Event — Quản trị (Bản xuất tĩnh)', filePrefix: 'ke_hoach_event_quan_tri_' }
 };
 function exportStaticHtml(){
   try {
@@ -6416,6 +6438,21 @@ function evSuggestGroup(row){
   return { group, label: {1:'Nhóm 1 - Ổn định',2:'Nhóm 2 - Cảnh báo',3:'Nhóm 3 - Bất ổn'}[group], reasons };
 }
 
+// ---------- mục lục nổi của mục Kế hoạch Event (cùng cơ chế với các section khác) ----------
+function toggleEvTocPanel(){
+  const el = document.getElementById('evTocPanel');
+  if (el) el.classList.toggle('open');
+}
+function closeEvTocPanel(){
+  const el = document.getElementById('evTocPanel');
+  if (el) el.classList.remove('open');
+}
+document.addEventListener('click', function(e){
+  const panel = document.getElementById('evTocPanel'), btn = document.getElementById('evTocFab');
+  if (!panel || !btn || !panel.classList.contains('open')) return;
+  if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.remove('open');
+});
+
 // ================= TẢI DỮ LIỆU & ĐIỀU HƯỚNG =================
 async function loadKeHoachEvent(force){
   if (window.EV.loading) return;
@@ -6431,11 +6468,23 @@ async function loadKeHoachEvent(force){
       if (!res.ok) throw new Error(errMsg(res.error));
       window.ALL_TABLES = res.tables;
     }
+    // Phần biểu mẫu (kỳ Event, quyền nhập, nội dung đã lưu) cần backend đã cập nhật Code.gs. Nếu backend
+    // CHƯA có các action EVENT_* (trả 'unknown_action') thì KHÔNG được làm chết cả trang: phần phân tích
+    // sản lượng chỉ phụ thuộc getReportData nên vẫn xem được bình thường, chỉ tắt phần nhập liệu và báo rõ.
+    window.EV.backendReady = true; window.EV.backendNote = '';
     const ev = await callBackend('getEventData', { token: AUTH.session.token });
-    if (!ev.ok) throw new Error(errMsg(ev.error));
-    window.EV.schema = ev.schema; window.EV.periods = ev.periods || [];
-    window.EV.mySubmissions = ev.mySubmissions || {}; window.EV.isAdmin = !!ev.isAdmin;
-    window.EV.staff = ev.staff || []; window.EV.myEmail = ev.myEmail; window.EV.myName = ev.myName;
+    if (!ev.ok) {
+      if (ev.error === 'unknown_action') {
+        window.EV.backendReady = false;
+        window.EV.backendNote = 'Máy chủ chưa cập nhật mã nguồn cho mục Kế hoạch Event nên phần nhập liệu (kỳ Event, biểu mẫu, phân quyền) tạm thời chưa dùng được. Phần phân tích sản lượng Forecast bên dưới vẫn hoạt động bình thường. Cách khắc phục: dán bản Code.gs mới nhất vào Apps Script rồi bấm Lưu.';
+        window.EV.schema = { version: 1, sections: [] }; window.EV.periods = [];
+        window.EV.mySubmissions = {}; window.EV.isAdmin = false; window.EV.staff = [];
+      } else throw new Error(errMsg(ev.error));
+    } else {
+      window.EV.schema = ev.schema; window.EV.periods = ev.periods || [];
+      window.EV.mySubmissions = ev.mySubmissions || {}; window.EV.isAdmin = !!ev.isAdmin;
+      window.EV.staff = ev.staff || []; window.EV.myEmail = ev.myEmail; window.EV.myName = ev.myName;
+    }
 
     const T = window.ALL_TABLES;
     const lay = evParseFCWide(T['31_FC_Lay']);
@@ -6448,6 +6497,8 @@ async function loadKeHoachEvent(force){
     if (loadEl) loadEl.style.display = 'none';
     const adminBtn = document.getElementById('evAdminBtn');
     if (adminBtn) adminBtn.style.display = window.EV.isAdmin ? '' : 'none';
+    const adminToc = document.getElementById('evTocAdmin');
+    if (adminToc) adminToc.style.display = window.EV.isAdmin ? '' : 'none';
     evRenderPeriodSelect();
     evRenderCurrentTab();
   } catch (e) {
@@ -6463,6 +6514,11 @@ function evRenderPeriodSelect(){
   if (!sel) return;
   const ps = window.EV.periods || [];
   if (!ps.length) {
+    if (window.EV.backendReady === false) {
+      sel.innerHTML = '<option value="">— Máy chủ chưa cập nhật —</option>';
+      if (info) info.textContent = 'Cần dán Code.gs mới vào Apps Script';
+      return;
+    }
     sel.innerHTML = '<option value="">— Chưa có kỳ Event nào —</option>';
     if (info) info.textContent = window.EV.isAdmin ? 'Vào ⚙️ Quản trị để tạo kỳ Event đầu tiên' : 'Chờ Admin tạo kỳ Event';
     return;
@@ -6545,8 +6601,8 @@ function evRenderTongquan(){
   }
   const C = evComputed();
   const p = C.period;
-  let html = '';
-  if (!p.eventId) {
+  let html = evBackendWarnHtml();
+  if (!p.eventId && window.EV.backendReady !== false) {
     html += '<div class="ev-readonly">Chưa cấu hình kỳ Event nên hệ thống đang tự lấy ngày sản lượng cao nhất làm ngày đỉnh. '+
       (window.EV.isAdmin ? 'Vào ⚙️ Quản trị để tạo kỳ Event (khung ngày + ngày đỉnh) cho số liệu chuẩn hơn.' : 'Chờ Admin tạo kỳ Event.')+'</div>';
   }
@@ -6779,7 +6835,10 @@ function evRenderFormTab(tab){
   const el = document.getElementById('ev' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'Body');
   if (!el) return;
   const ids = EV_TAB_SECTION[tab] || [];
-  el.innerHTML = ids.map(evFormSectionHtml).join('') + evSaveBarHtml();
+  const body = ids.map(evFormSectionHtml).join('');
+  // Khi backend chưa cập nhật thì schema rỗng -> không có mục nào để dựng, phải báo rõ thay vì để trắng trơn.
+  el.innerHTML = body.trim() ? (body + evSaveBarHtml())
+    : (evBackendWarnHtml() || '<div class="ev-empty">Biểu mẫu của mục này chưa được cấu hình. Admin vào ⚙️ Quản trị → Thiết kế biểu mẫu để bổ sung.</div>');
 }
 // Quyền nhập: Admin luôn được; người khác phải nằm trong danh sách reporters của kỳ, kỳ chưa đóng, chưa quá hạn.
 function evCanEdit(){
@@ -6792,7 +6851,13 @@ function evCanEdit(){
   if (p.deadline && new Date(p.deadline).getTime() < Date.now()) return false;
   return true;
 }
+// cảnh báo dùng chung khi backend chưa có các action EVENT_* (chưa dán Code.gs mới)
+function evBackendWarnHtml(){
+  if (window.EV.backendReady !== false) return '';
+  return '<div class="ev-readonly">⚠️ ' + esc(window.EV.backendNote || '') + '</div>';
+}
 function evEditNote(){
+  if (window.EV.backendReady === false) return evBackendWarnHtml();
   const p = evCurPeriod();
   if (!p) return '<div class="ev-readonly">Chưa có kỳ Event nào được tạo — chưa thể nhập liệu.</div>';
   if (evCanEdit()) return '';
