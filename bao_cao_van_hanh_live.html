@@ -6230,12 +6230,20 @@ function evFmtDelta(v){
 // ---------- nhận diện cột ngày từ chính nhãn cột ("T5 16/07 ✅ACT" / "T6 31/07 📊FC") ----------
 // Đọc theo nhãn chứ không theo vị trí cố định -> Capacity team thêm/bớt ngày vẫn tự chạy đúng.
 const EV_DAY_RE = /(\d{1,2})\s*\/\s*(\d{1,2})/;
+const EV_ISO_RE = /^(\d{4})-(\d{2})-(\d{2})(?:[T\s]|$)/;
 function evParseDayLabel(label){
   const raw = String(label || '').trim();
   if (!raw || /tổng/i.test(raw)) return null; // bỏ cột "Tổng 60d"
-  const m = raw.match(EV_DAY_RE);
-  if (!m) return null;
-  const dd = parseInt(m[1],10), mm = parseInt(m[2],10);
+  let dd, mm;
+  // Ô ngày có thể về 2 dạng: chuỗi "16/07" (ô định dạng text) HOẶC chuỗi ISO "2026-07-16T00:00:00.000Z"
+  // (ô là Date thật — sheetToTableShape() bên Code.gs đổi Date thành toISOString()). Nhận cả hai.
+  const iso = raw.match(EV_ISO_RE);
+  if (iso) { mm = parseInt(iso[2],10); dd = parseInt(iso[3],10); }
+  else {
+    const m = raw.match(EV_DAY_RE);
+    if (!m) return null;
+    dd = parseInt(m[1],10); mm = parseInt(m[2],10);
+  }
   if (!(dd>=1 && dd<=31 && mm>=1 && mm<=12)) return null;
   return { label: raw, dd, mm,
     key: String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0'),
@@ -6260,14 +6268,36 @@ function evParseFCWide(table, opt){
   });
   return { days, rows };
 }
-// ---------- parser tab KTC: header nhiều dòng + dòng chia nhóm "▸ DBB" + số có dấu phẩy ----------
-// Dòng ngày trong sheet KTC KHÔNG đủ mọi cột nên mượn danh sách ngày từ tab Lấy rồi ánh xạ theo vị trí,
-// bắt đầu từ cột C (index 2) — đã đối chiếu khớp thứ trong tuần ở dòng tiêu đề.
+// ---------- parser tab KTC: header trải 3 dòng + dòng chia nhóm "▸ DBB" + số có dấu phẩy ----------
+// Dòng 1 = thứ trong tuần (bị lấy làm table.cols), dòng 2 = NGÀY, dòng 3 = "Source" + cờ ✅ACT/📊FC.
+// Tự tìm dòng ngày ngay trong bảng (dòng cho ra nhiều ngày hợp lệ nhất) rồi lấy đúng vị trí cột từ đó;
+// chỉ khi không tìm được mới rơi về phương án dự phòng mượn dải ngày tab Lấy theo vị trí từ cột C.
 function evParseFCKTC(table, refDays){
   const startIdx = 2;
-  const days = (refDays||[]).map((d,i) => Object.assign({}, d, { colIdx: startIdx+i }));
+  const tableRows = (table && table.rows) || [];
+  const cellOf = (r,i) => (r && r.c && r.c[i] && r.c[i].v !== null && r.c[i].v !== undefined) ? r.c[i].v : null;
+  let dateRow = null, bestCount = 0;
+  tableRows.slice(0,6).forEach(r => {
+    let n = 0;
+    for (let i = startIdx; i < ((r.c && r.c.length)||0); i++) { if (evParseDayLabel(cellOf(r,i))) n++; }
+    if (n > bestCount) { bestCount = n; dateRow = r; }
+  });
+  let srcRow = null;
+  tableRows.slice(0,6).forEach(r => { if (/^source$/i.test(String(cellOf(r,1)||'').trim())) srcRow = r; });
+  let days;
+  if (dateRow && bestCount >= 2) {
+    days = [];
+    for (let i = startIdx; i < ((dateRow.c && dateRow.c.length)||0); i++) {
+      const d = evParseDayLabel(cellOf(dateRow,i));
+      if (!d) continue;
+      const flag = srcRow ? String(cellOf(srcRow,i)||'') : '';
+      days.push(Object.assign({}, d, { colIdx: i, isAct: /ACT/i.test(flag) }));
+    }
+  } else {
+    days = (refDays||[]).map((d,i) => Object.assign({}, d, { colIdx: startIdx+i }));
+  }
   const rows = [];
-  ((table && table.rows) || []).forEach(r => {
+  tableRows.forEach(r => {
     const at = (i) => (r.c && r.c[i] && r.c[i].v !== null && r.c[i].v !== undefined) ? r.c[i].v : null;
     const kho = at(0), nhom = at(1);
     if (!kho || !nhom) return;
