@@ -446,6 +446,10 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 
 /* ================= KẾ HOẠCH VẬN HÀNH EVENT ================= */
 #sectionKeHoachEvent .page{max-width:1340px;margin:0 auto;padding:18px 28px 60px}
+/* Mục này có 8 tab nên hàng tab kéo dài tới sát mép phải — nơi đang bị 2 phần tử cố định chiếm chỗ
+   (.user-menu ở top:18px/right:150px và .toc-fab ở top:18px/right:18px, cao ~40px). Phải đẩy hàng tab
+   xuống dưới dải đó, nếu không các tab cuối bị che khuất hoàn toàn. */
+#sectionKeHoachEvent .vh-subtabs{padding-top:62px;flex-wrap:wrap;row-gap:8px}
 .ev-topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:1340px;margin:0 auto;padding:12px 28px 0}
 .ev-lbl{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:600}
 .ev-topbar select{font-family:var(--f);font-size:12.5px;padding:7px 10px;border-radius:8px;border:1px solid var(--border-strong);background:#fff;color:var(--text);min-width:220px}
@@ -6596,7 +6600,10 @@ function evRenderTongquan(){
   const el = document.getElementById('evTongquanBody');
   const D = window.EV.data;
   if (!D.lay.days.length && !D.giao.days.length) {
-    el.innerHTML = '<div class="ev-empty">Chưa có dữ liệu Forecast.<br><br>Hãy copy 2 tab <b>6_FC_Lay_Daily</b> và <b>7_FC_Giao_Daily</b> (và <b>FC Sorting 60d</b>) từ file Forecast của Capacity team sang Sheet dữ liệu chính, đặt tên lần lượt là <b>31_FC_Lay</b>, <b>32_FC_Giao</b>, <b>33_FC_KTC</b>.</div>';
+    // Vẫn phải kèm cảnh báo backend (nếu có) — trước đây nhánh này thoát sớm nên người dùng chỉ thấy
+    // "chưa có Forecast" mà không biết là còn thiếu cả bước cập nhật Code.gs.
+    el.innerHTML = evBackendWarnHtml() +
+      '<div class="ev-empty">Chưa có dữ liệu Forecast.<br><br>Hãy copy 2 tab <b>6_FC_Lay_Daily</b> và <b>7_FC_Giao_Daily</b> (và <b>FC Sorting 60d</b>) từ file Forecast của Capacity team sang Sheet dữ liệu chính, đặt tên lần lượt là <b>31_FC_Lay</b>, <b>32_FC_Giao</b>, <b>33_FC_KTC</b>.</div>';
     return;
   }
   const C = evComputed();
