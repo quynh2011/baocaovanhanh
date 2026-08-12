@@ -1436,6 +1436,20 @@ function exitPreviewRole(){
 // URL Web App của Google Apps Script (Deploy > New deployment > Web app). Dán URL dạng
 // https://script.google.com/macros/s/XXXXXXXX/exec vào đây sau khi deploy Code.gs.
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx_H_2yTY9WPxmr-mzxAl3rLCYStN5MWWTxqPrOwTDH86Diz5_8mf_CUTlz8RlDganrRQ/exec";
+
+/* ---- ĐƯỜNG GỌI BACKEND ----------------------------------------------------------------------
+   Mạng công ty có lúc chặn thẳng script.google.com ở tầng firewall: request bị nuốt im lặng,
+   trình duyệt treo rồi ném "Failed to fetch" — web chết dù backend vẫn chạy tốt.
+   Cách xử lý: khi chạy trên web, gọi qua hàm trung gian /api/gas đặt trên máy chủ Vercel (nằm
+   ngoài mạng công ty) rồi máy chủ mới gọi Apps Script. Trình duyệt chỉ nói chuyện với chính
+   domain đang mở => firewall không có gì để chặn, và cùng origin nên hết luôn chuyện CORS.
+
+   Vẫn GIỮ đường gọi thẳng làm dự phòng cho hai tình huống có thật:
+     - File HTML xuất ra mở bằng file:// (không có máy chủ nào để phục vụ /api/gas).
+     - Proxy trục trặc -> tự lùi về cách gọi cũ thay vì chết hẳn.
+   Thứ tự này quan trọng: ưu tiên proxy, chỉ lùi về gọi thẳng khi proxy hỏng ở tầng mạng. */
+const BACKEND_PROXY_URL = '/api/gas';
+const DUNG_PROXY = (typeof location !== 'undefined') && /^https?:$/.test(location.protocol);
 const SESSION_KEY = 'ghn_report_session_v1';
 const LAST_EMAIL_KEY = 'ghn_report_last_email_v1'; // nhớ email đăng nhập gần nhất RIÊNG với phiên (token) — để
   // sau khi phiên hết hạn (24h) vẫn biết gửi OTP xác thực lại về email nào mà không cần bắt gõ lại từ đầu.
@@ -1466,17 +1480,41 @@ function clearLastEmail(){ localStorage.removeItem(LAST_EMAIL_KEY); }
 // gọi backend Apps Script — dùng Content-Type: text/plain để trình duyệt không gửi preflight
 // OPTIONS (Apps Script Web App không tự xử lý OPTIONS), đây là cách chuẩn khi gọi Apps Script
 // từ 1 domain khác (ở đây là từ Vercel).
-async function callBackend(action, payload){
-  if (!APPS_SCRIPT_URL) throw new Error('Chưa cấu hình APPS_SCRIPT_URL trong file báo cáo (xem hướng dẫn deploy Code.gs).');
-  const body = Object.assign({ action }, payload || {});
-  const resp = await fetch(APPS_SCRIPT_URL, {
+async function goiMotUrl(url, bodyStr){
+  const resp = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(body)
+    body: bodyStr
   });
-  if (!resp.ok) throw new Error('Backend trả lỗi HTTP ' + resp.status);
-  const json = await resp.json();
+  // Proxy luôn trả JSON kể cả khi lỗi, nên đọc JSON trước để lấy được thông điệp cụ thể
+  // thay vì chỉ ném ra mã HTTP trống rỗng như trước.
+  let json = null;
+  try { json = await resp.json(); } catch (e) { /* không phải JSON -> xử lý bên dưới */ }
+  if (!resp.ok) {
+    const mo = json && (json.thongDiep || json.error);
+    throw new Error(mo ? ('Backend: ' + mo) : ('Backend trả lỗi HTTP ' + resp.status));
+  }
+  if (json === null) throw new Error('Backend trả về nội dung không phải JSON.');
   return json;
+}
+
+async function callBackend(action, payload){
+  if (!APPS_SCRIPT_URL) throw new Error('Chưa cấu hình APPS_SCRIPT_URL trong file báo cáo (xem hướng dẫn deploy Code.gs).');
+  const bodyStr = JSON.stringify(Object.assign({ action }, payload || {}));
+
+  if (!DUNG_PROXY) return goiMotUrl(APPS_SCRIPT_URL, bodyStr);   // mở bằng file:// -> gọi thẳng
+
+  try {
+    return await goiMotUrl(BACKEND_PROXY_URL, bodyStr);
+  } catch (e) {
+    // CHỈ lùi về gọi thẳng khi proxy hỏng ở tầng mạng (chưa deploy /api/gas, hoặc Vercel lỗi).
+    // Nếu proxy đã trả lời có nội dung (kể cả báo lỗi) thì đó là câu trả lời thật của backend —
+    // lùi về gọi thẳng lúc đó chỉ làm người dùng chờ thêm rồi nhận đúng lỗi cũ.
+    const hongMang = (e instanceof TypeError) || /Failed to fetch|NetworkError|Load failed/i.test(e.message || '');
+    if (!hongMang) throw e;
+    console.warn('[backend] proxy /api/gas không dùng được, tạm gọi thẳng Apps Script:', e.message);
+    return goiMotUrl(APPS_SCRIPT_URL, bodyStr);
+  }
 }
 
 function showLoginStep(stepId){
