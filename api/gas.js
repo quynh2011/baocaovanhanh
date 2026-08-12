@@ -31,9 +31,11 @@
    "apps_script_khong_tra_json" từng gặp.
 
    Cách xử lý: proxy tự "đăng nhập" bằng tài khoản quynhpv1@ghn.vn qua OAuth (refresh token lưu
-   trong biến môi trường), đính kèm Authorization: Bearer <access_token> khi gọi GAS_URL. Nếu
-   3 biến GOOGLE_OAUTH_* chưa được set thì bỏ qua bước này, giữ hành vi cũ (gọi không kèm token)
-   — không phá web nếu OAuth có vấn đề.
+   trong biến môi trường). ĐÃ TEST THẬT: access_token thường (dù đúng scope) vẫn bị Google chặn
+   401 vì web app domain-restricted kiểm tra kiểu phiên đăng nhập, không nhận access_token — nên
+   dùng id_token (JWT có claim hd=ghn.vn) làm Bearer thay vì access_token. Nếu 3 biến GOOGLE_OAUTH_*
+   chưa được set thì bỏ qua bước này, giữ hành vi cũ (gọi không kèm token) — không phá web nếu
+   OAuth có vấn đề.
    ============================================================================================ */
 
 // Ưu tiên biến môi trường trên Vercel (Settings -> Environment Variables -> GAS_URL) để có thể
@@ -44,8 +46,9 @@ const GAS_URL = process.env.GAS_URL ||
 // Cắt sớm hơn giới hạn của Vercel (60s) để còn kịp trả thông báo lỗi tử tế thay vì bị giết ngang.
 const TIMEOUT_MS = 55000;
 
-/* Đổi refresh token lấy access token mới. Trả về { token, loi, scope } để nơi gọi biết chính
-   xác chuyện gì đã xảy ra (phục vụ chẩn đoán), KHÔNG được ném lỗi làm sập cả request. */
+/* Đổi refresh token lấy id_token/access_token mới. Trả về { token, loaiToken, loi, scope } để
+   nơi gọi biết chính xác chuyện gì đã xảy ra (phục vụ chẩn đoán), KHÔNG được ném lỗi làm sập
+   cả request. */
 async function layAccessToken() {
      const CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID;
      const CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
@@ -67,8 +70,16 @@ async function layAccessToken() {
          if (!r.ok) {
                   return { token: null, loi: 'doi_token_that_bai_' + r.status + '_' + (data && data.error || '?') };
          }
-         if (!data || !data.access_token) return { token: null, loi: 'khong_co_access_token_trong_phan_hoi' };
-         return { token: data.access_token, loi: null, scope: data.scope || null };
+         if (!data || (!data.access_token && !data.id_token)) return { token: null, loi: 'khong_co_token_trong_phan_hoi' };
+         // Web app "Anyone within GHN" của Apps Script kiểm tra danh tính kiểu phiên đăng nhập Google,
+       // KHÔNG chấp nhận access_token thường (đã test thật: access_token đúng scope vẫn bị 401).
+       // Dùng id_token (JWT định danh người dùng, có claim hd=ghn.vn) thay vì access_token.
+       return {
+                token: data.id_token || data.access_token,
+                loaiToken: data.id_token ? 'id_token' : 'access_token',
+                loi: null,
+                scope: data.scope || null
+       };
   } catch (e) {
          return { token: null, loi: 'ngoai_le_' + String(e && e.message) };
   }
@@ -162,6 +173,7 @@ module.exports = async (req, res) => {
                                 trichDan: text.slice(0, 1500),
                                 coBearer: !!accessToken,
                                 doDaiToken: accessToken ? accessToken.length : 0,
+                                loaiToken: oauthKq.loaiToken || null,
                                 oauthLoi: oauthKq.loi,
                                 oauthScope: oauthKq.scope || null,
                                 ms: Date.now() - t0
