@@ -44,15 +44,13 @@ const GAS_URL = process.env.GAS_URL ||
 // Cắt sớm hơn giới hạn của Vercel (60s) để còn kịp trả thông báo lỗi tử tế thay vì bị giết ngang.
 const TIMEOUT_MS = 55000;
 
-/* Đổi refresh token lấy access token mới. Không cache giữa các lần gọi (mỗi lần Vercel có thể
-   là 1 instance khác nhau) — chấp nhận tốn thêm 1 round-trip để đổi lấy đơn giản & chắc chắn.
-   Trả về null nếu chưa cấu hình OAuth hoặc đổi token thất bại — gọi nơi dùng phải tự lùi về
-   hành vi không kèm token, KHÔNG được ném lỗi làm sập cả request. */
+/* Đổi refresh token lấy access token mới. Trả về { token, loi, scope } để nơi gọi biết chính
+   xác chuyện gì đã xảy ra (phục vụ chẩn đoán), KHÔNG được ném lỗi làm sập cả request. */
 async function layAccessToken() {
      const CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID;
      const CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
      const REFRESH_TOKEN = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
-     if (!CLIENT_ID || !CLIENT_SECRET || !REFRESH_TOKEN) return null;
+     if (!CLIENT_ID || !CLIENT_SECRET || !REFRESH_TOKEN) return { token: null, loi: 'chua_cau_hinh' };
 
   try {
          const r = await fetch('https://oauth2.googleapis.com/token', {
@@ -65,11 +63,14 @@ async function layAccessToken() {
                              grant_type: 'refresh_token'
                   })
          });
-         if (!r.ok) return null;
-         const data = await r.json();
-         return data.access_token || null;
+         const data = await r.json().catch(() => null);
+         if (!r.ok) {
+                  return { token: null, loi: 'doi_token_that_bai_' + r.status + '_' + (data && data.error || '?') };
+         }
+         if (!data || !data.access_token) return { token: null, loi: 'khong_co_access_token_trong_phan_hoi' };
+         return { token: data.access_token, loi: null, scope: data.scope || null };
   } catch (e) {
-         return null;
+         return { token: null, loi: 'ngoai_le_' + String(e && e.message) };
   }
 }
 
@@ -129,7 +130,8 @@ module.exports = async (req, res) => {
             // Deployment mới (tài khoản Workspace) chỉ nhận request có Google xác định được danh tính
        // người gọi khi "Ai có quyền truy cập" = "Bất kỳ ai trong GHN". Đính Bearer token của chính
        // quynhpv1@ghn.vn (nếu đã cấu hình) để Google coi request này là người trong công ty gọi vào.
-       const accessToken = await layAccessToken();
+       const oauthKq = await layAccessToken();
+            const accessToken = oauthKq.token;
             const headers = { 'Content-Type': 'text/plain;charset=utf-8' };
             if (accessToken) headers['Authorization'] = 'Bearer ' + accessToken;
 
@@ -157,7 +159,11 @@ module.exports = async (req, res) => {
                                 thongDiep: 'Apps Script trả về nội dung không phải JSON. Thường do project lỗi cú pháp, ' +
                                                       'deployment chưa cập nhật phiên bản mới, hoặc quyền truy cập không phải "Anyone".',
                                 httpStatus: r.status,
-                                trichDan: text.slice(0, 400),
+                                trichDan: text.slice(0, 1500),
+                                coBearer: !!accessToken,
+                                doDaiToken: accessToken ? accessToken.length : 0,
+                                oauthLoi: oauthKq.loi,
+                                oauthScope: oauthKq.scope || null,
                                 ms: Date.now() - t0
                      });
                      return;
