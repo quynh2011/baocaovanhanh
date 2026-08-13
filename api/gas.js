@@ -11,16 +11,25 @@
    OAuth gọi server-to-server (đã test thật, luôn trả 401/redirect login) — nên proxy gọi thẳng
    Apps Script kiểu cũ bị bế tắc hoàn toàn, không có cách nào vượt qua từ phía server.
 
-   HƯỚNG MỚI (đang dùng cho các action quan trọng nhất — đăng nhập + xem báo cáo):
+   HƯỚNG MỚI (đang dùng cho các action quan trọng nhất — đăng nhập, xem báo cáo, đổi mật khẩu,
+   xác thực lại phiên bằng OTP):
    Bỏ qua Apps Script hoàn toàn, gọi THẲNG Google Sheets REST API bằng chính tài khoản
    quynhpv1@ghn.vn (chủ sở hữu/người chỉnh sửa Sheet dữ liệu — KHÔNG cần chia sẻ thêm cho ai).
    Toàn bộ logic xác thực/đọc dữ liệu được viết lại bằng Node (xem api/_sheetsClient.js), port
-   1:1 từ các hàm tương ứng trong Code.gs (handleLogin, handleValidateSession, handleGetReportData…).
+   1:1 từ các hàm tương ứng trong Code.gs (handleLogin, handleValidateSession, handleGetReportData,
+   handleChangePassword, handleRequestSessionOtp, handleVerifySessionOtp…).
 
-   Các action CHƯA port (OTP xác thực lại phiên sau 24h, heartbeat "đang online", các module quản
-   lý người dùng/kế hoạch KD/BCKQKD/lịch làm việc…) vẫn rơi xuống nhánh cũ gọi Apps Script — nhánh
-   đó vẫn đang hỏng vì lý do ở trên, nhưng KHÔNG regressed gì thêm so với hiện trạng (những action
-   này vốn đã không chạy được từ trước khi có thay đổi này).
+   Email OTP (xác thực lại phiên sau 24h) được gửi bằng Gmail API (không phải MailApp — không chạy
+   được ngoài Apps Script), dùng chính access token của quynhpv1@ghn.vn — refresh token đã được cấp
+   thêm scope gmail.send ngày 2026-08-13 (trước đó chỉ có scope spreadsheets, đây là lý do OTP xác
+   thực lại phiên không gửi được mail dù logic đã đúng). OTP được lưu tạm trong 2 cột OTP/OTPHetHan
+   của sheet "Main" (không dùng CacheService vì serverless không có bộ nhớ dùng chung đáng tin cậy
+   giữa các lần gọi).
+
+   Các action CHƯA port (quên mật khẩu qua OTP, heartbeat "đang online", các module quản lý người
+   dùng/kế hoạch KD/BCKQKD/lịch làm việc…) vẫn rơi xuống nhánh cũ gọi Apps Script — nhánh đó vẫn
+   đang hỏng vì lý do ở trên, nhưng KHÔNG regressed gì thêm so với hiện trạng (những action này vốn
+   đã không chạy được từ trước khi có thay đổi này).
 
    Ba nguyên tắc bắt buộc giữ (không đổi so với bản đầu):
    1) Không nhận URL/thông tin đích do client gửi lên.
@@ -34,7 +43,10 @@ const sheetsClient = require('./_sheetsClient.js');
 const LOCAL_ACTIONS = {
      login: sheetsClient.handleLogin,
      validateSession: sheetsClient.handleValidateSession,
-     getReportData: sheetsClient.handleGetReportData
+     getReportData: sheetsClient.handleGetReportData,
+     changePassword: sheetsClient.handleChangePassword,
+     requestSessionOtp: sheetsClient.handleRequestSessionOtp,
+     verifySessionOtp: sheetsClient.handleVerifySessionOtp
 };
 
 // ================= NHÁNH CŨ: proxy sang Apps Script (giữ nguyên, dùng cho action chưa port) =================
@@ -130,7 +142,7 @@ module.exports = async (req, res) => {
                                             process.env.GOOGLE_OAUTH_CLIENT_SECRET && process.env.GOOGLE_OAUTH_REFRESH_TOKEN);
             res.status(200).json({
                      ok: true,
-                     proxy: 'GHN report backend proxy (hybrid: Sheets API truc tiep cho login/validateSession/getReportData, Apps Script cho phan con lai)',
+                     proxy: 'GHN report backend proxy (hybrid: Sheets API truc tiep cho login/validateSession/getReportData/changePassword/requestSessionOtp/verifySessionOtp, Apps Script cho phan con lai)',
                      oauth: coCauHinhOAuth ? 'da cau hinh' : 'chua cau hinh',
                      sessionSecret: !!process.env.SESSION_SECRET ? 'da cau hinh' : 'chua cau hinh',
                      thoiGian: new Date().toISOString()
