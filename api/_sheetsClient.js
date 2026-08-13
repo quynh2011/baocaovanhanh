@@ -1,3 +1,50 @@
+// ====== "ĐANG ONLINE" (avatar bar hiển thị người đang xem báo cáo) — port từ handleHeartbeat/handleGetOnlineUsers ======
+// Bản gốc trên Apps Script dùng CacheService (bộ nhớ tạm, tự hết hạn). Serverless không có bộ nhớ dùng chung
+// đáng tin cậy giữa các lần gọi, nên lưu tạm vào 1 sheet riêng (giống cách đã làm với OTP): mỗi người 1 dòng,
+// ghi đè cột LastSeenMs mỗi lần heartbeat (25s/lần từ frontend), coi là "rời trang" nếu quá ONLINE_TTL_MS.
+const ONLINE_SHEET_NAME = 'OnlineUsers';
+const ONLINE_TTL_MS = 90 * 1000;
+
+async function ensureOnlineSheet() {
+  await ensureSheetWithHeaders(SHEET_ID, ONLINE_SHEET_NAME, ['Email', 'Name', 'LastSeenMs']);
+}
+
+async function handleHeartbeat(body) {
+  const auth = await requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  await ensureOnlineSheet();
+  const values = await getValues(SHEET_ID, "'" + ONLINE_SHEET_NAME + "'");
+  let rowIdx = -1;
+  for (let i = 1; i < values.length; i++) {
+    if (normEmail(values[i][0]) === auth.email) { rowIdx = i + 1; break; }
+  }
+  if (rowIdx === -1) {
+    await appendValues(SHEET_ID, ONLINE_SHEET_NAME, [auth.email, auth.name, Date.now()]);
+  } else {
+    const sheetName = "'" + ONLINE_SHEET_NAME + "'!";
+    await batchUpdateValues(SHEET_ID, [{ range: sheetName + 'B' + rowIdx + ':C' + rowIdx, values: [[auth.name, Date.now()]] }]);
+  }
+  return { ok: true };
+}
+
+async function handleGetOnlineUsers(body) {
+  const auth = await requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  await ensureOnlineSheet();
+  const values = await getValues(SHEET_ID, "'" + ONLINE_SHEET_NAME + "'");
+  const now = Date.now();
+  const users = [];
+  for (let i = 1; i < values.length; i++) {
+    const r = values[i];
+    if (!r[0]) continue;
+    const lastSeen = Number(r[2]) || 0;
+    if (now - lastSeen > ONLINE_TTL_MS) continue;
+    users.push({ email: normEmail(r[0]), name: String(r[1] || ''), ts: lastSeen });
+  }
+  users.sort((a, b) => b.ts - a.ts);
+  return { ok: true, users: users };
+}
+
 /* ============================================================================================
    CLIENT GỌI THẲNG GOOGLE SHEETS API — thay cho gọi qua Apps Script /exec (đường đó bị GHN chặn
    vì deployment "Anyone within GHN" chỉ nhận request có phiên đăng nhập Google thật, một server
@@ -1783,5 +1830,6 @@ module.exports = {
   handleSaveBCKQKDSubmission, handleGetBCKQKDSubmissionsForPeriod, handleGenerateBCKQKDAggregate,
   handleGetBCKQKDAggregate, handleUpdateBCKQKDAggregate,
   handleGetEventData, handleSaveEventSchema, handleSaveEventPeriod, handleDeleteEventPeriod,
-  handleSaveEventSubmission, handleGetEventSubmissions
+  handleSaveEventSubmission, handleGetEventSubmissions,
+  handleHeartbeat, handleGetOnlineUsers
 };
