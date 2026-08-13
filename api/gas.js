@@ -32,9 +32,13 @@
    biến môi trường GEMINI_API_KEY) và "Kế hoạch Event" (EVENT_*) — toàn bộ các mục Admin từng báo lỗi
    "Apps Script trả về nội dung không phải JSON" nay gọi thẳng Sheets API giống hệt cách login/OTP đã làm.
 
-   Các action CÒN CHƯA port (quên mật khẩu qua OTP, heartbeat "đang online", "Lịch làm việc" — công việc/
-   lịch họp) vẫn rơi xuống nhánh cũ gọi Apps Script — nhánh đó vẫn đang hỏng vì lý do ở trên, nhưng KHÔNG
-   regressed gì thêm so với hiện trạng (những action này vốn đã không chạy được từ trước khi có thay đổi này).
+   NGÀY 2026-08-13 (đợt 3): port thêm "đang online" (heartbeat/getOnlineUsers) — avatar bar hiển thị
+   người đang xem báo cáo. Bản gốc dùng CacheService (Apps Script), ở đây lưu tạm vào 1 sheet riêng
+   "OnlineUsers" (giống cách OTP đã làm), xem chi tiết trong api/_sheetsClient.js.
+
+   Các action CÒN CHƯA port (quên mật khẩu qua OTP, "Lịch làm việc" — công việc/lịch họp) vẫn rơi
+   xuống nhánh cũ gọi Apps Script — nhánh đó vẫn đang hỏng vì lý do ở trên, nhưng KHÔNG regressed gì
+   thêm so với hiện trạng (những action này vốn đã không chạy được từ trước khi có thay đổi này).
 
    Ba nguyên tắc bắt buộc giữ (không đổi so với bản đầu):
    1) Không nhận URL/thông tin đích do client gửi lên.
@@ -84,7 +88,10 @@ const LOCAL_ACTIONS = {
   saveEventPeriod: sheetsClient.handleSaveEventPeriod,
   deleteEventPeriod: sheetsClient.handleDeleteEventPeriod,
   saveEventSubmission: sheetsClient.handleSaveEventSubmission,
-  getEventSubmissions: sheetsClient.handleGetEventSubmissions
+  getEventSubmissions: sheetsClient.handleGetEventSubmissions,
+  // "Đang online" (avatar bar người đang xem báo cáo)
+  heartbeat: sheetsClient.handleHeartbeat,
+  getOnlineUsers: sheetsClient.handleGetOnlineUsers
 };
 
 // ================= NHÁNH CŨ: proxy sang Apps Script (giữ nguyên, dùng cho action chưa port) =================
@@ -180,7 +187,7 @@ module.exports = async (req, res) => {
       process.env.GOOGLE_OAUTH_CLIENT_SECRET && process.env.GOOGLE_OAUTH_REFRESH_TOKEN);
     res.status(200).json({
       ok: true,
-      proxy: 'GHN report backend proxy (hybrid: Sheets API truc tiep cho login/OTP/doi mat khau/bao cao van hanh/Cau hinh/Ke hoach KD/BCKQKD/Ke hoach Event, Apps Script cho phan con lai: quen mat khau, heartbeat, Lich lam viec)',
+      proxy: 'GHN report backend proxy (hybrid: Sheets API truc tiep cho login/OTP/doi mat khau/bao cao van hanh/Cau hinh/Ke hoach KD/BCKQKD/Ke hoach Event/dang online, Apps Script cho phan con lai: quen mat khau, Lich lam viec)',
       oauth: coCauHinhOAuth ? 'da cau hinh' : 'chua cau hinh',
       sessionSecret: !!process.env.SESSION_SECRET ? 'da cau hinh' : 'chua cau hinh',
       thoiGian: new Date().toISOString()
