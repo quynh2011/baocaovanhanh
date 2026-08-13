@@ -30,39 +30,11 @@
 
 const sheetsClient = require('./_sheetsClient.js');
 
-// TẠM THỜI — chỉ dùng để tự kiểm tra luồng login thật qua Sheets API, sẽ xoá ngay sau khi test xong.
-// Bảo vệ bằng SESSION_SECRET (đã có sẵn trên Vercel) truyền qua body.debugSecret, không public.
-async function handleDebugSetTestPassword(body) {
-     if (!body || body.debugSecret !== process.env.SESSION_SECRET) return { ok: false, error: 'unauthorized' };
-     const email = sheetsClient.normEmail(body.email);
-     const mainValues = await sheetsClient.getValues("'" + sheetsClient.MAIN_SHEET_NAME + "'");
-     const found = sheetsClient.findUserRow(mainValues, email);
-     if (!found) return { ok: false, error: 'user_not_found' };
-     const row = found.row;
-     const oldHash = String(found.values[sheetsClient.COL.HASH - 1] || '');
-     const oldSalt = String(found.values[sheetsClient.COL.SALT - 1] || '');
-     if (body.restore) {
-            await sheetsClient.batchUpdateValues([
-               { range: "'" + sheetsClient.MAIN_SHEET_NAME + "'!C" + row, values: [[body.restoreHash]] },
-               { range: "'" + sheetsClient.MAIN_SHEET_NAME + "'!D" + row, values: [[body.restoreSalt]] }
-                   ]);
-            return { ok: true, restored: true };
-     }
-     const newSalt = 'debugtest-' + Date.now();
-     const newHash = sheetsClient.hashPassword(String(body.newPassword || ''), newSalt);
-     await sheetsClient.batchUpdateValues([
-        { range: "'" + sheetsClient.MAIN_SHEET_NAME + "'!C" + row, values: [[newHash]] },
-        { range: "'" + sheetsClient.MAIN_SHEET_NAME + "'!D" + row, values: [[newSalt]] }
-          ]);
-     return { ok: true, row, oldHash, oldSalt };
-}
-
 // Các action đã port sang gọi thẳng Sheets API — xử lý tại đây, KHÔNG rơi xuống Apps Script.
 const LOCAL_ACTIONS = {
      login: sheetsClient.handleLogin,
      validateSession: sheetsClient.handleValidateSession,
-     getReportData: sheetsClient.handleGetReportData,
-     debugSetTestPassword: handleDebugSetTestPassword
+     getReportData: sheetsClient.handleGetReportData
 };
 
 // ================= NHÁNH CŨ: proxy sang Apps Script (giữ nguyên, dùng cho action chưa port) =================
