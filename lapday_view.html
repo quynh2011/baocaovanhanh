@@ -349,6 +349,43 @@ footer{margin-top:34px;padding-top:15px;border-top:1px solid var(--border);
   <a href="javascript:void(0)" data-sec="sec6" onclick="ldGoTo('sec6')"><span class="tnum">6</span>Chuyến bất thường</a>
   <a href="javascript:void(0)" class="toc-top" onclick="ldGoTo('sec0')">↑ Về đầu trang</a>
 </nav>
+  <script>
+    (function(){
+      if (window.self === window.top) return;
+        var fab = document.getElementById('tocFab');
+      var rail = document.getElementById('tocRail');
+      function ldTocReposition(){
+        try {
+          var fe = window.frameElement;
+          if (!fe) return;
+            var rect = fe.getBoundingClientRect();
+          var vh = window.parent.innerHeight || 0;
+          var visible = rect.bottom > 0 && rect.top < vh;
+          if (fab){
+            var fabTop = 18 - rect.top;
+            if (fabTop < 0) fabTop = 0;
+              var maxTop = Math.max(0, rect.height - 40);
+            if (fabTop > maxTop) fabTop = maxTop;
+              fab.style.position = 'absolute';
+            fab.style.top = fabTop + 'px';
+            fab.style.display = visible ? '' : 'none';
+          }
+            if (rail){
+              var railTop = 64 - rect.top;
+              if (railTop < 0) railTop = 0;
+                var maxRailTop = Math.max(0, rect.height - 40);
+              if (railTop > maxRailTop) railTop = maxRailTop;
+                rail.style.position = 'absolute';
+              rail.style.top = railTop + 'px';
+            }
+        } catch(e) {}
+      }
+      window.addEventListener('resize', ldTocReposition);
+      try { window.parent.addEventListener('scroll', ldTocReposition, {passive:true}); } catch(e) {}
+        setInterval(ldTocReposition, 300);
+      ldTocReposition();
+    })();
+  </script>
 <div id="phamVi"></div>
 
 <div id="body"></div>
