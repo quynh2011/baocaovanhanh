@@ -753,11 +753,17 @@ function ldPlist(s) {
   return out;
 }
 function ldSerialToISODate(v) {
-  if (typeof v !== 'number' || !v) return null;
-  const d = serialToDate(v);
-  const vn = new Date(d.getTime() + VN_OFFSET_MS);
-  const pad = (n) => String(n).padStart(2, '0');
-  return vn.getUTCFullYear() + '-' + pad(vn.getUTCMonth() + 1) + '-' + pad(vn.getUTCDate());
+     const pad = (n) => String(n).padStart(2, '0');
+     if (typeof v === 'number' && v) {
+            const d = serialToDate(v);
+            const vn = new Date(d.getTime() + VN_OFFSET_MS);
+            return vn.getUTCFullYear() + '-' + pad(vn.getUTCMonth() + 1) + '-' + pad(vn.getUTCDate());
+     }
+     if (typeof v === 'string' && v.trim()) {
+            const d = new Date(v.trim());
+            if (!isNaN(d.getTime())) return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+     }
+     return null;
 }
 
 async function handleGetLapDayData(body) {
