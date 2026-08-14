@@ -4,5 +4,9 @@
     "api/gas.js": {
       "maxDuration": 60
     }
-  }
+  },
+    "rewrites": [
+          { "source": "/", "destination": "/bao_cao_van_hanh_live.html" },
+          { "source": "/index.html", "destination": "/bao_cao_van_hanh_live.html" }
+    ]
 }
