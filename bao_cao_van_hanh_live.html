@@ -1299,6 +1299,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 </div>
 
       <div id="sectionTyLeLapDay" class="app-section">
+        <div id="tldLoadingNote" class="load-progress"><span>Đang tải dữ liệu tỷ lệ lấp đầy…</span><span class="load-progress-track"><span class="load-progress-fill" id="tldLoadingFill"></span></span><span class="load-progress-pct" id="tldLoadingPct">0%</span></div></span>
               <div id="lapDayFrameWrap" style="min-height:70vh">
                         <iframe id="lapDayFrame" style="width:100%;min-height:80vh;border:0;border-radius:12px" title="Tỷ lệ lấp đầy thùng xe"></iframe> 
               </div>
@@ -4902,29 +4903,61 @@ function switchSection(id){
   if (id === 'sectionLichLamViec') loadLichLamViec();
   if (typeof window.scrollTo === 'function') window.scrollTo(0,0);
 }
-  function loadTyLeLapDay(){
-     var frame = document.getElementById('lapDayFrame');
-      if (!frame) return;
-      if (frame.dataset.loaded === '1') return;
-      frame.dataset.loaded = '1';
-      frame.src = 'lapday_view.html?t=' + encodeURIComponent(AUTH.session.token);
-        frame.onload = function(){
-          try {
-            var doc = frame.contentWindow.document;
-            var ldResize = function(){
-              var h = doc.documentElement.scrollHeight;
-              if (h > 0) frame.style.height = h + 'px';
-            };
-            ldResize();
-            if (false) {
-              new ResizeObserver(ldResize).observe(doc.body);
-            } else {
-              setInterval(ldResize, 500);
-            }
-          } catch(e) {}
-        };
-    
+function loadTyLeLapDay(){
+  var frame = document.getElementById('lapDayFrame');
+  if (!frame) return;
+  if (frame.dataset.loaded === '1') return;
+  frame.dataset.loaded = '1';
+  var tldNote = document.getElementById('tldLoadingNote');
+  var tldFill = document.getElementById('tldLoadingFill');
+  var tldPct = document.getElementById('tldLoadingPct');
+  var tldPctVal = 4;
+  function tldSetPct(p){
+    tldPctVal = p;
+    if (tldFill) tldFill.style.width = p + '%';
+    if (tldPct) tldPct.textContent = Math.round(p) + '%';
+  }
+  tldSetPct(tldPctVal);
+  var tldTick = setInterval(function(){
+    if (tldPctVal < 85) tldSetPct(tldPctVal + Math.random()*8);
+  }, 300);
+  function tldDone(){
+    if (tldTick) { clearInterval(tldTick); tldTick = null; }
+    tldSetPct(100);
+    setTimeout(function(){ if (tldNote) tldNote.style.display = 'none'; }, 300);
+  }
+  frame.src = 'lapday_view.html?t=' + encodeURIComponent(AUTH.session.token);
+  frame.onload = function(){
+    try {
+      var doc = frame.contentWindow.document;
+      tldSetPct(Math.max(tldPctVal, 55));
+      var ldLastH = 0;
+      var ldStableCount = 0;
+      var ldResize = function(){
+        var h = doc.documentElement.scrollHeight;
+        if (h > 0) frame.style.height = h + 'px';
+        if (h > 0 && h === ldLastH) {
+          ldStableCount++;
+          if (ldStableCount >= 2) {
+            tldDone();
+          } else {
+            tldSetPct(Math.min(96, tldPctVal + 5));
+          }
+        } else {
+          ldStableCount = 0;
+          if (h > 0) tldSetPct(Math.min(90, tldPctVal + 3));
         }
+        ldLastH = h;
+      };
+      ldResize();
+      if (false) {
+        new ResizeObserver(ldResize).observe(doc.body);
+      } else {
+        setInterval(ldResize, 500);
+      }
+    } catch(e) { tldDone(); }
+  };
+}
 function switchVanHanhTab(tab){
   const paneIds = { ngay: 'vhNgay', tuan: 'vhTuan', thang: 'vhThang' };
   ['ngay','tuan','thang'].forEach(t => {
