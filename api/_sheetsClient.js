@@ -745,6 +745,11 @@ function ldUsNum(s) {
   return isNaN(n) ? null : n;
 }
 // Bung ô dạng "(1) a\n(2) b\n..." thành {1:'a', 2:'b', ...}.
+// Cot phan tram DANG SO tu Sheets API tra ve PHAN SO 0..1 (o dinh dang %), khong nhu o chu da co san dau %.
+function ldPctFromSheet(v) {
+   if (typeof v === 'number') return v * 100;
+   return ldVnNum(v);
+}
 function ldPlist(s) {
   const out = {};
   const re = /\((\d+)\)\s*([^\n]*)/g;
@@ -829,10 +834,10 @@ async function handleGetLapDayData(body) {
       tt: ldVnNum(r[11]),   // L  tải trọng
       dtc: ldVnNum(r[12]),  // M  số đơn tiêu chuẩn
       ktc: ldVnNum(r[13]),  // N  số kg tiêu chuẩn
-      fk: ldVnNum(r[20]),   // U  lấp đầy chuyến (kg)
-      fd: ldVnNum(r[21]),   // V  lấp đầy chuyến (đơn)
-      vk: ldVnNum(r[22]),   // W  tỷ lệ vận chuyển (kg)
-      vd: ldVnNum(r[23]),   // X  tỷ lệ vận chuyển (đơn)
+      fk: ldPctFromSheet(r[20]),   // U  lấp đầy chuyến (kg)
+      fd: ldPctFromSheet(r[21]),   // V  lấp đầy chuyến (đơn)
+      vk: ldPctFromSheet(r[22]),   // W  tỷ lệ vận chuyển (kg)
+      vd: ldPctFromSheet(r[23]),   // X  tỷ lệ vận chuyển (đơn)
       legs: legs
     });
   });
