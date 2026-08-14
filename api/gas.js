@@ -91,7 +91,8 @@ const LOCAL_ACTIONS = {
   getEventSubmissions: sheetsClient.handleGetEventSubmissions,
   // "Đang online" (avatar bar người đang xem báo cáo)
   heartbeat: sheetsClient.handleHeartbeat,
-  getOnlineUsers: sheetsClient.handleGetOnlineUsers
+  getOnlineUsers: sheetsClient.handleGetOnlineUsers,
+     getLapDayData: sheetsClient.handleGetLapDayData
 };
 
 // ================= NHÁNH CŨ: proxy sang Apps Script (giữ nguyên, dùng cho action chưa port) =================
