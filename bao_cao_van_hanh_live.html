@@ -778,6 +778,18 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 </div>
 
 <div id="appRoot" style="display:none">
+  <button class="toc-fab" id="tldTocFab" style="display:none" onclick="tldToggleToc()">Muc luc</button>
+  <nav class="toc-panel" id="tldTocPanel">
+    <div class="toc-panel-title">Chuyen nhanh - Lap day</div>
+    <a href="javascript:void(0)" onclick="tldGoTo('sec0')"><span class="tnum">0</span>Tong quan</a>
+    <a href="javascript:void(0)" onclick="tldGoTo('sec1')"><span class="tnum">1</span>De xuat cai thien</a>
+    <a href="javascript:void(0)" onclick="tldGoTo('sec2')"><span class="tnum">2</span>Xu huong theo ngay</a>
+    <a href="javascript:void(0)" onclick="tldGoTo('sec3')"><span class="tnum">3</span>Theo Nha cung cap</a>
+    <a href="javascript:void(0)" onclick="tldGoTo('sec4')"><span class="tnum">4</span>Theo Ma tuyen</a>
+    <a href="javascript:void(0)" onclick="tldGoTo('sec5')"><span class="tnum">5</span>Chang chay rong</a>
+    <a href="javascript:void(0)" onclick="tldGoTo('sec6')"><span class="tnum">6</span>Chuyen bat thuong</a>
+    <a href="javascript:void(0)" class="toc-top" onclick="tldGoTo('sec0')">Ve dau trang</a>
+  </nav>
 
 <!-- ================= NÚT TRÒN NỔI DBB ================= -->
 <div class="dbb-fab-wrap">
@@ -4901,8 +4913,33 @@ function switchSection(id){
   if (id === 'sectionKeHoachEvent') loadKeHoachEvent();
     if (id === 'sectionTyLeLapDay') loadTyLeLapDay();
   if (id === 'sectionLichLamViec') loadLichLamViec();
+  var tldFab = document.getElementById('tldTocFab');
+  if (tldFab) tldFab.style.display = (id === 'sectionTyLeLapDay') ? 'flex' : 'none';
+  if (id !== 'sectionTyLeLapDay' && typeof tldCloseToc === 'function') tldCloseToc();
   if (typeof window.scrollTo === 'function') window.scrollTo(0,0);
 }
+  function tldToggleToc(){
+    var p = document.getElementById('tldTocPanel');
+    if (p) p.classList.toggle('open');
+  }
+  function tldCloseToc(){
+    var p = document.getElementById('tldTocPanel');
+    if (p) p.classList.remove('open');
+  }
+  function tldGoTo(secId){
+    tldCloseToc();
+    var frame = document.getElementById('lapDayFrame');
+    if (!frame) return;
+    try {
+      var doc = frame.contentWindow.document;
+      var el = doc.getElementById(secId);
+      if (!el) return;
+      var frameRect = frame.getBoundingClientRect();
+      var elRect = el.getBoundingClientRect();
+      var targetY = frameRect.top + window.pageYOffset + elRect.top - 70;
+      window.scrollTo({top: Math.max(0, targetY), behavior: 'smooth'});
+    } catch(e) {}
+  }
 function loadTyLeLapDay(){
   var frame = document.getElementById('lapDayFrame');
   if (!frame) return;
