@@ -4916,7 +4916,7 @@ function switchSection(id){
               if (h > 0) frame.style.height = h + 'px';
             };
             ldResize();
-            if (window.ResizeObserver) {
+            if (false) {
               new ResizeObserver(ldResize).observe(doc.body);
             } else {
               setInterval(ldResize, 500);
