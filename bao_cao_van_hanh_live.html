@@ -790,6 +790,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     <button class="dbb-sub-btn" id="navBtn-sectionKeHoachEvent" onclick="switchSection('sectionKeHoachEvent')">🎯 Kế hoạch Event</button>
     <button class="dbb-sub-btn" id="navBtn-sectionLichLamViec" onclick="switchSection('sectionLichLamViec')">🗓️ Lịch làm việc</button>
     <button class="dbb-sub-btn" id="navBtn-sectionComingSoon" onclick="switchSection('sectionComingSoon')">✨ Sắp ra mắt</button>
+        <button class="dbb-sub-btn" id="navBtn-sectionTyLeLapDay" onclick="switchSection('sectionTyLeLapDay')">🚛 Tỷ lệ lấp đầy</button>
   </div>
   <button class="dbb-fab" id="dbbFab" onclick="toggleDbbMenu()"><span>DBB</span></button>
 </div>
@@ -1296,6 +1297,12 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
     <p>Tính năng mới sẽ được cập nhật tại đây.</p>
   </div>
 </div>
+
+      <div id="sectionTyLeLapDay" class="app-section">
+              <div id="lapDayFrameWrap" style="min-height:70vh">
+                        <iframe id="lapDayFrame" style="width:100%;min-height:80vh;border:0;border-radius:12px" title="Tỷ lệ lấp đầy thùng xe"></iframe> 
+              </div>
+      </div>
 
 </div><!-- /#appRoot -->
 
@@ -4878,7 +4885,7 @@ document.addEventListener('click', function(e){
     menu.classList.remove('open'); fab.classList.remove('open');
   }
 });
-const ALL_SECTIONS = ['sectionVanHanh','sectionKinhDoanh','sectionTruyThu','sectionCapacity','sectionNhanSu','sectionKeHoachEvent','sectionLichLamViec','sectionComingSoon'];
+const ALL_SECTIONS = ['sectionVanHanh','sectionKinhDoanh','sectionTruyThu','sectionCapacity','sectionNhanSu','sectionKeHoachEvent','sectionLichLamViec','sectionComingSoon','sectionTyLeLapDay'];
 function switchSection(id){
   ALL_SECTIONS.forEach(s => {
     const el = document.getElementById(s);
@@ -4891,9 +4898,17 @@ function switchSection(id){
   if (fab) fab.classList.remove('open');
   if (id === 'sectionKinhDoanh') loadKinhDoanh();
   if (id === 'sectionKeHoachEvent') loadKeHoachEvent();
+    if (id === 'sectionTyLeLapDay') loadTyLeLapDay();
   if (id === 'sectionLichLamViec') loadLichLamViec();
   if (typeof window.scrollTo === 'function') window.scrollTo(0,0);
 }
+  function loadTyLeLapDay(){
+     var frame = document.getElementById('lapDayFrame');
+      if (!frame) return;
+      if (frame.dataset.loaded === '1') return;
+      frame.dataset.loaded = '1';
+      frame.src = 'lapday_view.html?t=' + encodeURIComponent(AUTH.session.token);
+        }
 function switchVanHanhTab(tab){
   const paneIds = { ngay: 'vhNgay', tuan: 'vhTuan', thang: 'vhThang' };
   ['ngay','tuan','thang'].forEach(t => {
