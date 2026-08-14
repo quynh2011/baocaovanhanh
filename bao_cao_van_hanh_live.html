@@ -4908,6 +4908,22 @@ function switchSection(id){
       if (frame.dataset.loaded === '1') return;
       frame.dataset.loaded = '1';
       frame.src = 'lapday_view.html?t=' + encodeURIComponent(AUTH.session.token);
+        frame.onload = function(){
+          try {
+            var doc = frame.contentWindow.document;
+            var ldResize = function(){
+              var h = doc.documentElement.scrollHeight;
+              if (h > 0) frame.style.height = h + 'px';
+            };
+            ldResize();
+            if (window.ResizeObserver) {
+              new ResizeObserver(ldResize).observe(doc.body);
+            } else {
+              setInterval(ldResize, 500);
+            }
+          } catch(e) {}
+        };
+    
         }
 function switchVanHanhTab(tab){
   const paneIds = { ngay: 'vhNgay', tuan: 'vhTuan', thang: 'vhThang' };
