@@ -1,50 +1,3 @@
-// ====== "ĐANG ONLINE" (avatar bar hiển thị người đang xem báo cáo) — port từ handleHeartbeat/handleGetOnlineUsers ======
-// Bản gốc trên Apps Script dùng CacheService (bộ nhớ tạm, tự hết hạn). Serverless không có bộ nhớ dùng chung
-// đáng tin cậy giữa các lần gọi, nên lưu tạm vào 1 sheet riêng (giống cách đã làm với OTP): mỗi người 1 dòng,
-// ghi đè cột LastSeenMs mỗi lần heartbeat (25s/lần từ frontend), coi là "rời trang" nếu quá ONLINE_TTL_MS.
-const ONLINE_SHEET_NAME = 'OnlineUsers';
-const ONLINE_TTL_MS = 90 * 1000;
-
-async function ensureOnlineSheet() {
-  await ensureSheetWithHeaders(SHEET_ID, ONLINE_SHEET_NAME, ['Email', 'Name', 'LastSeenMs']);
-}
-
-async function handleHeartbeat(body) {
-  const auth = await requireActiveUser(body.token);
-  if (auth.error) return { ok: false, error: auth.error };
-  await ensureOnlineSheet();
-  const values = await getValues(SHEET_ID, "'" + ONLINE_SHEET_NAME + "'");
-  let rowIdx = -1;
-  for (let i = 1; i < values.length; i++) {
-    if (normEmail(values[i][0]) === auth.email) { rowIdx = i + 1; break; }
-  }
-  if (rowIdx === -1) {
-    await appendValues(SHEET_ID, ONLINE_SHEET_NAME, [auth.email, auth.name, Date.now()]);
-  } else {
-    const sheetName = "'" + ONLINE_SHEET_NAME + "'!";
-    await batchUpdateValues(SHEET_ID, [{ range: sheetName + 'B' + rowIdx + ':C' + rowIdx, values: [[auth.name, Date.now()]] }]);
-  }
-  return { ok: true };
-}
-
-async function handleGetOnlineUsers(body) {
-  const auth = await requireActiveUser(body.token);
-  if (auth.error) return { ok: false, error: auth.error };
-  await ensureOnlineSheet();
-  const values = await getValues(SHEET_ID, "'" + ONLINE_SHEET_NAME + "'");
-  const now = Date.now();
-  const users = [];
-  for (let i = 1; i < values.length; i++) {
-    const r = values[i];
-    if (!r[0]) continue;
-    const lastSeen = Number(r[2]) || 0;
-    if (now - lastSeen > ONLINE_TTL_MS) continue;
-    users.push({ email: normEmail(r[0]), name: String(r[1] || ''), ts: lastSeen });
-  }
-  users.sort((a, b) => b.ts - a.ts);
-  return { ok: true, users: users };
-}
-
 /* ============================================================================================
    CLIENT GỌI THẲNG GOOGLE SHEETS API — thay cho gọi qua Apps Script /exec (đường đó bị GHN chặn
    vì deployment "Anyone within GHN" chỉ nhận request có phiên đăng nhập Google thật, một server
@@ -718,6 +671,180 @@ async function isAdminEmail(email) {
   return !!(found && found.values[COL.ACTIVE - 1] === true && String(found.values[COL.VAITRO - 1] || '') === 'Admin');
 }
 
+// ====== "ĐANG ONLINE" (avatar bar hiển thị người đang xem báo cáo) — port từ handleHeartbeat/handleGetOnlineUsers ======
+// Bản gốc trên Apps Script dùng CacheService (bộ nhớ tạm, tự hết hạn). Serverless không có bộ nhớ dùng chung
+// đáng tin cậy giữa các lần gọi, nên lưu tạm vào 1 sheet riêng (giống cách đã làm với OTP): mỗi người 1 dòng,
+// ghi đè cột LastSeenMs mỗi lần heartbeat (25s/lần từ frontend), coi là "rời trang" nếu quá ONLINE_TTL_MS.
+const ONLINE_SHEET_NAME = 'OnlineUsers';
+const ONLINE_TTL_MS = 90 * 1000;
+
+async function ensureOnlineSheet() {
+  await ensureSheetWithHeaders(SHEET_ID, ONLINE_SHEET_NAME, ['Email', 'Name', 'LastSeenMs']);
+}
+
+async function handleHeartbeat(body) {
+  const auth = await requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  await ensureOnlineSheet();
+  const values = await getValues(SHEET_ID, "'" + ONLINE_SHEET_NAME + "'");
+  let rowIdx = -1;
+  for (let i = 1; i < values.length; i++) {
+    if (normEmail(values[i][0]) === auth.email) { rowIdx = i + 1; break; }
+  }
+  if (rowIdx === -1) {
+    await appendValues(SHEET_ID, ONLINE_SHEET_NAME, [auth.email, auth.name, Date.now()]);
+  } else {
+    const sheetName = "'" + ONLINE_SHEET_NAME + "'!";
+    await batchUpdateValues(SHEET_ID, [{ range: sheetName + 'B' + rowIdx + ':C' + rowIdx, values: [[auth.name, Date.now()]] }]);
+  }
+  return { ok: true };
+}
+
+async function handleGetOnlineUsers(body) {
+  const auth = await requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  await ensureOnlineSheet();
+  const values = await getValues(SHEET_ID, "'" + ONLINE_SHEET_NAME + "'");
+  const now = Date.now();
+  const users = [];
+  for (let i = 1; i < values.length; i++) {
+    const r = values[i];
+    if (!r[0]) continue;
+    const lastSeen = Number(r[2]) || 0;
+    if (now - lastSeen > ONLINE_TTL_MS) continue;
+    users.push({ email: normEmail(r[0]), name: String(r[1] || ''), ts: lastSeen });
+  }
+  users.sort((a, b) => b.ts - a.ts);
+  return { ok: true, users: users };
+}
+
+// ====== "TỶ LỆ LẤP ĐẦY THÙNG XE" — đọc trực tiếp sheet "60_LapDay", bung chặng + tính tỷ lệ lấp đầy ======
+// Sheet nguồn xuất thô từ BI, 25 cột A..Y. Cột E gốc (thiết kế 26 cột đời đầu) đã bị NGƯỜI DÙNG XOÁ khỏi
+// sheet thật ngày 2026-08-14 nên mọi cột từ F trở đi lùi lại đúng 1 vị trí so với thiết kế gốc. Mapping
+// dưới đây đã đối chiếu TRỰC TIẾP với sheet thật (không suy đoán) — xem chỉ số cột (0-based) cạnh mỗi dòng.
+const LAPDAY_SHEET_NAME = '60_LapDay';
+const LAPDAY_TUYEN_TANG_CUONG = 'TUYẾN TĂNG CƯỜNG';
+const LAPDAY_RE_KHO = /kho\s*chuy[ểe]n\s*ti[ếe]p|kho\s*trung\s*chuy[ểe]n|^\s*KTC\b/i;
+
+// Số kiểu Việt cho các cột đơn lẻ: "1.900" -> 1900 ; "27,58" -> 27.58. Nếu ô đã là number (Sheets API
+// trả UNFORMATTED_VALUE) thì dùng thẳng, không suy diễn thêm — chỉ parse text khi thật sự là chuỗi.
+function ldVnNum(s) {
+  if (typeof s === 'number') return s;
+  s = String(s === null || s === undefined ? '' : s).trim().replace('%', '');
+  if (!s) return null;
+  s = s.replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+// Số kiểu Mỹ cho các ô "danh sách" (Lộ trình, Quãng đường từng điểm...) — luôn là text thô, dấu . thập phân.
+function ldUsNum(s) {
+  if (typeof s === 'number') return s;
+  s = String(s === null || s === undefined ? '' : s).trim().replace('%', '');
+  if (!s) return null;
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+// Bung ô dạng "(1) a\n(2) b\n..." thành {1:'a', 2:'b', ...}.
+function ldPlist(s) {
+  const out = {};
+  const re = /\((\d+)\)\s*([^\n]*)/g;
+  let m;
+  while ((m = re.exec(String(s === null || s === undefined ? '' : s)))) out[Number(m[1])] = m[2].trim();
+  return out;
+}
+function ldSerialToISODate(v) {
+  if (typeof v !== 'number' || !v) return null;
+  const d = serialToDate(v);
+  const vn = new Date(d.getTime() + VN_OFFSET_MS);
+  const pad = (n) => String(n).padStart(2, '0');
+  return vn.getUTCFullYear() + '-' + pad(vn.getUTCMonth() + 1) + '-' + pad(vn.getUTCDate());
+}
+
+async function handleGetLapDayData(body) {
+  const auth = await requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+
+  const values = await getValues(SHEET_ID, "'" + LAPDAY_SHEET_NAME + "'");
+  if (!values.length) return { ok: false, error: 'lapday_sheet_rong' };
+  const header = values[0];
+  const data = values.slice(1);
+
+  // Cờ debug: trả thẳng dòng dữ liệu thô + kiểu dữ liệu từng ô để đối chiếu, không tính toán gì —
+  // dùng 1 lần khi triển khai để xác nhận Sheets API trả number hay text cho từng cột, không lưu lại.
+  if (body.debug) {
+    const r0 = data[0] || [];
+    return {
+      ok: true, debug: true, soCotHeader: header.length, header: header,
+      hangMau: r0, kieuDuLieu: r0.map((v) => typeof v), soDongDuLieu: data.length
+    };
+  }
+
+  const trips = [];
+  let checkKm = 0;
+
+  data.forEach((r) => {
+    if (!r || !r.length) return;
+    const lo  = ldPlist(r[7]);   // H  Lộ trình
+    const km  = ldPlist(r[9]);   // J  Quãng đường từng điểm dừng
+    const kgX = ldPlist(r[14]);  // O  Số kg trên xe
+    const dnX = ldPlist(r[15]);  // P  Số đơn trên xe
+    const kgV = ldPlist(r[16]);  // Q  Số kg vận chuyển
+    const dnV = ldPlist(r[17]);  // R  Số đơn vận chuyển
+    const fKg = ldPlist(r[18]);  // S  Tỷ lệ lấp đầy tại mỗi điểm (kg)
+    const fDn = ldPlist(r[19]);  // T  Tỷ lệ lấp đầy tại mỗi điểm (đơn)
+    const n = Object.keys(lo).length;
+    if (n < 2) return;
+
+    const depot = (lo[1] || '').trim();
+    const legs = [];
+    for (let i = 1; i < n; i++) {
+      const dest = (lo[i + 1] || '').trim();
+      const d = ldUsNum(km[i + 1]) || 0;
+      checkKm += d;
+      const veKho = !!dest && (dest === depot || LAPDAY_RE_KHO.test(dest));
+      legs.push({
+        i: i, tu: (lo[i] || '').trim(), den: dest, km: Math.round(d * 10) / 10,
+        fk: ldUsNum(fKg[i]), fd: ldUsNum(fDn[i]), kg: ldUsNum(kgX[i]), dn: ldUsNum(dnX[i]),
+        r: veKho ? 1 : 0
+      });
+    }
+
+    const ngay = ldSerialToISODate(r[24]);  // Y  first_check_in: Day
+    const tuan = ldSerialToISODate(r[0]);   // A  load_date: Week
+    trips.push({
+      ng: ngay, tw: tuan, th: (ngay || '').slice(0, 7),
+      ncc: String(r[6] || '').trim(),
+      tuyen: String(r[2] || '').trim() || LAPDAY_TUYEN_TANG_CUONG,
+      ma: String(r[1] || '').trim(),
+      bks: String(r[10] || '').trim(),
+      loai: String(r[3] || '').trim(),
+      batdau: String(r[4] || '').trim(),
+      km: ldVnNum(r[8]),    // I  tổng quãng đường
+      tt: ldVnNum(r[11]),   // L  tải trọng
+      dtc: ldVnNum(r[12]),  // M  số đơn tiêu chuẩn
+      ktc: ldVnNum(r[13]),  // N  số kg tiêu chuẩn
+      fk: ldVnNum(r[20]),   // U  lấp đầy chuyến (kg)
+      fd: ldVnNum(r[21]),   // V  lấp đầy chuyến (đơn)
+      vk: ldVnNum(r[22]),   // W  tỷ lệ vận chuyển (kg)
+      vd: ldVnNum(r[23]),   // X  tỷ lệ vận chuyển (đơn)
+      legs: legs
+    });
+  });
+
+  const meta = {
+    nguon: LAPDAY_SHEET_NAME,
+    soChuyen: trips.length,
+    soChang: trips.reduce((a, t) => a + t.legs.length, 0),
+    ngayMin: trips.reduce((m, t) => (t.ng && (!m || t.ng < m)) ? t.ng : m, null),
+    ngayMax: trips.reduce((m, t) => (t.ng && (!m || t.ng > m)) ? t.ng : m, null),
+    nccs: [...new Set(trips.map((t) => t.ncc))].sort(),
+    tuans: [...new Set(trips.map((t) => t.tw).filter(Boolean))].sort(),
+    thangs: [...new Set(trips.map((t) => t.th).filter(Boolean))].sort(),
+    tongKmDoiChieu: Math.round(checkKm * 10) / 10
+  };
+  return { ok: true, meta: meta, trips: trips };
+}
+
 // ====== "CẤU HÌNH" > "HẠNG MỤC & PHÂN QUYỀN" — port từ handleGetModuleConfig/handleUpdateModuleConfig ======
 async function ensureModuleConfigSheet() {
   const headers = ['ModuleId', 'TenHienThi', 'BatTat', 'QuyenAdmin', 'QuyenQuanLy', 'QuyenNhanVienXuLy', 'QuyenNhanVien'];
@@ -1281,7 +1408,6 @@ async function handleSaveBCKQKDSubmission(body) {
   await ensureBCKQKDSheets();
   const periodId = String(body.periodId || '');
   if (!periodId) return { ok: false, error: 'missing_period' };
-
   const isAdmin = await isAdminEmail(auth.email);
   const periods = await readBCKQKDPeriods();
   const period = periods.filter((p) => p.periodId === periodId)[0];
@@ -1831,5 +1957,6 @@ module.exports = {
   handleGetBCKQKDAggregate, handleUpdateBCKQKDAggregate,
   handleGetEventData, handleSaveEventSchema, handleSaveEventPeriod, handleDeleteEventPeriod,
   handleSaveEventSubmission, handleGetEventSubmissions,
-  handleHeartbeat, handleGetOnlineUsers
+  handleHeartbeat, handleGetOnlineUsers,
+  handleGetLapDayData
 };
