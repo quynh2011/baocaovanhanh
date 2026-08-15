@@ -30,6 +30,10 @@ h1{font-size:25px;font-weight:700;margin:0;letter-spacing:-0.02em}
 h1 span{font-size:13px;color:var(--ghn-orange);font-family:var(--mono);font-weight:600}
 #metaLine{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:5px}
 header .right{font-family:var(--mono);font-size:11.5px;color:var(--muted);text-align:right;line-height:1.75}
+  .meta-progress{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:5px}
+  .meta-progress-track{width:130px;height:6px;background:var(--border);border-radius:4px;overflow:hidden;display:inline-block}
+  .meta-progress-fill{display:block;height:100%;width:4%;background:var(--ghn-blue);border-radius:4px;transition:width .25s ease}
+  .meta-progress-pct{font-weight:600;color:var(--ghn-blue)}
 
 /* ---- bộ lọc ---- */
 .filters{background:var(--surface);border:1px solid var(--border);border-radius:11px;
@@ -288,7 +292,7 @@ footer{margin-top:34px;padding-top:15px;border-top:1px solid var(--border);
 <header>
   <div>
     <h1>Phân Tích Tỷ Lệ Lấp Đầy Thùng Xe <span>VÙNG DBB</span></h1>
-    <div id="metaLine">Đang tải…</div>
+    <div id="metaLine" class="meta-progress"><span>Đang tải dữ liệu…</span><span class="meta-progress-track"><span class="meta-progress-fill" id="metaFill"></span><span class="meta-progress-pct" id="metaPct">4%</span></div><script>(function(){var v=4;var iv=setInterval(function(){var f=document.getElementById('metaFill');var p=document.getElementById('metaPct');if(!f||!p){clearInterval(iv);return;}if(v<92)v+=Math.random()*12;var vv=Math.min(v,92);f.style.width=vv+'%';p.textContent=Math.round(vv)+'%';},120);})();</script>
   </div>
   <div class="right">
     Báo cáo phân tích vận tải<br>
