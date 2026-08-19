@@ -5,7 +5,7 @@
     // ---------- Dữ liệu bắt đầu RỖNG — nạp thật sau khi đăng nhập, xem loadLiveData() cuối file ----------
     var DATA = { field_map: [], suppliers: [], overall_summary: {} };
 
-    var FIELD_MAP = DATA.field_map; // [{field_ncc,field_ghn,type,severity}]
+   var FIELD_MAP = DATA.field_map; // [{field_ncc,field_ghn,type,severity}]
 
     // ---------- Phiên đăng nhập — dùng chung backend /api/gas với Báo Cáo Vận Hành (tài khoản @ghn.vn) ----------
     var TOKEN_KEY = 'doisoat_token';
