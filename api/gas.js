@@ -8,7 +8,7 @@
    Workspace công ty (@ghn.vn), deployment chỉ cho 2 lựa chọn "Ai có quyền truy cập": "Chỉ mình tôi"
    hoặc "Bất kỳ ai trong GHN" — không còn "Bất kỳ ai" (public). "Anyone within GHN" kiểm tra danh
    tính kiểu PHIÊN ĐĂNG NHẬP GOOGLE THẬT trong trình duyệt, KHÔNG chấp nhận access_token/id_token
-   OAuth gọi server-to-server (đã test thật, luôn trả 401/redirect login) — nên proxy gọi thẳng
+   OAuth gọi server-to-server (đã test thật, luôn trả 401/redirect-to-login) — nên proxy gọi thẳng
    Apps Script kiểu cũ bị bế tắc hoàn toàn, không có cách nào vượt qua từ phía server.
 
    HƯỚNG MỚI (đang dùng cho các action quan trọng nhất — đăng nhập, xem báo cáo, đổi mật khẩu,
@@ -36,6 +36,11 @@
    người đang xem báo cáo. Bản gốc dùng CacheService (Apps Script), ở đây lưu tạm vào 1 sheet riêng
    "OnlineUsers" (giống cách OTP đã làm), xem chi tiết trong api/_sheetsClient.js.
 
+   NGÀY 2026-08-19: thêm mục "Đối soát vận tải" (NCC <-> GHN) — đọc trực tiếp 1 Google Sheet đối soát
+   RIÊNG (khác sheet báo cáo vận hành chính) qua api/_reconClient.js (dùng lại getValues/batchGetValues/
+   getSheetTitles/verifyToken sẵn có trong _sheetsClient.js, KHÔNG sửa file đó). Dùng chung tài khoản
+   đăng nhập @ghn.vn hiện có. Ghi lại sheet "Tổng hợp" từ web CHƯA làm ở đợt này — để đợt sau.
+
    Các action CÒN CHƯA port (quên mật khẩu qua OTP, "Lịch làm việc" — công việc/lịch họp) vẫn rơi
    xuống nhánh cũ gọi Apps Script — nhánh đó vẫn đang hỏng vì lý do ở trên, nhưng KHÔNG regressed gì
    thêm so với hiện trạng (những action này vốn đã không chạy được từ trước khi có thay đổi này).
@@ -47,6 +52,7 @@
    ============================================================================================ */
 
 const sheetsClient = require('./_sheetsClient.js');
+const reconClient = require('./_reconClient.js');
 
 // Các action đã port sang gọi thẳng Sheets API — xử lý tại đây, KHÔNG rơi xuống Apps Script.
 const LOCAL_ACTIONS = {
@@ -92,7 +98,9 @@ const LOCAL_ACTIONS = {
   // "Đang online" (avatar bar người đang xem báo cáo)
   heartbeat: sheetsClient.handleHeartbeat,
   getOnlineUsers: sheetsClient.handleGetOnlineUsers,
-     getLapDayData: sheetsClient.handleGetLapDayData
+  getLapDayData: sheetsClient.handleGetLapDayData,
+  // "Đối soát vận tải" (NCC <-> GHN)
+  getReconData: reconClient.handleGetReconData
 };
 
 // ================= NHÁNH CŨ: proxy sang Apps Script (giữ nguyên, dùng cho action chưa port) =================
@@ -188,7 +196,7 @@ module.exports = async (req, res) => {
       process.env.GOOGLE_OAUTH_CLIENT_SECRET && process.env.GOOGLE_OAUTH_REFRESH_TOKEN);
     res.status(200).json({
       ok: true,
-      proxy: 'GHN report backend proxy (hybrid: Sheets API truc tiep cho login/OTP/doi mat khau/bao cao van hanh/Cau hinh/Ke hoach KD/BCKQKD/Ke hoach Event/dang online, Apps Script cho phan con lai: quen mat khau, Lich lam viec)',
+      proxy: 'GHN report backend proxy (hybrid: Sheets API truc tiep cho login/OTP/doi mat khau/bao cao van hanh/Cau hinh/Ke hoach KD/BCKQKD/Ke hoach Event/dang online/doi soat van tai, Apps Script cho phan con lai: quen mat khau, Lich lam viec)',
       oauth: coCauHinhOAuth ? 'da cau hinh' : 'chua cau hinh',
       sessionSecret: !!process.env.SESSION_SECRET ? 'da cau hinh' : 'chua cau hinh',
       thoiGian: new Date().toISOString()
