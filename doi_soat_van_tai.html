@@ -1,0 +1,100 @@
+<!doctype html>
+  <html lang="vi">
+  <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đối Soát Vận Tải — NCC vs GHN (Vùng ĐBB)</title>
+  <link rel="stylesheet" href="/doi_soat_van_tai.css">
+  </head>
+  <body>
+  <div class="wrap">
+  
+    <!-- ================= ĐĂNG NHẬP (dùng chung tài khoản @ghn.vn với Báo Cáo Vận Hành) ================= -->
+  <div class="gate-wrap" id="loginGate">
+      <div class="login-card">
+        <h2>Đối Soát Vận Tải</h2>
+      <div class="sub">Đăng nhập bằng tài khoản @ghn.vn để xem dữ liệu đối soát NCC — GHN (dữ liệu lấy trực tiếp, luôn mới nhất từ Google Sheet).</div>
+      <div class="login-error" id="loginError" style="display:none"></div>
+        <div class="login-field">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="ten@ghn.vn" autocomplete="username">
+        </div>
+        <div class="login-field">
+          <label>Mật khẩu</label>
+        <input type="password" id="loginPassword" placeholder="Mật khẩu" autocomplete="current-password">
+        </div>
+        <button class="login-btn" id="loginBtn">Đăng nhập</button>
+    </div>
+  </div>
+
+  <!-- ================= ĐANG TẢI ================= -->
+    <div class="loading-gate" id="loadingGate" style="display:none">
+      <div>⏳ Đang tải dữ liệu đối soát mới nhất từ Google Sheet…</div>
+    </div>
+  
+    <!-- ================= APP CHÍNH (chỉ hiện sau khi đăng nhập + tải xong) ================= -->
+  <div id="appRoot" style="display:none">
+  
+      <div class="hdr">
+        <div class="hdr-top">
+          <div>
+            <h1>Đối Soát Chuyến Đi NCC — GHN <span class="tag">VÙNG DBB</span></h1>
+          <div class="sub">Đối chiếu toàn bộ cột dữ liệu NCC nhập với dữ liệu hệ thống GHN, khớp theo <b>Mã chuyến</b> &middot; Dữ liệu sống, lấy trực tiếp từ Google Sheet mỗi khi mở trang.</div>
+          </div>
+          <div class="hdr-actions">
+            <button class="btn orange" id="btnRefreshData" title="Tải lại dữ liệu mới nhất từ Google Sheet">&#8635; Cập nhật dữ liệu</button>
+            <button class="btn" id="btnExportDiff">&#8681; Xuất báo cáo sai lệch (CSV)</button>
+            <button class="btn danger" id="btnResetEdits">Xoá chỉnh sửa đã lưu</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-grid" id="summaryGrid"></div>
+
+    <div class="supplier-tabs" id="supplierTabs"></div>
+  
+      <div class="toolbar">
+        <input type="text" id="searchBox" placeholder="Tìm theo Mã chuyến / Biển số xe / Mã tuyến…">
+        <div class="status-filters" id="statusFilters"></div>
+      </div>
+  
+      <div class="field-breakdown" id="fieldBreakdown"></div>
+  
+      <div class="toolbar" style="gap:8px">
+        <span style="font-size:12px;color:var(--muted);font-weight:600;margin-right:4px">Xuất dữ liệu đã cập nhật:</span>
+        <div id="exportButtons" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      </div>
+  
+      <div class="table-card">
+        <table class="trips">
+          <thead>
+            <tr>
+              <th>Mã chuyến</th>
+            <th>Nhà cung cấp</th>
+            <th>Trạng thái</th>
+            <th>Sai lệch nghiêm trọng</th>
+            <th>Khác thông tin phụ</th>
+              <th>Biển số xe</th>
+            <th>Ngày kết thúc</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+        <div class="pagination" id="pagination"></div>
+      </div>
+  
+      <div class="footer-note">
+        Chỉnh sửa được lưu tạm trong trình duyệt (localStorage) — dùng nút "Xuất CSV" để lấy dữ liệu đã cập nhật rồi dán ngược lại Google Sheet.
+        Bấm "Cập nhật dữ liệu" bất kỳ lúc nào để tải lại dữ liệu mới nhất, không cần build lại file.
+      </div>
+  
+    </div>
+  
+  </div>
+  
+  <div class="saved-flash" id="flash"></div>
+  
+  <script src="/doi_soat_van_tai.js"></script>
+  </body>
+  </html>
+  div class="test">{"a":1}</div>
