@@ -4906,7 +4906,7 @@ document.addEventListener('click', function(e){
   }
 });
 const ALL_SECTIONS = ['sectionVanHanh','sectionKinhDoanh','sectionTruyThu','sectionCapacity','sectionNhanSu','sectionKeHoachEvent','sectionLichLamViec','sectionComingSoon','sectionTyLeLapDay','sectionDoiSoatVanTai'];
-function loadDoiSoatVanTai(){var frame=document.getElementById('dsvtFrame');if(!frame)return;if(frame.dataset.loaded==='1')return;frame.dataset.loaded='1';try{localStorage.setItem('doisoat_token',AUTH.session.token);}catch(e){}frame.src='doi_soat_van_tai.html';}
+function loadDoiSoatVanTai(){var frame=document.getElementById('dsvtFrame');if(!frame)return;if(frame.dataset.loaded==='1')return;frame.dataset.loaded='1';var tok='';try{tok=(AUTH&&AUTH.session&&AUTH.session.token)||'';if(!tok){var raw=localStorage.getItem('ghn_report_session_v1');if(raw){var sess=JSON.parse(raw);tok=(sess&&sess.token)||'';}}localStorage.setItem('doisoat_token',tok);}catch(e){}frame.onload=function(){var note=document.getElementById('dsvtLoadingNote');if(note)note.style.display='none';};frame.src='doi_soat_van_tai.html';}
   function switchSection(id){
   ALL_SECTIONS.forEach(s => {
     const el = document.getElementById(s);
