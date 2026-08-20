@@ -494,10 +494,10 @@
                                                               }
                                                               var rows = header.filter(function (h) { return h; }).map(function (h) {
                                                                       var res = diffsByField[h];
-                                                                      var cls = res ? fieldRowClass(res) : '';
-                                                                      var val = record[h] === undefined ? '' : record[h];
+                                                                      var cls = res ? fieldRowClass(res) : ''; var editable = (res === 'conflict' || res === 'missing_ncc' || res === 'missing_ghn'); if (!editable) cls += ' locked';
+                                                                      var val = record[h] === undefined ? '' : record[h]; var lockAttrs = editable ? '' : ' disabled title="Trường đã trùng khớp hoặc không thuộc phạm vi đối soát — không thể chỉnh sửa."';
                                                                       return '<div class="field-row ' + cls + '"><label title="' + escAttr(h) + '">' + escHtml(h) + '</label>' +
-                                                                                '<input type="text" data-side="' + side + '" data-field="' + escAttr(h) + '" data-id="' + id + '" value="' + escAttr(val) + '"></div>';
+                                                                                '<input type="text" data-side="' + side + '" data-field="' + escAttr(h) + '" data-id="' + id + '" value="' + escAttr(val) + '"' + lockAttrs + '></div>';
                                                               }).join('');
                                                               return '<div class="panel ' + side + '"><h4><span class="src-dot"></span>Dữ liệu ' + (side === 'ncc' ? 'NCC nhập (giữ nguyên ' + header.filter(function(h){return h;}).length + ' cột gốc)' : 'GHN hệ thống (giữ nguyên ' + header.filter(function(h){return h;}).length + ' cột gốc)') + '</h4>' + rows + '</div>';
                                                         }
