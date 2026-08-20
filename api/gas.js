@@ -95,7 +95,9 @@ const LOCAL_ACTIONS = {
   getOnlineUsers: sheetsClient.handleGetOnlineUsers,
   // "Đối soát vận tải" (NCC vs GHN)
   getReconData: reconClient.handleGetReconData,
-  syncTongHop: reconClient.handleSyncTongHop
+  syncTongHop: reconClient.handleSyncTongHop,
+  // "Tỷ lệ lấp đầy thùng xe"
+  getLapDayData: sheetsClient.handleGetLapDayData
 };
 
 // ================= NHÁNH CŨ: proxy sang Apps Script (giữ nguyên, dùng cho action chưa port) =================
