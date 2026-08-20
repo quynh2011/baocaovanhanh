@@ -70,20 +70,18 @@ async function handleSyncTongHop(body) {
     const mainHeader = mainRows[0] || [];
     const idxTenNCC = mainHeader.indexOf('Tên NCC');
     const idxSheetGhn = mainHeader.indexOf('Sheet Name GHN');
-    const ghnSheetToTenNCC = {};
+    const idxQuanLy = mainHeader.indexOf('Người Quản lý');
+    const idxNhap = mainHeader.indexOf('Người Nhập');
+    const ghnSheetToInfo = {};
     for (var i = 1; i < mainRows.length; i++) {
       var mr = mainRows[i];
       if (!mr || idxSheetGhn < 0 || !mr[idxSheetGhn]) continue;
-      ghnSheetToTenNCC[String(mr[idxSheetGhn]).trim()] = (idxTenNCC >= 0 ? mr[idxTenNCC] : '') || '';
+      ghnSheetToInfo[String(mr[idxSheetGhn]).trim()] = {
+        tenNCC: (idxTenNCC >= 0 ? mr[idxTenNCC] : '') || '',
+        nguoiQuanLy: (idxQuanLy >= 0 ? mr[idxQuanLy] : '') || '',
+        nguoiNhap: (idxNhap >= 0 ? mr[idxNhap] : '') || ''
+      };
     }
-    var nguoiQuanLy = '', nguoiNhap = '';
-    mainRows.forEach(function (r) {
-      if (!r) return;
-      var nhan = String(r[4] || '').trim();
-      var giaTri = r[5] || '';
-      if (nhan === 'Người Quản lý') nguoiQuanLy = giaTri;
-      if (nhan === 'Người Nhập') nguoiNhap = giaTri;
-    });
 
     var desired = [];
     ghnTitles.forEach(function (sheetName) {
@@ -92,7 +90,10 @@ async function handleSyncTongHop(body) {
       var header = rows[0] || [];
       var idx = {};
       header.forEach(function (h, i) { idx[String(h || '').trim()] = i; });
-      var tenNCC = ghnSheetToTenNCC[sheetName] || sheetName.replace('GHN_', '');
+      var info = ghnSheetToInfo[sheetName] || {};
+      var tenNCC = info.tenNCC || sheetName.replace('GHN_', '');
+      var nguoiQuanLy = info.nguoiQuanLy || '';
+      var nguoiNhap = info.nguoiNhap || '';
       for (var r = 1; r < rows.length; r++) {
         var row = rows[r];
         if (!row || !row.length) continue;
