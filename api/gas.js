@@ -101,6 +101,7 @@ const LOCAL_ACTIONS = {
   getLapDayData: sheetsClient.handleGetLapDayData,
   // "Đối soát vận tải" (NCC <-> GHN)
   getReconData: reconClient.handleGetReconData
+  syncTongHop: reconClient.handleSyncTongHop,
 };
 
 // ================= NHÁNH CŨ: proxy sang Apps Script (giữ nguyên, dùng cho action chưa port) =================
