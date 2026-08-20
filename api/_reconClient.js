@@ -67,7 +67,7 @@ function parseVNNum(s) {
   if (s === null || s === undefined) return 0;
   s = String(s).trim();
   if (!s) return 0;
-  s = s.replace(/./g, '').replace(',', '.');
+  s = s.replace(/\./g, '').replace(',', '.');
   var n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }
