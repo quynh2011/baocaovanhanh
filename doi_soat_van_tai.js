@@ -976,6 +976,7 @@
                                                                             btn.disabled = true;
                                                                             btn.textContent = 'Đang tải dữ liệu mới…';
                                                                             fetchAllSheetsAnonymous().then(function (rawData) {
+      apiPost('syncTongHop').catch(function (e) { console.warn('syncTongHop that bai:', e); });
                                                                                     var newData = rebuildDiffData(rawData);
                                                                                     DATA.field_map = newData.field_map;
                                                                                     DATA.suppliers = newData.suppliers;
@@ -1039,6 +1040,7 @@
                                                                             $('appRoot').style.display = 'none';
                                                                             $('loadingGate').style.display = '';
                                                                             fetchAllSheetsAnonymous().then(function (rawData) {
+      apiPost('syncTongHop').catch(function (e) { console.warn('syncTongHop that bai:', e); });
                                                                                     var newData = rebuildDiffData(rawData);
                                                                                     DATA.field_map = newData.field_map;
                                                                                     DATA.suppliers = newData.suppliers;
