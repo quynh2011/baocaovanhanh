@@ -220,6 +220,8 @@
           statusFilter: 'all', // all|critical|info|ncc_only|ghn_only|match
           fieldFilter: null, // tên tiêu chí đang lọc (vd 'Số tiền'), null = không lọc
           search: '',
+        dateFrom: '',
+        dateTo: '',
           page: 1,
           pageSize: 50,
           expandedId: null,
@@ -260,7 +262,12 @@
                                   var hasField = st.fieldDiffs.some(function (d) { return d.field_ncc === state.fieldFilter; });
                                   if (!hasField) return;
                         }
-                        if (q) {
+                    if (state.dateFrom || state.dateTo) {
+                        var dEnd = parseDateISO(st.mergedGhn['Ngày kết thúc']);
+                        if (state.dateFrom && (!dEnd || dEnd < state.dateFrom)) return;
+                        if (state.dateTo && (!dEnd || dEnd > state.dateTo)) return;
+                    }
+                    if (q) {
                                   var hay = (item.trip.ma_chuyen + ' ' +
                                                        (st.mergedNcc['Biển số xe'] || '') + ' ' + (st.mergedGhn['Biển số xe'] || '') + ' ' +
                                                        (st.mergedNcc['Mã tuyến'] || '') + ' ' + (st.mergedGhn['Mã tuyến'] || '')).toLowerCase();
@@ -1065,6 +1072,8 @@
                                                                             el.supplierTabs = $('supplierTabs');
                                                                             el.statusFilters = $('statusFilters');
                                                                             el.searchBox = $('searchBox');
+                                                                          el.dateFrom = $('dateFrom');
+                                                                          el.dateTo = $('dateTo');
                                                                             el.tableBody = $('tableBody');
                                                                             el.pagination = $('pagination');
                                                                             el.flash = $('flash');
@@ -1074,6 +1083,13 @@
                                                                             el.searchBox.addEventListener('input', function () {
                                                                                     state.search = el.searchBox.value; state.page = 1; state.expandedId = null; renderTable();
                                                                             });
+
+                                                                          el.dateFrom.addEventListener('change', function () {
+                                                                              state.dateFrom = el.dateFrom.value; state.page = 1; state.expandedId = null; renderTable();
+                                                                          });
+                                                                          el.dateTo.addEventListener('change', function () {
+                                                                              state.dateTo = el.dateTo.value; state.page = 1; state.expandedId = null; renderTable();
+                                                                          });
 
                                                                             $('btnExportDiff').addEventListener('click', exportDiffReportCsv);
                                                                             $('btnRefreshData').addEventListener('click', handleRefreshData);
