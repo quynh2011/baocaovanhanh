@@ -296,7 +296,7 @@ footer{margin-top:34px;padding-top:15px;border-top:1px solid var(--border);
   </div>
   <div class="right">
     Báo cáo phân tích vận tải<br>
-    Mốc Ngày: <b>first_check_in</b> · Mốc Tuần: <b>load_date</b>
+    Mốc Ngày: <b>Ngày chuyến</b> · Mốc Tuần: <b>Thứ 2 → Chủ nhật</b>
   </div>
 </header>
 
@@ -1177,7 +1177,7 @@ function ldEvidenceFull(r, kieu) {
 function ldLegTable(t, highlightIdx) {
   let h = '<div class="tbl-wrap"><table class="evi-tbl"><thead><tr>' +
     '<th>Chặng</th><th>Từ</th><th>Đến</th><th>km</th><th>kg trên xe</th><th>Đơn trên xe</th>' +
-    '<th>Lấp đầy (kg)</th><th>Lấp đầy (đơn)</th>' +
+    '<th>Lấp đầy (kg)</th><th>Lấp đầy (đơn)</th><th>Nhặt lên (kg)</th><th>Nhặt lên (đơn)</th>' +
     '<th style="text-align:left">Điểm đến làm gì (tải khi tới → khi rời)</th><th>Ghi chú</th>' +
     '</tr></thead><tbody>';
   t.legs.forEach(l => {
@@ -1204,7 +1204,7 @@ function ldLegTable(t, highlightIdx) {
       '<td>' + ldNum(l.kg, 1) + '</td>' +
       '<td>' + ldNum(l.dn) + '</td>' +
       '<td>' + ldPct(l.fk) + '</td>' +
-      '<td>' + ldPct(l.fd) + '</td>' +
+      '<td>' + ldPct(l.fd) + '</td>' + '<td>' + ldNum(l.pickedKg, 1) + '</td>' + '<td>' + ldNum(l.pickedDn) + '</td>' +
       '<td class="c-dg">' + dgTxt + '</td>' +
       // Ghi chú mang HAI tầng thông tin độc lập, cố ý không gộp:
       //   (1) chặng có rỗng không -> lãng phí KM (phân biệt rỗng tuyệt đối 0% và rỗng thực chất <10%)
