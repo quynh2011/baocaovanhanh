@@ -718,16 +718,22 @@ async function handleGetOnlineUsers(body) {
   return { ok: true, users: users };
 }
 
-// ====== "TỶ LỆ LẤP ĐẦY THÙNG XE" — đọc trực tiếp sheet "60_LapDay", bung chặng + tính tỷ lệ lấp đầy ======
-// Sheet nguồn xuất thô từ BI, 25 cột A..Y. Cột E gốc (thiết kế 26 cột đời đầu) đã bị NGƯỜI DÙNG XOÁ khỏi
-// sheet thật ngày 2026-08-14 nên mọi cột từ F trở đi lùi lại đúng 1 vị trí so với thiết kế gốc. Mapping
-// dưới đây đã đối chiếu TRỰC TIẾP với sheet thật (không suy đoán) — xem chỉ số cột (0-based) cạnh mỗi dòng.
-const LAPDAY_SHEET_NAME = '60_LapDay';
+/* ============================================================================================
+   ĐỢT 2026-08-20: đổi nguồn dữ liệu từ sheet "60_LapDay" (25 cột, đã ngừng cập nhật, nay rỗng) sang
+   "61_LapDayNew" (32 cột A..AF, cấu trúc hoàn toàn khác — đối chiếu trực tiếp với sheet thật, không
+   suy đoán). Các điểm khác biệt đã CHỐT VỚI NGHIỆP VỤ (Quỳnh, 2026-08-20):
+     - Lấp đầy/vận chuyển ở cấp CHUYẾN: sheet mới chỉ còn 1 chỉ số mỗi loại (không tách KG/ĐƠN như bản
+       cũ) -> fk = fd = cột D "Tỷ lệ lấp đầy"; vk = vd = cột V "Tỷ lệ vận chuyển" (2 giá trị vk/vd này
+       KHÔNG được lapday_view.html dùng ở đâu cả, giữ lại chỉ để tương thích ngược/mở rộng sau).
+     - Cờ "TUYẾN TĂNG CƯỜNG": dùng thẳng cột tường minh W "Chuyến tăng cường?" thay vì suy luận từ ô
+       Mã tuyến rỗng như bản cũ.
+     - Thêm dữ liệu "picked từng điểm" (cột AE/AF — hàng NHẶT LÊN tại mỗi điểm dừng), hoàn toàn mới,
+       không tồn tại ở bản cũ. Đưa vào legs[].pickedKg / legs[].pickedDn để frontend hiển thị thêm.
+   ============================================================================================ */
+const LAPDAY_SHEET_NAME = '61_LapDayNew';
 const LAPDAY_TUYEN_TANG_CUONG = 'TUYẾN TĂNG CƯỜNG';
 const LAPDAY_RE_KHO = /kho\s*chuy[ểe]n\s*ti[ếe]p|kho\s*trung\s*chuy[ểe]n|^\s*KTC\b/i;
 
-// Số kiểu Việt cho các cột đơn lẻ: "1.900" -> 1900 ; "27,58" -> 27.58. Nếu ô đã là number (Sheets API
-// trả UNFORMATTED_VALUE) thì dùng thẳng, không suy diễn thêm — chỉ parse text khi thật sự là chuỗi.
 function ldVnNum(s) {
   if (typeof s === 'number') return s;
   s = String(s === null || s === undefined ? '' : s).trim().replace('%', '');
@@ -736,7 +742,6 @@ function ldVnNum(s) {
   const n = parseFloat(s);
   return isNaN(n) ? null : n;
 }
-// Số kiểu Mỹ cho các ô "danh sách" (Lộ trình, Quãng đường từng điểm...) — luôn là text thô, dấu . thập phân.
 function ldUsNum(s) {
   if (typeof s === 'number') return s;
   s = String(s === null || s === undefined ? '' : s).trim().replace('%', '');
@@ -744,11 +749,9 @@ function ldUsNum(s) {
   const n = parseFloat(s);
   return isNaN(n) ? null : n;
 }
-// Bung ô dạng "(1) a\n(2) b\n..." thành {1:'a', 2:'b', ...}.
-// Cot phan tram DANG SO tu Sheets API tra ve PHAN SO 0..1 (o dinh dang %), khong nhu o chu da co san dau %.
 function ldPctFromSheet(v) {
-   if (typeof v === 'number') return v * 100;
-   return ldVnNum(v);
+  if (typeof v === 'number') return v * 100;
+  return ldVnNum(v);
 }
 function ldPlist(s) {
   const out = {};
@@ -758,17 +761,27 @@ function ldPlist(s) {
   return out;
 }
 function ldSerialToISODate(v) {
-     const pad = (n) => String(n).padStart(2, '0');
-     if (typeof v === 'number' && v) {
-            const d = serialToDate(v);
-            const vn = new Date(d.getTime() + VN_OFFSET_MS);
-            return vn.getUTCFullYear() + '-' + pad(vn.getUTCMonth() + 1) + '-' + pad(vn.getUTCDate());
-     }
-     if (typeof v === 'string' && v.trim()) {
-            const d = new Date(v.trim());
-            if (!isNaN(d.getTime())) return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-     }
-     return null;
+  const pad = (n) => String(n).padStart(2, '0');
+  if (typeof v === 'number' && v) {
+    const d = serialToDate(v);
+    const vn = new Date(d.getTime() + VN_OFFSET_MS);
+    return vn.getUTCFullYear() + '-' + pad(vn.getUTCMonth() + 1) + '-' + pad(vn.getUTCDate());
+  }
+  if (typeof v === 'string' && v.trim()) {
+    const d = new Date(v.trim());
+    if (!isNaN(d.getTime())) return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+  return null;
+}
+function ldWeekStart(isoDate) {
+  if (!isoDate) return null;
+  const d = new Date(isoDate + 'T00:00:00Z');
+  if (isNaN(d.getTime())) return null;
+  const dow = d.getUTCDay();
+  const diff = (dow === 0) ? -6 : (1 - dow);
+  d.setUTCDate(d.getUTCDate() + diff);
+  const pad = (n) => String(n).padStart(2, '0');
+  return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
 }
 
 async function handleGetLapDayData(body) {
@@ -780,8 +793,6 @@ async function handleGetLapDayData(body) {
   const header = values[0];
   const data = values.slice(1);
 
-  // Cờ debug: trả thẳng dòng dữ liệu thô + kiểu dữ liệu từng ô để đối chiếu, không tính toán gì —
-  // dùng 1 lần khi triển khai để xác nhận Sheets API trả number hay text cho từng cột, không lưu lại.
   if (body.debug) {
     const r0 = data[0] || [];
     return {
@@ -795,14 +806,14 @@ async function handleGetLapDayData(body) {
 
   data.forEach((r) => {
     if (!r || !r.length) return;
-    const lo  = ldPlist(r[7]);   // H  Lộ trình
-    const km  = ldPlist(r[9]);   // J  Quãng đường từng điểm dừng
-    const kgX = ldPlist(r[14]);  // O  Số kg trên xe
-    const dnX = ldPlist(r[15]);  // P  Số đơn trên xe
-    const kgV = ldPlist(r[16]);  // Q  Số kg vận chuyển
-    const dnV = ldPlist(r[17]);  // R  Số đơn vận chuyển
-    const fKg = ldPlist(r[18]);  // S  Tỷ lệ lấp đầy tại mỗi điểm (kg)
-    const fDn = ldPlist(r[19]);  // T  Tỷ lệ lấp đầy tại mỗi điểm (đơn)
+    const lo = ldPlist(r[5]);
+    const km = ldPlist(r[25]);
+    const kgX = ldPlist(r[26]);
+    const dnX = ldPlist(r[27]);
+    const fKg = ldPlist(r[28]);
+    const fDn = ldPlist(r[29]);
+    const pkKg = ldPlist(r[30]);
+    const pkDn = ldPlist(r[31]);
     const n = Object.keys(lo).length;
     if (n < 2) return;
 
@@ -816,28 +827,30 @@ async function handleGetLapDayData(body) {
       legs.push({
         i: i, tu: (lo[i] || '').trim(), den: dest, km: Math.round(d * 10) / 10,
         fk: ldUsNum(fKg[i]), fd: ldUsNum(fDn[i]), kg: ldUsNum(kgX[i]), dn: ldUsNum(dnX[i]),
+        pickedKg: ldUsNum(pkKg[i]), pickedDn: ldUsNum(pkDn[i]),
         r: veKho ? 1 : 0
       });
     }
 
-    const ngay = ldSerialToISODate(r[24]);  // Y  first_check_in: Day
-    const tuan = ldSerialToISODate(r[0]);   // A  load_date: Week
+    const ngay = ldSerialToISODate(r[24]);
+    const tangCuong = r[22] === true || r[22] === 1 || String(r[22] || '').trim() === '1';
+    const maTuyen = String(r[13] || '').trim();
+    const fill = ldPctFromSheet(r[3]);
+    const vanChuyen = ldPctFromSheet(r[21]);
     trips.push({
-      ng: ngay, tw: tuan, th: (ngay || '').slice(0, 7),
-      ncc: String(r[6] || '').trim(),
-      tuyen: String(r[2] || '').trim() || LAPDAY_TUYEN_TANG_CUONG,
-      ma: String(r[1] || '').trim(),
-      bks: String(r[10] || '').trim(),
-      loai: String(r[3] || '').trim(),
-      batdau: String(r[4] || '').trim(),
-      km: ldVnNum(r[8]),    // I  tổng quãng đường
-      tt: ldVnNum(r[11]),   // L  tải trọng
-      dtc: ldVnNum(r[12]),  // M  số đơn tiêu chuẩn
-      ktc: ldVnNum(r[13]),  // N  số kg tiêu chuẩn
-      fk: ldPctFromSheet(r[20]),   // U  lấp đầy chuyến (kg)
-      fd: ldPctFromSheet(r[21]),   // V  lấp đầy chuyến (đơn)
-      vk: ldPctFromSheet(r[22]),   // W  tỷ lệ vận chuyển (kg)
-      vd: ldPctFromSheet(r[23]),   // X  tỷ lệ vận chuyển (đơn)
+      ng: ngay, tw: ldWeekStart(ngay), th: (ngay || '').slice(0, 7),
+      ncc: String(r[15] || '').trim(),
+      tuyen: tangCuong ? LAPDAY_TUYEN_TANG_CUONG : (maTuyen || LAPDAY_TUYEN_TANG_CUONG),
+      ma: String(r[2] || '').trim(),
+      bks: String(r[14] || '').trim(),
+      loai: String(r[4] || '').trim(),
+      batdau: String(r[10] || '').trim(),
+      km: ldVnNum(r[18]),
+      tt: ldVnNum(r[16]),
+      dtc: null,
+      ktc: ldVnNum(r[16]),
+      fk: fill, fd: fill,
+      vk: vanChuyen, vd: vanChuyen,
       legs: legs
     });
   });
@@ -855,6 +868,7 @@ async function handleGetLapDayData(body) {
   };
   return { ok: true, meta: meta, trips: trips };
 }
+
 
 // ====== "CẤU HÌNH" > "HẠNG MỤC & PHÂN QUYỀN" — port từ handleGetModuleConfig/handleUpdateModuleConfig ======
 async function ensureModuleConfigSheet() {
