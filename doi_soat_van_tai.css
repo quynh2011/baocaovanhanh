@@ -116,7 +116,7 @@ tr.detail-row td{padding:0;border-bottom:1px solid var(--border);background:#faf
 .field-row.conflict input{border-color:var(--red);background:var(--red-bg)}
 .field-row.missing input{border-color:var(--amber);background:var(--amber-bg)}
 .field-row.ok input{border-color:var(--green)}
-.field-row.edited input{box-shadow:0 0 0 2px rgba(20,71,230,.25)}
+.field-row.edited input{box-shadow:0 0 0 2px rgba(20,71,230,.25)}.field-row.locked{opacity:.55}.field-row.locked input{background:#f1f2f5;color:#8a8f98;cursor:not-allowed}.field-row.locked input:disabled{-webkit-text-fill-color:#8a8f98}
 
 .diff-summary{margin-top:14px}
 .diff-summary h4{font-size:13px;margin:0 0 8px}
