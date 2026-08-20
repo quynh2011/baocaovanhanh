@@ -4922,7 +4922,7 @@ function loadDoiSoatVanTai(){var frame=document.getElementById('dsvtFrame');if(!
     if (id === 'sectionTyLeLapDay') loadTyLeLapDay(); if (id === 'sectionDoiSoatVanTai') loadDoiSoatVanTai();
   if (id === 'sectionLichLamViec') loadLichLamViec();
   var tldFab = document.getElementById('tldTocFab');
-  if (tldFab) tldFab.style.display = (id === 'sectionTyLeLapDay') ? 'flex' : 'none';
+  if (tldFab) tldFab.style.display = 'none'; // ĐỢT 2026-08-20: bỏ nút Mục lục ngoài (trùng với nút Mục lục bên trong iframe lapday_view.html)
   if (id !== 'sectionTyLeLapDay' && typeof tldCloseToc === 'function') tldCloseToc();
   if (typeof window.scrollTo === 'function') window.scrollTo(0,0);
 }
