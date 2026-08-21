@@ -98,7 +98,7 @@ const LOCAL_ACTIONS = {
   syncTongHop: reconClient.handleSyncTongHop,
   // "Tỷ lệ lấp đầy thùng xe"
   getLapDayData: sheetsClient.handleGetLapDayData,
-  debugSheet62: sheetsClient.handleDebugSheet62
+  getRPLapDayData: sheetsClient.handleGetRPLapDayData
 };
 
 // ================= NHÁNH CŨ: proxy sang Apps Script (giữ nguyên, dùng cho action chưa port) =================
