@@ -307,6 +307,16 @@ footer{margin-top:34px;padding-top:15px;border-top:1px solid var(--border);
 .rpld-total-row td{font-weight:700;background:var(--bg)!important;border-top:2px solid var(--border-strong)}
 .rpld-tag{font-size:9px;color:var(--muted);font-weight:400}
 .rpld-star{color:var(--ghn-orange)}
+
+/* ---- thu gon / mo rong muc lon va nhom de xuat ---- */
+.sec-toggle{margin-left:auto;width:24px;height:24px;border-radius:6px;border:1px solid var(--border-strong);
+  background:#fff;color:var(--blue);cursor:pointer;font-size:11px;line-height:1;flex-shrink:0;
+  display:inline-flex;align-items:center;justify-content:center;padding:0}
+.sec-toggle:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+section.sec-collapsed>*:not(h2){display:none}
+.dx-nhom.sec-collapsed>*:not(.dx-head){display:none}
+.dx-head{position:relative}
+.dx-toggle{margin-left:12px;align-self:center}
 </style>
 </head>
 <body>
@@ -877,8 +887,9 @@ function ldRenderKpi(trips) {
   h += '<div class="sec-sub">Phân bố chuyến theo cấp độ lấp đầy</div>';
   h += '<div class="cap-now ' + (capHT !== null ? LD_CAPS[String(capHT)].cls : '') + '">' +
     '<div><span class="cn-lb">Tỷ lệ lấp đầy trung bình hiện tại</span>' +
-    '<b class="cn-val">' + ldPct(k.fillKg) + '</b><span class="cn-unit">(kg)</span>' +
-    '<span class="cn-sep">·</span><b class="cn-val2">' + ldPct(k.fillDon) + '</b><span class="cn-unit">(đơn)</span></div>' +
+    '<b class="cn-val">' + ldPct(k.fillKg) + '</b></div>' +
+    '<div><span class="cn-lb">Tỷ lệ vận chuyển trung bình</span>' +
+    '<b class="cn-val2">' + ldPct(k.vanChuyen) + '</b></div>' +
     '<div>' + ldBadge(capHT) + '</div></div>';
 
   h += '<div class="cap-grid">';
@@ -1795,6 +1806,13 @@ function rpldBucketOf(fk) {
   for (let i = 0; i < RPLD_BUCKETS.length; i++) { const b = RPLD_BUCKETS[i]; if (fk >= b.lo && fk < b.hi) return b.key; }
   return null;
 }
+let RPLD_OV_DEPOT = 'ALL', RPLD_BK_DEPOT = 'ALL';
+function ldRPLDScopeTrips() {
+  let t = (window.LD_DATA && window.LD_DATA.trips) || [];
+  if (LD.from) t = t.filter(x => x.ng && x.ng >= LD.from);
+  if (LD.to) t = t.filter(x => x.ng && x.ng <= LD.to);
+  return t;
+}
 function ldRPLDDepots(trips) {
   const set = new Set();
   trips.forEach(t => { const kv = ldKhuVuc(t.tuyen, t.batdau); if (kv) set.add(kv); });
@@ -1828,12 +1846,12 @@ function ldRPLDBucketDaily(trips, depot, days) {
 }
 function ldRPLDDepotOptions(trips, selected) {
   const depots = ldRPLDDepots(trips);
-  let h = '<option value="ALL"' + (selected === 'ALL' ? ' selected' : '') + '>Toan vung</option>';
+  let h = '<option value="ALL"' + (selected === 'ALL' ? ' selected' : '') + '>Toàn vùng</option>';
   depots.forEach(d => { h += '<option value="' + ldAttr(d) + '"' + (selected === d ? ' selected' : '') + '>' + ldEsc(d) + '</option>'; });
   return h;
 }
 function ldRPLDOverviewChartSVG(arr) {
-  if (!arr.length) return '<div class="empty">Khong co du lieu.</div>';
+  if (!arr.length) return '<div class="empty">Không có dữ liệu.</div>';
   const W = 900, H = 280, padL = 46, padR = 46, padT = 24, padB = 40;
   const n = arr.length;
   const gw = (W - padL - padR) / n;
@@ -1854,9 +1872,9 @@ function ldRPLDOverviewChartSVG(arr) {
     const sdH = (H - padT - padB) * Math.min(1, (p.sd || 0) / sdMax);
     const klY = (H - padB) - klH, sdY = (H - padB) - sdH;
     const klX = cx - barW - 2, sdX = cx + 2;
-    svg += '<rect x="' + klX.toFixed(1) + '" y="' + klY.toFixed(1) + '" width="' + barW + '" height="' + klH.toFixed(1) + '" fill="#0F6E56" opacity="0.78" rx="2"><title>' + ldEsc(ldDayFull(p.ng)) + ' — Khoi luong ' + ldNum(p.kl, 1) + ' tan</title></rect>';
+    svg += '<rect x="' + klX.toFixed(1) + '" y="' + klY.toFixed(1) + '" width="' + barW + '" height="' + klH.toFixed(1) + '" fill="#0F6E56" opacity="0.78" rx="2"><title>' + ldEsc(ldDayFull(p.ng)) + ' — Khối lượng luân chuyển ' + ldNum(p.kl, 1) + ' tấn</title></rect>';
     if (p.kl) svg += '<text x="' + (klX + barW / 2).toFixed(1) + '" y="' + (klY - 4).toFixed(1) + '" font-size="8" fill="#0F6E56" text-anchor="middle">' + ldNum(p.kl, 1) + '</text>';
-    svg += '<rect x="' + sdX.toFixed(1) + '" y="' + sdY.toFixed(1) + '" width="' + barW + '" height="' + sdH.toFixed(1) + '" fill="#F15A22" opacity="0.78" rx="2"><title>' + ldEsc(ldDayFull(p.ng)) + ' — So don ' + ldNum(p.sd) + '</title></rect>';
+    svg += '<rect x="' + sdX.toFixed(1) + '" y="' + sdY.toFixed(1) + '" width="' + barW + '" height="' + sdH.toFixed(1) + '" fill="#F15A22" opacity="0.78" rx="2"><title>' + ldEsc(ldDayFull(p.ng)) + ' — Số đơn luân chuyển ' + ldNum(p.sd) + '</title></rect>';
     if (p.sd) svg += '<text x="' + (sdX + barW / 2).toFixed(1) + '" y="' + (sdY - 4).toFixed(1) + '" font-size="8" fill="#F15A22" text-anchor="middle">' + ldNum(p.sd) + '</text>';
     svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 14).toFixed(1) + '" font-size="9" fill="#6B6860" text-anchor="middle">' + ldDay(p.ng) + '</text>';
   });
@@ -1865,21 +1883,30 @@ function ldRPLDOverviewChartSVG(arr) {
   if (d) svg += '<path d="' + d + '" fill="none" stroke="#0063AA" stroke-width="2.5"/>';
   arr.forEach((p, i) => {
     if (p.fill === null || p.fill === undefined) return;
-    svg += '<circle cx="' + xC(i).toFixed(1) + '" cy="' + yFill(p.fill).toFixed(1) + '" r="3.2" fill="#0063AA"><title>' + ldEsc(ldDayFull(p.ng)) + ' — Lap day TB ' + ldPct(p.fill) + ' · ' + p.soChuyen + ' chuyen</title></circle>';
+    svg += '<circle cx="' + xC(i).toFixed(1) + '" cy="' + yFill(p.fill).toFixed(1) + '" r="3.2" fill="#0063AA"><title>' + ldEsc(ldDayFull(p.ng)) + ' — Lấp đầy TB ' + ldPct(p.fill) + ' · ' + p.soChuyen + ' chuyến</title></circle>';
     svg += '<text x="' + xC(i).toFixed(1) + '" y="' + (yFill(p.fill) - 8).toFixed(1) + '" font-size="9" font-weight="600" fill="#0063AA" text-anchor="middle">' + ldPct(p.fill, 0) + '</text>';
   });
   svg += '</svg>';
   return svg;
 }
 function ldRPLDBucketChartSVG(arr) {
-  if (!arr.length) return '<div class="empty">Khong co du lieu.</div>';
-  const W = 900, H = 240, padL = 30, padR = 16, padT = 20, padB = 34;
+  if (!arr.length) return '<div class="empty">Không có dữ liệu.</div>';
+  const W = 900, H = 270, padL = 34, padR = 16, padT = 20, padB = 34;
   const n = arr.length;
   const gw = (W - padL - padR) / n;
-  const barW = Math.min(46, gw * 0.55);
-  const maxTotal = Math.max.apply(null, arr.map(p => p.soChuyen).concat([1]));
-  const yScale = v => (H - padT - padB) * (v / maxTotal);
+  const barW = Math.min(50, gw * 0.58);
+  const rawMax = Math.max.apply(null, arr.map(p => p.soChuyen).concat([1]));
+  const niceMax = Math.ceil(rawMax / 10) * 10 || 10;
+  const yScale = v => (H - padT - padB) * (v / niceMax);
+  const yPos = v => (H - padB) - yScale(v);
   let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="rpld-bucket-svg">';
+  const ticks = 5;
+  for (let k = 0; k <= ticks; k++) {
+    const v = Math.round(niceMax * k / ticks);
+    const y = yPos(v);
+    svg += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '" stroke="#E8E5DF" stroke-width="1"/>';
+    svg += '<text x="' + (padL - 6) + '" y="' + (y + 3.5).toFixed(1) + '" font-size="9" fill="#9E9B93" text-anchor="end">' + v + '</text>';
+  }
   arr.forEach((p, i) => {
     const cx = padL + gw * (i + 0.5);
     let yCursor = H - padB;
@@ -1888,22 +1915,28 @@ function ldRPLDBucketChartSVG(arr) {
       if (!cnt) return;
       const bh = yScale(cnt);
       const y = yCursor - bh;
+      const pct = p.soChuyen ? Math.round(cnt / p.soChuyen * 100) : 0;
       const tenPlain = b.ten.replace('&lt;', '<').replace('&ge;', '≥');
-      svg += '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW + '" height="' + bh.toFixed(1) + '" fill="' + b.mau + '" opacity="0.85"><title>' + ldEsc(ldDayFull(p.ng)) + ' — ' + tenPlain + ': ' + cnt + ' chuyen</title></rect>';
-      if (bh > 12) svg += '<text x="' + cx.toFixed(1) + '" y="' + (y + bh / 2 + 3).toFixed(1) + '" font-size="9" fill="#fff" text-anchor="middle" font-weight="600">' + cnt + '</text>';
+      svg += '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW + '" height="' + bh.toFixed(1) + '" fill="' + b.mau + '" stroke="#fff" stroke-width="1"><title>' + ldEsc(ldDayFull(p.ng)) + ' — ' + tenPlain + ': ' + cnt + ' chuyến (' + pct + '%)</title></rect>';
+      if (bh > 20) {
+        svg += '<text x="' + cx.toFixed(1) + '" y="' + (y + bh / 2 - 1).toFixed(1) + '" font-size="10" fill="#fff" text-anchor="middle" font-weight="700">' + cnt + '</text>';
+        svg += '<text x="' + cx.toFixed(1) + '" y="' + (y + bh / 2 + 10).toFixed(1) + '" font-size="8" fill="#fff" text-anchor="middle" opacity="0.9">' + pct + '%</text>';
+      } else if (bh > 9) {
+        svg += '<text x="' + cx.toFixed(1) + '" y="' + (y + bh / 2 + 3).toFixed(1) + '" font-size="9" fill="#fff" text-anchor="middle" font-weight="700">' + cnt + '</text>';
+      }
       yCursor = y;
     });
     svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 14).toFixed(1) + '" font-size="9" fill="#6B6860" text-anchor="middle">' + ldDay(p.ng) + '</text>';
-    svg += '<text x="' + cx.toFixed(1) + '" y="' + (yCursor - 4).toFixed(1) + '" font-size="9.5" font-weight="700" fill="#1A1917" text-anchor="middle">' + p.soChuyen + '</text>';
+    svg += '<text x="' + cx.toFixed(1) + '" y="' + (yCursor - 6).toFixed(1) + '" font-size="10" font-weight="700" fill="#1A1917" text-anchor="middle">' + p.soChuyen + ' chuyến</text>';
   });
   svg += '</svg>';
   return svg;
 }
 function ldRPLDOverviewBox(trips, depot) {
   const arr = ldRPLDDaily(trips, depot, 15);
-  return '<div class="legend"><span class="lg"><i style="background:#0063AA"></i>Ty le lap day TB (%)</span>' +
-    '<span class="lg"><i style="background:#0F6E56"></i>Tong khoi luong luan chuyen (tan)</span>' +
-    '<span class="lg"><i style="background:#F15A22"></i>Tong so don luan chuyen</span></div>' +
+  return '<div class="legend"><span class="lg"><i style="background:#0063AA"></i>Tỷ lệ lấp đầy TB (%)</span>' +
+    '<span class="lg"><i style="background:#0F6E56"></i>Tổng khối lượng luân chuyển (tấn)</span>' +
+    '<span class="lg"><i style="background:#F15A22"></i>Tổng số đơn luân chuyển</span></div>' +
     ldRPLDOverviewChartSVG(arr);
 }
 function ldRPLDBucketBox(trips, depot) {
@@ -1912,12 +1945,14 @@ function ldRPLDBucketBox(trips, depot) {
     ldRPLDBucketChartSVG(arr);
 }
 function ldRPLDOvChange(sel) {
+  RPLD_OV_DEPOT = sel.value;
   const box = document.getElementById('rpldOvChartBox');
-  if (box) box.innerHTML = ldRPLDOverviewBox(window.LD_DATA.trips, sel.value);
+  if (box) box.innerHTML = ldRPLDOverviewBox(ldRPLDScopeTrips(), RPLD_OV_DEPOT);
 }
 function ldRPLDBkChange(sel) {
+  RPLD_BK_DEPOT = sel.value;
   const box = document.getElementById('rpldBkChartBox');
-  if (box) box.innerHTML = ldRPLDBucketBox(window.LD_DATA.trips, sel.value);
+  if (box) box.innerHTML = ldRPLDBucketBox(ldRPLDScopeTrips(), RPLD_BK_DEPOT);
 }
 
 function ldRenderRPLD() {
@@ -1926,9 +1961,12 @@ if (!d || !d.blocks || !d.blocks.length) return '';
 let h = '<section id="secRPLD"><h2><span class="num rpld-star">&#9733;</span>Top trend tỷ lệ lấp đầy</h2>';
 h += '<div class="hint">Dữ liệu tổng hợp trực tiếp từ sheet <b>62_RPlapday</b> — bảng, cột và kỳ so sánh được nhận diện tự động theo cấu trúc gộp ô, không cố định số dòng/cột. Mũi tên dưới mỗi ô cho biết chiều tăng/giảm so với kỳ liền trước (kỳ nào sheet đã có sẵn chênh lệch thì lấy đúng dấu của chênh lệch đó).</div>';
 {
-  const allTrips = (window.LD_DATA && window.LD_DATA.trips) || [];
-  h += '<div class="rpld-block rpld-chart-wrap"><div class="rpld-block-title"><span>Bieu do tong theo ngay</span><select class="rpld-depot-sel" onchange="ldRPLDOvChange(this)">' + ldRPLDDepotOptions(allTrips, 'ALL') + '</select></div><div id="rpldOvChartBox" class="rpld-chart-box">' + ldRPLDOverviewBox(allTrips, 'ALL') + '</div></div>';
-  h += '<div class="rpld-block rpld-chart-wrap"><div class="rpld-block-title"><span>Nhom ty le lap day theo ngay (7 ngay gan nhat)</span><select class="rpld-depot-sel" onchange="ldRPLDBkChange(this)">' + ldRPLDDepotOptions(allTrips, 'ALL') + '</select></div><div id="rpldBkChartBox" class="rpld-chart-box">' + ldRPLDBucketBox(allTrips, 'ALL') + '</div></div>';
+  const allTrips = ldRPLDScopeTrips();
+  const availDepots = ['ALL'].concat(ldRPLDDepots(allTrips));
+  if (availDepots.indexOf(RPLD_OV_DEPOT) === -1) RPLD_OV_DEPOT = 'ALL';
+  if (availDepots.indexOf(RPLD_BK_DEPOT) === -1) RPLD_BK_DEPOT = 'ALL';
+  h += '<div class="rpld-block rpld-chart-wrap"><div class="rpld-block-title"><span>Biểu đồ tổng theo ngày</span><select class="rpld-depot-sel" onchange="ldRPLDOvChange(this)">' + ldRPLDDepotOptions(allTrips, RPLD_OV_DEPOT) + '</select></div><div id="rpldOvChartBox" class="rpld-chart-box">' + ldRPLDOverviewBox(allTrips, RPLD_OV_DEPOT) + '</div></div>';
+  h += '<div class="rpld-block rpld-chart-wrap"><div class="rpld-block-title"><span>Nhóm tỷ lệ lấp đầy theo ngày (7 ngày gần nhất)</span><select class="rpld-depot-sel" onchange="ldRPLDBkChange(this)">' + ldRPLDDepotOptions(allTrips, RPLD_BK_DEPOT) + '</select></div><div id="rpldBkChartBox" class="rpld-chart-box">' + ldRPLDBucketBox(allTrips, RPLD_BK_DEPOT) + '</div></div>';
 }
 d.blocks.forEach(b => { h += ldRPLDBlockTable(b); });
 h += '</section>';
@@ -1977,6 +2015,42 @@ h += '<section id="sec0"><h2><span class="num">0</span>Tổng quan</h2>' + ldRen
   if (nang || over) h += '<section id="sec6"><h2><span class="num">6</span>Chuyến bất thường</h2>' + nang + over + '</section>';
 
   body.innerHTML = h;
+  ldAddCollapseUI(body);
+}
+
+/* Them nut thu gon/mo rong cho cac muc lon (section) va tung nhom de xuat (dx-nhom).
+   Chay lai sau moi lan ldRender() vi toan bo #body duoc dung lai tu dau. */
+function ldAddCollapseUI(root) {
+  root.querySelectorAll('section[id]').forEach(sec => {
+    const h2 = sec.querySelector(':scope > h2');
+    if (!h2) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sec-toggle';
+    btn.title = 'Thu gọn / Mở rộng mục này';
+    btn.textContent = '▾';
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      sec.classList.toggle('sec-collapsed');
+      btn.textContent = sec.classList.contains('sec-collapsed') ? '▸' : '▾';
+    };
+    h2.appendChild(btn);
+  });
+  root.querySelectorAll('.dx-nhom').forEach(nhom => {
+    const head = nhom.querySelector(':scope > .dx-head');
+    if (!head) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sec-toggle dx-toggle';
+    btn.title = 'Thu gọn / Mở rộng nhóm này';
+    btn.textContent = '▾';
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      nhom.classList.toggle('sec-collapsed');
+      btn.textContent = nhom.classList.contains('sec-collapsed') ? '▸' : '▾';
+    };
+    head.appendChild(btn);
+  });
 }
 
 /* ---------- Mục lục / Làm mới / Xuất HTML (đồng bộ cách làm của web) ---------- */
