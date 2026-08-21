@@ -1967,6 +1967,16 @@ async function handleGetEventSubmissions(body) {
 }
 
 
+async function handleDebugSheet62(body) {
+  const auth = await requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  const qs = new URLSearchParams();
+  qs.append('ranges', "'62_RPlapday'");
+  qs.append('fields', 'sheets(properties.title,properties.gridProperties,merges,data.rowData.values(formattedValue,userEnteredFormat.backgroundColor,userEnteredFormat.textFormat.bold))');
+  const data = await apiCall(SHEET_ID, '?' + qs.toString());
+  return { ok: true, data };
+}
+
 module.exports = {
   SHEET_ID, KEHOACH_SHEET_ID, MAIN_SHEET_NAME, COL,
   getAccessToken, getValues, batchGetValues, batchUpdateValues, getSheetTitles, getNumberFormats,
@@ -1983,5 +1993,6 @@ module.exports = {
   handleGetEventData, handleSaveEventSchema, handleSaveEventPeriod, handleDeleteEventPeriod,
   handleSaveEventSubmission, handleGetEventSubmissions,
   handleHeartbeat, handleGetOnlineUsers,
-  handleGetLapDayData
+  handleGetLapDayData,
+  handleDebugSheet62
 };
