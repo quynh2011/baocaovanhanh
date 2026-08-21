@@ -285,19 +285,23 @@ footer{margin-top:34px;padding-top:15px;border-top:1px solid var(--border);
   .fld select{min-width:130px}
 }
 
-.rpld-block{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px}
-.rpld-block-title{font-weight:600;font-size:13px;margin-bottom:10px;color:var(--text)}
+.rpld-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.rpld-block-title{font-weight:700;font-size:13px;padding:10px 16px;color:var(--text);background:var(--bg);border-bottom:1px solid var(--border);letter-spacing:.02em}
+.rpld-block .tbl-wrap{padding:0}
+.rpld-block table{width:100%;border-collapse:collapse;font-size:12px}
+.rpld-block thead th{padding:8px 10px;font-weight:700;border-bottom:2px solid var(--border-strong);white-space:nowrap}
+.rpld-block thead tr:first-child th{font-size:11.5px}
+.rpld-block thead tr:last-child th{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.02em;color:var(--muted);background:var(--bg)}
+.rpld-block tbody td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.rpld-block tbody tr:nth-child(even) td{background:rgba(0,0,0,.015)}
+.rpld-block tbody tr:hover td{background:rgba(0,98,170,.05)}
 .rpld-chart-wrap{padding:16px}
 .rpld-chart-title{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
 .rpld-chart-svg{width:100%;height:auto;display:block}
 .rpld-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
 .rpld-lg-item{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
 .rpld-lg-item i{width:9px;height:9px;border-radius:2px;display:inline-block}
-.rpld-ar{font-size:9px;display:inline-block;margin-top:1px}
-.rpld-ar-up{color:var(--c0)}
-.rpld-ar-down{color:var(--c4)}
-.rpld-ar-flat{color:var(--hint)}
-.rpld-total-row td{font-weight:600;background:var(--bg)}
+.rpld-total-row td{font-weight:700;background:var(--bg)!important;border-top:2px solid var(--border-strong)}
 .rpld-tag{font-size:9px;color:var(--muted);font-weight:400}
 .rpld-star{color:var(--ghn-orange)}
 </style>
@@ -1709,19 +1713,13 @@ function ldPhamVi(trips) {
 
 
 /* ============================ TOP TREND TỶ LỆ LẤP ĐẦY (sheet 62_RPlapday) ============================ */
-function ldRPLDArrow(trend) {
-if (trend === 'up') return '<span class="rpld-ar rpld-ar-up">&#9650;</span>';
-if (trend === 'down') return '<span class="rpld-ar rpld-ar-down">&#9660;</span>';
-if (trend === 'flat') return '<span class="rpld-ar rpld-ar-flat">&ndash;</span>';
-return '';
-}
 function ldRPLDBlockTable(b) {
 const multiLevel = b.periods.some(p => p.metrics.length > 1);
-let h = '<div class="rpld-block"><div class="rpld-block-title">' + ldEsc(b.title) + '</div>';
+let h = '<div class="rpld-block"><div class="rpld-block-title"' + (b.titleBg ? ' style="background:' + b.titleBg + '"' : '') + '>' + ldEsc(b.title) + '</div>';
 h += '<div class="tbl-wrap"><table><thead><tr>';
 b.dimHeaders.forEach(dh => { h += '<th rowspan="' + (multiLevel ? 2 : 1) + '" style="text-align:left">' + ldEsc(dh) + '</th>'; });
 b.periods.forEach(p => {
-h += '<th colspan="' + p.metrics.length + '">' + ldEsc(p.label) + (p.type === 'delta' ? ' <span class="rpld-tag">&Delta; so kỳ trước</span>' : '') + '</th>';
+h += '<th colspan="' + p.metrics.length + '"' + (p.bg ? ' style="background:' + p.bg + '"' : '') + '>' + ldEsc(p.label) + (p.type === 'delta' ? ' <span class="rpld-tag">&Delta; so kỳ trước</span>' : '') + '</th>';
 });
 h += '</tr>';
 if (multiLevel) {
@@ -1737,8 +1735,9 @@ b.periods.forEach(p => {
 p.metrics.forEach(m => {
 const cell = ro.cells[m.col];
 const txt = cell ? cell.text : '';
-const arrow = cell ? ldRPLDArrow(cell.trend) : '';
-h += '<td>' + ldEsc(txt) + (arrow ? '<br>' + arrow : '') + '</td>';
+const cColor = cell ? cell.color : null;
+const tdStyle = 'text-align:right' + (cColor ? ';color:' + cColor + ';font-weight:600' : '');
+h += '<td style="' + tdStyle + '">' + ldEsc(txt) + '</td>';
 });
 });
 h += '</tr>';
