@@ -1976,6 +1976,9 @@ async function handleGetEventSubmissions(body) {
 //     luôn dấu của số đó làm mũi tên; nếu nhóm kỳ chỉ có số tuyệt đối, tự so với nhóm kỳ liền kề (cũ hơn) cùng
 //     tên chỉ số để suy ra tăng/giảm.
 //   - Biểu đồ tổng quan: chọn tự động bảng có nhiều kỳ nhất mà mỗi kỳ chỉ có đúng 1 chỉ số (dễ vẽ 1 đường/kỳ).
+// FIX 2026-08-21b: bản trước bị mất ký tự "\\" khi ghi qua template literal (\. -> ., \s -> s, \b -> b),
+// khiến rpldParseNumber() luôn trả về null (regex /./g xoá mọi ký tự thay vì chỉ dấu chấm). Lần này dùng
+// double-backslash trong template literal để giữ đúng \. \s \b trong regex nguồn.
 const RPLD_SHEET_NAME = '62_RPlapday';
 
 function rpldEffectiveCell(rowData, merges, r, c) {
@@ -2003,7 +2006,7 @@ function rpldParseNumber(text) {
   const isPct = /%$/.test(s);
   s = s.replace('%', '').trim();
   if (!/^-?[0-9.,]+$/.test(s)) return null;
-  s = s.replace(/./g, '').replace(',', '.');
+  s = s.split('.').join('').split(',').join('.');
   const n = parseFloat(s);
   return isNaN(n) ? null : n;
 }
@@ -2097,8 +2100,9 @@ async function handleGetRPLapDayData(body) {
     const rowsOut = dataRowIdx.map((r) => {
       const dims = {};
       dimCols.forEach((c, i) => { dims[dimHeaders[i]] = getCell(r, c).text; });
-      const label0 = getCell(r, dimCols[0]).text || '';
-      const isTotal = /^(grand totals?|totals?s+for-|totals?)/i.test(label0.trim());
+      const label0 = (getCell(r, dimCols[0]).text || '').trim();
+      const label0Low = label0.toLowerCase();
+      const isTotal = label0Low.indexOf('grand totals') === 0 || label0Low.indexOf('totals for-') === 0 || label0Low.indexOf('totals') === 0 || label0Low.indexOf('total') === 0;
       const cells = {};
       metricColsAll.forEach((c) => {
         const cell = getCell(r, c);
