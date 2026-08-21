@@ -837,6 +837,8 @@ async function handleGetLapDayData(body) {
     const maTuyen = String(r[13] || '').trim();
     const fill = ldPctFromSheet(r[3]);
     const vanChuyen = ldPctFromSheet(r[21]);
+    const khoiLuong = ldVnNum(r[19]);
+    const soDon = ldVnNum(r[20]);
     trips.push({
       ng: ngay, tw: ldWeekStart(ngay), th: (ngay || '').slice(0, 7),
       ncc: String(r[15] || '').trim(),
@@ -851,6 +853,7 @@ async function handleGetLapDayData(body) {
       ktc: ldVnNum(r[16]),
       fk: fill, fd: fill,
       vk: vanChuyen, vd: vanChuyen,
+      kl: khoiLuong, sd: soDon,
       legs: legs
     });
   });
