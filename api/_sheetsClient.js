@@ -2011,13 +2011,46 @@ function rpldParseNumber(text) {
   return isNaN(n) ? null : n;
 }
 
+function rpldRawFmt(rowData, r, c) {
+  const row = rowData[r];
+  const cell = row && row.values && row.values[c];
+  return (cell && cell.effectiveFormat) || null;
+}
+function rpldBgHex(rowData, merges, r, c) {
+  let fmt = rpldRawFmt(rowData, r, c);
+  let bg = fmt && fmt.backgroundColor;
+  if (!bg || (bg.red === undefined && bg.green === undefined && bg.blue === undefined)) {
+    for (let k = 0; k < merges.length; k++) {
+      const m = merges[k];
+      if (r >= m.startRowIndex && r < m.endRowIndex && c >= m.startColumnIndex && c < m.endColumnIndex) {
+        fmt = rpldRawFmt(rowData, m.startRowIndex, m.startColumnIndex);
+        bg = fmt && fmt.backgroundColor;
+        break;
+      }
+    }
+  }
+  if (!bg) return null;
+  const rr = Math.round((bg.red || 0) * 255), gg = Math.round((bg.green || 0) * 255), bb = Math.round((bg.blue || 0) * 255);
+  if (rr > 250 && gg > 250 && bb > 250) return null;
+  const toHex = (n) => n.toString(16).padStart(2, '0');
+  return '#' + toHex(rr) + toHex(gg) + toHex(bb);
+}
+function rpldFgHex(rowData, r, c) {
+  const fmt = rpldRawFmt(rowData, r, c);
+  const fg = fmt && fmt.textFormat && fmt.textFormat.foregroundColor;
+  if (!fg) return null;
+  const rr = Math.round((fg.red || 0) * 255), gg = Math.round((fg.green || 0) * 255), bb = Math.round((fg.blue || 0) * 255);
+  if (rr < 25 && gg < 25 && bb < 25) return null;
+  const toHex = (n) => n.toString(16).padStart(2, '0');
+  return '#' + toHex(rr) + toHex(gg) + toHex(bb);
+}
 async function handleGetRPLapDayData(body) {
   const auth = await requireActiveUser(body.token);
   if (auth.error) return { ok: false, error: auth.error };
 
   const qs = new URLSearchParams();
   qs.append('ranges', "'" + RPLD_SHEET_NAME + "'");
-  qs.append('fields', 'sheets(properties.gridProperties,merges,data.rowData.values(formattedValue,userEnteredFormat.textFormat.bold))');
+  qs.append('fields', 'sheets(properties.gridProperties,merges,data.rowData.values(formattedValue,effectiveFormat.backgroundColor,effectiveFormat.textFormat.foregroundColor,userEnteredFormat.textFormat.bold))');
   const resp = await apiCall(SHEET_ID, '?' + qs.toString());
   const sh = resp.sheets && resp.sheets[0];
   if (!sh) return { ok: false, error: 'rplapday_sheet_khong_doc_duoc' };
@@ -2106,7 +2139,7 @@ async function handleGetRPLapDayData(body) {
       const cells = {};
       metricColsAll.forEach((c) => {
         const cell = getCell(r, c);
-        cells[c] = { text: cell.text, value: rpldParseNumber(cell.text), period: colInfo[c].period, metric: colInfo[c].metricName };
+        cells[c] = { text: cell.text, value: rpldParseNumber(cell.text), period: colInfo[c].period, metric: colInfo[c].metricName, color: rpldFgHex(rowData, r, c) };
       });
       return { dims, isTotal, cells };
     });
@@ -2122,30 +2155,14 @@ async function handleGetRPLapDayData(body) {
       periodType[p] = hasNeg ? 'delta' : 'absolute';
     });
 
-    const periodsMetricsMap = {};
-periodsOrder.forEach((p) => { periodsMetricsMap[p] = metricColsAll.filter((cc) => colInfo[cc].period === p); });
-rowsOut.forEach((ro) => {
-metricColsAll.forEach((c) => {
-const cell = ro.cells[c];
-if (cell.value === null) { cell.trend = null; return; }
-if (periodType[cell.period] === 'delta') { cell.trend = cell.value > 0 ? 'up' : (cell.value < 0 ? 'down' : 'flat'); return; }
-const pIdx = periodsOrder.indexOf(cell.period);
-const nextPeriod = periodsOrder[pIdx + 1];
-if (!nextPeriod || periodType[nextPeriod] === 'delta') { cell.trend = null; return; }
-const posInPeriod = periodsMetricsMap[cell.period].indexOf(c);
-const cmpCol = periodsMetricsMap[nextPeriod] && periodsMetricsMap[nextPeriod][posInPeriod];
-const cmpVal = cmpCol !== undefined ? ro.cells[cmpCol].value : null;
-if (cmpVal === null || cmpVal === undefined) { cell.trend = null; return; }
-cell.trend = cell.value > cmpVal ? 'up' : (cell.value < cmpVal ? 'down' : 'flat');
-});
-});
-
+    const titleBg = rpldBgHex(rowData, merges, titleRow, 0);
     blocks.push({
-      title, dimHeaders,
-      periods: periodsOrder.map((p) => ({
-        label: p, type: periodType[p],
-        metrics: metricColsAll.filter((c) => colInfo[c].period === p).map((c) => ({ col: c, name: colInfo[c].metricName }))
-      })),
+      title, titleBg, dimHeaders,
+      periods: periodsOrder.map((p) => {
+        const cols = metricColsAll.filter((c) => colInfo[c].period === p);
+        const bg = headerRows.length ? rpldBgHex(rowData, merges, headerRows[0], cols[0]) : null;
+        return { label: p, type: periodType[p], bg: bg, metrics: cols.map((c) => ({ col: c, name: colInfo[c].metricName })) };
+      }),
       rows: rowsOut
     });
   }
