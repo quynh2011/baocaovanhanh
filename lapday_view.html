@@ -364,8 +364,8 @@ footer{margin-top:34px;padding-top:15px;border-top:1px solid var(--border);
 <button class="toc-fab" id="tocFab" onclick="ldToggleToc()">☰ Mục lục</button>
 <nav class="toc-panel" id="tocRail">
   <div class="toc-rail-title">Chuyển nhanh</div>
+  <a href="javascript:void(0)" data-sec="sec0" onclick="ldGoTo('sec0')"><span class="tnum">0</span>Tổng quan</a>
   <a href="javascript:void(0)" data-sec="secRPLD" onclick="ldGoTo('secRPLD')"><span class="tnum">★</span>Top trend tỷ lệ lấp đầy</a>
-<a href="javascript:void(0)" data-sec="sec0" onclick="ldGoTo('sec0')"><span class="tnum">0</span>Tổng quan</a>
   <a href="javascript:void(0)" data-sec="sec1" onclick="ldGoTo('sec1')"><span class="tnum">1</span>Đề xuất cải thiện</a>
   <a href="javascript:void(0)" data-sec="sec2" onclick="ldGoTo('sec2')"><span class="tnum">2</span>Xu hướng theo ngày</a>
   <a href="javascript:void(0)" data-sec="sec3" onclick="ldGoTo('sec3')"><span class="tnum">3</span>Theo Nhà cung cấp</a>
@@ -590,6 +590,7 @@ function ldKpi(trips) {
   const empty = work.filter(x => ldLaRong(x.l.fk));
   const fills = trips.map(t => t.fk).filter(v => v !== null && v !== undefined);
   const fillsD = trips.map(t => t.fd).filter(v => v !== null && v !== undefined);
+  const vanChuyens = trips.map(t => t.vk).filter(v => v !== null && v !== undefined);
   const over = trips.filter(t => t.fk !== null && t.fk > 100);
   const capCount = {};
   LD_CAP_ORDER.forEach(c => capCount[c] = 0);
@@ -623,6 +624,7 @@ function ldKpi(trips) {
     pctDiemVoIch: dgTong ? dgVoIch / dgTong * 100 : null,
     fillKg: ldAvg(fills),
     fillDon: ldAvg(fillsD),
+    vanChuyen: ldAvg(vanChuyens),
     kmTB: ldAvg(trips.map(t => t.km).filter(v => v)),
     changRong: empty.length,
     changRong0: work.filter(x => ldRongTuyetDoi(x.l.fk)).length,
@@ -857,7 +859,7 @@ function ldRenderKpi(trips) {
   h += card('Số chuyến', ldNum(k.soChuyen), k.soChang.toLocaleString('vi-VN') + ' chặng khai thác');
   h += card('Lấp đầy TB (kg)', ldPct(k.fillKg), 'theo quãng đường · ' + LD_CAPS[String(ldCap(k.fillKg))].ten,
     LD_CAPS[String(ldCap(k.fillKg))].cls);
-  h += card('Lấp đầy TB (đơn)', ldPct(k.fillDon), 'bình quân theo chuyến');
+  h += card('Tỷ lệ vận chuyển (kg)', ldPct(k.vanChuyen), 'theo cột V dữ liệu nguồn');
   h += card('Chặng chạy rỗng (&lt;10%)', ldNum(k.changRong),
     ldPct(k.pctChangRong) + ' số chặng · trong đó ' + ldNum(k.changRong0) + ' chặng rỗng hoàn toàn 0%',
     k.changRong ? 'cap-4' : 'cap-0');
@@ -1800,8 +1802,8 @@ function ldRender() {
   }
 
   let h = '';
-  h += ldRenderRPLD();
 h += '<section id="sec0"><h2><span class="num">0</span>Tổng quan</h2>' + ldRenderKpi(trips) + '</section>';
+  h += ldRenderRPLD();
   h += '<section id="sec1"><h2><span class="num">1</span>Đề xuất cải thiện</h2>' +
     '<div class="hint">Mọi đề xuất bên dưới đều gắn với bằng chứng định lượng lấy trực tiếp từ dữ liệu. ' +
     'Các bảng mặc định <b>thu gọn ở cấp NCC</b> — bấm <b>+</b> để sổ ra chi tiết và mở bằng chứng tới từng chuyến/chặng.</div>' +
@@ -1860,7 +1862,7 @@ function ldActiveToc(id) {
 }
 // theo dõi vị trí cuộn -> mục lục tự chạy theo phần đang đọc
 function ldScrollSpy() {
-  const ids = ['secRPLD', 'sec0', 'sec1', 'sec2', 'sec3', 'sec4', 'sec5', 'sec6'];
+  const ids = ['sec0', 'secRPLD', 'sec1', 'sec2', 'sec3', 'sec4', 'sec5', 'sec6'];
   let cur = ids[0];
   for (const id of ids) {
     const el = document.getElementById(id);
