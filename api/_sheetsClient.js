@@ -1967,14 +1967,202 @@ async function handleGetEventSubmissions(body) {
 }
 
 
-async function handleDebugSheet62(body) {
+// ====== "TOP TREND TỶ LỆ LẤP ĐẦY" — đọc động sheet "62_RPlapday": tự phát hiện từng bảng (phân tách bởi 1 dòng
+// trống/gộp ngay dưới bảng), tự phát hiện cột nhãn (dimension, text) vs cột chỉ số (metric, số) theo NỘI DUNG dữ
+// liệu (không hardcode số cột), tự dựng cấp bậc tiêu đề (kỳ > tên chỉ số) theo các ô gộp (merge) trong header.
+// Nếu người dùng thêm bảng mới cùng kiểu, hoặc thêm cột vào bảng có sẵn, hàm này tự nhận diện lại toàn bộ mà
+// không cần sửa code. Yêu cầu nghiệp vụ (Quỳnh, 2026-08-21):
+//   - Mũi tên xu hướng: nếu 1 nhóm kỳ đã có sẵn số chênh lệch (âm/dương) so với kỳ trước do sheet tự tính, lấy
+//     luôn dấu của số đó làm mũi tên; nếu nhóm kỳ chỉ có số tuyệt đối, tự so với nhóm kỳ liền kề (cũ hơn) cùng
+//     tên chỉ số để suy ra tăng/giảm.
+//   - Biểu đồ tổng quan: chọn tự động bảng có nhiều kỳ nhất mà mỗi kỳ chỉ có đúng 1 chỉ số (dễ vẽ 1 đường/kỳ).
+const RPLD_SHEET_NAME = '62_RPlapday';
+
+function rpldEffectiveCell(rowData, merges, r, c) {
+  const row = rowData[r];
+  const own = row && row.values && row.values[c];
+  if (own && own.formattedValue !== undefined && own.formattedValue !== null && own.formattedValue !== '') {
+    return { text: String(own.formattedValue), bold: !!(own.userEnteredFormat && own.userEnteredFormat.textFormat && own.userEnteredFormat.textFormat.bold) };
+  }
+  for (let k = 0; k < merges.length; k++) {
+    const m = merges[k];
+    if (r >= m.startRowIndex && r < m.endRowIndex && c >= m.startColumnIndex && c < m.endColumnIndex) {
+      if (m.startRowIndex === r && m.startColumnIndex === c) continue;
+      const anchorRow = rowData[m.startRowIndex];
+      const anchor = anchorRow && anchorRow.values && anchorRow.values[m.startColumnIndex];
+      if (anchor && anchor.formattedValue) {
+        return { text: String(anchor.formattedValue), bold: !!(anchor.userEnteredFormat && anchor.userEnteredFormat.textFormat && anchor.userEnteredFormat.textFormat.bold) };
+      }
+    }
+  }
+  return { text: '', bold: false };
+}
+function rpldParseNumber(text) {
+  if (text === '' || text === null || text === undefined) return null;
+  let s = String(text).trim();
+  const isPct = /%$/.test(s);
+  s = s.replace('%', '').trim();
+  if (!/^-?[0-9.,]+$/.test(s)) return null;
+  s = s.replace(/./g, '').replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+async function handleGetRPLapDayData(body) {
   const auth = await requireActiveUser(body.token);
   if (auth.error) return { ok: false, error: auth.error };
+
   const qs = new URLSearchParams();
-  qs.append('ranges', "'62_RPlapday'");
-  qs.append('fields', 'sheets(properties.title,properties.gridProperties,merges,data.rowData.values(formattedValue,userEnteredFormat.backgroundColor,userEnteredFormat.textFormat.bold))');
-  const data = await apiCall(SHEET_ID, '?' + qs.toString());
-  return { ok: true, data };
+  qs.append('ranges', "'" + RPLD_SHEET_NAME + "'");
+  qs.append('fields', 'sheets(properties.gridProperties,merges,data.rowData.values(formattedValue,userEnteredFormat.textFormat.bold))');
+  const resp = await apiCall(SHEET_ID, '?' + qs.toString());
+  const sh = resp.sheets && resp.sheets[0];
+  if (!sh) return { ok: false, error: 'rplapday_sheet_khong_doc_duoc' };
+  const merges = sh.merges || [];
+  const rowData = (sh.data && sh.data[0] && sh.data[0].rowData) || [];
+  const nRows = rowData.length;
+  let lastCol = 0;
+  rowData.forEach((row) => {
+    (row.values || []).forEach((v, ci) => { if (v && v.formattedValue) lastCol = Math.max(lastCol, ci); });
+  });
+
+  const getCell = (r, c) => rpldEffectiveCell(rowData, merges, r, c);
+  const rowHasContent = (r) => {
+    const row = rowData[r];
+    if (!row || !row.values) return false;
+    return row.values.some((v) => v && v.formattedValue !== undefined && v.formattedValue !== null && v.formattedValue !== '');
+  };
+
+  const blocksRaw = [];
+  let cur = [];
+  for (let r = 0; r < nRows; r++) {
+    if (rowHasContent(r)) cur.push(r);
+    else { if (cur.length) { blocksRaw.push(cur); cur = []; } }
+  }
+  if (cur.length) blocksRaw.push(cur);
+
+  const blocks = [];
+  for (const rows of blocksRaw) {
+    if (rows.length < 2) continue;
+    const titleRow = rows[0];
+    const title = getCell(titleRow, 0).text || ('Bảng dòng ' + (titleRow + 1));
+    const rest = rows.slice(1);
+
+    let hIdx = 0;
+    const headerRows = [];
+    while (hIdx < rest.length) {
+      const r = rest[hIdx];
+      const row = rowData[r];
+      const cells = (row && row.values) || [];
+      let allBold = true, any = false;
+      for (let c = 0; c <= lastCol; c++) {
+        const cell = cells[c];
+        if (cell && cell.formattedValue) {
+          any = true;
+          if (!(cell.userEnteredFormat && cell.userEnteredFormat.textFormat && cell.userEnteredFormat.textFormat.bold)) { allBold = false; break; }
+        }
+      }
+      if (any && allBold) { headerRows.push(r); hIdx++; } else break;
+    }
+    const dataRowIdx = rest.slice(hIdx);
+    if (!dataRowIdx.length) continue;
+
+    const firstDataRow = dataRowIdx[0];
+    const dimCols = [];
+    for (let c = 0; c <= lastCol; c++) {
+      const cell = getCell(firstDataRow, c);
+      if (!cell.text) { if (dimCols.length) break; else continue; }
+      if (rpldParseNumber(cell.text) !== null) break;
+      dimCols.push(c);
+    }
+    if (!dimCols.length) dimCols.push(0);
+    const metricColsAll = [];
+    for (let c = dimCols[dimCols.length - 1] + 1; c <= lastCol; c++) metricColsAll.push(c);
+    const dimHeaders = dimCols.map((c) => {
+      for (const hr of headerRows) { const txt = getCell(hr, c).text; if (txt) return txt; }
+      return 'Cột ' + (c + 1);
+    });
+
+    const colInfo = {};
+    metricColsAll.forEach((c) => {
+      const uniq = [];
+      headerRows.forEach((hr) => { const txt = getCell(hr, c).text; if (txt && uniq[uniq.length - 1] !== txt) uniq.push(txt); });
+      const period = uniq[0] || '';
+      const metricName = uniq.length > 1 ? uniq[uniq.length - 1] : (uniq[0] || ('Cột ' + (c + 1)));
+      colInfo[c] = { period, metricName };
+    });
+    const periodsOrder = [];
+    metricColsAll.forEach((c) => { const p = colInfo[c].period; if (p && periodsOrder.indexOf(p) === -1) periodsOrder.push(p); });
+
+    const rowsOut = dataRowIdx.map((r) => {
+      const dims = {};
+      dimCols.forEach((c, i) => { dims[dimHeaders[i]] = getCell(r, c).text; });
+      const label0 = getCell(r, dimCols[0]).text || '';
+      const isTotal = /^(grand totals?|totals?s+for-|totals?)/i.test(label0.trim());
+      const cells = {};
+      metricColsAll.forEach((c) => {
+        const cell = getCell(r, c);
+        cells[c] = { text: cell.text, value: rpldParseNumber(cell.text), period: colInfo[c].period, metric: colInfo[c].metricName };
+      });
+      return { dims, isTotal, cells };
+    });
+
+    const periodType = {};
+    periodsOrder.forEach((p, idx) => {
+      if (idx === 0) { periodType[p] = 'absolute'; return; }
+      let hasNeg = false;
+      rowsOut.forEach((ro) => {
+        if (ro.isTotal) return;
+        metricColsAll.forEach((c) => { const cell = ro.cells[c]; if (cell.period === p && cell.value !== null && cell.value < 0) hasNeg = true; });
+      });
+      periodType[p] = hasNeg ? 'delta' : 'absolute';
+    });
+
+    rowsOut.forEach((ro) => {
+      metricColsAll.forEach((c) => {
+        const cell = ro.cells[c];
+        if (cell.value === null) { cell.trend = null; return; }
+        if (periodType[cell.period] === 'delta') { cell.trend = cell.value > 0 ? 'up' : (cell.value < 0 ? 'down' : 'flat'); return; }
+        const pIdx = periodsOrder.indexOf(cell.period);
+        const nextPeriod = periodsOrder[pIdx + 1];
+        if (!nextPeriod || periodType[nextPeriod] === 'delta') { cell.trend = null; return; }
+        const cmpCol = metricColsAll.find((cc) => colInfo[cc].period === nextPeriod && colInfo[cc].metricName === cell.metric);
+        const cmpVal = cmpCol !== undefined ? ro.cells[cmpCol].value : null;
+        if (cmpVal === null || cmpVal === undefined) { cell.trend = null; return; }
+        cell.trend = cell.value > cmpVal ? 'up' : (cell.value < cmpVal ? 'down' : 'flat');
+      });
+    });
+
+    blocks.push({
+      title, dimHeaders,
+      periods: periodsOrder.map((p) => ({
+        label: p, type: periodType[p],
+        metrics: metricColsAll.filter((c) => colInfo[c].period === p).map((c) => ({ col: c, name: colInfo[c].metricName }))
+      })),
+      rows: rowsOut
+    });
+  }
+
+  let chartBlock = null;
+  blocks.forEach((b) => {
+    const singleMetric = b.periods.length > 1 && b.periods.every((p) => p.metrics.length === 1);
+    if (singleMetric && (!chartBlock || b.periods.length > chartBlock.periods.length)) chartBlock = b;
+  });
+  let chart = null;
+  if (chartBlock) {
+    const periodsAsc = chartBlock.periods.slice().reverse();
+    chart = {
+      title: chartBlock.title,
+      periods: periodsAsc.map((p) => p.label),
+      series: chartBlock.rows.map((ro) => ({
+        name: ro.dims[chartBlock.dimHeaders[0]] || '',
+        isTotal: ro.isTotal,
+        values: periodsAsc.map((p) => { const cell = ro.cells[p.metrics[0].col]; return cell ? cell.value : null; })
+      }))
+    };
+  }
+
+  return { ok: true, meta: { nguon: RPLD_SHEET_NAME, soBang: blocks.length }, blocks, chart };
 }
 
 module.exports = {
@@ -1994,5 +2182,5 @@ module.exports = {
   handleSaveEventSubmission, handleGetEventSubmissions,
   handleHeartbeat, handleGetOnlineUsers,
   handleGetLapDayData,
-  handleDebugSheet62
+  handleGetRPLapDayData
 };
