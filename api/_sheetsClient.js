@@ -2122,20 +2122,23 @@ async function handleGetRPLapDayData(body) {
       periodType[p] = hasNeg ? 'delta' : 'absolute';
     });
 
-    rowsOut.forEach((ro) => {
-      metricColsAll.forEach((c) => {
-        const cell = ro.cells[c];
-        if (cell.value === null) { cell.trend = null; return; }
-        if (periodType[cell.period] === 'delta') { cell.trend = cell.value > 0 ? 'up' : (cell.value < 0 ? 'down' : 'flat'); return; }
-        const pIdx = periodsOrder.indexOf(cell.period);
-        const nextPeriod = periodsOrder[pIdx + 1];
-        if (!nextPeriod || periodType[nextPeriod] === 'delta') { cell.trend = null; return; }
-        const cmpCol = metricColsAll.find((cc) => colInfo[cc].period === nextPeriod && colInfo[cc].metricName === cell.metric);
-        const cmpVal = cmpCol !== undefined ? ro.cells[cmpCol].value : null;
-        if (cmpVal === null || cmpVal === undefined) { cell.trend = null; return; }
-        cell.trend = cell.value > cmpVal ? 'up' : (cell.value < cmpVal ? 'down' : 'flat');
-      });
-    });
+    const periodsMetricsMap = {};
+periodsOrder.forEach((p) => { periodsMetricsMap[p] = metricColsAll.filter((cc) => colInfo[cc].period === p); });
+rowsOut.forEach((ro) => {
+metricColsAll.forEach((c) => {
+const cell = ro.cells[c];
+if (cell.value === null) { cell.trend = null; return; }
+if (periodType[cell.period] === 'delta') { cell.trend = cell.value > 0 ? 'up' : (cell.value < 0 ? 'down' : 'flat'); return; }
+const pIdx = periodsOrder.indexOf(cell.period);
+const nextPeriod = periodsOrder[pIdx + 1];
+if (!nextPeriod || periodType[nextPeriod] === 'delta') { cell.trend = null; return; }
+const posInPeriod = periodsMetricsMap[cell.period].indexOf(c);
+const cmpCol = periodsMetricsMap[nextPeriod] && periodsMetricsMap[nextPeriod][posInPeriod];
+const cmpVal = cmpCol !== undefined ? ro.cells[cmpCol].value : null;
+if (cmpVal === null || cmpVal === undefined) { cell.trend = null; return; }
+cell.trend = cell.value > cmpVal ? 'up' : (cell.value < cmpVal ? 'down' : 'flat');
+});
+});
 
     blocks.push({
       title, dimHeaders,
