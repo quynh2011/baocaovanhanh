@@ -2171,7 +2171,7 @@ async function handleGetRPLapDayData(body) {
           const cell = ro.cells[c];
           if (cell.value === null) return;
           if (periodType[cell.period] !== 'absolute') return;
-          if (String(cell.metric || '').toLowerCase().indexOf('lấp đầy') === -1) return;
+          if (String(cell.text || '').indexOf('%') === -1) return;
           cell.color = cell.value < targetVal ? '#ff0000' : '#0000ff';
         });
       });
