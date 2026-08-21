@@ -2144,15 +2144,11 @@ async function handleGetRPLapDayData(body) {
       return { dims, isTotal, cells };
     });
 
+    const isSingleMetricPerPeriod = periodsOrder.every((p) => metricColsAll.filter((c) => colInfo[c].period === p).length === 1);
     const periodType = {};
     periodsOrder.forEach((p, idx) => {
       if (idx === 0) { periodType[p] = 'absolute'; return; }
-      let hasNeg = false;
-      rowsOut.forEach((ro) => {
-        if (ro.isTotal) return;
-        metricColsAll.forEach((c) => { const cell = ro.cells[c]; if (cell.period === p && cell.value !== null && cell.value < 0) hasNeg = true; });
-      });
-      periodType[p] = hasNeg ? 'delta' : 'absolute';
+      periodType[p] = isSingleMetricPerPeriod ? 'absolute' : 'delta';
     });
 
     let targetVal = null;
