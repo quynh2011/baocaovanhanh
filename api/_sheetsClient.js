@@ -2044,6 +2044,22 @@ function rpldFgHex(rowData, r, c) {
   const toHex = (n) => n.toString(16).padStart(2, '0');
   return '#' + toHex(rr) + toHex(gg) + toHex(bb);
 }
+async function handleDebugRPLDCols(body) {
+  const auth = await requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  const out = {};
+  for (const sheetName of ['62_RPlapday', '61_LapDayNew']) {
+    const qs = new URLSearchParams();
+    qs.append('ranges', "'" + sheetName + "'!1:2");
+    qs.append('fields', 'sheets(data.rowData.values(formattedValue))');
+    const resp = await apiCall(SHEET_ID, '?' + qs.toString());
+    const rowData = (resp.sheets && resp.sheets[0] && resp.sheets[0].data && resp.sheets[0].data[0] && resp.sheets[0].data[0].rowData) || [];
+    const colLetter = (i) => { let n = i, str = ''; n++; while (n > 0) { const m = (n - 1) % 26; str = String.fromCharCode(65 + m) + str; n = Math.floor((n - 1) / 26); } return str; };
+    const rows = rowData.map((row) => (row.values || []).map((v, ci) => colLetter(ci) + ': ' + ((v && v.formattedValue) || '')));
+    out[sheetName] = rows;
+  }
+  return { ok: true, out };
+}
 async function handleGetRPLapDayData(body) {
   const auth = await requireActiveUser(body.token);
   if (auth.error) return { ok: false, error: auth.error };
@@ -2224,5 +2240,5 @@ module.exports = {
   handleSaveEventSubmission, handleGetEventSubmissions,
   handleHeartbeat, handleGetOnlineUsers,
   handleGetLapDayData,
-  handleGetRPLapDayData
+  handleGetRPLapDayData, handleDebugRPLDCols
 };
