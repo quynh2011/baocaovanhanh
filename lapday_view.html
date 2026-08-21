@@ -284,6 +284,22 @@ footer{margin-top:34px;padding-top:15px;border-top:1px solid var(--border);
   .filters{gap:9px}
   .fld select{min-width:130px}
 }
+
+.rpld-block{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.rpld-block-title{font-weight:600;font-size:13px;margin-bottom:10px;color:var(--text)}
+.rpld-chart-wrap{padding:16px}
+.rpld-chart-title{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+.rpld-chart-svg{width:100%;height:auto;display:block}
+.rpld-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+.rpld-lg-item{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.rpld-lg-item i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.rpld-ar{font-size:9px;display:inline-block;margin-top:1px}
+.rpld-ar-up{color:var(--c0)}
+.rpld-ar-down{color:var(--c4)}
+.rpld-ar-flat{color:var(--hint)}
+.rpld-total-row td{font-weight:600;background:var(--bg)}
+.rpld-tag{font-size:9px;color:var(--muted);font-weight:400}
+.rpld-star{color:var(--ghn-orange)}
 </style>
 </head>
 <body>
@@ -344,7 +360,8 @@ footer{margin-top:34px;padding-top:15px;border-top:1px solid var(--border);
 <button class="toc-fab" id="tocFab" onclick="ldToggleToc()">☰ Mục lục</button>
 <nav class="toc-panel" id="tocRail">
   <div class="toc-rail-title">Chuyển nhanh</div>
-  <a href="javascript:void(0)" data-sec="sec0" onclick="ldGoTo('sec0')"><span class="tnum">0</span>Tổng quan</a>
+  <a href="javascript:void(0)" data-sec="secRPLD" onclick="ldGoTo('secRPLD')"><span class="tnum">★</span>Top trend tỷ lệ lấp đầy</a>
+<a href="javascript:void(0)" data-sec="sec0" onclick="ldGoTo('sec0')"><span class="tnum">0</span>Tổng quan</a>
   <a href="javascript:void(0)" data-sec="sec1" onclick="ldGoTo('sec1')"><span class="tnum">1</span>Đề xuất cải thiện</a>
   <a href="javascript:void(0)" data-sec="sec2" onclick="ldGoTo('sec2')"><span class="tnum">2</span>Xu hướng theo ngày</a>
   <a href="javascript:void(0)" data-sec="sec3" onclick="ldGoTo('sec3')"><span class="tnum">3</span>Theo Nhà cung cấp</a>
@@ -1690,6 +1707,89 @@ function ldPhamVi(trips) {
   return p.join(' · ');
 }
 
+
+/* ============================ TOP TREND TỶ LỆ LẤP ĐẦY (sheet 62_RPlapday) ============================ */
+function ldRPLDArrow(trend) {
+if (trend === 'up') return '<span class="rpld-ar rpld-ar-up">&#9650;</span>';
+if (trend === 'down') return '<span class="rpld-ar rpld-ar-down">&#9660;</span>';
+if (trend === 'flat') return '<span class="rpld-ar rpld-ar-flat">&ndash;</span>';
+return '';
+}
+function ldRPLDBlockTable(b) {
+const multiLevel = b.periods.some(p => p.metrics.length > 1);
+let h = '<div class="rpld-block"><div class="rpld-block-title">' + ldEsc(b.title) + '</div>';
+h += '<div class="tbl-wrap"><table><thead><tr>';
+b.dimHeaders.forEach(dh => { h += '<th rowspan="' + (multiLevel ? 2 : 1) + '" style="text-align:left">' + ldEsc(dh) + '</th>'; });
+b.periods.forEach(p => {
+h += '<th colspan="' + p.metrics.length + '">' + ldEsc(p.label) + (p.type === 'delta' ? ' <span class="rpld-tag">&Delta; so kỳ trước</span>' : '') + '</th>';
+});
+h += '</tr>';
+if (multiLevel) {
+h += '<tr>';
+b.periods.forEach(p => { p.metrics.forEach(m => { h += '<th>' + ldEsc(m.name) + '</th>'; }); });
+h += '</tr>';
+}
+h += '</thead><tbody>';
+b.rows.forEach(ro => {
+h += '<tr' + (ro.isTotal ? ' class="rpld-total-row"' : '') + '>';
+b.dimHeaders.forEach(dh => { h += '<td class="c-name">' + ldEsc(ro.dims[dh] || '') + '</td>'; });
+b.periods.forEach(p => {
+p.metrics.forEach(m => {
+const cell = ro.cells[m.col];
+const txt = cell ? cell.text : '';
+const arrow = cell ? ldRPLDArrow(cell.trend) : '';
+h += '<td>' + ldEsc(txt) + (arrow ? '<br>' + arrow : '') + '</td>';
+});
+});
+h += '</tr>';
+});
+h += '</tbody></table></div></div>';
+return h;
+}
+function ldRPLDChart(chart) {
+if (!chart || !chart.series || !chart.series.length) return '';
+const W = 760, H = 220, padL = 42, padR = 16, padT = 14, padB = 26;
+const periods = chart.periods, n = periods.length;
+const allVals = [];
+chart.series.forEach(s => s.values.forEach(v => { if (v !== null && v !== undefined) allVals.push(v); }));
+const vMax = Math.max.apply(null, allVals.concat([0]));
+const vMin = Math.min.apply(null, allVals.concat([0]));
+const yTop = (vMax + (vMax - vMin) * 0.1) || 1;
+const yBot = Math.min(0, vMin);
+const xf = i => padL + (n > 1 ? i * (W - padL - padR) / (n - 1) : (W - padL - padR) / 2);
+const yf = v => padT + (H - padT - padB) * (1 - (v - yBot) / ((yTop - yBot) || 1));
+const colors = ['#0063AA', '#F15A22', '#0F6E56', '#8B6B00', '#B3261E'];
+let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="rpld-chart-svg">';
+svg += '<line x1="' + padL + '" y1="' + yf(yBot).toFixed(1) + '" x2="' + (W - padR) + '" y2="' + yf(yBot).toFixed(1) + '" stroke="var(--border-strong)"/>';
+chart.series.forEach((s, si) => {
+const col = colors[si % colors.length];
+let d = '';
+s.values.forEach((v, i) => { if (v === null || v === undefined) return; d += (d ? 'L' : 'M') + xf(i).toFixed(1) + ',' + yf(v).toFixed(1) + ' '; });
+if (d) svg += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="' + (s.isTotal ? 2.6 : 1.8) + '"/>';
+s.values.forEach((v, i) => { if (v !== null && v !== undefined) svg += '<circle cx="' + xf(i).toFixed(1) + '" cy="' + yf(v).toFixed(1) + '" r="2.4" fill="' + col + '"/>'; });
+});
+const step = Math.max(1, Math.ceil(n / 10));
+periods.forEach((p, i) => {
+if (i % step !== 0 && i !== n - 1) return;
+svg += '<text x="' + xf(i).toFixed(1) + '" y="' + (H - 8) + '" font-size="9" fill="var(--muted)" text-anchor="middle" font-family="var(--mono)">' + ldEsc(p) + '</text>';
+});
+svg += '</svg>';
+let legend = '<div class="rpld-legend">';
+chart.series.forEach((s, si) => { legend += '<span class="rpld-lg-item"><i style="background:' + colors[si % colors.length] + '"></i>' + ldEsc(s.name) + '</span>'; });
+legend += '</div>';
+return '<div class="rpld-chart-title">' + ldEsc(chart.title) + '</div>' + svg + legend;
+}
+function ldRenderRPLD() {
+const d = window.RPLD_DATA;
+if (!d || !d.blocks || !d.blocks.length) return '';
+let h = '<section id="secRPLD"><h2><span class="num rpld-star">&#9733;</span>Top trend tỷ lệ lấp đầy</h2>';
+h += '<div class="hint">Dữ liệu tổng hợp trực tiếp từ sheet <b>62_RPlapday</b> — bảng, cột và kỳ so sánh được nhận diện tự động theo cấu trúc gộp ô, không cố định số dòng/cột. Mũi tên dưới mỗi ô cho biết chiều tăng/giảm so với kỳ liền trước (kỳ nào sheet đã có sẵn chênh lệch thì lấy đúng dấu của chênh lệch đó).</div>';
+if (d.chart) h += '<div class="rpld-block rpld-chart-wrap">' + ldRPLDChart(d.chart) + '</div>';
+d.blocks.forEach(b => { h += ldRPLDBlockTable(b); });
+h += '</section>';
+return h;
+}
+
 function ldRender() {
   LD_UID = 0;
   const trips = ldFilter();
@@ -1701,7 +1801,8 @@ function ldRender() {
   }
 
   let h = '';
-  h += '<section id="sec0"><h2><span class="num">0</span>Tổng quan</h2>' + ldRenderKpi(trips) + '</section>';
+  h += ldRenderRPLD();
+h += '<section id="sec0"><h2><span class="num">0</span>Tổng quan</h2>' + ldRenderKpi(trips) + '</section>';
   h += '<section id="sec1"><h2><span class="num">1</span>Đề xuất cải thiện</h2>' +
     '<div class="hint">Mọi đề xuất bên dưới đều gắn với bằng chứng định lượng lấy trực tiếp từ dữ liệu. ' +
     'Các bảng mặc định <b>thu gọn ở cấp NCC</b> — bấm <b>+</b> để sổ ra chi tiết và mở bằng chứng tới từng chuyến/chặng.</div>' +
@@ -1760,7 +1861,7 @@ function ldActiveToc(id) {
 }
 // theo dõi vị trí cuộn -> mục lục tự chạy theo phần đang đọc
 function ldScrollSpy() {
-  const ids = ['sec0', 'sec1', 'sec2', 'sec3', 'sec4', 'sec5', 'sec6'];
+  const ids = ['secRPLD', 'sec0', 'sec1', 'sec2', 'sec3', 'sec4', 'sec5', 'sec6'];
   let cur = ids[0];
   for (const id of ids) {
     const el = document.getElementById(id);
@@ -1843,7 +1944,9 @@ function ldInit() {
   }).then(function(r){ return r.json(); }).then(function(j){
     if (!j || !j.ok) { baoLoi((j && j.error) || 'khong ro nguyen nhan'); return; }
     window.LD_DATA = { meta: j.meta, trips: j.trips };
-    ldInit();
+    fetch('/api/gas', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'getRPLapDayData', token: token }) })
+    .then(function(r2){ return r2.json(); }).then(function(j2){ window.RPLD_DATA = (j2 && j2.ok) ? j2 : null; ldInit(); })
+    .catch(function(){ window.RPLD_DATA = null; ldInit(); });
   }).catch(function(e){ baoLoi(String(e && e.message || e)); });
 })();
 </script>
