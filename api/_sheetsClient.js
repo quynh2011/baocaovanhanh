@@ -2047,32 +2047,6 @@ function rpldFgHex(rowData, r, c) {
   const toHex = (n) => n.toString(16).padStart(2, '0');
   return '#' + toHex(rr) + toHex(gg) + toHex(bb);
 }
-async function handleDebugRPLDCols(body) {
-  const auth = await requireActiveUser(body.token);
-  if (auth.error) return { ok: false, error: auth.error };
-  const targets = ["Tổng khối lượng luân chuyển", "Tổng số đơn luân chuyển", "Tỷ lệ vận chuyển", "luân chuyển", "vận chuyển"];
-  const colLetter = (i) => { let n = i, str = ''; n++; while (n > 0) { const m = (n - 1) % 26; str = String.fromCharCode(65 + m) + str; n = Math.floor((n - 1) / 26); } return str; };
-  const out = {};
-  for (const sheetName of ['62_RPlapday', '61_LapDayNew']) {
-    const qs = new URLSearchParams();
-    qs.append('ranges', "'" + sheetName + "'");
-    qs.append('fields', 'sheets(data.rowData.values(formattedValue))');
-    const resp = await apiCall(SHEET_ID, '?' + qs.toString());
-    const rowData = (resp.sheets && resp.sheets[0] && resp.sheets[0].data && resp.sheets[0].data[0] && resp.sheets[0].data[0].rowData) || [];
-    const hits = [];
-    rowData.forEach((row, ri) => {
-      (row.values || []).forEach((v, ci) => {
-        const txt = (v && v.formattedValue) || '';
-        if (!txt) return;
-        for (const t of targets) {
-          if (txt.indexOf(t) !== -1) { hits.push({ row: ri + 1, col: colLetter(ci), text: txt }); break; }
-        }
-      });
-    });
-    out[sheetName] = { nRows: rowData.length, hits };
-  }
-  return { ok: true, out };
-}
 async function handleGetRPLapDayData(body) {
   const auth = await requireActiveUser(body.token);
   if (auth.error) return { ok: false, error: auth.error };
@@ -2253,5 +2227,5 @@ module.exports = {
   handleSaveEventSubmission, handleGetEventSubmissions,
   handleHeartbeat, handleGetOnlineUsers,
   handleGetLapDayData,
-  handleGetRPLapDayData, handleDebugRPLDCols
+  handleGetRPLapDayData
 };
