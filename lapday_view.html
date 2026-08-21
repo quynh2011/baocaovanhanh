@@ -1807,7 +1807,7 @@ function ldRPLDDaily(trips, depot, days) {
   let arr = [...map.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([ng, ts]) => ({
     ng,
     fill: ldAvg(ts.map(t => t.fk).filter(v => v !== null && v !== undefined)),
-    kl: ts.reduce((a, t) => a + (t.kl || 0), 0),
+    kl: ts.reduce((a, t) => a + (t.kl || 0), 0) / 1000,
     sd: ts.reduce((a, t) => a + (t.sd || 0), 0),
     soChuyen: ts.length
   }));
