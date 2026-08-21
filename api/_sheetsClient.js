@@ -2155,6 +2155,28 @@ async function handleGetRPLapDayData(body) {
       periodType[p] = hasNeg ? 'delta' : 'absolute';
     });
 
+    let targetVal = null;
+    rowsOut.forEach((ro) => {
+      const dimVals = dimHeaders.map((dh) => (ro.dims[dh] || '').trim());
+      if (dimVals.some((v) => v.toLowerCase() === 'target')) {
+        for (let k = 0; k < dimVals.length; k++) {
+          const n = rpldParseNumber(dimVals[k]);
+          if (n !== null) { targetVal = n; break; }
+        }
+      }
+    });
+    if (targetVal !== null) {
+      rowsOut.forEach((ro) => {
+        metricColsAll.forEach((c) => {
+          const cell = ro.cells[c];
+          if (cell.value === null) return;
+          if (periodType[cell.period] !== 'absolute') return;
+          if (String(cell.metric || '').toLowerCase().indexOf('lấp đầy') === -1) return;
+          cell.color = cell.value < targetVal ? '#ff0000' : '#0000ff';
+        });
+      });
+    }
+
     const titleBg = rpldBgHex(rowData, merges, titleRow, 0);
     blocks.push({
       title, titleBg, dimHeaders,
