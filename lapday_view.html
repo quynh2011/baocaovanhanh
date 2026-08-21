@@ -286,7 +286,10 @@ footer{margin-top:34px;padding-top:15px;border-top:1px solid var(--border);
 }
 
 .rpld-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-.rpld-block-title{font-weight:700;font-size:13px;padding:10px 16px;color:var(--text);background:var(--bg);border-bottom:1px solid var(--border);letter-spacing:.02em}
+.rpld-block-title{font-weight:700;font-size:13px;padding:10px 16px;color:var(--text);background:var(--bg);border-bottom:1px solid var(--border);letter-spacing:.02em;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.rpld-depot-sel{font-family:var(--f);font-size:12px;font-weight:500;padding:5px 10px;border-radius:7px;border:1px solid var(--border-strong);background:#fff;color:var(--text);cursor:pointer}
+.rpld-chart-box{padding:12px 16px 16px}
+.rpld-chart-box svg{width:100%;height:auto;display:block}
 .rpld-block .tbl-wrap{padding:0}
 .rpld-block table{width:100%;border-collapse:collapse;font-size:12px}
 .rpld-block thead th{padding:8px 10px;font-weight:700;border-bottom:2px solid var(--border-strong);white-space:nowrap}
@@ -1780,12 +1783,153 @@ chart.series.forEach((s, si) => { legend += '<span class="rpld-lg-item"><i style
 legend += '</div>';
 return '<div class="rpld-chart-title">' + ldEsc(chart.title) + '</div>' + svg + legend;
 }
+
+/* ============================ RPLD: BIEU DO TONG (loc theo kho) ============================ */
+const RPLD_BUCKETS = [
+  { key: 'b1', lo: -Infinity, hi: 10, ten: '&lt; 10%', mau: '#B3261E' },
+  { key: 'b2', lo: 10, hi: 30, ten: '10 – 30%', mau: '#C9420D' },
+  { key: 'b3', lo: 30, hi: 50, ten: '30 – 50%', mau: '#8B6B00' },
+  { key: 'b4', lo: 50, hi: Infinity, ten: '&ge; 50%', mau: '#0F6E56' }
+];
+function rpldBucketOf(fk) {
+  for (let i = 0; i < RPLD_BUCKETS.length; i++) { const b = RPLD_BUCKETS[i]; if (fk >= b.lo && fk < b.hi) return b.key; }
+  return null;
+}
+function ldRPLDDepots(trips) {
+  const set = new Set();
+  trips.forEach(t => { const kv = ldKhuVuc(t.tuyen, t.batdau); if (kv) set.add(kv); });
+  return LD_KV_ORDER.filter(k => set.has(k));
+}
+function ldRPLDDaily(trips, depot, days) {
+  const f = (depot && depot !== 'ALL') ? trips.filter(t => ldKhuVuc(t.tuyen, t.batdau) === depot) : trips;
+  const map = new Map();
+  f.forEach(t => { if (!t.ng) return; if (!map.has(t.ng)) map.set(t.ng, []); map.get(t.ng).push(t); });
+  let arr = [...map.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([ng, ts]) => ({
+    ng,
+    fill: ldAvg(ts.map(t => t.fk).filter(v => v !== null && v !== undefined)),
+    kl: ts.reduce((a, t) => a + (t.kl || 0), 0),
+    sd: ts.reduce((a, t) => a + (t.sd || 0), 0),
+    soChuyen: ts.length
+  }));
+  if (days && arr.length > days) arr = arr.slice(-days);
+  return arr;
+}
+function ldRPLDBucketDaily(trips, depot, days) {
+  const f = (depot && depot !== 'ALL') ? trips.filter(t => ldKhuVuc(t.tuyen, t.batdau) === depot) : trips;
+  const map = new Map();
+  f.forEach(t => { if (!t.ng) return; if (!map.has(t.ng)) map.set(t.ng, []); map.get(t.ng).push(t); });
+  let arr = [...map.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([ng, ts]) => {
+    const counts = { b1: 0, b2: 0, b3: 0, b4: 0 };
+    ts.forEach(t => { if (t.fk === null || t.fk === undefined) return; const k = rpldBucketOf(t.fk); if (k) counts[k]++; });
+    return { ng, counts, soChuyen: ts.length };
+  });
+  if (days && arr.length > days) arr = arr.slice(-days);
+  return arr;
+}
+function ldRPLDDepotOptions(trips, selected) {
+  const depots = ldRPLDDepots(trips);
+  let h = '<option value="ALL"' + (selected === 'ALL' ? ' selected' : '') + '>Toan vung</option>';
+  depots.forEach(d => { h += '<option value="' + ldAttr(d) + '"' + (selected === d ? ' selected' : '') + '>' + ldEsc(d) + '</option>'; });
+  return h;
+}
+function ldRPLDOverviewChartSVG(arr) {
+  if (!arr.length) return '<div class="empty">Khong co du lieu.</div>';
+  const W = 900, H = 280, padL = 46, padR = 46, padT = 24, padB = 40;
+  const n = arr.length;
+  const gw = (W - padL - padR) / n;
+  const xC = i => padL + gw * (i + 0.5);
+  const fillMax = 100;
+  const yFill = v => padT + (H - padT - padB) * (1 - Math.max(0, Math.min(fillMax, v || 0)) / fillMax);
+  const klMax = Math.max.apply(null, arr.map(p => p.kl || 0).concat([1])) * 1.25;
+  const sdMax = Math.max.apply(null, arr.map(p => p.sd || 0).concat([1])) * 1.25;
+  const barW = Math.min(16, gw * 0.24);
+  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="rpld-ov-svg">';
+  [0, 25, 50, 75, 100].forEach(g => {
+    svg += '<line x1="' + padL + '" y1="' + yFill(g).toFixed(1) + '" x2="' + (W - padR) + '" y2="' + yFill(g).toFixed(1) + '" stroke="#E8E5DF" stroke-width="1"/>';
+    svg += '<text x="' + (padL - 6) + '" y="' + (yFill(g) + 3.5).toFixed(1) + '" font-size="9" fill="#9E9B93" text-anchor="end">' + g + '%</text>';
+  });
+  arr.forEach((p, i) => {
+    const cx = xC(i);
+    const klH = (H - padT - padB) * Math.min(1, (p.kl || 0) / klMax);
+    const sdH = (H - padT - padB) * Math.min(1, (p.sd || 0) / sdMax);
+    const klY = (H - padB) - klH, sdY = (H - padB) - sdH;
+    const klX = cx - barW - 2, sdX = cx + 2;
+    svg += '<rect x="' + klX.toFixed(1) + '" y="' + klY.toFixed(1) + '" width="' + barW + '" height="' + klH.toFixed(1) + '" fill="#0F6E56" opacity="0.78" rx="2"><title>' + ldEsc(ldDayFull(p.ng)) + ' — Khoi luong ' + ldNum(p.kl, 1) + ' tan</title></rect>';
+    if (p.kl) svg += '<text x="' + (klX + barW / 2).toFixed(1) + '" y="' + (klY - 4).toFixed(1) + '" font-size="8" fill="#0F6E56" text-anchor="middle">' + ldNum(p.kl, 1) + '</text>';
+    svg += '<rect x="' + sdX.toFixed(1) + '" y="' + sdY.toFixed(1) + '" width="' + barW + '" height="' + sdH.toFixed(1) + '" fill="#F15A22" opacity="0.78" rx="2"><title>' + ldEsc(ldDayFull(p.ng)) + ' — So don ' + ldNum(p.sd) + '</title></rect>';
+    if (p.sd) svg += '<text x="' + (sdX + barW / 2).toFixed(1) + '" y="' + (sdY - 4).toFixed(1) + '" font-size="8" fill="#F15A22" text-anchor="middle">' + ldNum(p.sd) + '</text>';
+    svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 14).toFixed(1) + '" font-size="9" fill="#6B6860" text-anchor="middle">' + ldDay(p.ng) + '</text>';
+  });
+  let d = '';
+  arr.forEach((p, i) => { if (p.fill === null || p.fill === undefined) return; d += (d ? 'L' : 'M') + xC(i).toFixed(1) + ',' + yFill(p.fill).toFixed(1) + ' '; });
+  if (d) svg += '<path d="' + d + '" fill="none" stroke="#0063AA" stroke-width="2.5"/>';
+  arr.forEach((p, i) => {
+    if (p.fill === null || p.fill === undefined) return;
+    svg += '<circle cx="' + xC(i).toFixed(1) + '" cy="' + yFill(p.fill).toFixed(1) + '" r="3.2" fill="#0063AA"><title>' + ldEsc(ldDayFull(p.ng)) + ' — Lap day TB ' + ldPct(p.fill) + ' · ' + p.soChuyen + ' chuyen</title></circle>';
+    svg += '<text x="' + xC(i).toFixed(1) + '" y="' + (yFill(p.fill) - 8).toFixed(1) + '" font-size="9" font-weight="600" fill="#0063AA" text-anchor="middle">' + ldPct(p.fill, 0) + '</text>';
+  });
+  svg += '</svg>';
+  return svg;
+}
+function ldRPLDBucketChartSVG(arr) {
+  if (!arr.length) return '<div class="empty">Khong co du lieu.</div>';
+  const W = 900, H = 240, padL = 30, padR = 16, padT = 20, padB = 34;
+  const n = arr.length;
+  const gw = (W - padL - padR) / n;
+  const barW = Math.min(46, gw * 0.55);
+  const maxTotal = Math.max.apply(null, arr.map(p => p.soChuyen).concat([1]));
+  const yScale = v => (H - padT - padB) * (v / maxTotal);
+  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="rpld-bucket-svg">';
+  arr.forEach((p, i) => {
+    const cx = padL + gw * (i + 0.5);
+    let yCursor = H - padB;
+    RPLD_BUCKETS.forEach(b => {
+      const cnt = p.counts[b.key] || 0;
+      if (!cnt) return;
+      const bh = yScale(cnt);
+      const y = yCursor - bh;
+      const tenPlain = b.ten.replace('&lt;', '<').replace('&ge;', '≥');
+      svg += '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW + '" height="' + bh.toFixed(1) + '" fill="' + b.mau + '" opacity="0.85"><title>' + ldEsc(ldDayFull(p.ng)) + ' — ' + tenPlain + ': ' + cnt + ' chuyen</title></rect>';
+      if (bh > 12) svg += '<text x="' + cx.toFixed(1) + '" y="' + (y + bh / 2 + 3).toFixed(1) + '" font-size="9" fill="#fff" text-anchor="middle" font-weight="600">' + cnt + '</text>';
+      yCursor = y;
+    });
+    svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 14).toFixed(1) + '" font-size="9" fill="#6B6860" text-anchor="middle">' + ldDay(p.ng) + '</text>';
+    svg += '<text x="' + cx.toFixed(1) + '" y="' + (yCursor - 4).toFixed(1) + '" font-size="9.5" font-weight="700" fill="#1A1917" text-anchor="middle">' + p.soChuyen + '</text>';
+  });
+  svg += '</svg>';
+  return svg;
+}
+function ldRPLDOverviewBox(trips, depot) {
+  const arr = ldRPLDDaily(trips, depot, 15);
+  return '<div class="legend"><span class="lg"><i style="background:#0063AA"></i>Ty le lap day TB (%)</span>' +
+    '<span class="lg"><i style="background:#0F6E56"></i>Tong khoi luong luan chuyen (tan)</span>' +
+    '<span class="lg"><i style="background:#F15A22"></i>Tong so don luan chuyen</span></div>' +
+    ldRPLDOverviewChartSVG(arr);
+}
+function ldRPLDBucketBox(trips, depot) {
+  const arr = ldRPLDBucketDaily(trips, depot, 7);
+  return '<div class="legend">' + RPLD_BUCKETS.map(b => '<span class="lg"><i style="background:' + b.mau + '"></i>' + b.ten + '</span>').join('') + '</div>' +
+    ldRPLDBucketChartSVG(arr);
+}
+function ldRPLDOvChange(sel) {
+  const box = document.getElementById('rpldOvChartBox');
+  if (box) box.innerHTML = ldRPLDOverviewBox(window.LD_DATA.trips, sel.value);
+}
+function ldRPLDBkChange(sel) {
+  const box = document.getElementById('rpldBkChartBox');
+  if (box) box.innerHTML = ldRPLDBucketBox(window.LD_DATA.trips, sel.value);
+}
+
 function ldRenderRPLD() {
 const d = window.RPLD_DATA;
 if (!d || !d.blocks || !d.blocks.length) return '';
 let h = '<section id="secRPLD"><h2><span class="num rpld-star">&#9733;</span>Top trend tỷ lệ lấp đầy</h2>';
 h += '<div class="hint">Dữ liệu tổng hợp trực tiếp từ sheet <b>62_RPlapday</b> — bảng, cột và kỳ so sánh được nhận diện tự động theo cấu trúc gộp ô, không cố định số dòng/cột. Mũi tên dưới mỗi ô cho biết chiều tăng/giảm so với kỳ liền trước (kỳ nào sheet đã có sẵn chênh lệch thì lấy đúng dấu của chênh lệch đó).</div>';
-if (d.chart) h += '<div class="rpld-block rpld-chart-wrap">' + ldRPLDChart(d.chart) + '</div>';
+{
+  const allTrips = (window.LD_DATA && window.LD_DATA.trips) || [];
+  h += '<div class="rpld-block rpld-chart-wrap"><div class="rpld-block-title"><span>Bieu do tong theo ngay</span><select class="rpld-depot-sel" onchange="ldRPLDOvChange(this)">' + ldRPLDDepotOptions(allTrips, 'ALL') + '</select></div><div id="rpldOvChartBox" class="rpld-chart-box">' + ldRPLDOverviewBox(allTrips, 'ALL') + '</div></div>';
+  h += '<div class="rpld-block rpld-chart-wrap"><div class="rpld-block-title"><span>Nhom ty le lap day theo ngay (7 ngay gan nhat)</span><select class="rpld-depot-sel" onchange="ldRPLDBkChange(this)">' + ldRPLDDepotOptions(allTrips, 'ALL') + '</select></div><div id="rpldBkChartBox" class="rpld-chart-box">' + ldRPLDBucketBox(allTrips, 'ALL') + '</div></div>';
+}
 d.blocks.forEach(b => { h += ldRPLDBlockTable(b); });
 h += '</section>';
 return h;
