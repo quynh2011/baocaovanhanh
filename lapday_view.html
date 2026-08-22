@@ -287,7 +287,7 @@ footer{margin-top:34px;padding-top:15px;border-top:1px solid var(--border);
 
 .rpld-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .rpld-block-title{font-weight:700;font-size:13px;padding:10px 16px;color:var(--text);background:var(--bg);border-bottom:1px solid var(--border);letter-spacing:.02em;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.rpld-depot-sel{font-family:var(--f);font-size:12px;font-weight:500;padding:5px 10px;border-radius:7px;border:1px solid var(--border-strong);background:#fff;color:var(--text);cursor:pointer}
+.rpld-depot-sel{font-family:var(--f);font-size:12px;font-weight:500;padding:5px 10px;border-radius:7px;border:1px solid var(--border-strong);background:#fff;color:var(--text);cursor:pointer}\n.rpld-chart-filter{display:flex;align-items:center;gap:10px;padding:12px 16px 4px}\n.rpld-filter-lb{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
 .rpld-chart-box{padding:12px 16px 16px}
 .rpld-chart-box svg{width:100%;height:auto;display:block}
 .rpld-block .tbl-wrap{padding:0}
@@ -1797,16 +1797,16 @@ return '<div class="rpld-chart-title">' + ldEsc(chart.title) + '</div>' + svg + 
 
 /* ============================ RPLD: BIEU DO TONG (loc theo kho) ============================ */
 const RPLD_BUCKETS = [
-  { key: 'b1', lo: -Infinity, hi: 10, ten: '&lt; 10%', mau: '#B3261E' },
-  { key: 'b2', lo: 10, hi: 30, ten: '10 – 30%', mau: '#C9420D' },
-  { key: 'b3', lo: 30, hi: 50, ten: '30 – 50%', mau: '#8B6B00' },
-  { key: 'b4', lo: 50, hi: Infinity, ten: '&ge; 50%', mau: '#0F6E56' }
+  { key: 'b1', lo: -Infinity, hi: 10, ten: '&lt; 10%', mau: '#DC2626' },
+  { key: 'b2', lo: 10, hi: 30, ten: '10 – 30%', mau: '#F97316' },
+  { key: 'b3', lo: 30, hi: 50, ten: '30 – 50%', mau: '#A16207' },
+  { key: 'b4', lo: 50, hi: Infinity, ten: '&ge; 50%', mau: '#16A34A' }
 ];
 function rpldBucketOf(fk) {
   for (let i = 0; i < RPLD_BUCKETS.length; i++) { const b = RPLD_BUCKETS[i]; if (fk >= b.lo && fk < b.hi) return b.key; }
   return null;
 }
-let RPLD_OV_DEPOT = 'ALL', RPLD_BK_DEPOT = 'ALL';
+let RPLD_DEPOT = 'ALL';
 function ldRPLDScopeTrips() {
   let t = (window.LD_DATA && window.LD_DATA.trips) || [];
   if (LD.from) t = t.filter(x => x.ng && x.ng >= LD.from);
@@ -1852,83 +1852,108 @@ function ldRPLDDepotOptions(trips, selected) {
 }
 function ldRPLDOverviewChartSVG(arr) {
   if (!arr.length) return '<div class="empty">Không có dữ liệu.</div>';
-  const W = 900, H = 280, padL = 46, padR = 46, padT = 24, padB = 40;
+  const W = 900, H = 300, padL = 50, padR = 20, padT = 22, padB = 40;
   const n = arr.length;
   const gw = (W - padL - padR) / n;
   const xC = i => padL + gw * (i + 0.5);
   const fillMax = 100;
   const yFill = v => padT + (H - padT - padB) * (1 - Math.max(0, Math.min(fillMax, v || 0)) / fillMax);
-  const klMax = Math.max.apply(null, arr.map(p => p.kl || 0).concat([1])) * 1.25;
-  const sdMax = Math.max.apply(null, arr.map(p => p.sd || 0).concat([1])) * 1.25;
-  const barW = Math.min(16, gw * 0.24);
-  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="rpld-ov-svg">';
+  const klMax = Math.max.apply(null, arr.map(p => p.kl || 0).concat([1])) * 1.2;
+  const sdMax = Math.max.apply(null, arr.map(p => p.sd || 0).concat([1])) * 1.2;
+  const barW = Math.max(5, Math.min(16, (gw - 16) / 2));
+  const barGap = 3;
+  const fmtDate = ng => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(ng || ''); return m ? (m[3] + '/' + m[2]) : (ng || ''); };
+  const fmt1 = v => (Math.round((v || 0) * 10) / 10).toLocaleString('vi-VN');
+  const fmt0 = v => Math.round(v || 0).toLocaleString('vi-VN');
+
+  let svg = '<svg class="rpld-chart-svg" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
   [0, 25, 50, 75, 100].forEach(g => {
-    svg += '<line x1="' + padL + '" y1="' + yFill(g).toFixed(1) + '" x2="' + (W - padR) + '" y2="' + yFill(g).toFixed(1) + '" stroke="#E8E5DF" stroke-width="1"/>';
-    svg += '<text x="' + (padL - 6) + '" y="' + (yFill(g) + 3.5).toFixed(1) + '" font-size="9" fill="#9E9B93" text-anchor="end">' + g + '%</text>';
+    const y = yFill(g);
+    svg += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '" stroke="#EEEBE4" stroke-width="1"/>';
+    svg += '<text x="' + (padL - 8) + '" y="' + (y + 3.2).toFixed(1) + '" font-size="9" fill="#9E9B93" text-anchor="end" font-family="ui-monospace,monospace">' + g + '%</text>';
   });
+  svg += '<line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="#D8D4CB" stroke-width="1"/>';
+
+  const pts = [];
   arr.forEach((p, i) => {
     const cx = xC(i);
+    const bx1 = cx - barW - barGap / 2;
+    const bx2 = cx + barGap / 2;
     const klH = (H - padT - padB) * Math.min(1, (p.kl || 0) / klMax);
     const sdH = (H - padT - padB) * Math.min(1, (p.sd || 0) / sdMax);
-    const klY = (H - padB) - klH, sdY = (H - padB) - sdH;
-    const klX = cx - barW - 2, sdX = cx + 2;
-    svg += '<rect x="' + klX.toFixed(1) + '" y="' + klY.toFixed(1) + '" width="' + barW + '" height="' + klH.toFixed(1) + '" fill="#0F6E56" opacity="0.78" rx="2"><title>' + ldEsc(ldDayFull(p.ng)) + ' — Khối lượng luân chuyển ' + ldNum(p.kl, 1) + ' tấn</title></rect>';
-    if (p.kl) svg += '<text x="' + (klX + barW / 2).toFixed(1) + '" y="' + (klY - 4).toFixed(1) + '" font-size="8" fill="#0F6E56" text-anchor="middle">' + ldNum(p.kl, 1) + '</text>';
-    svg += '<rect x="' + sdX.toFixed(1) + '" y="' + sdY.toFixed(1) + '" width="' + barW + '" height="' + sdH.toFixed(1) + '" fill="#F15A22" opacity="0.78" rx="2"><title>' + ldEsc(ldDayFull(p.ng)) + ' — Số đơn luân chuyển ' + ldNum(p.sd) + '</title></rect>';
-    if (p.sd) svg += '<text x="' + (sdX + barW / 2).toFixed(1) + '" y="' + (sdY - 4).toFixed(1) + '" font-size="8" fill="#F15A22" text-anchor="middle">' + ldNum(p.sd) + '</text>';
-    svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 14).toFixed(1) + '" font-size="9" fill="#6B6860" text-anchor="middle">' + ldDay(p.ng) + '</text>';
+    const klY = (H - padB) - klH;
+    const sdY = (H - padB) - sdH;
+    svg += '<rect x="' + bx1.toFixed(1) + '" y="' + klY.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(0, klH).toFixed(1) + '" rx="2" fill="#0F6E56"><title>' + fmtDate(p.ng) + ' — Khối lượng luân chuyển ' + fmt1(p.kl) + ' tấn</title></rect>';
+    svg += '<rect x="' + bx2.toFixed(1) + '" y="' + sdY.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(0, sdH).toFixed(1) + '" rx="2" fill="#D9480F"><title>' + fmtDate(p.ng) + ' — Số đơn luân chuyển ' + fmt0(p.sd) + '</title></rect>';
+    if (klH >= 20) {
+      svg += '<text x="' + (bx1 + barW / 2).toFixed(1) + '" y="' + (klY - 4).toFixed(1) + '" font-size="9" font-weight="700" fill="#0F6E56" text-anchor="middle" paint-order="stroke fill" stroke="#fff" stroke-width="3">' + fmt1(p.kl) + '</text>';
+    }
+    if (sdH >= 20) {
+      svg += '<text x="' + (bx2 + barW / 2).toFixed(1) + '" y="' + (sdY - 4).toFixed(1) + '" font-size="9" font-weight="700" fill="#D9480F" text-anchor="middle" paint-order="stroke fill" stroke="#fff" stroke-width="3">' + fmt0(p.sd) + '</text>';
+    }
+    svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 14) + '" font-size="9" fill="#7A776E" text-anchor="middle" font-family="ui-monospace,monospace">' + fmtDate(p.ng) + '</text>';
+    pts.push([cx, yFill(p.fill)]);
   });
-  let d = '';
-  arr.forEach((p, i) => { if (p.fill === null || p.fill === undefined) return; d += (d ? 'L' : 'M') + xC(i).toFixed(1) + ',' + yFill(p.fill).toFixed(1) + ' '; });
-  if (d) svg += '<path d="' + d + '" fill="none" stroke="#0063AA" stroke-width="2.5"/>';
+
+  const path = pts.map((pt, i) => (i === 0 ? 'M' : 'L') + pt[0].toFixed(1) + ' ' + pt[1].toFixed(1)).join(' ');
+  svg += '<path d="' + path + '" fill="none" stroke="#0063AA" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
   arr.forEach((p, i) => {
-    if (p.fill === null || p.fill === undefined) return;
-    svg += '<circle cx="' + xC(i).toFixed(1) + '" cy="' + yFill(p.fill).toFixed(1) + '" r="3.2" fill="#0063AA"><title>' + ldEsc(ldDayFull(p.ng)) + ' — Lấp đầy TB ' + ldPct(p.fill) + ' · ' + p.soChuyen + ' chuyến</title></circle>';
-    svg += '<text x="' + xC(i).toFixed(1) + '" y="' + (yFill(p.fill) - 8).toFixed(1) + '" font-size="9" font-weight="600" fill="#0063AA" text-anchor="middle">' + ldPct(p.fill, 0) + '</text>';
+    const cx = pts[i][0], cy = pts[i][1];
+    svg += '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="3.5" fill="#0063AA" stroke="#fff" stroke-width="1.5"><title>' + fmtDate(p.ng) + ' — Tỷ lệ lấp đầy TB ' + fmt1(p.fill) + '%</title></circle>';
+    svg += '<text x="' + cx.toFixed(1) + '" y="' + (cy - 8).toFixed(1) + '" font-size="9.5" font-weight="700" fill="#0063AA" text-anchor="middle" paint-order="stroke fill" stroke="#fff" stroke-width="3">' + fmt1(p.fill) + '%</text>';
   });
+
   svg += '</svg>';
   return svg;
 }
 function ldRPLDBucketChartSVG(arr) {
   if (!arr.length) return '<div class="empty">Không có dữ liệu.</div>';
-  const W = 900, H = 270, padL = 34, padR = 16, padT = 20, padB = 34;
+  const W = 900, H = 280, padL = 50, padR = 20, padT = 22, padB = 40;
   const n = arr.length;
   const gw = (W - padL - padR) / n;
-  const barW = Math.min(50, gw * 0.58);
-  const rawMax = Math.max.apply(null, arr.map(p => p.soChuyen).concat([1]));
-  const niceMax = Math.ceil(rawMax / 10) * 10 || 10;
+  const barW = Math.min(56, gw * 0.6);
+  const rawMax = Math.max.apply(null, arr.map(p => p.soChuyen || 0).concat([1]));
+  const niceMax = Math.ceil(rawMax / 5) * 5 || 5;
   const yScale = v => (H - padT - padB) * (v / niceMax);
-  const yPos = v => (H - padB) - yScale(v);
-  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="rpld-bucket-svg">';
-  const ticks = 5;
-  for (let k = 0; k <= ticks; k++) {
-    const v = Math.round(niceMax * k / ticks);
-    const y = yPos(v);
-    svg += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '" stroke="#E8E5DF" stroke-width="1"/>';
-    svg += '<text x="' + (padL - 6) + '" y="' + (y + 3.5).toFixed(1) + '" font-size="9" fill="#9E9B93" text-anchor="end">' + v + '</text>';
+  const fmtDate = ng => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(ng || ''); return m ? (m[3] + '/' + m[2]) : (ng || ''); };
+  const keys = ['b1', 'b2', 'b3', 'b4'];
+  const colorOf = k => { const b = RPLD_BUCKETS.filter(x => x.key === k)[0]; return b ? b.mau : '#999'; };
+  const nameOf = k => { const b = RPLD_BUCKETS.filter(x => x.key === k)[0]; return b ? b.ten.replace('&lt;','<').replace('&ge;','≥') : k; };
+
+  let svg = '<svg class="rpld-chart-svg" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
+  const ticks = 4;
+  for (let ti = 0; ti <= ticks; ti++) {
+    const v = Math.round(niceMax * ti / ticks);
+    const y = (H - padB) - yScale(v);
+    svg += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '" stroke="#EEEBE4" stroke-width="1"/>';
+    svg += '<text x="' + (padL - 8) + '" y="' + (y + 3.2).toFixed(1) + '" font-size="9" fill="#9E9B93" text-anchor="end" font-family="ui-monospace,monospace">' + v + '</text>';
   }
+  svg += '<line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="#D8D4CB" stroke-width="1"/>';
+
   arr.forEach((p, i) => {
     const cx = padL + gw * (i + 0.5);
+    const bx = cx - barW / 2;
     let yCursor = H - padB;
-    RPLD_BUCKETS.forEach(b => {
-      const cnt = p.counts[b.key] || 0;
+    keys.forEach(k => {
+      const cnt = (p.counts && p.counts[k]) || 0;
       if (!cnt) return;
       const bh = yScale(cnt);
       const y = yCursor - bh;
       const pct = p.soChuyen ? Math.round(cnt / p.soChuyen * 100) : 0;
-      const tenPlain = b.ten.replace('&lt;', '<').replace('&ge;', '≥');
-      svg += '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW + '" height="' + bh.toFixed(1) + '" fill="' + b.mau + '" stroke="#fff" stroke-width="1"><title>' + ldEsc(ldDayFull(p.ng)) + ' — ' + tenPlain + ': ' + cnt + ' chuyến (' + pct + '%)</title></rect>';
-      if (bh > 20) {
-        svg += '<text x="' + cx.toFixed(1) + '" y="' + (y + bh / 2 - 1).toFixed(1) + '" font-size="10" fill="#fff" text-anchor="middle" font-weight="700">' + cnt + '</text>';
-        svg += '<text x="' + cx.toFixed(1) + '" y="' + (y + bh / 2 + 10).toFixed(1) + '" font-size="8" fill="#fff" text-anchor="middle" opacity="0.9">' + pct + '%</text>';
-      } else if (bh > 9) {
-        svg += '<text x="' + cx.toFixed(1) + '" y="' + (y + bh / 2 + 3).toFixed(1) + '" font-size="9" fill="#fff" text-anchor="middle" font-weight="700">' + cnt + '</text>';
+      svg += '<rect x="' + bx.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + bh.toFixed(1) + '" fill="' + colorOf(k) + '" stroke="#fff" stroke-width="1"><title>' + fmtDate(p.ng) + ' — ' + nameOf(k) + ': ' + cnt + ' chuyến (' + pct + '%)</title></rect>';
+      if (bh >= 22) {
+        svg += '<text x="' + cx.toFixed(1) + '" y="' + (y + bh / 2 - 2).toFixed(1) + '" font-size="9.5" font-weight="700" fill="#fff" text-anchor="middle" paint-order="stroke fill" stroke="' + colorOf(k) + '" stroke-width="2.6">' + cnt + '</text>';
+        svg += '<text x="' + cx.toFixed(1) + '" y="' + (y + bh / 2 + 9).toFixed(1) + '" font-size="8" font-weight="700" fill="#fff" text-anchor="middle" paint-order="stroke fill" stroke="' + colorOf(k) + '" stroke-width="2.2">' + pct + '%</text>';
+      } else if (bh >= 11) {
+        svg += '<text x="' + cx.toFixed(1) + '" y="' + (y + bh / 2 + 3.2).toFixed(1) + '" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle" paint-order="stroke fill" stroke="' + colorOf(k) + '" stroke-width="2.2">' + cnt + '</text>';
       }
       yCursor = y;
     });
-    svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 14).toFixed(1) + '" font-size="9" fill="#6B6860" text-anchor="middle">' + ldDay(p.ng) + '</text>';
-    svg += '<text x="' + cx.toFixed(1) + '" y="' + (yCursor - 6).toFixed(1) + '" font-size="10" font-weight="700" fill="#1A1917" text-anchor="middle">' + p.soChuyen + ' chuyến</text>';
+    svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 14) + '" font-size="9" fill="#7A776E" text-anchor="middle" font-family="ui-monospace,monospace">' + fmtDate(p.ng) + '</text>';
+    const topY = (H - padB) - yScale(p.soChuyen || 0);
+    svg += '<text x="' + cx.toFixed(1) + '" y="' + (topY - 6).toFixed(1) + '" font-size="9.5" font-weight="700" fill="#2B2A26" text-anchor="middle" paint-order="stroke fill" stroke="#fff" stroke-width="3">' + (p.soChuyen || 0) + ' chuyến</text>';
   });
+
   svg += '</svg>';
   return svg;
 }
@@ -1944,16 +1969,15 @@ function ldRPLDBucketBox(trips, depot) {
   return '<div class="legend">' + RPLD_BUCKETS.map(b => '<span class="lg"><i style="background:' + b.mau + '"></i>' + b.ten + '</span>').join('') + '</div>' +
     ldRPLDBucketChartSVG(arr);
 }
-function ldRPLDOvChange(sel) {
-  RPLD_OV_DEPOT = sel.value;
-  const box = document.getElementById('rpldOvChartBox');
-  if (box) box.innerHTML = ldRPLDOverviewBox(ldRPLDScopeTrips(), RPLD_OV_DEPOT);
+function ldRPLDDepotChange(sel) {
+  RPLD_DEPOT = sel.value;
+  const trips = ldRPLDScopeTrips();
+  const ovBox = document.getElementById('rpldOvChartBox');
+  const bkBox = document.getElementById('rpldBkChartBox');
+  if (ovBox) ovBox.innerHTML = ldRPLDOverviewBox(trips, RPLD_DEPOT);
+  if (bkBox) bkBox.innerHTML = ldRPLDBucketBox(trips, RPLD_DEPOT);
 }
-function ldRPLDBkChange(sel) {
-  RPLD_BK_DEPOT = sel.value;
-  const box = document.getElementById('rpldBkChartBox');
-  if (box) box.innerHTML = ldRPLDBucketBox(ldRPLDScopeTrips(), RPLD_BK_DEPOT);
-}
+
 
 function ldRenderRPLD() {
 const d = window.RPLD_DATA;
@@ -1963,10 +1987,10 @@ h += '<div class="hint">Dữ liệu tổng hợp trực tiếp từ sheet <b>62_
 {
   const allTrips = ldRPLDScopeTrips();
   const availDepots = ['ALL'].concat(ldRPLDDepots(allTrips));
-  if (availDepots.indexOf(RPLD_OV_DEPOT) === -1) RPLD_OV_DEPOT = 'ALL';
-  if (availDepots.indexOf(RPLD_BK_DEPOT) === -1) RPLD_BK_DEPOT = 'ALL';
-  h += '<div class="rpld-block rpld-chart-wrap"><div class="rpld-block-title"><span>Biểu đồ tổng theo ngày</span><select class="rpld-depot-sel" onchange="ldRPLDOvChange(this)">' + ldRPLDDepotOptions(allTrips, RPLD_OV_DEPOT) + '</select></div><div id="rpldOvChartBox" class="rpld-chart-box">' + ldRPLDOverviewBox(allTrips, RPLD_OV_DEPOT) + '</div></div>';
-  h += '<div class="rpld-block rpld-chart-wrap"><div class="rpld-block-title"><span>Nhóm tỷ lệ lấp đầy theo ngày (7 ngày gần nhất)</span><select class="rpld-depot-sel" onchange="ldRPLDBkChange(this)">' + ldRPLDDepotOptions(allTrips, RPLD_BK_DEPOT) + '</select></div><div id="rpldBkChartBox" class="rpld-chart-box">' + ldRPLDBucketBox(allTrips, RPLD_BK_DEPOT) + '</div></div>';
+  if (availDepots.indexOf(RPLD_DEPOT) === -1) RPLD_DEPOT = 'ALL';
+  h += '<div class="rpld-block rpld-chart-filter"><span class="rpld-filter-lb">Xem theo kho chuyển tiếp</span><select class="rpld-depot-sel" onchange="ldRPLDDepotChange(this)">' + ldRPLDDepotOptions(allTrips, RPLD_DEPOT) + '</select></div>';
+  h += '<div class="rpld-block rpld-chart-wrap"><div class="rpld-block-title"><span>Biểu đồ tổng theo ngày</span></div><div id="rpldOvChartBox" class="rpld-chart-box">' + ldRPLDOverviewBox(allTrips, RPLD_DEPOT) + '</div></div>';
+  h += '<div class="rpld-block rpld-chart-wrap"><div class="rpld-block-title"><span>Nhóm tỷ lệ lấp đầy theo ngày (7 ngày gần nhất)</span></div><div id="rpldBkChartBox" class="rpld-chart-box">' + ldRPLDBucketBox(allTrips, RPLD_DEPOT) + '</div></div>';
 }
 d.blocks.forEach(b => { h += ldRPLDBlockTable(b); });
 h += '</section>';
