@@ -594,6 +594,69 @@ async function handleVerifySessionOtp(body) {
   };
 }
 
+// ====== QUÊN MẬT KHẨU (OTP qua Gmail, hiệu lực 10 phút) — port 1:1 từ Code.gs handleRequestReset/handleResetPassword ======
+// Dùng chung 2 cột OTP/OTPHetHan của sheet "Main" với OTP xác thực lại phiên (cùng ý nghĩa: 1 mã, dùng 1 lần, có hạn).
+const RESET_OTP_TTL_MS = 10 * 60 * 1000;
+
+async function handleRequestPasswordReset(body) {
+  const email = normEmail(body.email);
+  if (!isValidGhnEmail(email)) return { ok: false, error: 'invalid_email_domain' };
+
+  const mainValues = await getValues(SHEET_ID, "'" + MAIN_SHEET_NAME + "'");
+  const found = findUserRow(mainValues, email);
+  // Không tiết lộ tài khoản có tồn tại/active hay không — luôn trả về thông báo giống nhau.
+  if (found && found.values[COL.ACTIVE - 1] === true) {
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const expiry = dateToSheetString(new Date(Date.now() + RESET_OTP_TTL_MS));
+    const sheetName = "'" + MAIN_SHEET_NAME + "'!";
+    await batchUpdateValues(SHEET_ID, [
+      { range: sheetName + colLetter(COL.OTP) + found.row, values: [[otp]] },
+      { range: sheetName + colLetter(COL.OTPHETHAN) + found.row, values: [[expiry]] }
+    ]);
+    const name = String(found.values[COL.HOTEN - 1] || '');
+    await sendGmailMessage(
+      email,
+      'Mã xác nhận đổi mật khẩu — Báo Cáo Vận Hành GHN',
+      'Chào ' + name + ',\n\n' +
+      'Mã xác nhận để đặt lại mật khẩu của bạn là: ' + otp + '\n' +
+      'Mã có hiệu lực trong 10 phút. Nếu không phải bạn yêu cầu, hãy bỏ qua email này.\n\n' +
+      '— Báo Cáo Vận Hành Tuần GHN'
+    );
+  }
+  return { ok: true, message: 'Nếu email tồn tại và đang hoạt động, mã xác nhận đã được gửi.' };
+}
+
+async function handleResetPassword(body) {
+  const email = normEmail(body.email);
+  const otp = String(body.otp || '').trim();
+  const newPassword = String(body.newPassword || '');
+  if (!isValidGhnEmail(email)) return { ok: false, error: 'invalid_email_domain' };
+  if (newPassword.length < MIN_PASSWORD_LEN) return { ok: false, error: 'password_too_short' };
+
+  const mainValues = await getValues(SHEET_ID, "'" + MAIN_SHEET_NAME + "'");
+  const found = findUserRow(mainValues, email);
+  if (!found) return { ok: false, error: 'account_not_found' };
+  const r = found.values;
+  const savedOtp = String(r[COL.OTP - 1] === undefined || r[COL.OTP - 1] === null ? '' : r[COL.OTP - 1]).trim();
+  if (!savedOtp || savedOtp !== otp) return { ok: false, error: 'otp_invalid' };
+  const otpExpirySerial = r[COL.OTPHETHAN - 1];
+  const expiryDate = (typeof otpExpirySerial === 'number' && otpExpirySerial > 0) ? serialToDate(otpExpirySerial) : null;
+  if (!expiryDate || expiryDate.getTime() < Date.now()) return { ok: false, error: 'otp_expired' };
+
+  const newSalt = crypto.randomBytes(16).toString('hex');
+  const newHash = hashPassword(newPassword, newSalt);
+  const sheetName = "'" + MAIN_SHEET_NAME + "'!";
+  await batchUpdateValues(SHEET_ID, [
+    { range: sheetName + colLetter(COL.SALT) + found.row, values: [[newSalt]] },
+    { range: sheetName + colLetter(COL.HASH) + found.row, values: [[newHash]] },
+    { range: sheetName + colLetter(COL.OTP) + found.row, values: [['']] },
+    { range: sheetName + colLetter(COL.OTPHETHAN) + found.row, values: [['']] },
+    { range: sheetName + colLetter(COL.SOLANSAI) + found.row, values: [[0]] },
+    { range: sheetName + colLetter(COL.KHOADENLUC) + found.row, values: [['']] }
+  ]);
+  return { ok: true };
+}
+
 // ====== DỮ LIỆU BÁO CÁO ======
 function buildTableShape(header, dataRows, fmtRows) {
   const cols = header.map((h) => ({ label: (h === null || h === undefined) ? '' : String(h) }));
@@ -2217,6 +2280,7 @@ module.exports = {
   normEmail, isValidGhnEmail, hashPassword, makeToken, verifyToken, findUserRow, getPermissions,
   computeModuleAccessForRole, handleLogin, handleValidateSession, handleGetReportData,
   handleChangePassword, handleRequestSessionOtp, handleVerifySessionOtp, sendGmailMessage,
+  handleRequestPasswordReset, handleResetPassword,
   handleGetModuleConfig, handleUpdateModuleConfig,
   handleGetUserList, handleUpdateUserPermissions, handleAddUser, handleUpdateUser, handleDeleteUser, handleAdminResetPassword,
   handleGetKeHoachData, handleAddKeHoach, handleUpdateKeHoach, handleAddKetQua, handleAddTienDo,

@@ -57,6 +57,9 @@ const LOCAL_ACTIONS = {
   changePassword: sheetsClient.handleChangePassword,
   requestSessionOtp: sheetsClient.handleRequestSessionOtp,
   verifySessionOtp: sheetsClient.handleVerifySessionOtp,
+  // Quên mật khẩu (OTP 10 phút qua Gmail) — port 2026-11-02
+  requestPasswordReset: sheetsClient.handleRequestPasswordReset,
+  resetPassword: sheetsClient.handleResetPassword,
   // "Cấu hình" > "Hạng mục & Phân quyền"
   getModuleConfig: sheetsClient.handleGetModuleConfig,
   updateModuleConfig: sheetsClient.handleUpdateModuleConfig,

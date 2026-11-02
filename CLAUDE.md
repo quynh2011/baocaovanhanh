@@ -61,7 +61,7 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 | Truy thu / Capacity / Nhân sự / Sắp ra mắt | Placeholder | — |
 
 ### Action frontend gọi nhưng CHƯA port (rơi xuống Apps Script → lỗi)
-`requestPasswordReset`, `resetPassword` (quên mật khẩu), `getOpsAnalysis`, `getKDAnalysis` (nhận xét AI Vận hành/KD — lỗi im lặng, web giữ nhận xét rule-based), toàn bộ Lịch làm việc ở trên.
+`getOpsAnalysis`, `getKDAnalysis` (nhận xét AI Vận hành/KD — lỗi im lặng, web giữ nhận xét rule-based), toàn bộ Lịch làm việc ở trên.
 
 ## 6. Quy ước khi sửa
 - Thêm tính năng backend: viết `async function handleXxx(body)` trong `_sheetsClient.js` (kiểm tra `requireActiveUser`/`requireAdmin`), export ở `module.exports`, đăng ký trong `LOCAL_ACTIONS` của `api/gas.js`.
@@ -73,3 +73,4 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 ## 7. Nhật ký thay đổi
 - 2026-08-13 → 08-22 (tài khoản trước): port backend sang Sheets API, Lấp đầy `61_LapDayNew`, RPLD `62_RPlapday`, Đối soát vận tải. Commit cuối: `619549b` (gộp bộ lọc kho RPLD, đổi màu biểu đồ).
 - 2026-10-31: tài khoản mới tiếp nhận, đọc toàn bộ code, tạo file CLAUDE.md này. File HTML xuất ngày 31/10 (tuần 2026/40–44) khớp 100% script với repo.
+- 2026-11-02: FIX quên mật khẩu — port `requestPasswordReset`/`resetPassword` sang Sheets API + Gmail API (`handleRequestPasswordReset`, `handleResetPassword` trong `api/_sheetsClient.js`, đăng ký ở `api/gas.js`). OTP 10 phút, dùng chung cột OTP/OTPHetHan sheet Main; đặt lại xong reset SoLanSai + KhoaDenLuc.
