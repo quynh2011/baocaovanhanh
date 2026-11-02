@@ -597,6 +597,7 @@ async function handleVerifySessionOtp(body) {
 // ====== QUÊN MẬT KHẨU (OTP qua Gmail, hiệu lực 10 phút) — port 1:1 từ Code.gs handleRequestReset/handleResetPassword ======
 // Dùng chung 2 cột OTP/OTPHetHan của sheet "Main" với OTP xác thực lại phiên (cùng ý nghĩa: 1 mã, dùng 1 lần, có hạn).
 const RESET_OTP_TTL_MS = 10 * 60 * 1000;
+const RESET_OTP_MAX_FAILS = 5; // nhập sai 5 lần -> huỷ mã, phải bấm gửi mã mới (chống dò mã)
 
 async function handleRequestPasswordReset(body) {
   const email = normEmail(body.email);
@@ -608,9 +609,11 @@ async function handleRequestPasswordReset(body) {
   if (found && found.values[COL.ACTIVE - 1] === true) {
     const otp = String(Math.floor(100000 + Math.random() * 900000));
     const expiry = dateToSheetString(new Date(Date.now() + RESET_OTP_TTL_MS));
+    // Lưu kèm số lần nhập sai ngay trong ô OTP ("mã#sốLầnSai") — không cần thêm cột mới vào sheet Main.
+    const otpCell = otp + '#0';
     const sheetName = "'" + MAIN_SHEET_NAME + "'!";
     await batchUpdateValues(SHEET_ID, [
-      { range: sheetName + colLetter(COL.OTP) + found.row, values: [[otp]] },
+      { range: sheetName + colLetter(COL.OTP) + found.row, values: [[otpCell]] },
       { range: sheetName + colLetter(COL.OTPHETHAN) + found.row, values: [[expiry]] }
     ]);
     const name = String(found.values[COL.HOTEN - 1] || '');
@@ -637,11 +640,27 @@ async function handleResetPassword(body) {
   const found = findUserRow(mainValues, email);
   if (!found) return { ok: false, error: 'account_not_found' };
   const r = found.values;
-  const savedOtp = String(r[COL.OTP - 1] === undefined || r[COL.OTP - 1] === null ? '' : r[COL.OTP - 1]).trim();
-  if (!savedOtp || savedOtp !== otp) return { ok: false, error: 'otp_invalid' };
+  const rawOtp = String(r[COL.OTP - 1] === undefined || r[COL.OTP - 1] === null ? '' : r[COL.OTP - 1]).trim();
+  const sheetNameOtp = "'" + MAIN_SHEET_NAME + "'!";
+  const clearOtp = () => batchUpdateValues(SHEET_ID, [
+    { range: sheetNameOtp + colLetter(COL.OTP) + found.row, values: [['']] },
+    { range: sheetNameOtp + colLetter(COL.OTPHETHAN) + found.row, values: [['']] }
+  ]);
+  if (!rawOtp) return { ok: false, error: 'otp_expired' };
+  // Ô OTP dạng "mã#sốLầnSai" (mã cũ không có "#" coi như 0 lần sai).
+  const hashPos = rawOtp.indexOf('#');
+  const savedOtp = hashPos === -1 ? rawOtp : rawOtp.slice(0, hashPos);
+  const failCount = hashPos === -1 ? 0 : (parseInt(rawOtp.slice(hashPos + 1), 10) || 0);
+  if (failCount >= RESET_OTP_MAX_FAILS) { await clearOtp(); return { ok: false, error: 'otp_too_many' }; }
   const otpExpirySerial = r[COL.OTPHETHAN - 1];
   const expiryDate = (typeof otpExpirySerial === 'number' && otpExpirySerial > 0) ? serialToDate(otpExpirySerial) : null;
-  if (!expiryDate || expiryDate.getTime() < Date.now()) return { ok: false, error: 'otp_expired' };
+  if (!expiryDate || expiryDate.getTime() < Date.now()) { await clearOtp(); return { ok: false, error: 'otp_expired' }; }
+  if (savedOtp !== otp) {
+    const fails = failCount + 1;
+    if (fails >= RESET_OTP_MAX_FAILS) { await clearOtp(); return { ok: false, error: 'otp_too_many' }; }
+    await batchUpdateValues(SHEET_ID, [{ range: sheetNameOtp + colLetter(COL.OTP) + found.row, values: [[savedOtp + '#' + fails]] }]);
+    return { ok: false, error: 'otp_invalid', conLai: RESET_OTP_MAX_FAILS - fails };
+  }
 
   const newSalt = crypto.randomBytes(16).toString('hex');
   const newHash = hashPassword(newPassword, newSalt);

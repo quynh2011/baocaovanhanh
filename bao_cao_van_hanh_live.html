@@ -1587,6 +1587,7 @@ const LOGIN_ERR_MSG = {
   wrong_password: 'Sai mật khẩu',
   otp_invalid: 'Mã xác nhận không đúng',
   otp_expired: 'Mã xác nhận đã hết hạn, vui lòng gửi lại',
+  otp_too_many: 'Nhập sai mã quá 5 lần — mã đã bị huỷ, vui lòng quay lại và gửi mã mới',
   password_too_short: 'Mật khẩu phải có tối thiểu 8 ký tự',
   old_password_incorrect: 'Mật khẩu hiện tại không đúng',
   forbidden: 'Bạn không có quyền thực hiện thao tác này',
@@ -1661,7 +1662,12 @@ async function handleResetPasswordClick(){
   setBtnLoading('resetBtn', true, 'Đang xử lý…', 'Đặt mật khẩu mới');
   try {
     const res = await callBackend('resetPassword', { email, otp, newPassword: p1 });
-    if (!res.ok) { showLoginError('resetError', errMsg(res.error)); return; }
+    if (!res.ok) {
+      let msg = errMsg(res.error);
+      if (res.error === 'otp_invalid' && typeof res.conLai === 'number') msg += ' (còn ' + res.conLai + ' lần thử)';
+      showLoginError('resetError', msg);
+      return;
+    }
     showLoginStep('stepLogin');
     document.getElementById('loginEmail').value = email;
     document.getElementById('loginPassword').value = '';
