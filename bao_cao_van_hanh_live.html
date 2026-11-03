@@ -6455,7 +6455,7 @@ function dnNum(s){
   return pct ? n / 100 : n;
 }
 function dnP(v, d){ if (v === null || v === undefined || isNaN(v)) return '—'; return (v*100).toLocaleString('vi-VN',{minimumFractionDigits:d===undefined?2:d,maximumFractionDigits:d===undefined?2:d}) + '%'; }
-function dnPt(v, d){ if (v === null || v === undefined || isNaN(v)) return '—'; const x = v*100; return (x>0?'+':'') + x.toLocaleString('vi-VN',{minimumFractionDigits:d===undefined?2:d,maximumFractionDigits:d===undefined?2:d}) + ' điểm'; }
+function dnPt(v, d){ if (v === null || v === undefined || isNaN(v)) return '—'; const x = v*100; return (x>0?'+':'') + x.toLocaleString('vi-VN',{minimumFractionDigits:d===undefined?2:d,maximumFractionDigits:d===undefined?2:d}) + '%'; }
 function dnI(v){ if (v === null || v === undefined || isNaN(v)) return '—'; return Math.round(v).toLocaleString('vi-VN'); }
 function dnSI(v){ if (v === null || v === undefined || isNaN(v)) return '—'; const r = Math.round(v); return (r>0?'+':'') + r.toLocaleString('vi-VN'); }
 function dnE(s){ return esc(s === null || s === undefined ? '' : String(s)); }
@@ -6858,25 +6858,49 @@ function dnMatrixHtml(M){
 }
 function dnSetScatter(lv){ window.DAY.scatterLevel = lv; const el = document.getElementById('dn-matran'); if (el && el.nextElementSibling) el.nextElementSibling.innerHTML = dnMatrixHtml(window.DAY.M); }
 
-// ---------- 3. ƯU TIÊN XỬ LÝ ----------
+// ---------- ƯU TIÊN XỬ LÝ GTC — ghép Tỉnh → AM → Bưu cục trong 1 bảng cây ----------
+// Tỉnh xếp theo TỔNG đơn thiếu của các bưu cục dưới target (tỉnh đạt chung vẫn có thể có BC kém); bấm + để xổ AM → BC.
+// Chỉ hiện AM / BC đang có đơn thiếu (dưới target) — đúng tinh thần "chỉ hiện ngoại lệ".
 function dnPriorityHtml(M){
-  const lv = window.DAY.prioLevel; const T = DAY_TARGETS.gtc;
-  const list = Object.values(M.ent[lv] || {}).filter(e => e.gtc !== undefined && e.gtc !== null);
-  if (!list.length) return '';
-  const below = list.filter(e => e.gtc < T).sort((a,b) => (b.gap||0) - (a.gap||0));
-  const totalGap = below.reduce((a,e) => a + (e.gap||0), 0);
-  let cum = 0; const top = below.slice(0, 15);
-  const btn = (k, t) => '<button class="chart-toggle-btn'+(lv===k?' active':'')+'" onclick="dnSetPrio(\''+k+'\')">'+t+'</button>';
-  const parentLbl = lv === 'bc' ? 'AM' : lv === 'am' ? 'Tỉnh' : 'Vùng';
-  let rows = top.map((e, i) => { cum += e.gap || 0;
-    return '<tr><td><span class="dn-rank">'+(i+1)+'</span>'+dnE(e.name)+(e.parent?'<div class="dn-par">'+dnE(e.parent)+'</div>':'')+'</td><td>'+dnI(e.sl)+'</td><td class="dn-badc">'+dnP(e.gtc)+'</td><td>'+dnDeltaSpan(e.dGtc,1)+'</td><td><b>'+dnI(e.gap)+'</b><div class="dn-bar"><span style="width:'+Math.min(100, (e.gap||0) / (top[0].gap||1) * 100)+'%"></span></div></td><td class="mut">'+(totalGap ? (cum/totalGap*100).toFixed(0)+'%' : '—')+'</td>' +
-      '<td>'+dnHeat(e.gan, M.V && M.V.gan, 1)+'</td><td>'+dnHeat(e.ca1, M.V && M.V.ca1, 1)+'</td><td>'+dnHeat(e.ca2, M.V && M.V.ca2, 1, true)+'</td><td>'+(e.ton1!==undefined?dnI(e.ton1)+' <span class="mut">('+dnP(e.tonShare,0)+')</span>':'—')+'</td><td>'+dnHeat(e.gm1, M.V && M.V.gm1, 1)+'</td><td>'+dnHeat(e.gt1, M.V && M.V.gt1, 1)+'</td><td class="dn-tags">'+dnTagHtml(e.tags, 3)+'</td></tr>'; }).join('');
-  if (!rows) rows = '<tr><td colspan="13" style="text-align:center;padding:16px" class="dn-good">Tất cả đều đạt target 🎉</td></tr>';
-  return '<div class="dn-toolbar">Xem theo: ' + btn('bc','Bưu cục') + btn('am','AM') + btn('tinh','Tỉnh') + '<span class="dn-note" style="margin:0 0 0 8px"><b>' + below.length + '/' + list.length + '</b> dưới target, thiếu tổng <b>' + dnI(totalGap) + '</b> đơn. ' + (top.length < below.length ? top.length + ' dòng đầu chiếm ' + (totalGap ? (cum/totalGap*100).toFixed(0) : 0) + '% tổng thiếu.' : '') + '</span></div>' +
-    '<div class="tbl-wrap"><table class="dn-tbl"><thead><tr><th>' + (lv==='bc'?'Bưu cục':lv==='am'?'AM':'Tỉnh') + ' <span class="mut2">(' + parentLbl + ')</span></th><th>SL cần giao</th><th>% GTC</th><th>Δ N-2</th><th>Đơn thiếu target</th><th>Luỹ kế</th><th>% Gán</th><th>Gán Ca 1</th><th>Gán Ca 2</th><th>Hàng tồn (tỷ trọng)</th><th>GTC hàng mới</th><th>GTC hàng tồn</th><th>Nguyên nhân (so mức Vùng)</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
-    '<div class="dn-note">Đơn thiếu target = (target ' + dnP(T,0) + ' − %GTC) × SL cần giao: số đơn phải giao thành công thêm để chạm target. Màu ô % so với mức chung Vùng (xanh = tốt hơn, đỏ = kém hơn). Nhãn nguyên nhân chỉ so số liệu, không phải kết luận cuối cùng.</div>';
+  const T = DAY_TARGETS.gtc; const V = M.V || {};
+  const bcs = Object.values(M.ent.bc).filter(e => e.gtc !== undefined && e.gtc !== null);
+  const ams = Object.values(M.ent.am).filter(e => e.gtc !== undefined && e.gtc !== null);
+  const tinhs = Object.values(M.ent.tinh).filter(e => e.gtc !== undefined && e.gtc !== null);
+  if (!bcs.length && !ams.length) return '';
+  const bcOf = a => bcs.filter(b => dnNorm(b.parent) === dnNorm(a.name));
+  const amOf = t => ams.filter(a => dnNorm(a.parent) === dnNorm(t.name));
+  const bcGap = list => list.reduce((s, b) => s + (b.gap || 0), 0);
+  const amInfo = ams.map(a => { const kids = bcOf(a).filter(b => b.gap > 0).sort((x, y) => y.gap - x.gap); return { a, kids, sub: bcGap(kids) }; });
+  const tinhInfo = (tinhs.length ? tinhs : [{ name: 'Vùng', gtc: V.gtc, __all: true }]).map(t => {
+    const kidsAm = (t.__all ? amInfo : amInfo.filter(x => dnNorm(x.a.parent) === dnNorm(t.name))).filter(x => x.a.gap > 0 || x.sub > 0).sort((x, y) => (y.sub + (y.a.gap||0)) - (x.sub + (x.a.gap||0)));
+    return { t, kidsAm, sub: kidsAm.reduce((s, x) => s + x.sub, 0), nBc: kidsAm.reduce((s, x) => s + x.kids.length, 0) };
+  }).filter(x => x.kidsAm.length || (x.t.gap > 0)).sort((x, y) => y.sub - x.sub);
+  const totalBcGap = bcGap(bcs.filter(b => b.gap > 0)); const nBcBelow = bcs.filter(b => b.gap > 0).length;
+  const nAmBelow = ams.filter(a => a.gap > 0).length;
+  const cells = (e, sub, nb) => '<td>'+dnI(e.sl)+'</td><td>'+(e.gtc !== undefined ? '<span class="dn-h '+(e.gtc>=T?'h-good':'h-bad')+'">'+dnP(e.gtc)+'</span>' : '—')+'</td><td>'+dnDeltaSpan(e.dGtc,1)+'</td>' +
+    '<td>'+(e.gap ? '<b>'+dnI(e.gap)+'</b>' : '<span class="mut">0</span>')+'</td>' +
+    '<td>'+(sub !== null ? '<b class="dn-bad">'+dnI(sub)+'</b><span class="mut"> · '+nb+' BC</span><div class="dn-bar"><span style="width:'+Math.min(100, sub / (tinhInfo[0] ? tinhInfo[0].sub || 1 : 1) * 100)+'%"></span></div>' : '')+'</td>' +
+    '<td>'+dnHeat(e.gan, V.gan, 1)+'</td><td>'+dnHeat(e.ca1, V.ca1, 1)+'</td><td>'+dnHeat(e.ca2, V.ca2, 1, true)+'</td>' +
+    '<td>'+(e.ton1!==undefined ? dnI(e.ton1)+' <span class="mut">('+dnP(e.tonShare,0)+')</span>' : '—')+'</td><td>'+dnHeat(e.gm1, V.gm1, 1)+'</td><td>'+dnHeat(e.gt1, V.gt1, 1)+'</td>' +
+    '<td class="dn-tags">'+dnTagHtml(e.tags, 3)+'</td>';
+  let id = 0, h = '', rank = 0;
+  tinhInfo.forEach(ti => { const tid = 'dnp' + (++id); rank++;
+    h += '<tr class="dn-tr lv0" data-id="'+tid+'"><td><span class="dn-tg" onclick="dnTreeToggle(\''+tid+'\',this)">−</span><span class="dn-rank">'+rank+'</span><b>'+dnE(ti.t.name)+'</b></td>' + cells(ti.t, ti.sub, ti.nBc) + '</tr>';
+    ti.kidsAm.forEach(x => { const aid = 'dnp' + (++id);
+      h += '<tr class="dn-tr lv1" data-id="'+aid+'" data-p="'+tid+'"><td>'+(x.kids.length ? '<span class="dn-tg" onclick="dnTreeToggle(\''+aid+'\',this)">+</span>' : '<span class="dn-tg0"></span>')+dnEnt('am', x.a.name)+' <span class="dn-lvl">AM</span></td>' + cells(x.a, x.sub, x.kids.length) + '</tr>';
+      x.kids.forEach(b => { h += '<tr class="dn-tr lv2" data-p="'+aid+'" style="display:none"><td><span class="dn-tg0"></span>'+dnEnt('bc', b.name)+'</td>' + cells(b, null, 0) + '</tr>'; });
+    });
+  });
+  if (M.V) h += '<tr class="total-row"><td>'+dnE(M.V.name || 'Tổng Vùng')+'</td>' + cells(M.V, totalBcGap, nBcBelow) + '</tr>';
+  const top3 = tinhInfo.slice(0, 3); const share = totalBcGap ? top3.reduce((s, x) => s + x.sub, 0) / totalBcGap : 0;
+  return '<div class="dn-lead"><b class="dn-bad">' + nBcBelow + '/' + bcs.length + ' bưu cục</b> và <b>' + nAmBelow + '/' + ams.length + ' AM</b> dưới target, các bưu cục thiếu tổng <b>' + dnI(totalBcGap) + ' đơn</b> giao thành công. ' +
+      (top3.length ? '3 tỉnh thiếu nhiều nhất — ' + top3.map(x => '<b>' + dnE(x.t.name) + '</b> (' + dnI(x.sub) + ')').join(', ') + ' — chiếm <b>' + (share*100).toFixed(0) + '%</b> tổng thiếu.' : '') + '</div>' +
+    '<div class="dn-toolbar"><button class="chart-toggle-btn" onclick="dnTreeAll(true,this)">⊞ Mở tới bưu cục</button><button class="chart-toggle-btn" onclick="dnTreeAll(false,this)">⊟ Chỉ tỉnh</button><span class="dn-note" style="margin:0 0 0 8px">Tỉnh → AM → Bưu cục, chỉ hiện nơi đang thiếu đơn. Bấm <b>+</b> ở AM để xem bưu cục, bấm tên để mở hồ sơ.</span></div>' +
+    '<div class="tbl-wrap"><table class="dn-tbl dn-tree dn-prio"><thead><tr><th rowspan="2">Tỉnh / AM / Bưu cục</th><th colspan="4">Giao thành công (N-1)</th><th rowspan="2">Tổng thiếu của<br>BC dưới target</th><th colspan="3">Gán (N-1)</th><th colspan="3">Hàng tồn & GTC theo loại</th><th rowspan="2">Nguyên nhân (so mức Vùng)</th></tr>' +
+    '<tr class="subhead"><th>SL cần giao</th><th>% GTC</th><th>Δ N-2</th><th>Đơn thiếu</th><th>% Gán</th><th>Ca 1</th><th>Ca 2</th><th>Hàng tồn (tỷ trọng)</th><th>GTC mới</th><th>GTC tồn</th></tr></thead><tbody>' + h + '</tbody></table></div>' +
+    '<div class="dn-note">Đơn thiếu = (target ' + dnP(T,0) + ' − %GTC) × SL cần giao của chính dòng đó. "Tổng thiếu của BC dưới target" = cộng đơn thiếu của các bưu cục chưa đạt bên dưới — tỉnh/AM đạt chung vẫn có thể có bưu cục kéo xuống. Màu ô % so với mức chung Vùng.</div>';
 }
-function dnSetPrio(lv){ window.DAY.prioLevel = lv; const el = document.getElementById('dn-uutien'); if (el && el.nextElementSibling) el.nextElementSibling.innerHTML = dnPriorityHtml(window.DAY.M); }
+function dnSetPrio(){ /* bản cũ có nút chọn cấp — nay đã ghép Tỉnh → AM → Bưu cục */ }
 function dnHeat(v, ref, dir, zeroNeutral){
   if (v === null || v === undefined || isNaN(v)) return '<span class="mut">—</span>';
   if (zeroNeutral && v === 0) return '<span class="mut" title="0% — không chạy ca này hoặc chưa gán">0%</span>';
@@ -6918,7 +6942,7 @@ function dnTreeHtml(M){
     kids.forEach(a => { h += amRow(a, tid, 1); }); });
   else ams.slice().sort(sortFn).forEach(a => { h += amRow(a, '', 0); });
   if (M.V) h += '<tr class="total-row"><td>'+dnE(M.V.name || 'Tổng Vùng')+'</td>'+cells(M.V)+'</tr>';
-  return '<div class="dn-toolbar"><button class="chart-toggle-btn" onclick="dnTreeAll(true)">⊞ Mở tất cả</button><button class="chart-toggle-btn" onclick="dnTreeAll(false)">⊟ Thu gọn</button><span class="dn-note" style="margin:0 0 0 8px">Bấm <b>+</b> ở Tỉnh để xem AM, bấm tiếp ở AM để xem từng bưu cục. Sắp xếp GTC thấp lên trên.</span></div>' +
+  return '<div class="dn-toolbar"><button class="chart-toggle-btn" onclick="dnTreeAll(true,this)">⊞ Mở tất cả</button><button class="chart-toggle-btn" onclick="dnTreeAll(false,this)">⊟ Thu gọn</button><span class="dn-note" style="margin:0 0 0 8px">Bấm <b>+</b> ở Tỉnh để xem AM, bấm tiếp ở AM để xem từng bưu cục. Sắp xếp GTC thấp lên trên.</span></div>' +
     '<div class="tbl-wrap"><table class="dn-tbl dn-tree"><thead><tr><th rowspan="2">Tỉnh / AM / Bưu cục</th><th colspan="4">Giao thành công (N-1)</th><th colspan="4">Gán (N-1)</th><th colspan="5">Hàng mới / tồn (N-1)</th></tr><tr class="subhead"><th>SL cần giao</th><th>% GTC</th><th>Δ N-2</th><th>Thiếu target</th><th>% Gán</th><th>Δ N-2</th><th>Ca 1</th><th>Ca 2</th><th>Hàng mới</th><th>Hàng tồn</th><th>Δ tồn</th><th>GTC mới</th><th>GTC tồn</th></tr></thead><tbody>' + h + '</tbody></table></div>';
 }
 function dnTreeToggle(id, el){
@@ -6927,8 +6951,9 @@ function dnTreeToggle(id, el){
   if (open) document.querySelectorAll('.dn-tbl tr[data-p="'+id+'"]').forEach(r => { r.style.display = ''; });
   else hideDeep(id);
 }
-function dnTreeAll(open){
-  document.querySelectorAll('.dn-tree tr.dn-tr').forEach(r => { if (r.dataset.p !== undefined && r.dataset.p !== '') r.style.display = open ? '' : 'none'; const t = r.querySelector('.dn-tg'); if (t) t.textContent = open ? '−' : '+'; });
+function dnTreeAll(open, btn){
+  const root = (btn && btn.closest('.dn-item, .dn-fold-body')) || document;
+  root.querySelectorAll('.dn-tree tr.dn-tr').forEach(r => { if (!open && r.classList.contains('lv0')) { const t = r.querySelector('.dn-tg'); if (t) t.textContent = '+'; return; } if (r.dataset.p !== undefined && r.dataset.p !== '') r.style.display = open ? '' : 'none'; const t = r.querySelector('.dn-tg'); if (t) t.textContent = open ? '−' : '+'; });
 }
 
 // ---------- 6. DIỄN BIẾN TỪNG AM THEO NGÀY ----------
@@ -7342,7 +7367,7 @@ function renderVanHanhNgay(){
   if (M.V) {
     p2 += item('dn-gtc', 'GTC & Gán toàn vùng — ' + M.dates.length + ' ngày', dnDef('gtc') + ' Gán = đơn đã gán ÷ cần giao. Hàng tồn có %GTC thấp hơn hẳn hàng mới, nên tồn tăng là GTC bị kéo xuống.', safe('gtc', () => dnOverviewHtml(M) + dnTrendHtml(M)));
     p2 += item('dn-matran', 'Vì sao GTC thấp — ma trận Gán × GTC', 'Trục ngang = % Gán, trục dọc = % GTC. Góc dưới-trái: gán thiếu nên giao không đủ; góc dưới-phải: đã gán đủ mà vẫn không giao được (tồn, giao thất bại, năng suất).', safe('ma trận', () => dnMatrixHtml(M)));
-    p2 += item('dn-uutien', 'Ưu tiên xử lý GTC — đơn còn thiếu để đạt 65%', 'Đơn thiếu = (65% − %GTC) × sản lượng cần giao → số đơn phải giao thành công thêm. Xếp theo số đơn thiếu, cột cuối là nguyên nhân so với mức Vùng.', safe('ưu tiên', () => dnPriorityHtml(M)));
+    p2 += item('dn-uutien', 'Ưu tiên xử lý GTC — Tỉnh → AM → Bưu cục còn thiếu đơn', 'Ghép 3 cấp trong 1 bảng: tỉnh nào thiếu nhiều nhất → AM nào gánh phần thiếu → bưu cục cụ thể. Cột cuối là nguyên nhân (gán, ca, tồn, GTC theo loại hàng) so với mức Vùng.', safe('ưu tiên', () => dnPriorityHtml(M)));
     p2 += item('dn-biendong', 'Biến động GTC so với hôm trước', '', safe('biến động', () => dnMoversHtml(M)));
     const tree = safe('cây', () => dnTreeHtml(M)), ser = safe('chuỗi', () => dnSeriesHtml(M));
     p2 += item('dn-cay', 'Chi tiết GTC Tỉnh → AM → Bưu cục & diễn biến từng AM', 'Bảng đầy đủ để tra cứu — đóng sẵn.', (tree ? dnFold('Mở bảng Tỉnh → AM → Bưu cục', tree) : '') + (ser ? dnFold('Mở bảng diễn biến từng AM theo ngày', ser) : ''));
