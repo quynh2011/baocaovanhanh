@@ -6723,7 +6723,7 @@ function dnOverviewHtml(M){
   if (V.gtc !== undefined) {
     const d = V.dGtc !== undefined ? V.dGtc : V.gtc - V.gtc2;
     L.push((V.gtc >= T ? '<b class="dn-good">Vùng đạt target GTC</b>' : '<b class="dn-bad">Vùng chưa đạt target GTC</b>') + ': ' + dnP(V.gtc) + ' (' + dnPt(d) + ' so N-2). ' +
-      (V.gtc >= T && belowBc.length ? 'Tuy đạt chung nhưng vẫn còn <b>' + belowBc.length + ' bưu cục</b> dưới ' + dnP(T,0) + ', thiếu tổng cộng <b>' + dnI(gapTotalBc) + ' đơn</b> — tập trung ở mục 3.' : ''));
+      (V.gtc >= T && belowBc.length ? 'Tuy đạt chung nhưng vẫn còn <b>' + belowBc.length + ' bưu cục</b> dưới ' + dnP(T,0) + ', thiếu tổng cộng <b>' + dnI(gapTotalBc) + ' đơn</b> — xem mục <a href="javascript:void(0)" class="dn-ent" onclick="dnGoTo(\'dn-uutien\')">Ưu tiên xử lý GTC</a>.' : ''));
   }
   if (V.s_gtc && V.s_gtc.length >= 3) {
     const s = V.s_gtc, n = s.length, avg = s.slice(0, n-1).reduce((a,b)=>a+(b||0),0) / (n-1);
