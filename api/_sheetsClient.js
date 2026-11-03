@@ -725,6 +725,21 @@ async function handleGetReportData(body) {
   return { ok: true, tables: tables };
 }
 
+// ====== BÁO CÁO VẬN HÀNH › NGÀY (2026-11-03) ======
+// Tự nhận diện MỌI sheet có tên bắt đầu bằng 3 chữ số 1xx + "_" (100_ReportGTC, 101_..., 102_..., sau này
+// 103_, 104_... tự hiện, KHÔNG cần sửa code). Trả về giá trị ĐÃ ĐỊNH DẠNG (FORMATTED_VALUE) đúng như hiển thị
+// trên Sheet ("77,14%", "2.800", "26/10/2026"); việc tách bảng (hàng tiêu đề gộp) + phân tích làm ở frontend.
+const DAY_SHEET_RE = /^1\d\d_/;
+async function handleGetDailyReport(body) {
+  const auth = await requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  const titles = (await getSheetTitles(SHEET_ID)).filter((t) => DAY_SHEET_RE.test(t)).sort();
+  if (!titles.length) return { ok: true, sheets: [] };
+  const valueRanges = await batchGetValues(SHEET_ID, titles, { valueRenderOption: 'FORMATTED_VALUE' });
+  const sheets = titles.map((name, i) => ({ name: name, rows: (valueRanges[i] && valueRanges[i].values) || [] }));
+  return { ok: true, sheets: sheets, thoiGian: new Date().toISOString() };
+}
+
 // ================================================================================================
 // ====== "CẤU HÌNH" CHO ADMIN — port từ Code.gs requireAdmin/requireActiveUser/isAdminEmail ======
 // ================================================================================================
@@ -2310,5 +2325,6 @@ module.exports = {
   handleSaveEventSubmission, handleGetEventSubmissions,
   handleHeartbeat, handleGetOnlineUsers,
   handleGetLapDayData,
-  handleGetRPLapDayData
+  handleGetRPLapDayData,
+  handleGetDailyReport
 };
