@@ -624,7 +624,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .dn-h.h-good{background:var(--green-cell);color:#0F6E56}.dn-h.h-bad{background:#FDE2E1;color:#B42318}.dn-h.h-warn{background:var(--yellow-cell);color:#8B6B00}
 .dn-tags{text-align:left!important;white-space:normal!important;min-width:170px}
 .dn-tag{display:inline-block;font-family:var(--f);font-size:10px;font-weight:600;padding:1px 6px;border-radius:9px;margin:1px 3px 1px 0;white-space:nowrap}
-.dn-tag.red{background:#FDE2E1;color:#B42318}.dn-tag.orange{background:#FFEBD9;color:#9A3A05}.dn-tag.yellow{background:#FEF6C7;color:#7A5C00}
+.dn-tag.red{background:#FDE2E1;color:#B42318}.dn-tag.green{background:var(--green-cell);color:#0F6E56}.dn-tag.orange{background:#FFEBD9;color:#9A3A05}.dn-tag.yellow{background:#FEF6C7;color:#7A5C00}
 .dn-mv{display:grid;grid-template-columns:1fr auto auto;gap:2px 10px;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:12.5px;align-items:baseline}
 .dn-mv:last-child{border-bottom:none}
 .dn-mv-n{font-weight:600}.dn-mv-v{font-family:var(--mono);font-size:11.5px;color:var(--muted)}.dn-mv-d{font-family:var(--mono);font-weight:700;font-size:12px}
@@ -639,12 +639,24 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .dn-lvl{font-family:var(--mono);font-size:9px;color:var(--accent);background:var(--accent-light);border-radius:4px;padding:0 4px}
 .dn-dow{font-size:9px;opacity:.7;font-weight:400}
 .dn-suncol{background:#F6F4EF}
-thead th.dn-suncol{background:#33608F!important}
+thead tr:first-child th.dn-suncol{background:#33608F!important}
+thead tr.subhead th.dn-suncol{background:#E4E0D7!important;color:var(--text)}
 .dn-spark{vertical-align:middle}
 .dn-sheet{margin-bottom:8px}
 .dn-sheetname{font-family:var(--mono);font-size:10.5px;color:var(--hint);font-weight:400;margin-left:6px}
 .dn-gen td:first-child{white-space:nowrap}
 .dn-err{background:var(--red-cell);border:1px solid #F5C2C0;color:#B42318;border-radius:8px;padding:10px 14px;margin:10px 0;font-size:12.5px}
+.dn-grp{background:#004A82!important;border-bottom:1px solid rgba(255,255,255,.25)}
+td.dn-keycol{background:#FBF7EE}
+.dn-ins{margin:6px 0 10px}
+.dn-gen td:first-child,.dn-sc td:first-child{position:sticky;left:0;z-index:1;background:var(--surface)}
+.dn-gen tr.total-row td:first-child,.dn-sc tr.total-row td:first-child{background:var(--total)}
+.dn-gen thead th:first-child,.dn-sc thead th:first-child{position:sticky;left:0;z-index:2}
+.dn-vth{white-space:normal!important;min-width:92px;max-width:130px;vertical-align:bottom;line-height:1.3}
+.dn-vth .dn-sheetname{color:rgba(255,255,255,.7);margin:0;font-size:9px}
+.dn-pano .dn-kpi-v{font-size:20px}
+.dn-pano .dn-kpi-l{text-transform:none;font-size:11px;letter-spacing:0;line-height:1.35;min-height:30px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dn-pano .dn-kpi:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}
 @media (max-width:900px){.dn-grid2,.dn-mx{grid-template-columns:1fr}.dn-qs{grid-template-columns:1fr}}
 @media (max-width:600px){.dn-kpi-v{font-size:19px}.dn-kpis{grid-template-columns:1fr 1fr}}
 </style>
@@ -6347,19 +6359,44 @@ async function bkSaveSchema(){
 
 // ---------- main ----------
 // ============================================================================================
-// VẬN HÀNH › NGÀY (2026-11-03) — đọc MỌI sheet "1xx_" (100_ReportGTC, 101_..., 102_..., sau này 103_, 104_...)
+// VẬN HÀNH › NGÀY (2026-11-03) — đọc MỌI sheet có mã 3 số từ 100 → 200 ở đầu tên (100_Capacity, 101_ReportGTC, ...)
 // qua action getDailyReport. Quy tắc sheet: các bảng trong 1 sheet cách nhau bởi 1 HÀNG TIÊU ĐỀ GỘP (chỉ ô
 // cột A có chữ, ví dụ "% GTC theo AM"), ngay dưới là hàng header, rồi tới các dòng dữ liệu. Bảng đầu tiên có
 // thể không có hàng tiêu đề. Phần PHÂN TÍCH (tổng quan, xu hướng, Gán×GTC, ưu tiên xử lý, biến động, cây
 // Tỉnh→AM→Bưu cục) dò cột theo TÊN (regex) nên đổi thứ tự cột vẫn chạy; sheet mới chưa có phân tích riêng thì
 // vẫn tự hiện ở mục "Bảng chi tiết từng sheet" (tự nhận bảng cây / bảng theo ngày / bảng thường).
 // ============================================================================================
-const DAY_TARGETS = { gtc: 0.65 };          // target %GTC (giống tab Tuần) — thêm target khác ở đây nếu có
-const DAY_SHEET_LABELS = {                   // tên hiển thị cho từng sheet — sheet mới chưa khai báo thì tự sinh tên
-  '100': 'GTC & Gán theo Tỉnh / AM / Bưu cục',
-  '101': 'Hàng mới & hàng tồn',
-  '102': 'Xu hướng Gán & GTC theo ngày'
-};
+const DAY_TARGETS = { gtc: 0.65 };          // target %GTC (giống tab Tuần)
+// target theo bảng — dò theo tiêu đề bảng + tên cột chính. Thêm dòng mới ở đây nếu có chỉ số mới có target.
+const DAY_TARGET_RULES = [
+  { re: /odr.*tts|tts.*odr/i, t: 0.96 },
+  { re: /opr.*tts|tts.*opr/i, t: 0.80 },
+  { re: /rớt\s*lc|rot\s*lc|rớt luân chuyển/i, t: 0.02 },
+  { re: /%\s*gtc|giao thành công/i, not: /hàng mới|hàng tồn/i, t: 0.65 }
+];
+// tiêu đề bảng gọn: bỏ đuôi ", ngày dd/mm/yyyy hh:mm", bỏ chữ "BÁO CÁO", chữ IN HOA → chữ thường
+function dnNiceTitle(t){
+  let x = String(t || '').replace(/[,\s]*ngày\s*\d{1,2}\/\d{1,2}\/\d{4}.*$/i, '').replace(/^báo cáo\s*/i, '').trim();
+  const letters = x.replace(/[^A-Za-zÀ-ỹ]/g, ''); if (letters && letters === letters.toUpperCase() && letters.length > 6) { x = x.toLowerCase().replace(/\b(tts|sme|cod|am|ktc|kct|lc|odr|opr|gtc)\b/g, m => m.toUpperCase()); x = x.charAt(0).toUpperCase() + x.slice(1); }
+  return x;
+}
+// tên hiển thị sheet — dò theo TÊN (không theo số, vì số thứ tự sheet có thể đổi). Sheet lạ → tự sinh tên.
+const DAY_SHEET_NAMES = [
+  [/capacity/i, 'Capacity — năng lực & tồn từng bưu cục'],
+  [/gtc.*loai\s*hang|theoloaihang/i, 'GTC theo loại hàng (mới / tồn)'],
+  [/reportgtc|report\s*gtc/i, 'GTC & Gán theo Tỉnh / AM / Bưu cục'],
+  [/reportgan|report\s*gan/i, 'Xu hướng Gán & GTC theo ngày'],
+  [/baocaogan|bao\s*cao\s*gan|gan\s*giao/i, 'Gán giao — tồn chưa gán'],
+  [/aging/i, 'Aging quá hạn'],
+  [/tiktok|tts/i, 'TikTok Shop — ODR / OPR / Rớt LC'],
+  [/luan\s*chuyen|luanchuyen/i, 'Chưa luân chuyển (lấy / trả)'],
+  [/tra\s*hang|trahang/i, 'Tỷ lệ trả hàng']
+];
+function dnSheetLabel(name){
+  const base = name.replace(/^\d{3}_/, '');
+  const hit = DAY_SHEET_NAMES.find(x => x[0].test(base));
+  return hit ? hit[1] : (base.replace(/^Report/i, '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').trim() || name);
+}
 window.DAY = { loaded: false, loading: false, raw: null, M: null, scatterLevel: 'am', prioLevel: 'bc' };
 
 // ---------- tiện ích số / định dạng (số kiểu VN: "1.234", "77,14%", "-1.022") ----------
@@ -6379,74 +6416,138 @@ function dnSI(v){ if (v === null || v === undefined || isNaN(v)) return '—'; c
 function dnE(s){ return esc(s === null || s === undefined ? '' : String(s)); }
 function dnNorm(s){ return String(s||'').trim().toLowerCase().normalize('NFC'); }
 function dnDateInfo(lbl){
-  const m = String(lbl||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if (!m) return null;
-  const d = new Date(+m[3], +m[2]-1, +m[1]);
-  return { short: m[1].padStart(2,'0')+'/'+m[2].padStart(2,'0'), dow: ['CN','T2','T3','T4','T5','T6','T7'][d.getDay()], isSun: d.getDay()===0 };
+  const m = String(lbl||'').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?$/); if (!m) return null;
+  const dd = +m[1], mm = +m[2]; if (dd < 1 || dd > 31 || mm < 1 || mm > 12) return null;
+  let yy = m[3] ? +m[3] : new Date().getFullYear();
+  let d = new Date(yy, mm-1, dd);
+  if (!m[3] && d.getTime() - Date.now() > 60*86400000) { yy--; d = new Date(yy, mm-1, dd); } // ngày không ghi năm: lấy năm gần nhất
+  return { short: String(dd).padStart(2,'0')+'/'+String(mm).padStart(2,'0'), dow: ['CN','T2','T3','T4','T5','T6','T7'][d.getDay()], isSun: d.getDay()===0, ts: d.getTime() };
 }
-// hướng tốt/xấu của 1 cột: +1 cao là tốt, -1 thấp là tốt, 0 trung tính (sản lượng). Xét tên cột trước, rồi
-// tới tiêu đề bảng/tên sheet (bảng theo ngày có header là ngày tháng nên phải nhìn tiêu đề bảng).
-// trả null = không nhận ra (để xét tiếp theo ngữ cảnh), 0 = nhận ra là sản lượng/trung tính.
 function dnDir(text){
   const t = dnNorm(text);
-  if (/gtc|gán|gan\b|ontime|opr|odr|đúng hạn|thành công/.test(t)) return 1;
-  if (/\bfd\b|thất bại|rớt|backlog|\bbl\b|trễ|>\s*\d+\s*h|tồn|chờ/.test(t)) return -1;
-  if (/hàng mới|sản lượng|volume|\bsl\b|số đơn/.test(t)) return 0;
+  if (/gtc|gán|gan\b|ontime|opr|odr|đúng hạn|thành công|hiệu suất|tỷ lệ gán/.test(t)) return /chưa gán|tồn chưa/.test(t) ? -1 : 1;
+  if (/\bfd\b|thất bại|rớt|backlog|\bbl\b|trễ|>\s*\d+\s*h|tồn|chờ|aging|quá hạn|chưa lc|chưa luân chuyển|trả hàng|tỷ lệ trả|cảnh báo/.test(t)) return -1;
+  if (/hàng mới|sản lượng|volume|\bsl\b|số đơn|cần giao|đơn tạo|total tạo|\bsme\b|shopee|\btts\b|khác|số lượng|nhân sự|\bnv\b/.test(t)) return 0;
   return null;
 }
-
 // ---------- tách 1 sheet thành các bảng ----------
+// Nhận được: hàng tiêu đề gộp (chỉ cột A có chữ) ngăn giữa các bảng; header 1 hoặc NHIỀU tầng (hàng nhóm cột gộp
+// ở trên/dưới hàng header chính, ô gộp để trống → tự lan sang phải); dòng tổng nằm TRÊN header (vd Capacity); thêm
+// cột/dòng bất kỳ đều tự nhận vì mọi thứ dò theo nội dung, không cố định vị trí.
 function dnParseSheet(name, rows){
-  const R = (rows||[]).map(r => (r||[]).map(c => c === null || c === undefined ? '' : String(c).trim()));
+  const R = (rows||[]).map(r => (r||[]).map(c => c === null || c === undefined ? '' : String(c).replace(/\s+/g, ' ').trim()));
   const filled = r => r.filter(c => c !== '').length;
   const isTitle = r => filled(r) === 1 && r[0] !== '';
+  const headerLike = r => { const f = r.filter(c => c !== ''); return f.length >= 2 && f.filter(c => dnNum(c) === null).length / f.length >= 0.6; };
   const blocks = []; let i = 0;
   while (i < R.length) {
     if (!filled(R[i])) { i++; continue; }
     let title = null;
     if (isTitle(R[i])) { title = R[i][0]; i++; while (i < R.length && !filled(R[i])) i++; }
     if (i >= R.length) break;
-    const header = R[i]; i++;
-    const data = [];
+    const pre = [], hdr = []; let mainSeen = false;
+    while (i < R.length && filled(R[i]) && !isTitle(R[i])) {
+      const r = R[i];
+      if (headerLike(r) && (!mainSeen || r[0] === '')) { hdr.push(r); if (r[0] !== '') mainSeen = true; i++; continue; }
+      if (!hdr.length) { pre.push(r); i++; continue; }
+      break;
+    }
+    let header, groups = null, data = [];
+    if (!hdr.length) { if (!pre.length) { i++; continue; } header = pre.shift(); data = pre.splice(0); }
+    else {
+      const ncolH = Math.max(...hdr.map(r => r.length));
+      const ff = hdr.map(r => { const o = []; let last = ''; for (let c = 0; c < ncolH; c++) { const v = r[c] || ''; if (v) last = v; o.push(v || (r.slice(0, c).some(x => x) ? last : '')); } return o; });
+      header = []; groups = [];
+      for (let c = 0; c < ncolH; c++) {
+        let L = -1; for (let k = hdr.length - 1; k >= 0; k--) if (hdr[k][c]) { L = k; break; }
+        if (L < 0) for (let k = hdr.length - 1; k >= 0; k--) if (ff[k][c]) { L = k; break; }
+        const label = L >= 0 ? (hdr[L][c] || ff[L][c]) : '';
+        let grp = ''; for (let k = L - 1; k >= 0; k--) if (ff[k][c] && ff[k][c] !== label) { grp = ff[k][c]; break; }
+        header.push(label); groups.push(grp);
+      }
+    }
     while (i < R.length && filled(R[i]) && !isTitle(R[i])) { data.push(R[i]); i++; }
-    if (data.length) blocks.push(dnAnalyzeBlock(name, title, header, data, blocks.length));
+    // dòng số nằm trước header (vd dòng tổng + giờ cập nhật ở đầu sheet Capacity) → coi là dòng TỔNG của bảng
+    let stamp = null;
+    const preTotals = pre.map(r => { const r2 = r.slice(); if (/\d{1,2}\/\d{1,2}\/\d{4}/.test(r2[0] || '')) { stamp = r2[0]; r2[0] = ''; } r2[0] = r2[0] || 'Tổng Vùng'; return r2; });
+    if (data.length || preTotals.length) blocks.push(dnAnalyzeBlock(name, title, header, groups, data, preTotals, stamp, blocks.length));
   }
   const code = (name.match(/^(\d{3})_/)||[])[1] || '';
-  let label = DAY_SHEET_LABELS[code];
-  if (!label) label = name.replace(/^\d{3}_/, '').replace(/^Report/i, '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').trim() || name;
-  return { name, code, label, blocks };
+  return { name, code, label: dnSheetLabel(name), blocks };
 }
-function dnAnalyzeBlock(sheetName, title, header, data, bi){
-  const ncol = Math.max(header.length, ...data.map(r => r.length));
+function dnAnalyzeBlock(sheetName, title, header, groups, data, preTotals, stamp, bi){
+  const all = data.concat(preTotals);
+  const ncol = Math.max(header.length, ...all.map(r => r.length));
+  // nhãn cột có giờ cập nhật kiểu "Đã gán, cập nhật lúc 15:21:30 03/11/2026" → tách giờ ra cho gọn
+  header = header.map(h => { const m = String(h||'').match(/^(.*?)[,\s]*cập nhật lúc\s*(.+)$/i); if (m) { stamp = stamp || m[2]; return m[1].trim(); } return h; });
+  const isIdHeader = h => /^(id|mã)\b|\bid\b/i.test(h || '');
+  const textCol = j => { const vals = data.map(r => r[j] || '').filter(v => v !== ''); return vals.length ? vals.filter(v => dnNum(v) === null).length / vals.length >= 0.7 : false; };
   let dimCount = 0;
-  for (let j = 0; j < ncol; j++) {
-    const vals = data.map(r => r[j] || '').filter(v => v !== '');
-    const nonNum = vals.filter(v => dnNum(v) === null).length;
-    if (vals.length && nonNum / vals.length >= 0.7) dimCount++; else break;
-  }
+  for (let j = 0; j < ncol; j++) { if (textCol(j) || isIdHeader(header[j])) dimCount++; else break; }
   if (!dimCount) dimCount = 1;
-  const ctx = (title || '') + ' ' + sheetName;
   const cols = [];
   for (let j = dimCount; j < ncol; j++) {
-    const label = header[j] || ('Cột ' + (j+1));
+    const label = header[j] || (groups && groups[j]) || ('Cột ' + (j+1));
+    const group = groups ? (groups[j] || '') : '';
     const vals = data.map(r => r[j] || '').filter(v => v !== '');
-    const kind = vals.length && vals.filter(v => /%$/.test(v)).length / vals.length >= 0.5 ? 'pct' : 'num';
+    const kind = textCol(j) ? 'text' : (vals.length && vals.filter(v => /%$/.test(v)).length / vals.length >= 0.5 ? 'pct' : 'num');
     const di = dnDateInfo(label);
     const isWeek = /^\d{4}\/\d{1,2}$/.test(label);
     const isDiff = /diff|\bvs\b|chênh|so với/i.test(label);
-    let dir = dnDir(label); if (dir === null) dir = dnDir(ctx); if (dir === null) dir = 0;
-    cols.push({ j, label, kind, isDate: !!di, di, isWeek, isDiff, dir });
+    let dir = dnDir(label); if (dir === null && group) dir = dnDir(group); if (dir === null && title) dir = dnDir(title); if (dir === null) dir = dnDir(sheetName); if (dir === null) dir = 0;
+    cols.push({ j, label, group, kind, isDate: !!di, di, isWeek, isDiff, dir });
   }
   const dimHeaders = header.slice(0, dimCount).map((h, k) => h || ('Cột ' + (k+1)));
-  const rows = data.map(r => {
-    const dims = r.slice(0, dimCount);
-    const isTotal = dims.some(d => /^(tổng|total|grand|vùng\s|cả nước)/i.test(d));
-    return { dims, key: dims[dimCount-1] || dims[0], parent: dimCount > 1 ? dims[0] : null, raw: cols.map(c => r[c.j] || ''), vals: cols.map(c => dnNum(r[c.j])), isTotal };
-  });
-  const lvlName = dnNorm(dimHeaders[dimCount-1]);
+  // header ghi "Tỉnh | AM" nhưng dữ liệu thật là "AM | (XXX) Bưu cục" (vd các bảng TOP) → nhận lại theo nội dung
+  { const lastK = dimCount - 1; const vals = data.map(r => r[lastK] || '').filter(Boolean);
+    if (vals.length && vals.filter(v => /^\([A-ZĐ]{2,4}\)/.test(v)).length / vals.length >= 0.6 && !/bưu|buu/i.test(dimHeaders[lastK])) {
+      dimHeaders[lastK] = 'Bưu cục'; if (lastK > 0 && !/^am$/i.test(dimHeaders[lastK-1])) dimHeaders[lastK-1] = 'AM'; } }
+  const nonIdDims = dimHeaders.map((h, k) => isIdHeader(h) ? -1 : k).filter(k => k >= 0);
+  const keyDim = nonIdDims.length ? nonIdDims[nonIdDims.length-1] : dimCount-1;
+  const parDim = nonIdDims.length > 1 ? nonIdDims[nonIdDims.length-2] : -1;
+  const mkRow = (r, forceTotal) => {
+    const dims = r.slice(0, dimCount).map(x => x || '');
+    const isTotal = !!forceTotal || dims.some(d => /^(tổng|total|grand|vùng\s|cả nước|toàn vùng)/i.test(d));
+    return { dims, key: dims[keyDim] || dims.find(x => x) || '', parent: parDim >= 0 ? dims[parDim] : null, raw: cols.map(c => r[c.j] || ''), vals: cols.map(c => c.kind === 'text' ? null : dnNum(r[c.j])), isTotal };
+  };
+  const rows = data.map(r => mkRow(r, false)).concat(preTotals.map(r => mkRow(r, true)));
+  const lvlName = dnNorm(dimHeaders[keyDim]);
   const level = /bưu|buu/.test(lvlName) ? 'bc' : (lvlName === 'am' ? 'am' : (/tỉnh|tinh/.test(lvlName) ? 'tinh' : lvlName));
+  // cột chiều có cùng 1 giá trị ở mọi dòng (vd "Vùng" = TNT) → ẩn cho gọn
+  const constDims = dimHeaders.map((_, k) => { const v = rows.filter(r => !r.isTotal).map(r => r.dims[k]); return v.length > 1 && v.every(x => x === v[0]); });
   const dateCols = cols.filter(c => c.isDate).length;
-  return { sheet: sheetName, idx: bi, title, autoTitle: title || ('Theo ' + dimHeaders[dimCount-1]), header, dimHeaders, dimCount, cols, rows, level, isSeries: dateCols >= 3 };
+  const b = { sheet: sheetName, idx: bi, title, stamp, autoTitle: title || ('Theo ' + dimHeaders[keyDim]), header, dimHeaders, dimCount, keyDim, constDims, cols, rows, level, isSeries: dateCols >= 3, isTop: /\btop\b/i.test(title || '') };
+  dnPickKey(b);
+  return b;
 }
+// chỉ số CHÍNH của 1 bảng (để nhận xét tự động + bảng điểm AM + toàn cảnh): bảng theo ngày → ngày mới nhất;
+// bảng thường → cột % có hướng tốt/xấu (ưu tiên N-1), không có % thì cột "Tổng…"/"Aging >…"
+function dnPickKey(b){
+  const C = b.cols; let k = -1;
+  if (b.isSeries) { C.forEach((c,i) => { if (c.isDate) k = i; }); }
+  else {
+    const cand = C.map((c,i) => [c,i]).filter(([c]) => !c.isDiff && c.kind !== 'text' && c.dir !== 0 && !c.isDate && !c.isWeek);
+    const pct = cand.filter(([c]) => c.kind === 'pct');
+    const pick = pct.find(([c]) => /n-1/i.test(c.label)) || pct[0] || cand.find(([c]) => /^tổng|total/i.test(c.label)) || cand.find(([c]) => /aging\s*>/i.test(c.label)) || cand[cand.length-1];
+    if (pick) k = pick[1];
+  }
+  b.keyCol = k;
+  let dk = -1;
+  if (k >= 0) {
+    if (b.isSeries) dk = C.findIndex(c => /n-1\s*vs\s*n-2/i.test(c.label));
+    else {
+      const stop = ['ngày','tỷ','lệ','đơn','số','tổng','lúc'];
+      const toks = s => dnNorm(s).replace(/diff|so với|\bvs\b|n-?1|n-?2|n1-n2|%|\(|\)|>|<|\d+/g, ' ').split(/\s+/).filter(w => w.length > 1 && !stop.includes(w));
+      const kt = toks(C[k].label); let best = 0;
+      C.forEach((c,i) => { if (!c.isDiff) return; const sc = toks(c.label).filter(w => kt.includes(w)).length; if (sc > best) { best = sc; dk = i; } });
+    }
+  }
+  b.diffCol = dk;
+  const keyText = (b.title || '') + ' ' + (k >= 0 ? C[k].label : '');
+  const rule = k >= 0 && C[k].kind === 'pct' ? DAY_TARGET_RULES.find(r => r.re.test(keyText) && !(r.not && r.not.test(keyText))) : null;
+  b.target = rule ? rule.t : null;
+}
+function dnFmtV(v, kind, d){ return kind === 'pct' ? dnP(v, d === undefined ? 2 : d) : dnI(v); }
 function dnCol(block, re){ return block ? block.cols.findIndex(c => re.test(c.label)) : -1; }
 function dnVal(row, ci){ return ci < 0 || !row ? null : row.vals[ci]; }
 
@@ -6460,11 +6561,12 @@ function dnBuildModel(raw){
   // (2) bảng hàng mới / tồn (101): có cột "Hàng mới N-1"
   all.filter(b => dnCol(b, /^hàng mới\s*n-1$/i) >= 0).forEach(b => { if (!M.mix[b.level]) M.mix[b.level] = b; });
   // (3) bảng theo ngày (102): nhận loại theo tiêu đề bảng / tên sheet
-  all.filter(b => b.isSeries).forEach(b => {
+  all.filter(b => b.isSeries && !/tts|tiktok|odr|opr|trả hàng|rớt/i.test((b.title||'') + ' ' + b.sheet)).forEach(b => {
     const t = dnNorm(b.title || '');
     let kind = /gtc/.test(t) ? 'gtc' : /hàng mới|hang moi/.test(t) ? 'moi' : /tồn|ton/.test(t) ? 'ton' : (/gán|gan/.test(t) || /gan/i.test(b.sheet)) ? 'gan' : null;
     if (kind && !M.ts[kind]) M.ts[kind] = b;
   });
+  M.usedSheets = new Set([].concat(Object.values(M.gtc), Object.values(M.mix), Object.values(M.ts)).map(b => b.sheet));
   const anyTs = M.ts.gtc || M.ts.gan || M.ts.moi || M.ts.ton;
   if (anyTs) { M.dates = anyTs.cols.filter(c => c.isDate); }
   // gộp thành 1 thực thể / tên, theo cấp
@@ -6519,7 +6621,7 @@ function dnTags(e, V){
   if (!tags.length && e.gtc < DAY_TARGETS.gtc) tags.push({ t: 'Gán đủ – giao chưa hiệu quả', c: 'yellow' });
   return tags;
 }
-function dnTagHtml(tags){ return (tags||[]).map(x => '<span class="dn-tag '+x.c+'">'+dnE(x.t)+'</span>').join(''); }
+function dnTagHtml(tags, max){ return (tags||[]).slice(0, max || 99).map(x => '<span class="dn-tag '+x.c+'">'+dnE(x.t)+'</span>').join(''); }
 
 // ---------- tải dữ liệu ----------
 async function loadVanHanhNgay(force){
@@ -6548,23 +6650,24 @@ async function loadVanHanhNgay(force){
 // ---------- dựng toàn bộ báo cáo ----------
 function renderVanHanhNgay(){
   const M = window.DAY.M; const body = document.getElementById('dnBody'); if (!M || !body) return;
-  if (!M.sheets.length) { body.innerHTML = '<div class="section-placeholder" style="padding:60px 0"><div class="sp-icon">🗓️</div><h2>Chưa có sheet dữ liệu ngày</h2><p>Tạo sheet tên bắt đầu bằng 100_, 101_, ... trên Google Sheet, web sẽ tự nhận.</p></div>'; return; }
+  if (!M.sheets.length) { body.innerHTML = '<div class="section-placeholder" style="padding:60px 0"><div class="sp-icon">🗓️</div><h2>Chưa có sheet dữ liệu ngày</h2><p>Tạo sheet tên bắt đầu bằng mã 100 → 200 (vd 100_..., 101_...) trên Google Sheet, web sẽ tự nhận.</p></div>'; return; }
   const sub = document.getElementById('dnSubtitle');
   const last = M.dates.length ? M.dates[M.dates.length-1] : null;
-  if (sub) sub.textContent = (last ? 'Dữ liệu ngày ' + last.label + ' (N-1, ' + last.di.dow + ')' : 'Dữ liệu ngày N-1') + ' · ' + M.sheets.length + ' sheet nguồn: ' + M.sheets.map(s => s.name).join(', ');
+  if (sub) sub.textContent = (last ? 'Dữ liệu ngày ' + last.di.short + ' (N-1, ' + last.di.dow + ')' : 'Dữ liệu ngày N-1') + ' · ' + M.sheets.length + ' sheet nguồn (mã 100→200)';
   const parts = [];
-  const sec = (id, num, title, html) => { if (html) parts.push({ id, num, title, html }); };
   const safeRun = (label, fn) => { try { fn(); } catch (e) { console.error(label, e); const er = document.getElementById('dnErr'); if (er) er.insertAdjacentHTML('beforeend', '<div class="dn-err">Lỗi ở phần "' + dnE(label) + '": ' + dnE(e.message) + '</div>'); } };
-  safeRun('dn tổng quan', () => sec('dn-tongquan', '0', 'Tổng quan Vùng — điểm cần chú ý', dnOverviewHtml(M)));
-  safeRun('dn xu hướng', () => sec('dn-xuhuong', '1', 'Xu hướng ' + M.dates.length + ' ngày — Gán, GTC & sản lượng', dnTrendHtml(M)));
-  safeRun('dn ma trận', () => sec('dn-matran', '2', 'Ma trận Gán × GTC — vì sao GTC thấp?', dnMatrixHtml(M)));
-  safeRun('dn ưu tiên', () => sec('dn-uutien', '3', 'Ưu tiên xử lý — đơn còn thiếu để đạt target ' + dnP(DAY_TARGETS.gtc,0), dnPriorityHtml(M)));
-  safeRun('dn biến động', () => sec('dn-biendong', '4', 'Biến động mạnh so với hôm trước (N-1 vs N-2)', dnMoversHtml(M)));
-  safeRun('dn cây', () => sec('dn-cay', '5', 'Chi tiết Tỉnh → AM → Bưu cục (gộp GTC, Gán, hàng mới/tồn)', dnTreeHtml(M)));
-  safeRun('dn chuỗi', () => sec('dn-chuoi', '6', 'Diễn biến từng AM theo ngày', dnSeriesHtml(M)));
-  safeRun('dn sheet', () => sec('dn-sheets', '7', 'Bảng chi tiết từng sheet (tự nhận mọi sheet 1xx_)', dnSheetsHtml(M)));
+  let n = 0; const sec = (id, title, html, collapsed) => { if (html) parts.push({ id, num: String(n++), title, html, collapsed }); };
+  safeRun('tổng quan', () => sec('dn-tongquan', 'Tổng quan Vùng — điểm cần chú ý', dnOverviewHtml(M)));
+  safeRun('bảng điểm AM', () => sec('dn-bangdiem', 'Bảng điểm AM — gom mọi chỉ số từ tất cả sheet', dnScorecardHtml(M)));
+  safeRun('xu hướng', () => sec('dn-xuhuong', 'Xu hướng ' + M.dates.length + ' ngày — Gán, GTC & sản lượng', dnTrendHtml(M)));
+  safeRun('ma trận', () => sec('dn-matran', 'Ma trận Gán × GTC — vì sao GTC thấp?', dnMatrixHtml(M)));
+  safeRun('ưu tiên', () => sec('dn-uutien', 'Ưu tiên xử lý GTC — đơn còn thiếu để đạt target ' + dnP(DAY_TARGETS.gtc,0), dnPriorityHtml(M)));
+  safeRun('biến động', () => sec('dn-biendong', 'Biến động GTC mạnh so với hôm trước (N-1 vs N-2)', dnMoversHtml(M)));
+  safeRun('cây', () => sec('dn-cay', 'Chi tiết GTC Tỉnh → AM → Bưu cục (gộp GTC, Gán, hàng mới/tồn)', dnTreeHtml(M)));
+  safeRun('diễn biến AM', () => sec('dn-chuoi', 'Diễn biến GTC & Gán từng AM theo ngày', dnSeriesHtml(M)));
+  M.sheets.forEach(s => safeRun('sheet ' + s.name, () => sec('dn-s-' + (s.code || s.name.replace(/\W/g,'')), s.label + ' (' + s.name + ')', dnSheetSectionHtml(M, s), M.usedSheets.has(s.name))));
   const toc = '<div class="dn-toc">' + parts.map(p => '<a href="javascript:void(0)" onclick="dnGoTo(\'' + p.id + '\')"><span class="tnum">' + p.num + '</span>' + dnE(p.title.split(' — ')[0]) + '</a>').join('') + '</div>';
-  body.innerHTML = toc + parts.map(p => partBanner(p.id, p.num, dnE(p.title)) + p.html + '</div>').join('');
+  body.innerHTML = toc + parts.map(p => partBanner(p.id, p.num, dnE(p.title)).replace('class="part-banner"', 'class="part-banner' + (p.collapsed ? ' collapsed' : '') + '"').replace('<div class="metric-body">', '<div class="metric-body' + (p.collapsed ? ' hidden' : '') + '">') + (p.collapsed ? '' : '') + p.html + '</div>').join('');
 }
 function dnGoTo(id){ const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 
@@ -6579,7 +6682,7 @@ function dnDeltaSpan(d, dir, unit){
   return '<span class="' + cls + '">' + (d > 0 ? '▲ ' : d < 0 ? '▼ ' : '') + (unit === 'int' ? dnSI(d) : dnPt(d)) + '</span>';
 }
 function dnOverviewHtml(M){
-  const V = M.V; if (!V) return '';
+  const V = M.V; if (!V) return dnPanoramaHtml(M);
   const T = DAY_TARGETS.gtc;
   const bcs = Object.values(M.ent.bc), ams = Object.values(M.ent.am), tinhs = Object.values(M.ent.tinh);
   let cards = '';
@@ -6622,7 +6725,7 @@ function dnOverviewHtml(M){
   }
   const worstT = tinhs.filter(e => e.gtc !== undefined).sort((a,b) => a.gtc - b.gtc)[0], bestT = tinhs.filter(e => e.gtc !== undefined).sort((a,b) => b.gtc - a.gtc)[0];
   if (worstT && bestT) L.push('Tỉnh thấp nhất <b class="dn-bad">' + dnE(worstT.name) + ' ' + dnP(worstT.gtc) + '</b> ' + dnTagHtml(worstT.tags) + ' · cao nhất <b class="dn-good">' + dnE(bestT.name) + ' ' + dnP(bestT.gtc) + '</b>.');
-  return '<div class="dn-kpis">' + cards + '</div><div class="comment ' + (V.gtc >= T ? 'green' : 'red') + '"><b>Nhận xét nhanh</b>' + L.map(x => '<div class="aline">• ' + x + '</div>').join('') + '</div>';
+  return '<div class="dn-kpis">' + cards + '</div><div class="comment ' + (V.gtc >= T ? 'green' : 'red') + '"><b>Nhận xét nhanh</b>' + L.map(x => '<div class="aline">• ' + x + '</div>').join('') + '</div>' + dnPanoramaHtml(M);
 }
 function dnCorr(pairs){
   const n = pairs.length; if (n < 4) return null;
@@ -6709,10 +6812,13 @@ function dnMatrixHtml(M){
     g += '<text x="'+X(vx)+'" y="'+(H-pb+14)+'" class="dn-ax" text-anchor="middle">'+(vx*100).toFixed(0)+'%</text><text x="'+(pl-6)+'" y="'+(Y(vy)+3)+'" class="dn-ax" text-anchor="end">'+(vy*100).toFixed(0)+'%</text>'; }
   g += '<line x1="'+X(xRef)+'" x2="'+X(xRef)+'" y1="'+pt+'" y2="'+(H-pb)+'" class="dn-ref"/><line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(T)+'" y2="'+Y(T)+'" class="dn-target"/>';
   g += '<text x="'+(W/2)+'" y="'+(H-6)+'" class="dn-ax" text-anchor="middle">% Gán N-1 (đường dọc = mức Vùng '+dnP(xRef,1)+')</text>';
-  const labelSet = new Set(list.slice().sort((a,b) => (b.gap||0) - (a.gap||0)).slice(0, lv === 'bc' ? 8 : 10).map(e => e.name));
+  const labelSet = new Set(list.slice().sort((a,b) => (b.gap||0) - (a.gap||0)).slice(0, lv === 'bc' ? 10 : 12).map(e => e.name));
+  const placed = []; // tránh nhãn chồng nhau: bỏ nhãn nếu đè lên nhãn đã đặt
+  const fits = (x, y, w, anchorEnd) => { const bx = anchorEnd ? x - w : x; const hit = placed.some(p => bx < p[0] + p[2] && bx + w > p[0] && Math.abs(y - p[1]) < 11); if (!hit) placed.push([bx, y, w]); return !hit; };
   list.forEach(e => { const r = 4 + 10 * Math.sqrt((e.sl||1) / maxSl); const q = quad(e);
     g += '<circle cx="'+X(e.gan)+'" cy="'+Y(e.gtc)+'" r="'+r.toFixed(1)+'" class="dnp '+q+'"><title>'+dnE(e.name)+' — Gán '+dnP(e.gan)+' · GTC '+dnP(e.gtc)+' · SL '+dnI(e.sl)+(e.gap?' · thiếu '+dnI(e.gap)+' đơn':'')+'</title></circle>';
     if (labelSet.has(e.name)) { const nm = e.name.length > 22 ? e.name.slice(0,21)+'…' : e.name; const right = X(e.gan) + r + 3 + nm.length * 5.6 < W - pr;
+      if (!fits(right ? X(e.gan)+r+3 : X(e.gan)-r-3, Y(e.gtc), nm.length * 5.6, !right)) return;
       g += '<text x="'+(right ? X(e.gan)+r+3 : X(e.gan)-r-3)+'" y="'+(Y(e.gtc)+3)+'" class="dn-lbl" text-anchor="'+(right?'start':'end')+'">'+dnE(nm)+'</text>'; } });
   const qInfo = {
     q4: ['🔴 Gán thấp → GTC thấp', 'Ưu tiên tăng % gán (đủ shipper, gán đủ ca) — đây là nhóm cải thiện nhanh nhất.'],
@@ -6741,7 +6847,7 @@ function dnPriorityHtml(M){
   const parentLbl = lv === 'bc' ? 'AM' : lv === 'am' ? 'Tỉnh' : 'Vùng';
   let rows = top.map((e, i) => { cum += e.gap || 0;
     return '<tr><td><span class="dn-rank">'+(i+1)+'</span>'+dnE(e.name)+(e.parent?'<div class="dn-par">'+dnE(e.parent)+'</div>':'')+'</td><td>'+dnI(e.sl)+'</td><td class="dn-badc">'+dnP(e.gtc)+'</td><td>'+dnDeltaSpan(e.dGtc,1)+'</td><td><b>'+dnI(e.gap)+'</b><div class="dn-bar"><span style="width:'+Math.min(100, (e.gap||0) / (top[0].gap||1) * 100)+'%"></span></div></td><td class="mut">'+(totalGap ? (cum/totalGap*100).toFixed(0)+'%' : '—')+'</td>' +
-      '<td>'+dnHeat(e.gan, M.V && M.V.gan, 1)+'</td><td>'+dnHeat(e.ca1, M.V && M.V.ca1, 1)+'</td><td>'+dnHeat(e.ca2, M.V && M.V.ca2, 1, true)+'</td><td>'+(e.ton1!==undefined?dnI(e.ton1)+' <span class="mut">('+dnP(e.tonShare,0)+')</span>':'—')+'</td><td>'+dnHeat(e.gm1, M.V && M.V.gm1, 1)+'</td><td>'+dnHeat(e.gt1, M.V && M.V.gt1, 1)+'</td><td class="dn-tags">'+dnTagHtml(e.tags)+'</td></tr>'; }).join('');
+      '<td>'+dnHeat(e.gan, M.V && M.V.gan, 1)+'</td><td>'+dnHeat(e.ca1, M.V && M.V.ca1, 1)+'</td><td>'+dnHeat(e.ca2, M.V && M.V.ca2, 1, true)+'</td><td>'+(e.ton1!==undefined?dnI(e.ton1)+' <span class="mut">('+dnP(e.tonShare,0)+')</span>':'—')+'</td><td>'+dnHeat(e.gm1, M.V && M.V.gm1, 1)+'</td><td>'+dnHeat(e.gt1, M.V && M.V.gt1, 1)+'</td><td class="dn-tags">'+dnTagHtml(e.tags, 3)+'</td></tr>'; }).join('');
   if (!rows) rows = '<tr><td colspan="13" style="text-align:center;padding:16px" class="dn-good">Tất cả đều đạt target 🎉</td></tr>';
   return '<div class="dn-toolbar">Xem theo: ' + btn('bc','Bưu cục') + btn('am','AM') + btn('tinh','Tỉnh') + '<span class="dn-note" style="margin:0 0 0 8px"><b>' + below.length + '/' + list.length + '</b> dưới target, thiếu tổng <b>' + dnI(totalGap) + '</b> đơn. ' + (top.length < below.length ? top.length + ' dòng đầu chiếm ' + (totalGap ? (cum/totalGap*100).toFixed(0) : 0) + '% tổng thiếu.' : '') + '</span></div>' +
     '<div class="tbl-wrap"><table class="dn-tbl"><thead><tr><th>' + (lv==='bc'?'Bưu cục':lv==='am'?'AM':'Tỉnh') + ' <span class="mut2">(' + parentLbl + ')</span></th><th>SL cần giao</th><th>% GTC</th><th>Δ N-2</th><th>Đơn thiếu target</th><th>Luỹ kế</th><th>% Gán</th><th>Gán Ca 1</th><th>Gán Ca 2</th><th>Hàng tồn (tỷ trọng)</th><th>GTC hàng mới</th><th>GTC hàng tồn</th><th>Nguyên nhân (so mức Vùng)</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
@@ -6834,30 +6940,131 @@ function dnSpark(s, dir){
   return '<svg width="'+W+'" height="'+H+'" class="dn-spark"><polyline points="'+pts.map(p=>p.join(',')).join(' ')+'" fill="none" stroke="'+col+'" stroke-width="1.6"/><circle cx="'+pts[pts.length-1][0]+'" cy="'+pts[pts.length-1][1]+'" r="2.4" fill="'+col+'"/></svg>';
 }
 
-// ---------- 7. BẢNG CHI TIẾT TỪNG SHEET (chung, tự nhận mọi sheet 1xx_) ----------
-function dnSheetsHtml(M){
-  return M.sheets.map((s, si) => '<div class="dn-sheet"><div class="block-header" onclick="dnToggleNext(this)" style="cursor:pointer"><span class="bh-num">'+dnE(s.code||si)+'</span> '+dnE(s.label)+' <span class="dn-sheetname">'+dnE(s.name)+' · '+s.blocks.length+' bảng</span><span class="collapse-arrow" style="margin-left:auto">▸</span></div><div class="dn-sheet-body" style="display:none">' +
-    s.blocks.map((b, bi) => '<div class="subsection-title"><span class="sub-num">'+dnE((s.code||si)+'.'+(bi+1))+'</span> '+dnE(b.title || (s.label + ' — ' + b.autoTitle))+'</div>' + dnGenericTable(b)).join('') + '</div></div>').join('') +
-    '<div class="dn-note">Đây là dữ liệu gốc đúng như trên Google Sheet (có tô màu). Thêm sheet mới tên bắt đầu bằng số 1xx_ (vd 103_...) thì web tự hiện ở đây, không cần sửa code.</div>';
+// ---------- MỖI SHEET 1 MỤC: nhận xét tự động từng bảng + bảng có tô màu (chung cho mọi sheet, kể cả sheet mới) ----------
+function dnSheetSectionHtml(M, s){
+  if (!s.blocks.length) return '<div class="dn-note">Sheet trống hoặc chưa đúng định dạng.</div>';
+  const used = M.usedSheets.has(s.name);
+  return (used ? '<div class="dn-note">Sheet này đã được phân tích chi tiết ở các mục phía trên — đây là dữ liệu gốc để đối chiếu.</div>' : '') +
+    s.blocks.map((b, bi) => '<div class="subsection-title"><span class="sub-num">' + dnE((s.code || '') + '.' + (bi+1)) + '</span> ' + dnE(b.title ? dnNiceTitle(b.title) : (s.label + ' — ' + b.autoTitle)) + (b.stamp ? ' <span class="dn-sheetname">cập nhật ' + dnE(b.stamp) + '</span>' : '') + '</div>' +
+      dnBlockInsight(b) + dnGenericTable(b)).join('');
 }
 function dnToggleNext(h){ const b = h.nextElementSibling; const open = b.style.display === 'none'; b.style.display = open ? '' : 'none'; const a = h.querySelector('.collapse-arrow'); if (a) a.textContent = open ? '▾' : '▸'; }
+// nhận xét tự động cho 1 bảng bất kỳ — dựa trên chỉ số chính, dòng tổng, cột chênh lệch, target (nếu có)
+function dnBlockInsight(b){
+  const k = b.keyCol; if (k < 0) return '';
+  const c = b.cols[k]; const dir = c.dir; const tot = b.rows.find(r => r.isTotal);
+  const rows = b.rows.filter(r => !r.isTotal && r.vals[k] !== null && r.vals[k] !== undefined);
+  if (!rows.length) return '';
+  const fv = v => dnFmtV(v, c.kind, c.kind === 'pct' ? 2 : 0);
+  const nm = r => dnE(r.key) + (b.level === 'bc' && r.parent ? ' <span class="mut">(' + dnE(r.parent) + ')</span>' : '');
+  const L = []; const what = '<b>' + dnE(c.di ? 'ngày ' + c.di.short + ' (N-1)' : c.label) + '</b>';
+  if (tot && tot.vals[k] !== null) {
+    const d = b.diffCol >= 0 ? tot.vals[b.diffCol] : null;
+    L.push('Tổng ' + what + ': <b>' + fv(tot.vals[k]) + '</b>' + (d !== null && d !== undefined ? ' (' + (c.kind === 'pct' ? dnDeltaSpan(d, dir) : dnDeltaSpan(d, dir, 'int')) + ' so hôm trước)' : '') +
+      (b.target !== null ? ' — ' + ((tot.vals[k] - b.target) * (dir || 1) >= 0 ? '<b class="dn-good">đạt</b>' : '<b class="dn-bad">chưa đạt</b>') + ' target ' + dnP(b.target, 0) : '') + '.');
+  }
+  if (b.target !== null) { const bad = rows.filter(r => (r.vals[k] - b.target) * (dir || 1) < 0); L.push('<b>' + bad.length + '/' + rows.length + '</b> ' + (b.level === 'am' ? 'AM' : b.level === 'bc' ? 'bưu cục' : 'dòng') + ' chưa đạt target ' + dnP(b.target, 0) + '.'); }
+  if (dir) {
+    const sorted = rows.slice().sort((x, y) => (x.vals[k] - y.vals[k]) * dir);
+    L.push((b.isTop ? 'Đứng đầu danh sách: ' : 'Kém nhất: ') + sorted.slice(0, 3).map(r => nm(r) + ' <b class="dn-bad">' + fv(r.vals[k]) + '</b>').join(', ') + '.');
+    if (!b.isTop && rows.length > 5) L.push('Tốt nhất: ' + sorted.slice(-3).reverse().map(r => nm(r) + ' <b class="dn-good">' + fv(r.vals[k]) + '</b>').join(', ') + '.');
+    if (b.diffCol >= 0) {
+      const dv = rows.filter(r => r.vals[b.diffCol] !== null && r.vals[b.diffCol] * dir < 0).sort((x, y) => (x.vals[b.diffCol] - y.vals[b.diffCol]) * dir);
+      if (dv.length) L.push('Xấu đi nhiều nhất so hôm trước: ' + dv.slice(0, 3).map(r => nm(r) + ' ' + (c.kind === 'pct' ? dnDeltaSpan(r.vals[b.diffCol], dir) : dnDeltaSpan(r.vals[b.diffCol], dir, 'int'))).join(', ') + '.');
+    }
+    if (b.isSeries && tot) {
+      const di = b.cols.map((cc, i) => cc.isDate ? i : -1).filter(i => i >= 0); const s = di.map(i => tot.vals[i]).filter(v => v !== null);
+      if (s.length >= 3) { const avg = s.slice(0, -1).reduce((a, x) => a + x, 0) / (s.length - 1); const dd = s[s.length-1] - avg;
+        L.push('So với trung bình ' + (s.length-1) + ' ngày trước (' + fv(avg) + '): ' + ((dd * dir) >= 0 ? '<b class="dn-good">tốt hơn</b>' : '<b class="dn-bad">kém hơn</b>') + ' ' + (c.kind === 'pct' ? dnPt(Math.abs(dd)).replace('+','') : dnI(Math.abs(dd))) + '.'); }
+    }
+  } else {
+    const sorted = rows.slice().sort((x, y) => y.vals[k] - x.vals[k]);
+    L.push('Lớn nhất: ' + sorted.slice(0, 3).map(r => nm(r) + ' <b>' + fv(r.vals[k]) + '</b>').join(', ') + '.');
+  }
+  // cột chữ (vd phân nhóm "Nhóm 1 – An toàn") → đếm theo nhóm
+  b.cols.forEach((cc, i) => { if (cc.kind !== 'text') return; const cnt = {}; b.rows.filter(r => !r.isTotal).forEach(r => { const v = r.raw[i]; if (v) cnt[v] = (cnt[v] || 0) + 1; });
+    const ks = Object.keys(cnt); if (ks.length && ks.length <= 8) L.push(dnE(cc.label) + ': ' + ks.sort().map(x => dnTextTag(x) + ' <b>' + cnt[x] + '</b>').join(' · ') + '.'); });
+  const bad = b.target !== null && tot && tot.vals[k] !== null && (tot.vals[k] - b.target) * (dir || 1) < 0;
+  return '<div class="comment ' + (bad ? 'red' : dir ? 'yellow' : 'green') + ' dn-ins">' + L.map(x => '<div class="aline">• ' + x + '</div>').join('') + '</div>';
+}
+function dnTextTag(v){ const t = dnNorm(v); const c = /cảnh báo|nguy|nghiêm|đỏ|kém|nhóm 3|nhóm 4/.test(t) ? 'red' : /theo dõi|chú ý|vàng|nhóm 2/.test(t) ? 'orange' : /an toàn|tốt|xanh|nhóm 1/.test(t) ? 'green' : 'yellow'; return '<span class="dn-tag ' + c + '">' + dnE(v) + '</span>'; }
 function dnGenericTable(b){
   const tot = b.rows.find(r => r.isTotal);
-  const head = '<tr>' + b.dimHeaders.map(h => '<th>'+dnE(h)+'</th>').join('') + b.cols.map(c => '<th>'+dnE(c.di ? c.di.short : c.label)+(c.di?'<div class="dn-dow">'+c.di.dow+'</div>':'')+'</th>').join('') + (b.isSeries ? '<th>Xu hướng</th>' : '') + '</tr>';
+  const showDims = b.dimHeaders.map((h, k) => !b.constDims[k] && !/^(id|mã)\b|\bid\b/i.test(h));
+  if (!showDims.some(x => x)) showDims[b.keyDim] = true;
+  const hasGroup = b.cols.some(c => c.group);
+  let head = '';
+  if (hasGroup) {
+    head += '<tr>' + b.dimHeaders.map((h, k) => showDims[k] ? '<th rowspan="2">' + dnE(h) + '</th>' : '').join('');
+    for (let i = 0; i < b.cols.length; ) { const g = b.cols[i].group; let j = i; while (j < b.cols.length && b.cols[j].group === g) j++;
+      head += g ? '<th colspan="' + (j - i) + '" class="dn-grp">' + dnE(g) + '</th>' : b.cols.slice(i, j).map(c => '<th rowspan="2">' + dnE(c.di ? c.di.short : c.label) + (c.di ? '<div class="dn-dow">' + c.di.dow + '</div>' : '') + '</th>').join(''); i = j; }
+    head += (b.isSeries ? '<th rowspan="2">Xu hướng</th>' : '') + '</tr><tr class="subhead">' + b.cols.filter(c => c.group).map(c => '<th class="' + (c.di && c.di.isSun ? 'dn-suncol' : '') + '">' + dnE(c.di ? c.di.short : c.label) + (c.di ? '<div class="dn-dow">' + c.di.dow + '</div>' : '') + '</th>').join('') + '</tr>';
+  } else {
+    head = '<tr>' + b.dimHeaders.map((h, k) => showDims[k] ? '<th>' + dnE(h) + '</th>' : '').join('') + b.cols.map(c => '<th class="' + (c.di && c.di.isSun ? 'dn-suncol' : '') + '">' + dnE(c.di ? c.di.short : c.label) + (c.di ? '<div class="dn-dow">' + c.di.dow + '</div>' : '') + '</th>').join('') + (b.isSeries ? '<th>Xu hướng</th>' : '') + '</tr>';
+  }
   const body = b.rows.map(r => {
     const tds = r.raw.map((txt, ci) => { const c = b.cols[ci], v = r.vals[ci]; let cls = '';
+      if (c.kind === 'text') return '<td style="text-align:left">' + (txt ? dnTextTag(txt) : '') + '</td>';
       if (v !== null && c.dir) {
         if (c.isDiff) cls = Math.abs(v) < 1e-9 ? '' : (v * c.dir > 0 ? 'dn-good' : 'dn-bad');
-        else if (c.kind === 'pct' && !r.isTotal) { const ref = /gtc/i.test(c.label + ' ' + (b.title||'') + b.sheet) && !/gán|gan/i.test(c.label) ? DAY_TARGETS.gtc : (tot ? tot.vals[ci] : null);
-          if (ref !== null && ref !== undefined) { const d = (v - ref) * c.dir; cls = d >= 0.02 ? 'h-good' : d <= -0.05 ? 'h-bad' : d < -0.02 ? 'h-warn' : ''; } }
+        else if (!r.isTotal) {
+          let ref = null;
+          if (ci === b.keyCol && b.target !== null) ref = b.target;
+          else if (c.kind === 'pct') { const tx = (b.title || '') + ' ' + c.label; const rule = DAY_TARGET_RULES.find(x => x.re.test(tx) && !(x.not && x.not.test(tx))); ref = rule && !c.isDate ? rule.t : (tot ? tot.vals[ci] : null); if (c.isDate && b.target !== null) ref = b.target; }
+          if (ref !== null && ref !== undefined && c.kind === 'pct') { const d = (v - ref) * c.dir; cls = d >= 0.02 ? 'h-good' : d <= -0.05 ? 'h-bad' : d < 0 ? 'h-warn' : ''; }
+          else if (c.kind === 'num' && c.dir < 0 && v > 0 && !c.isDate) { const colMax = Math.max(...b.rows.filter(x => !x.isTotal).map(x => x.vals[ci] || 0)); cls = colMax && v >= colMax * 0.5 ? 'h-bad' : ''; }
+        }
       }
-      return '<td class="'+(c.di && c.di.isSun ? 'dn-suncol' : '')+'">'+(cls && !c.isDiff ? '<span class="dn-h '+cls+'">'+dnE(txt)+'</span>' : '<span class="'+cls+'">'+dnE(txt)+'</span>')+'</td>'; }).join('');
-    const spark = b.isSeries ? '<td>' + dnSpark(b.cols.map((c,ci) => c.isDate ? r.vals[ci] : undefined).filter(x => x !== undefined), b.cols.find(c => c.isDate).dir) + '</td>' : '';
-    return '<tr'+(r.isTotal?' class="total-row"':'')+'>' + r.dims.map((d,k) => '<td'+(k?' style="text-align:left;font-family:var(--f)"':'')+'>'+dnE(d)+'</td>').join('') + tds + spark + '</tr>';
+      return '<td class="' + (c.di && c.di.isSun ? 'dn-suncol' : '') + (ci === b.keyCol ? ' dn-keycol' : '') + '">' + (cls && !c.isDiff ? '<span class="dn-h ' + cls + '">' + dnE(txt) + '</span>' : '<span class="' + cls + '">' + dnE(txt) + '</span>') + '</td>'; }).join('');
+    const spark = b.isSeries ? '<td>' + dnSpark(b.cols.map((c, ci) => c.isDate ? r.vals[ci] : undefined).filter(x => x !== undefined), b.cols.find(c => c.isDate).dir) + '</td>' : '';
+    let firstShown = true;
+    const dimTds = r.dims.map((d, k) => { if (!showDims[k]) return ''; const st = firstShown ? '' : ' style="text-align:left;font-family:var(--f)"'; firstShown = false; return '<td' + st + '>' + dnE(d) + '</td>'; }).join('');
+    return '<tr' + (r.isTotal ? ' class="total-row"' : '') + '>' + dimTds + tds + spark + '</tr>';
   }).join('');
   return '<div class="tbl-wrap"><table class="dn-tbl dn-gen"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
 }
-
+// ---------- BẢNG ĐIỂM AM: nối MỌI bảng cấp AM của tất cả sheet theo tên AM → 1 dòng / AM, đếm số chỉ số kém ----------
+function dnScorecardHtml(M){
+  const blocks = []; M.sheets.forEach(s => s.blocks.forEach(b => { if (b.level === 'am' && !b.isTop && b.keyCol >= 0 && b.cols[b.keyCol].dir) blocks.push(b); }));
+  if (blocks.length < 2) return '';
+  // tên AM chuẩn = các AM xuất hiện ở ≥ 2 bảng (loại tên lạc như tên bưu cục trong bảng đặt nhầm header)
+  const cnt = {}; blocks.forEach(b => b.rows.forEach(r => { if (!r.isTotal && r.key) cnt[r.key] = (cnt[r.key] || 0) + 1; }));
+  const names = Object.keys(cnt).filter(n => cnt[n] >= 2);
+  const parentOf = {}; blocks.forEach(b => b.rows.forEach(r => { if (r.parent && !parentOf[r.key]) parentOf[r.key] = r.parent; }));
+  const seen = [];
+  const colsDef = blocks.map(b => { const c = b.cols[b.keyCol]; const tot = b.rows.find(r => r.isTotal);
+    const sig = names.map(n => { const r = b.rows.find(x => !x.isTotal && dnNorm(x.key) === dnNorm(n)); return r && r.vals[b.keyCol] !== null ? r.vals[b.keyCol].toFixed(4) : '-'; }).join(',');
+    if (seen.includes(sig)) return null; seen.push(sig); // bỏ cột trùng số liệu (cùng 1 chỉ số ở 2 sheet)
+    const short = dnNiceTitle(b.title || dnSheetLabel(b.sheet)).replace(/\s*theo AM\s*/i, ' ').trim();
+    const amVals = b.rows.filter(r => !r.isTotal && r.vals[b.keyCol] !== null).map(r => r.vals[b.keyCol]);
+    const avg = amVals.length ? amVals.reduce((a, x) => a + x, 0) / amVals.length : null;
+    // % → so với target (nếu có) hoặc mức Vùng; số đơn → so với TRUNG BÌNH mỗi AM (so với tổng Vùng thì vô nghĩa)
+    const ref = b.target !== null ? b.target : (c.kind === 'pct' ? (tot ? tot.vals[b.keyCol] : avg) : avg);
+    return { b, c, short: short + (b.isSeries ? '' : ' · ' + c.label), ref, tot: c.kind === 'pct' ? (tot ? tot.vals[b.keyCol] : null) : avg, refLbl: c.kind === 'pct' ? 'Vùng' : 'TB/AM' }; }).filter(Boolean);
+  const data = names.map(n => { let bad = 0, n2 = 0; const vals = colsDef.map(d => { const r = d.b.rows.find(x => !x.isTotal && dnNorm(x.key) === dnNorm(n)); const v = r ? r.vals[d.b.keyCol] : null;
+      let st = 0; if (v !== null && v !== undefined && d.ref !== null && d.ref !== undefined) { n2++; const dd = (v - d.ref) * d.c.dir; const tol = d.c.kind === 'pct' ? 0.005 : Math.abs(d.ref) * 0.05; if (dd < -tol) { st = -1; bad++; } else if (dd > tol) st = 1; }
+      return { v, st }; });
+    return { n, p: parentOf[n] || '', vals, bad, n2 }; }).sort((a, b) => b.bad - a.bad || a.n.localeCompare(b.n));
+  const head = '<tr><th>AM <span class="mut2">(Tỉnh)</span></th><th>Số chỉ số kém</th>' + colsDef.map(d => '<th title="' + attrEsc(d.short + ' — ' + d.b.sheet) + '" class="dn-vth"><div>' + dnE(d.short.length > 34 ? d.short.slice(0, 33) + '…' : d.short) + '</div><span class="dn-sheetname">' + dnE(d.b.sheet.slice(0, 3)) + (d.b.target !== null ? ' · tg ' + dnP(d.b.target, 0) : '') + '</span></th>').join('') + '</tr>';
+  const body = data.map(r => '<tr><td>' + dnE(r.n) + (r.p ? '<div class="dn-par">' + dnE(r.p) + '</div>' : '') + '</td><td><b class="' + (r.bad >= Math.max(3, r.n2 / 2) ? 'dn-bad' : r.bad ? '' : 'dn-good') + '">' + r.bad + '</b><span class="mut">/' + r.n2 + '</span></td>' +
+    r.vals.map((x, i) => { const d = colsDef[i]; return '<td>' + (x.v === null || x.v === undefined ? '<span class="mut">—</span>' : '<span class="dn-h ' + (x.st < 0 ? 'h-bad' : x.st > 0 ? 'h-good' : '') + '">' + dnFmtV(x.v, d.c.kind, 1) + '</span>') + '</td>'; }).join('') + '</tr>').join('') +
+    '<tr class="total-row"><td>Mốc so sánh</td><td class="mut">Vùng / TB mỗi AM</td>' + colsDef.map(d => '<td>' + (d.b.target !== null ? 'tg ' + dnP(d.b.target, 0) : d.tot !== null ? dnFmtV(d.tot, d.c.kind, 1) + ' <span class="mut">' + d.refLbl + '</span>' : '—') + '</td>').join('') + '</tr>';
+  const worst = data.filter(r => r.bad).slice(0, 5);
+  return '<div class="comment yellow"><b>Đọc bảng này thế nào</b><div class="aline">Mỗi cột là chỉ số chính (ngày N-1) của 1 bảng cấp AM trong các sheet 100→200; ô <span class="dn-h h-bad">đỏ</span> = kém hơn target (nếu có) hoặc kém hơn mức Vùng, <span class="dn-h h-good">xanh</span> = tốt hơn. Sheet mới có bảng theo AM sẽ <b>tự thêm cột</b> ở đây.</div>' +
+    (worst.length ? '<div class="aline">• Nhiều chỉ số kém nhất: ' + worst.map(r => '<b>' + dnE(r.n) + '</b> (' + r.bad + '/' + r.n2 + ')').join(', ') + '.</div>' : '') + '</div>' +
+    '<div class="tbl-wrap dn-sc"><table class="dn-tbl"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
+}
+// ---------- TOÀN CẢNH: 1 thẻ / bảng (dòng tổng của chỉ số chính) — tự gom mọi sheet ----------
+function dnPanoramaHtml(M){
+  const cards = []; M.sheets.forEach(s => s.blocks.forEach(b => { if (b.isTop || b.keyCol < 0) return; const tot = b.rows.find(r => r.isTotal); if (!tot) return; const v = tot.vals[b.keyCol]; if (v === null || v === undefined) return;
+    const c = b.cols[b.keyCol]; if (!c.dir) return; const d = b.diffCol >= 0 ? tot.vals[b.diffCol] : null;
+    const ok = b.target !== null ? (v - b.target) * c.dir >= 0 : (d === null ? null : d * c.dir >= 0);
+    const t = dnNiceTitle(b.title || dnSheetLabel(s.name));
+    cards.push('<div class="dn-kpi ' + (ok === null ? '' : ok ? 'ok' : 'bad') + '" onclick="dnGoTo(\'dn-s-' + (s.code || s.name.replace(/\W/g,'')) + '\')" style="cursor:pointer"><div class="dn-kpi-l" title="' + attrEsc(t) + '">' + dnE(t) + '</div><div class="dn-kpi-v">' + dnFmtV(v, c.kind, 2) + '</div><div class="dn-kpi-s">' + dnE(c.di ? 'ngày ' + c.di.short : c.label) +
+      (d !== null && d !== undefined ? ' · ' + (c.kind === 'pct' ? dnDeltaSpan(d, c.dir) : dnDeltaSpan(d, c.dir, 'int')) : '') + (b.target !== null ? ' · target ' + dnP(b.target, 0) : '') + '<br><span class="dn-sheetname" style="margin:0">' + dnE(s.name) + '</span></div></div>'); }));
+  if (!cards.length) return '';
+  return '<div class="block-header" style="margin-top:22px"><span class="bh-num">∑</span> Toàn cảnh mọi chỉ số (tự gom từ tất cả sheet — bấm thẻ để xem chi tiết)</div><div class="dn-kpis dn-pano">' + cards.join('') + '</div>';
+}
 async function main(){
   // Dữ liệu vận hành giờ được đọc qua Apps Script backend (đã xác thực bằng session token),
   // KHÔNG còn fetch trực tiếp Google Sheet qua link public nữa (xem callBackend/AUTH ở trên).

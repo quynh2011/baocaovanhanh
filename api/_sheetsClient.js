@@ -726,10 +726,10 @@ async function handleGetReportData(body) {
 }
 
 // ====== BÁO CÁO VẬN HÀNH › NGÀY (2026-11-03) ======
-// Tự nhận diện MỌI sheet có tên bắt đầu bằng 3 chữ số 1xx + "_" (100_ReportGTC, 101_..., 102_..., sau này
+// Tự nhận diện MỌI sheet có tên bắt đầu bằng mã 3 chữ số từ 100 đến 200 + "_" (100_ReportGTC, 101_..., 102_..., sau này
 // 103_, 104_... tự hiện, KHÔNG cần sửa code). Trả về giá trị ĐÃ ĐỊNH DẠNG (FORMATTED_VALUE) đúng như hiển thị
 // trên Sheet ("77,14%", "2.800", "26/10/2026"); việc tách bảng (hàng tiêu đề gộp) + phân tích làm ở frontend.
-const DAY_SHEET_RE = /^1\d\d_/;
+const DAY_SHEET_RE = /^(1\d\d|200)_/; // mã 100 → 200
 async function handleGetDailyReport(body) {
   const auth = await requireActiveUser(body.token);
   if (auth.error) return { ok: false, error: auth.error };

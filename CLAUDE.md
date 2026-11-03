@@ -50,7 +50,7 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 | Section | Trạng thái | Nguồn dữ liệu |
 |---|---|---|
 | 📊 Vận hành › Tuần | Chạy | `getReportData` — 13 tab `01_Scorecard`…`13_KTC_Ton24H` (+ `21_..24_KD_*`, `31..33_FC_*` cùng lượt). Render: `main()` → `window.RAW_VH_DATA` → `renderVanHanhReport()`; chọn kỳ xem lại `setVHCutoff`. Chỉ số dạng vol+pct khai báo ở `METRIC_META` (thêm chỉ số mới = thêm 1 dòng). Ghi chú từng mục ở `NOTES`. |
-| Vận hành › Ngày | Chạy (2026-11-03) | `getDailyReport` — tự đọc MỌI sheet tên `1xx_` (100_ReportGTC, 101_ReportGTCtheoloaihang, 102_ReportGan, sau này 103_… tự hiện). Xem mục 5b. |
+| Vận hành › Ngày | Chạy (2026-11-03) | `getDailyReport` — tự đọc MỌI sheet có mã 3 số **100 → 200** ở đầu tên (`/^(1\d\d|200)_/`). Hiện có: 100_Capacity, 101_ReportGTC, 102_ReportGTCtheoloaihang, 103_ReportGan, 104_Aging, 105_Tiktok Shop, 106_BaocaoGan, 107_Luanchuyen, 108_Tyletrahang. SỐ THỨ TỰ SHEET CÓ THỂ ĐỔI — code không dựa vào số. Xem mục 5b. |
 | Vận hành › Tháng | Placeholder "sắp ra mắt" | — |
 | 💰 Kinh doanh › Tuần | Chạy | `21_KD_HangNangNhe`, `22_KD_HangNang`, `23_KD_HangNhe`, `24_KD_BanMoi`, `24_KD_BanMoiAM` (`loadKinhDoanh`, `KD_TABS`) |
 | Kinh doanh › Kế hoạch KD | Chạy | KEHOACH sheet: `Kehoach/Ketqua/Tiendo` (6 tab con `switchKHTab`) |
@@ -62,11 +62,15 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 | Truy thu / Capacity / Nhân sự / Sắp ra mắt | Placeholder | — |
 
 ### 5b. Vận hành › Ngày — cách hoạt động (code trong `bao_cao_van_hanh_live.html`, khối "VẬN HÀNH › NGÀY", hàm tiền tố `dn`)
-- Quy tắc sheet: các bảng trong 1 sheet cách nhau bởi 1 HÀNG TIÊU ĐỀ GỘP (chỉ ô cột A có chữ), ngay dưới là header; bảng đầu có thể không có tiêu đề. `dnParseSheet` tách bảng; cột chữ ở đầu = chiều (Tỉnh/AM/Bưu cục), còn lại là số; cột ngày `dd/mm/yyyy` → bảng theo ngày; cột `2026/45` → tuần; cột có "Diff"/"vs" → chênh lệch.
-- Hướng tốt/xấu (`dnDir`): GTC/Gán/Ontime cao là tốt; FD/tồn/backlog/rớt thấp là tốt; sản lượng/hàng mới trung tính. Target ở `DAY_TARGETS` (GTC 65%). Tên hiển thị sheet ở `DAY_SHEET_LABELS`.
-- `dnBuildModel` nối các bảng theo TÊN thực thể: 100 (GTC/Gán) + 101 (hàng mới/tồn) theo Tỉnh/AM/Bưu cục, 102 (chuỗi 8 ngày) theo AM; dò cột bằng regex tên cột (đổi thứ tự cột không sao, đổi TÊN cột thì sửa regex trong `dnBuildModel`).
-- Các mục: 0 Tổng quan (KPI + nhận xét tự động), 1 Xu hướng (SVG), 2 Ma trận Gán×GTC (4 nhóm), 3 Ưu tiên (đơn thiếu target = (65% − GTC) × SL), 4 Biến động N-1 vs N-2, 5 Cây Tỉnh→AM→Bưu cục, 6 Diễn biến AM theo ngày, 7 Bảng gốc từng sheet (chung, sheet mới tự hiện).
-- Thêm sheet mới (103_…): tự hiện ở mục 7. Muốn có phân tích riêng → thêm nhận diện vào `dnBuildModel` + 1 hàm render + 1 dòng `sec(...)` trong `renderVanHanhNgay`.
+- **Quy tắc sheet** (do chủ dự án đặt): các bảng trong 1 sheet cách nhau bởi 1 HÀNG TIÊU ĐỀ GỘP (chỉ ô cột A có chữ). Thêm cột / thêm dòng / thêm sheet mã 100→200 đều PHẢI tự nhận vào báo cáo — không hard-code vị trí cột/số sheet.
+- `dnParseSheet` tự hiểu: header 1 hoặc nhiều tầng (hàng nhóm cột gộp ở trên/dưới hàng header chính, ô gộp trống tự lan sang phải → `col.group`); dòng số nằm TRÊN header (vd dòng tổng + giờ cập nhật đầu sheet Capacity) → thành dòng tổng; nhãn "…cập nhật lúc hh:mm dd/mm/yyyy" → tách ra `block.stamp`.
+- `dnAnalyzeBlock`: cột chữ ở đầu (+ cột "ID…") = chiều; chiều cuối không phải ID = khoá (Tỉnh/AM/Bưu cục); bảng ghi header "Tỉnh|AM" nhưng dữ liệu là "(XXX) Bưu cục" → tự đổi thành AM|Bưu cục. Cột ngày `dd/mm` hoặc `dd/mm/yyyy` → bảng theo ngày; `2026/45` → tuần; "Diff"/"vs"/"so với" → chênh lệch; cột chữ giữa/cuối (vd "Nhóm 1 – An toàn") → `kind:'text'`, đếm theo nhóm.
+- Hướng tốt/xấu `dnDir` (xét tên cột → nhóm cột → tiêu đề bảng → tên sheet): GTC/Gán/ODR/OPR/hiệu suất cao là tốt; FD/tồn/aging/rớt/chưa LC/trả hàng/cảnh báo thấp là tốt; sản lượng/đơn tạo/nhân sự trung tính.
+- `dnPickKey` chọn CHỈ SỐ CHÍNH mỗi bảng (bảng ngày → ngày mới nhất; bảng thường → cột % có hướng, ưu tiên "N-1"; không có % → "Tổng…"/"Aging >…") + cột chênh lệch tương ứng + target (`DAY_TARGET_RULES`: GTC 65%, ODR TTS 96%, OPR TTS 80%, Rớt LC 2%).
+- Các mục: Tổng quan (KPI GTC + nhận xét + "Toàn cảnh" 1 thẻ/bảng mọi sheet) → **Bảng điểm AM** (1 cột/bảng cấp AM của mọi sheet, bỏ cột trùng số, % so target/Vùng, số đơn so TB mỗi AM, đếm số chỉ số kém) → Xu hướng → Ma trận Gán×GTC → Ưu tiên GTC → Biến động → Cây Tỉnh→AM→BC → Diễn biến AM → **mỗi sheet 1 mục** (nhận xét tự động `dnBlockInsight` + bảng tô màu `dnGenericTable`; sheet đã dùng cho phân tích GTC thì thu gọn sẵn).
+- Phân tích GTC chuyên sâu (`dnBuildModel`) dò cột theo TÊN: "% GTC N-1", "Hàng mới N-1", bảng ngày có tiêu đề GTC/Gán/hàng mới/tồn. Tên sheet hiển thị: `DAY_SHEET_NAMES` (dò theo tên, không theo số).
+- Sheet mới: tự có mục riêng + thẻ toàn cảnh + cột trong bảng điểm AM (nếu có bảng cấp AM). Muốn phân tích riêng sâu hơn → thêm hàm render + `sec(...)` trong `renderVanHanhNgay`.
+- Test nhanh không cần đăng nhập: chạy `python3 -m http.server` ở thư mục repo + Playwright chặn `/api/gas` trả fixture `{ok:true,sheets:[{name,rows}]}` (rows = mảng 2 chiều chuỗi đã định dạng, giống Sheets API FORMATTED_VALUE), set localStorage `ghn_report_session_v1`.
 - Xuất HTML: `EXPORT_PANE_META.vhNgay`, snapshot nhúng `dayRaw`, `hydrateFromSnapshot` dựng lại `window.DAY.M`.
 
 ### Action frontend gọi nhưng CHƯA port (rơi xuống Apps Script → lỗi)
@@ -85,3 +89,4 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 - 2026-11-02: FIX quên mật khẩu — port `requestPasswordReset`/`resetPassword` sang Sheets API + Gmail API (`handleRequestPasswordReset`, `handleResetPassword` trong `api/_sheetsClient.js`, đăng ký ở `api/gas.js`). OTP 10 phút, dùng chung cột OTP/OTPHetHan sheet Main; đặt lại xong reset SoLanSai + KhoaDenLuc.
 - 2026-11-02: Quên mật khẩu — giới hạn nhập sai OTP 5 lần (RESET_OTP_MAX_FAILS). Số lần sai lưu ngay trong ô OTP dạng `mã#sốLầnSai` (KHÔNG thêm cột sheet Main); sai đủ 5 lần thì xoá mã → lỗi `otp_too_many`, phải gửi mã mới. Frontend báo "còn N lần thử". OTP xác thực lại phiên 24h không đổi.
 - 2026-11-03: BUILD tab Vận hành › Ngày — backend `handleGetDailyReport` (đọc mọi sheet `1xx_`, FORMATTED_VALUE) + frontend phân tích (mục 5b). Test bằng Playwright với dữ liệu mẫu cắt từ sheet thật (100/101/102 + 1 sheet giả 103 để thử tự nhận).
+- 2026-11-03 (tối): sheet đổi số + thêm 6 sheet (Capacity, Aging, TikTok Shop, Gán giao, Luân chuyển, Trả hàng) → nâng parser (header nhiều tầng, dòng tổng trên header, ngày dd/mm, cột ID/chữ, bảng TOP header sai), phạm vi mã 100→200, thêm nhận xét tự động mọi bảng, Bảng điểm AM, Toàn cảnh. Test Playwright bằng dữ liệu thật 9 sheet.
