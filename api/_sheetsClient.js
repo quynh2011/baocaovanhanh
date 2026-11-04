@@ -65,6 +65,7 @@ const MODULE_DEFS = [
   { id: 'vh_ngay', label: 'Vận hành › Ngày', cap: 'tab', chaId: 'vanhanh' },
   { id: 'vh_tuan', label: 'Vận hành › Tuần', cap: 'tab', chaId: 'vanhanh' },
   { id: 'vh_thang', label: 'Vận hành › Tháng', cap: 'tab', chaId: 'vanhanh' },
+  { id: 'vh_sreport', label: 'Vận hành › [S]-Report (Siêu báo cáo)', cap: 'tab', chaId: 'vanhanh' },
   { id: 'kinhdoanh', label: 'Kinh doanh', cap: 'section', chaId: '' },
   { id: 'kd_ngay', label: 'Kinh doanh › Ngày', cap: 'tab', chaId: 'kinhdoanh' },
   { id: 'kd_tuan', label: 'Kinh doanh › Tuần', cap: 'tab', chaId: 'kinhdoanh' },
@@ -738,6 +739,31 @@ async function handleGetDailyReport(body) {
   const valueRanges = await batchGetValues(SHEET_ID, titles, { valueRenderOption: 'FORMATTED_VALUE' });
   const sheets = titles.map((name, i) => ({ name: name, rows: (valueRanges[i] && valueRanges[i].values) || [] }));
   return { ok: true, sheets: sheets, thoiGian: new Date().toISOString() };
+}
+
+// ====== [S]-REPORT — "Siêu báo cáo" (2026-11-04) ======
+// File bao-cao-bc-TNT-YYYY-MM-DD.html (≈5,2MB, nằm ở folder Drive 1PY10hBt2V93tfUPPNyNPg4h-e8JDBPB_) được Apps Script
+// "[S]-Report — Tự lấy Siêu báo cáo" (apps_script/SReport.gs, chạy mỗi giờ dưới quynhpv1@ghn.vn) chép vào Google Sheet
+// SREPORT_SHEET_ID: tab SR_Meta (thông tin file) + SR_Html (cột A = các đoạn 40.000 ký tự, mỗi đoạn có tiền tố "~").
+// Backend chỉ có quyền Sheets (không có Drive) nên phải đi đường vòng này. Vercel giới hạn body phản hồi ~4,5MB nên
+// trả về THEO PHẦN: gọi không có `part` → meta + danh sách phần; gọi `part: i` → nội dung phần i (ghép lại ở trình duyệt).
+const SREPORT_SHEET_ID = '1He6ycTpoJMFr1fHGMEYuV0YmyH_Y5Id_3BfeBw7BQoU';
+const SREPORT_ROWS_PER_PART = 30; // 30 đoạn × 40.000 ký tự ≈ 1,2MB / phần
+async function handleGetSReport(body) {
+  const auth = await requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  const metaRows = await getValues(SREPORT_SHEET_ID, "'SR_Meta'!A1:B30", { valueRenderOption: 'FORMATTED_VALUE' });
+  const meta = {}; metaRows.forEach((r) => { if (r[0]) meta[String(r[0])] = String(r[1] === undefined ? '' : r[1]); });
+  const chunks = parseInt(meta.chunks, 10) || 0;
+  if (!chunks) return { ok: false, error: 'sreport_chua_co_du_lieu', meta: meta };
+  const parts = [];
+  for (let i = 0; i < chunks; i += SREPORT_ROWS_PER_PART) parts.push({ from: i + 1, to: Math.min(chunks, i + SREPORT_ROWS_PER_PART) });
+  if (body.part === undefined || body.part === null) return { ok: true, meta: meta, parts: parts.length };
+  const k = parseInt(body.part, 10);
+  if (!(k >= 0 && k < parts.length)) return { ok: false, error: 'bad_request' };
+  const rows = await getValues(SREPORT_SHEET_ID, "'SR_Html'!A" + parts[k].from + ':A' + parts[k].to, { valueRenderOption: 'FORMATTED_VALUE' });
+  const text = rows.map((r) => { const v = String(r[0] === undefined ? '' : r[0]); return v.charAt(0) === '~' ? v.slice(1) : v; }).join('');
+  return { ok: true, part: k, parts: parts.length, fileId: meta.fileId || '', text: text };
 }
 
 // ================================================================================================
@@ -2326,5 +2352,6 @@ module.exports = {
   handleHeartbeat, handleGetOnlineUsers,
   handleGetLapDayData,
   handleGetRPLapDayData,
-  handleGetDailyReport
+  handleGetDailyReport,
+  handleGetSReport
 };

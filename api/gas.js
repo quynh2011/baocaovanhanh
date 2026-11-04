@@ -103,7 +103,9 @@ const LOCAL_ACTIONS = {
   getLapDayData: sheetsClient.handleGetLapDayData,
   getRPLapDayData: sheetsClient.handleGetRPLapDayData,
   // Vận hành › Ngày — mọi sheet 1xx_ (2026-11-03)
-  getDailyReport: sheetsClient.handleGetDailyReport
+  getDailyReport: sheetsClient.handleGetDailyReport,
+  // [S]-Report — Siêu báo cáo (2026-11-04)
+  getSReport: sheetsClient.handleGetSReport
 };
 
 // ================= NHÁNH CŨ: proxy sang Apps Script (giữ nguyên, dùng cho action chưa port) =================

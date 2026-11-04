@@ -704,6 +704,16 @@ td.dn-keycol{background:#FBF7EE}
 @media (max-width:900px){.dn-chartrow{grid-template-columns:1fr}}
 @media (max-width:900px){.dn-grid2,.dn-mx{grid-template-columns:1fr}.dn-qs{grid-template-columns:1fr}}
 @media (max-width:600px){.dn-kpi-v{font-size:19px}.dn-kpis{grid-template-columns:1fr 1fr}}
+
+/* ---- [S]-Report ---- */
+.vh-subtab-btn.sr-btn{border-color:var(--ghn-orange);color:var(--ghn-orange-dark);font-weight:700}
+.vh-subtab-btn.sr-btn.active{background:var(--ghn-orange);border-color:var(--ghn-orange);color:#fff}
+#vhSReport{max-width:1380px;margin:0 auto;padding:0 16px 20px}
+.sr-bar{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin:6px 0 10px;padding-bottom:8px;border-bottom:3px solid var(--ghn-orange)}
+.sr-title{font-size:20px;letter-spacing:-.01em}
+.sr-meta{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:4px}
+.sr-actions{display:flex;gap:6px}
+#srFrame{width:100%;height:calc(100vh - 150px);min-height:600px;border:1px solid var(--border);border-radius:12px;background:#F4EDDB}
 </style>
 </head>
 <body>
@@ -941,8 +951,19 @@ td.dn-keycol{background:#FBF7EE}
     <button class="vh-subtab-btn" id="vhTabBtn-ngay" onclick="switchVanHanhTab('ngay')">Ngày</button>
     <button class="vh-subtab-btn active" id="vhTabBtn-tuan" onclick="switchVanHanhTab('tuan')">Tuần</button>
     <button class="vh-subtab-btn" id="vhTabBtn-thang" onclick="switchVanHanhTab('thang')">Tháng</button>
+    <button class="vh-subtab-btn sr-btn" id="vhTabBtn-sreport" onclick="switchVanHanhTab('sreport')" title="Siêu báo cáo (live) — tự cập nhật hằng ngày từ file Drive">[S]-Report</button>
   </div>
 
+  <!-- ================= [S]-REPORT — Siêu báo cáo (live): nhúng nguyên file bao-cao-bc-TNT-*.html mới nhất ================= -->
+  <div id="vhSReport" class="vh-pane">
+    <div class="sr-bar">
+      <div><b class="sr-title">[S]-Report <span class="rh-tag">Siêu báo cáo · Live</span></b><div class="sr-meta" id="srMeta">Đang kiểm tra dữ liệu…</div></div>
+      <div class="sr-actions"><button class="refresh-btn" onclick="loadSReport(true)">↻ Tải lại</button><button class="refresh-btn" id="srFullBtn" onclick="srOpenFull()" style="display:none">⤢ Mở toàn màn hình</button></div>
+    </div>
+    <div id="srLoading" class="load-progress" style="display:none"><span>Đang tải Siêu báo cáo…</span><span class="load-progress-track"><span class="load-progress-fill" id="srLoadingFill"></span></span><span class="load-progress-pct" id="srLoadingPct">0%</span></div>
+    <div id="srErr"></div>
+    <iframe id="srFrame" title="Siêu báo cáo" sandbox="allow-scripts allow-popups allow-downloads allow-modals" style="display:none"></iframe>
+  </div>
   <div id="vhNgay" class="vh-pane">
 <div class="page">
   <div class="report-header" id="dntop">
@@ -1487,6 +1508,7 @@ window.MODULE_DEFS = [
   { id: 'vh_ngay', label: 'Ngày', cap: 'tab' },
   { id: 'vh_tuan', label: 'Tuần', cap: 'tab' },
   { id: 'vh_thang', label: 'Tháng', cap: 'tab' },
+  { id: 'vh_sreport', label: '[S]-Report (Siêu báo cáo)', cap: 'tab' },
   { id: 'kinhdoanh', label: 'Kinh doanh', cap: 'section' },
   { id: 'kd_ngay', label: 'Ngày', cap: 'tab' },
   { id: 'kd_tuan', label: 'Tuần', cap: 'tab' },
@@ -1519,7 +1541,7 @@ window.MODULE_DOM_MAP = {
   lichlamviec: 'navBtn-sectionLichLamViec',
   llv_canhbao: 'llvTabBtn-canhbao', llv_lichhop: 'llvTabBtn-lichhop',
   llv_congviec: 'llvTabBtn-congviec', llv_canhan: 'llvTabBtn-canhan',
-  vh_ngay: 'vhTabBtn-ngay', vh_tuan: 'vhTabBtn-tuan', vh_thang: 'vhTabBtn-thang',
+  vh_ngay: 'vhTabBtn-ngay', vh_tuan: 'vhTabBtn-tuan', vh_thang: 'vhTabBtn-thang', vh_sreport: 'vhTabBtn-sreport',
   kd_ngay: 'kdTabBtn-ngay', kd_tuan: 'kdTabBtn-tuan', kd_thang: 'kdTabBtn-thang',
   kd_kehoach: 'kdTabBtn-kehoach', kd_bckqkd: 'kdTabBtn-bckqkd',
   kd_kehoach_lap: 'khTabBtn-lap', kd_kehoach_capnhat: 'khTabBtn-capnhat', kd_kehoach_baocaokh: 'khTabBtn-baocaokh',
@@ -1549,7 +1571,7 @@ function modVisible(moduleId){
 // "Kế hoạch KD > Biểu Đồ" trong khi nhân viên đang xem đúng tab đó) — không áp dụng cho periods/builder (2 tab
 // nội bộ luôn hardcode chỉ Admin, không nằm trong hệ thống hạng mục này).
 const MODULE_TAB_GROUPS = [
-  { switchFn: 'switchVanHanhTab', items: [['ngay','vh_ngay'],['tuan','vh_tuan'],['thang','vh_thang']] },
+  { switchFn: 'switchVanHanhTab', items: [['ngay','vh_ngay'],['tuan','vh_tuan'],['thang','vh_thang'],['sreport','vh_sreport']] },
   { switchFn: 'switchKDTab', items: [['ngay','kd_ngay'],['tuan','kd_tuan'],['thang','kd_thang'],['kehoach','kd_kehoach'],['bckqkd','kd_bckqkd']] },
   { switchFn: 'switchKHTab', items: [['lap','kd_kehoach_lap'],['capnhat','kd_kehoach_capnhat'],['baocaokh','kd_kehoach_baocaokh'],['tongquan','kd_kehoach_tongquan'],['kinhdoanh','kd_kehoach_kinhdoanh'],['bieudo','kd_kehoach_bieudo']] },
   { switchFn: 'switchBCKQKDTab', items: [['submit','kd_bckqkd_submit'],['aggregate','kd_bckqkd_aggregate']] },
@@ -5159,14 +5181,15 @@ function loadTyLeLapDay(){
   };
 }
 function switchVanHanhTab(tab){
-  const paneIds = { ngay: 'vhNgay', tuan: 'vhTuan', thang: 'vhThang' };
-  ['ngay','tuan','thang'].forEach(t => {
+  const paneIds = { ngay: 'vhNgay', tuan: 'vhTuan', thang: 'vhThang', sreport: 'vhSReport' };
+  ['ngay','tuan','thang','sreport'].forEach(t => {
     const pane = document.getElementById(paneIds[t]);
     if (pane) pane.classList.toggle('active', t===tab);
     const btn = document.getElementById('vhTabBtn-'+t);
     if (btn) btn.classList.toggle('active', t===tab);
   });
   if (tab === 'ngay' && typeof loadVanHanhNgay === 'function') loadVanHanhNgay();
+  if (tab === 'sreport' && typeof loadSReport === 'function') loadSReport();
 }
 // tương tự switchVanHanhTab nhưng cho Kinh doanh — Ngày/Tháng hiện là placeholder "sắp ra mắt" (logic thật sẽ
 // bổ sung sau khi có cấu trúc tab dữ liệu theo Ngày/Tháng riêng trên Sheet), Tuần giữ nguyên nội dung hiện có.
@@ -7387,6 +7410,54 @@ function renderVanHanhNgay(){
   const tocHtml = '<div class="dn-toc">' + search + toc.map(t => t.part ? '<div class="dn-toc-p">' + dnE(t.title) + '</div>' : '<a href="javascript:void(0)" onclick="dnGoTo(\'' + t.id + '\')"><span class="tnum">' + t.num + '</span>' + dnE(t.title.split(' — ')[0]) + '</a>').join('') + '</div>';
   body.innerHTML = tocHtml + out;
 }
+
+
+// ============================================================================================
+// [S]-REPORT — Siêu báo cáo (live) (2026-11-04). Nguồn: file bao-cao-bc-TNT-YYYY-MM-DD.html mới nhất trong folder Drive
+// (hôm nay N thì lấy file N-1), được Apps Script chép vào Google Sheet SR_* mỗi giờ; backend trả theo phần (getSReport).
+// Hiển thị NGUYÊN báo cáo gốc trong iframe sandbox (không allow-same-origin → báo cáo không đọc được phiên đăng nhập web).
+// ============================================================================================
+window.SR = { loading: false, url: null, fileId: null, meta: null };
+async function loadSReport(force){
+  if (window.__STATIC_SNAPSHOT__) return;
+  const SR = window.SR; if (SR.loading) return;
+  if (SR.url && !force) return;
+  SR.loading = true;
+  const err = document.getElementById('srErr'), metaEl = document.getElementById('srMeta'), frame = document.getElementById('srFrame');
+  err.innerHTML = '';
+  const note = document.getElementById('srLoading'); note.style.display = ''; note.style.opacity = '1';
+  const prog = startFakeProgress('srLoadingFill', 'srLoadingPct');
+  try {
+    const head = await callBackend('getSReport', { token: AUTH.session.token });
+    if (!head.ok) {
+      if (head.error === 'sreport_chua_co_du_lieu') throw new Error('Google Sheet [S]-Report chưa có dữ liệu — Apps Script "[S]-Report — Tự lấy Siêu báo cáo" chưa chạy lần nào (cần cấp quyền + chạy hàm caiDat).' + (head.meta && head.meta.lastError ? ' Lỗi gần nhất: ' + head.meta.lastError : ''));
+      throw new Error(errMsg(head.error));
+    }
+    const m = head.meta || {}; SR.meta = m;
+    if (!force && SR.url && SR.fileId === m.fileId) { prog.finish('srLoading'); SR.loading = false; return; }
+    const d = (m.fileDate || '').split('-');
+    metaEl.innerHTML = 'File <b>' + esc(m.fileName || '') + '</b>' + (d.length === 3 ? ' · số liệu đến ngày <b>' + d[2] + '/' + d[1] + '/' + d[0] + '</b>' : '') + ' · đồng bộ lúc ' + esc(m.updatedAt || '—') + (m.status && m.status !== 'OK' ? ' · <span class="dn-bad">' + esc(m.status + ' ' + (m.lastError || '')) + '</span>' : '');
+    const parts = await Promise.all(Array.from({ length: head.parts }, (_, i) => callBackend('getSReport', { token: AUTH.session.token, part: i })));
+    const bad = parts.find(p => !p.ok); if (bad) throw new Error(errMsg(bad.error));
+    let html = parts.sort((a, b) => a.part - b.part).map(p => p.text).join('');
+    // iframe sandbox (không same-origin) chặn localStorage → cấp 1 kho tạm trong bộ nhớ để báo cáo gốc chạy êm
+    const shim = '<script>(function(){function S(){var d={};return{getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},setItem:function(k,v){d[k]=String(v)},removeItem:function(k){delete d[k]},clear:function(){d={}},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}' +
+      '["localStorage","sessionStorage"].forEach(function(n){try{window[n].length}catch(e){try{Object.defineProperty(window,n,{value:S(),configurable:true})}catch(_){}}})})();<\/script>';
+    const hi = html.search(/<head[^>]*>/i);
+    html = hi >= 0 ? html.replace(/<head[^>]*>/i, m => m + shim) : shim + html;
+    if (SR.url) URL.revokeObjectURL(SR.url);
+    SR.url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    SR.fileId = m.fileId;
+    frame.src = SR.url; frame.style.display = '';
+    document.getElementById('srFullBtn').style.display = '';
+  } catch (e) {
+    err.innerHTML = '<div class="dn-err">Không tải được [S]-Report: ' + esc(e.message) + ' <button class="refresh-btn" onclick="loadSReport(true)">Thử lại</button></div>';
+    if (!SR.meta) metaEl.textContent = '—';
+  } finally {
+    prog.finish('srLoading'); SR.loading = false;
+  }
+}
+function srOpenFull(){ const f = document.getElementById('srFrame'); if (f && f.requestFullscreen) f.requestFullscreen().catch(() => {}); }
 
 async function main(){
   // Dữ liệu vận hành giờ được đọc qua Apps Script backend (đã xác thực bằng session token),
