@@ -6856,7 +6856,8 @@ function dnMatrixHtml(M){
     '<span class="dn-note" style="margin:0 0 0 8px">Mỗi chấm là 1 ' + (lv==='bc'?'bưu cục':lv==='am'?'AM':'tỉnh') + ', chấm càng to sản lượng cần giao càng lớn. Đường ngang = target GTC ' + dnP(T,0) + '.</span></div>' +
     '<div class="dn-grid2 dn-mx"><div class="dn-card"><svg viewBox="0 0 '+W+' '+H+'" class="dn-svg">' + g + '</svg></div><div class="dn-qs">' + qBox + '</div></div>';
 }
-function dnSetScatter(lv){ window.DAY.scatterLevel = lv; const el = document.getElementById('dn-matran'); if (el && el.nextElementSibling) el.nextElementSibling.innerHTML = dnMatrixHtml(window.DAY.M); }
+// đổi cấp xem (AM / Bưu cục / Tỉnh) → vẽ lại ĐÚNG khung ma trận hiện tại (#dnMatrixBox), không đụng phần khác
+function dnSetScatter(lv){ window.DAY.scatterLevel = lv; const box = document.getElementById('dnMatrixBox'); if (box) box.innerHTML = dnMatrixHtml(window.DAY.M); }
 
 // ---------- ƯU TIÊN XỬ LÝ GTC — ghép Tỉnh → AM → Bưu cục trong 1 bảng cây ----------
 // Tỉnh xếp theo TỔNG đơn thiếu của các bưu cục dưới target (tỉnh đạt chung vẫn có thể có BC kém); bấm + để xổ AM → BC.
@@ -7366,7 +7367,7 @@ function renderVanHanhNgay(){
   mark(); let p2 = '';
   if (M.V) {
     p2 += item('dn-gtc', 'GTC & Gán toàn vùng — ' + M.dates.length + ' ngày', dnDef('gtc') + ' Gán = đơn đã gán ÷ cần giao. Hàng tồn có %GTC thấp hơn hẳn hàng mới, nên tồn tăng là GTC bị kéo xuống.', safe('gtc', () => dnOverviewHtml(M) + dnTrendHtml(M)));
-    p2 += item('dn-matran', 'Vì sao GTC thấp — ma trận Gán × GTC', 'Trục ngang = % Gán, trục dọc = % GTC. Góc dưới-trái: gán thiếu nên giao không đủ; góc dưới-phải: đã gán đủ mà vẫn không giao được (tồn, giao thất bại, năng suất).', safe('ma trận', () => dnMatrixHtml(M)));
+    p2 += item('dn-matran', 'Vì sao GTC thấp — ma trận Gán × GTC', 'Trục ngang = % Gán, trục dọc = % GTC. Góc dưới-trái: gán thiếu nên giao không đủ; góc dưới-phải: đã gán đủ mà vẫn không giao được (tồn, giao thất bại, năng suất).', safe('ma trận', () => '<div id="dnMatrixBox">' + dnMatrixHtml(M) + '</div>'));
     p2 += item('dn-uutien', 'Ưu tiên xử lý GTC — Tỉnh → AM → Bưu cục còn thiếu đơn', 'Ghép 3 cấp trong 1 bảng: tỉnh nào thiếu nhiều nhất → AM nào gánh phần thiếu → bưu cục cụ thể. Cột cuối là nguyên nhân (gán, ca, tồn, GTC theo loại hàng) so với mức Vùng.', safe('ưu tiên', () => dnPriorityHtml(M)));
     p2 += item('dn-biendong', 'Biến động GTC so với hôm trước', '', safe('biến động', () => dnMoversHtml(M)));
     const tree = safe('cây', () => dnTreeHtml(M)), ser = safe('chuỗi', () => dnSeriesHtml(M));
