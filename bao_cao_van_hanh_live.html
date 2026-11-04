@@ -268,8 +268,9 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .module-table td.mod-label{font-weight:600}
 .module-table td.mod-label.cap-tab{padding-left:24px;font-weight:500}
 .module-table td.mod-label.cap-subtab{padding-left:42px;font-weight:400;color:var(--muted)}
-.preview-banner{position:fixed;top:0;left:0;right:0;z-index:9999;background:#B8390E;color:#fff;font-family:var(--mono);
-  font-size:12.5px;text-align:center;padding:9px 14px;display:flex;align-items:center;justify-content:center;gap:12px}
+/* thanh xem trước nằm GÓC DƯỚI TRÁI (không che các nút Ngày/Tuần/... ở đầu trang, không đè nút DBB góc phải) */
+.preview-banner{position:fixed;left:16px;bottom:16px;max-width:calc(100vw - 120px);z-index:9999;background:#B8390E;color:#fff;font-family:var(--mono);
+  font-size:12.5px;padding:9px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
 .preview-banner button{font-family:var(--mono);font-size:11.5px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);
   padding:5px 12px;border-radius:20px;cursor:pointer;font-weight:600}
 .preview-banner button:hover{background:rgba(255,255,255,.3)}
@@ -1543,7 +1544,9 @@ window.MODULE_DEFS = [
   { id: 'llv_lichhop', label: 'Lịch họp', cap: 'tab' },
   { id: 'llv_congviec', label: 'Công việc', cap: 'tab' },
   { id: 'llv_canhan', label: 'Công việc cá nhân', cap: 'tab' },
-  { id: 'sapramat', label: 'Sắp ra mắt', cap: 'section' }
+  { id: 'sapramat', label: 'Sắp ra mắt', cap: 'section' },
+  { id: 'lapday', label: 'Tỷ lệ lấp đầy', cap: 'section' },
+  { id: 'doisoat', label: 'Đối soát vận tải', cap: 'section' }
 ];
 // Ánh xạ id id-DOM nút bấm menu/tab thật trên trang -> moduleId, dùng cho applyModuleVisibilityToDom().
 window.MODULE_DOM_MAP = {
@@ -1551,6 +1554,7 @@ window.MODULE_DOM_MAP = {
   truythu: 'navBtn-sectionTruyThu', capacity: 'navBtn-sectionCapacity',
   nhansu: 'navBtn-sectionNhanSu', sapramat: 'navBtn-sectionComingSoon',
   lichlamviec: 'navBtn-sectionLichLamViec',
+  lapday: 'navBtn-sectionTyLeLapDay', doisoat: 'navBtn-doiSoatVanTai',
   llv_canhbao: 'llvTabBtn-canhbao', llv_lichhop: 'llvTabBtn-lichhop',
   llv_congviec: 'llvTabBtn-congviec', llv_canhan: 'llvTabBtn-canhan',
   vh_ngay: 'vhTabBtn-ngay', vh_tuan: 'vhTabBtn-tuan', vh_thang: 'vhTabBtn-thang', vh_sreport: 'vhTabBtn-sreport',
@@ -1591,6 +1595,7 @@ const MODULE_TAB_GROUPS = [
 // Áp dụng modVisible() lên toàn bộ nút menu/tab thật trên DOM — gọi lại mỗi khi đăng nhập xong, hoặc mỗi khi
 // Admin bật/tắt "Xem trước theo quyền".
 function applyModuleVisibilityToDom(){
+  if (typeof renderVHAdminCfg === 'function' && window.RAW_VH_DATA) { try { renderVHAdminCfg(); } catch (e) {} } // thanh cấu hình Admin ẩn khi xem trước quyền khác
   Object.keys(window.MODULE_DOM_MAP).forEach(moduleId => {
     const btn = document.getElementById(window.MODULE_DOM_MAP[moduleId]);
     if (btn) btn.style.display = modVisible(moduleId) ? '' : 'none';
@@ -1598,7 +1603,7 @@ function applyModuleVisibilityToDom(){
   // nếu section đang active bị ẩn đi, tự chuyển sang mục còn hiển thị đầu tiên để tránh màn hình trắng
   const activeSection = document.querySelector('.app-section.active');
   if (activeSection && !modVisible(sectionIdToModuleId(activeSection.id))) {
-    const firstVisible = ['vanhanh','kinhdoanh','truythu','capacity','nhansu','lichlamviec','sapramat'].find(id => modVisible(id));
+    const firstVisible = ['vanhanh','kinhdoanh','lapday','doisoat','truythu','capacity','nhansu','lichlamviec','sapramat'].find(id => modVisible(id));
     if (firstVisible) switchSection(moduleIdToSectionId(firstVisible));
   }
   // tương tự cho từng nhóm tab con (Vận hành Ngày/Tuần/Tháng, Kinh doanh Ngày/Tuần/Tháng/Kế hoạch/BCKQKD, ...)
@@ -1616,12 +1621,12 @@ function applyModuleVisibilityToDom(){
 function sectionIdToModuleId(sectionId){
   return { sectionVanHanh: 'vanhanh', sectionKinhDoanh: 'kinhdoanh', sectionTruyThu: 'truythu',
     sectionCapacity: 'capacity', sectionNhanSu: 'nhansu', sectionLichLamViec: 'lichlamviec',
-    sectionComingSoon: 'sapramat' }[sectionId] || '';
+    sectionComingSoon: 'sapramat', sectionTyLeLapDay: 'lapday', sectionDoiSoatVanTai: 'doisoat' }[sectionId] || '';
 }
 function moduleIdToSectionId(moduleId){
   return { vanhanh: 'sectionVanHanh', kinhdoanh: 'sectionKinhDoanh', truythu: 'sectionTruyThu',
     capacity: 'sectionCapacity', nhansu: 'sectionNhanSu', lichlamviec: 'sectionLichLamViec',
-    sapramat: 'sectionComingSoon' }[moduleId] || 'sectionVanHanh';
+    sapramat: 'sectionComingSoon', lapday: 'sectionTyLeLapDay', doisoat: 'sectionDoiSoatVanTai' }[moduleId] || 'sectionVanHanh';
 }
 
 function setPreviewRole(role){
@@ -7569,7 +7574,7 @@ async function main(){
 const VH_SECTIONS = [['scorecard','0 · Scorecard'],['opr','1 · OPR'],['odr','2 · ODR'],['fd','3 · FD'],['rotlc','4 · RớtLC'],['bl36h','5 · BL LC >36H'],['gtc','6 · GTC'],['blgiao120','7 · BL Giao >120H'],['bltra48h','8 · BL LC Trả >48H'],['bltra120h','9 · BL Trả >120H'],['ktccho','10 · KTC Chờ nhập'],['ktcnhapxuat','11 · KTC Nhập→Xuất'],['ktcton24h','12 · KTC Tồn >24H']];
 function renderVHAdminCfg(){
   const box = document.getElementById('vhAdminCfg'); if (!box) return;
-  const isAdmin = AUTH && AUTH.session && AUTH.session.role === 'Admin' && !window.__STATIC_SNAPSHOT__;
+  const isAdmin = AUTH && AUTH.session && AUTH.session.role === 'Admin' && !window.__STATIC_SNAPSHOT__ && (!window.PREVIEW_ROLE || window.PREVIEW_ROLE === 'Admin');
   if (!isAdmin) { box.innerHTML = ''; return; }
   const cfg = window.VH_CFG || { hidden: [], trendAll: true }; const hid = new Set(cfg.hidden || []); const hidSc = new Set(cfg.hiddenSc || []);
   const wasOpen = box.querySelector('.vhcfg.open');

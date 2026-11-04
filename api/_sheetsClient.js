@@ -88,7 +88,9 @@ const MODULE_DEFS = [
   { id: 'llv_lichhop', label: 'Lịch làm việc › Lịch họp', cap: 'tab', chaId: 'lichlamviec' },
   { id: 'llv_congviec', label: 'Lịch làm việc › Công việc', cap: 'tab', chaId: 'lichlamviec' },
   { id: 'llv_canhan', label: 'Lịch làm việc › Công việc cá nhân', cap: 'tab', chaId: 'lichlamviec' },
-  { id: 'sapramat', label: 'Sắp ra mắt', cap: 'section', chaId: '' }
+  { id: 'sapramat', label: 'Sắp ra mắt', cap: 'section', chaId: '' },
+  { id: 'lapday', label: 'Tỷ lệ lấp đầy', cap: 'section', chaId: '' },
+  { id: 'doisoat', label: 'Đối soát vận tải', cap: 'section', chaId: '' }
 ];
 const MODULE_CONFIG_SHEET_NAME = 'CauHinhHangMuc';
 
