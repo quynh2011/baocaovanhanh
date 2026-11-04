@@ -6535,7 +6535,7 @@ function dnSheetLabel(name){
   const hit = DAY_SHEET_NAMES.find(x => x[0].test(base));
   return hit ? hit[1] : (base.replace(/^Report/i, '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').trim() || name);
 }
-window.DAY = { loaded: false, loading: false, raw: null, M: null, scatterLevel: 'am', prioLevel: 'bc' };
+window.DAY = { loaded: false, loading: false, raw: null, M: null, scatterLevel: 'tinh', prioLevel: 'bc' }; // bảng tổng mặc định xem theo TỈNH, người dùng tự xuống AM → Bưu cục
 
 // ---------- tiện ích số / định dạng (số kiểu VN: "1.234", "77,14%", "-1.022") ----------
 function dnNum(s){
@@ -6913,7 +6913,8 @@ function dnBarChart(days, moi, ton, name1){
 
 // ---------- 2. MA TRẬN GÁN × GTC ----------
 function dnMatrixHtml(M){
-  const lv = window.DAY.scatterLevel; const V = M.V || {};
+  let lv = window.DAY.scatterLevel; const V = M.V || {};
+  if (!Object.keys(M.ent[lv] || {}).length) lv = Object.keys(M.ent.tinh || {}).length ? 'tinh' : 'am'; // thiếu dữ liệu cấp đang chọn → lùi về cấp có
   const list = Object.values(M.ent[lv] || {}).filter(e => e.gan !== undefined && e.gtc !== undefined && e.gan !== null && e.gtc !== null);
   if (!list.length || V.gan === undefined) return '';
   const T = DAY_TARGETS.gtc, xRef = V.gan;
@@ -6947,7 +6948,7 @@ function dnMatrixHtml(M){
   const qBox = ['q4','q3','q2','q1'].map(q => '<div class="dn-q '+q+'"><div class="dn-q-t">'+qInfo[q][0]+' <span class="dn-q-n">'+Q[q].length+'</span></div><div class="dn-q-d">'+qInfo[q][1]+'</div><div class="dn-q-l">'+
     (Q[q].sort((a,b) => q === 'q1' || q === 'q2' ? b.gtc - a.gtc : (b.gap||0) - (a.gap||0)).slice(0, 12).map(e => '<span title="Gán '+dnP(e.gan)+' · GTC '+dnP(e.gtc)+'">'+dnE(e.name)+' <b>'+dnP(e.gtc,1)+'</b></span>').join('') || '<span class="mut">—</span>') + (Q[q].length > 12 ? '<span class="mut">+'+(Q[q].length-12)+' nữa</span>' : '') + '</div></div>').join('');
   const btn = (k, t) => '<button class="chart-toggle-btn'+(lv===k?' active':'')+'" onclick="dnSetScatter(\''+k+'\')">'+t+'</button>';
-  return '<div class="dn-toolbar">Xem theo: ' + (M.ent.am && Object.keys(M.ent.am).length ? btn('am','AM') : '') + (Object.keys(M.ent.bc).length ? btn('bc','Bưu cục') : '') + (Object.keys(M.ent.tinh).length ? btn('tinh','Tỉnh') : '') +
+  return '<div class="dn-toolbar">Xem theo: ' + (Object.keys(M.ent.tinh).length ? btn('tinh','Tỉnh') : '') + (M.ent.am && Object.keys(M.ent.am).length ? btn('am','AM') : '') + (Object.keys(M.ent.bc).length ? btn('bc','Bưu cục') : '') +
     '<span class="dn-note" style="margin:0 0 0 8px">Mỗi chấm là 1 ' + (lv==='bc'?'bưu cục':lv==='am'?'AM':'tỉnh') + ', chấm càng to sản lượng cần giao càng lớn. Đường ngang = target GTC ' + dnP(T,0) + '.</span></div>' +
     '<div class="dn-grid2 dn-mx"><div class="dn-card"><svg viewBox="0 0 '+W+' '+H+'" class="dn-svg">' + g + '</svg></div><div class="dn-qs">' + qBox + '</div></div>';
 }
@@ -6981,9 +6982,9 @@ function dnPriorityHtml(M){
     '<td class="dn-tags">'+dnTagHtml(e.tags, 3)+'</td>';
   let id = 0, h = '', rank = 0;
   tinhInfo.forEach(ti => { const tid = 'dnp' + (++id); rank++;
-    h += '<tr class="dn-tr lv0" data-id="'+tid+'"><td><span class="dn-tg" onclick="dnTreeToggle(\''+tid+'\',this)">−</span><span class="dn-rank">'+rank+'</span><b>'+dnE(ti.t.name)+'</b></td>' + cells(ti.t, ti.sub, ti.nBc) + '</tr>';
+    h += '<tr class="dn-tr lv0" data-id="'+tid+'"><td><span class="dn-tg" onclick="dnTreeToggle(\''+tid+'\',this)">+</span><span class="dn-rank">'+rank+'</span><b>'+dnE(ti.t.name)+'</b></td>' + cells(ti.t, ti.sub, ti.nBc) + '</tr>';
     ti.kidsAm.forEach(x => { const aid = 'dnp' + (++id);
-      h += '<tr class="dn-tr lv1" data-id="'+aid+'" data-p="'+tid+'"><td>'+(x.kids.length ? '<span class="dn-tg" onclick="dnTreeToggle(\''+aid+'\',this)">+</span>' : '<span class="dn-tg0"></span>')+dnEnt('am', x.a.name)+' <span class="dn-lvl">AM</span></td>' + cells(x.a, x.sub, x.kids.length) + '</tr>';
+      h += '<tr class="dn-tr lv1" data-id="'+aid+'" data-p="'+tid+'" style="display:none"><td>'+(x.kids.length ? '<span class="dn-tg" onclick="dnTreeToggle(\''+aid+'\',this)">+</span>' : '<span class="dn-tg0"></span>')+dnEnt('am', x.a.name)+' <span class="dn-lvl">AM</span></td>' + cells(x.a, x.sub, x.kids.length) + '</tr>';
       x.kids.forEach(b => { h += '<tr class="dn-tr lv2" data-p="'+aid+'" style="display:none"><td><span class="dn-tg0"></span>'+dnEnt('bc', b.name)+'</td>' + cells(b, null, 0) + '</tr>'; });
     });
   });
@@ -6991,7 +6992,7 @@ function dnPriorityHtml(M){
   const top3 = tinhInfo.slice(0, 3); const share = totalBcGap ? top3.reduce((s, x) => s + x.sub, 0) / totalBcGap : 0;
   return '<div class="dn-lead"><b class="dn-bad">' + nBcBelow + '/' + bcs.length + ' bưu cục</b> và <b>' + nAmBelow + '/' + ams.length + ' AM</b> dưới target, các bưu cục thiếu tổng <b>' + dnI(totalBcGap) + ' đơn</b> giao thành công. ' +
       (top3.length ? '3 tỉnh thiếu nhiều nhất — ' + top3.map(x => '<b>' + dnE(x.t.name) + '</b> (' + dnI(x.sub) + ')').join(', ') + ' — chiếm <b>' + (share*100).toFixed(0) + '%</b> tổng thiếu.' : '') + '</div>' +
-    '<div class="dn-toolbar"><button class="chart-toggle-btn" onclick="dnTreeAll(true,this)">⊞ Mở tới bưu cục</button><button class="chart-toggle-btn" onclick="dnTreeAll(false,this)">⊟ Chỉ tỉnh</button><span class="dn-note" style="margin:0 0 0 8px">Tỉnh → AM → Bưu cục, chỉ hiện nơi đang thiếu đơn. Bấm <b>+</b> ở AM để xem bưu cục, bấm tên để mở hồ sơ.</span></div>' +
+    '<div class="dn-toolbar"><button class="chart-toggle-btn" onclick="dnTreeAll(true,this)">⊞ Mở tới bưu cục</button><button class="chart-toggle-btn" onclick="dnTreeAll(false,this)">⊟ Chỉ tỉnh</button><span class="dn-note" style="margin:0 0 0 8px">Mặc định xem theo Tỉnh, chỉ hiện nơi đang thiếu đơn. Bấm <b>+</b> ở Tỉnh để xem AM, bấm tiếp ở AM để xem bưu cục, bấm tên để mở hồ sơ.</span></div>' +
     '<div class="tbl-wrap"><table class="dn-tbl dn-tree dn-prio"><thead><tr><th rowspan="2">Tỉnh / AM / Bưu cục</th><th colspan="4">Giao thành công (N-1)</th><th rowspan="2">Tổng thiếu của<br>BC dưới target</th><th colspan="3">Gán (N-1)</th><th colspan="3">Hàng tồn & GTC theo loại</th><th rowspan="2">Nguyên nhân (so mức Vùng)</th></tr>' +
     '<tr class="subhead"><th>SL cần giao</th><th>% GTC</th><th>Δ N-2</th><th>Đơn thiếu</th><th>% Gán</th><th>Ca 1</th><th>Ca 2</th><th>Hàng tồn (tỷ trọng)</th><th>GTC mới</th><th>GTC tồn</th></tr></thead><tbody>' + h + '</tbody></table></div>' +
     '<div class="dn-note">Đơn thiếu = (target ' + dnP(T,0) + ' − %GTC) × SL cần giao của chính dòng đó. "Tổng thiếu của BC dưới target" = cộng đơn thiếu của các bưu cục chưa đạt bên dưới — tỉnh/AM đạt chung vẫn có thể có bưu cục kéo xuống. Màu ô % so với mức chung Vùng.</div>';
