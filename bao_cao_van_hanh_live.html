@@ -1545,6 +1545,7 @@ window.MODULE_DEFS = [
   { id: 'llv_congviec', label: 'Công việc', cap: 'tab' },
   { id: 'llv_canhan', label: 'Công việc cá nhân', cap: 'tab' },
   { id: 'sapramat', label: 'Sắp ra mắt', cap: 'section' },
+  { id: 'kehoachevent', label: 'Kế hoạch Event', cap: 'section' },
   { id: 'lapday', label: 'Tỷ lệ lấp đầy', cap: 'section' },
   { id: 'doisoat', label: 'Đối soát vận tải', cap: 'section' }
 ];
@@ -1554,7 +1555,7 @@ window.MODULE_DOM_MAP = {
   truythu: 'navBtn-sectionTruyThu', capacity: 'navBtn-sectionCapacity',
   nhansu: 'navBtn-sectionNhanSu', sapramat: 'navBtn-sectionComingSoon',
   lichlamviec: 'navBtn-sectionLichLamViec',
-  lapday: 'navBtn-sectionTyLeLapDay', doisoat: 'navBtn-doiSoatVanTai',
+  kehoachevent: 'navBtn-sectionKeHoachEvent', lapday: 'navBtn-sectionTyLeLapDay', doisoat: 'navBtn-doiSoatVanTai',
   llv_canhbao: 'llvTabBtn-canhbao', llv_lichhop: 'llvTabBtn-lichhop',
   llv_congviec: 'llvTabBtn-congviec', llv_canhan: 'llvTabBtn-canhan',
   vh_ngay: 'vhTabBtn-ngay', vh_tuan: 'vhTabBtn-tuan', vh_thang: 'vhTabBtn-thang', vh_sreport: 'vhTabBtn-sreport',
@@ -1603,7 +1604,7 @@ function applyModuleVisibilityToDom(){
   // nếu section đang active bị ẩn đi, tự chuyển sang mục còn hiển thị đầu tiên để tránh màn hình trắng
   const activeSection = document.querySelector('.app-section.active');
   if (activeSection && !modVisible(sectionIdToModuleId(activeSection.id))) {
-    const firstVisible = ['vanhanh','kinhdoanh','lapday','doisoat','truythu','capacity','nhansu','lichlamviec','sapramat'].find(id => modVisible(id));
+    const firstVisible = ['vanhanh','kinhdoanh','kehoachevent','lapday','doisoat','truythu','capacity','nhansu','lichlamviec','sapramat'].find(id => modVisible(id));
     if (firstVisible) switchSection(moduleIdToSectionId(firstVisible));
   }
   // tương tự cho từng nhóm tab con (Vận hành Ngày/Tuần/Tháng, Kinh doanh Ngày/Tuần/Tháng/Kế hoạch/BCKQKD, ...)
@@ -1621,12 +1622,12 @@ function applyModuleVisibilityToDom(){
 function sectionIdToModuleId(sectionId){
   return { sectionVanHanh: 'vanhanh', sectionKinhDoanh: 'kinhdoanh', sectionTruyThu: 'truythu',
     sectionCapacity: 'capacity', sectionNhanSu: 'nhansu', sectionLichLamViec: 'lichlamviec',
-    sectionComingSoon: 'sapramat', sectionTyLeLapDay: 'lapday', sectionDoiSoatVanTai: 'doisoat' }[sectionId] || '';
+    sectionComingSoon: 'sapramat', sectionTyLeLapDay: 'lapday', sectionDoiSoatVanTai: 'doisoat', sectionKeHoachEvent: 'kehoachevent' }[sectionId] || '';
 }
 function moduleIdToSectionId(moduleId){
   return { vanhanh: 'sectionVanHanh', kinhdoanh: 'sectionKinhDoanh', truythu: 'sectionTruyThu',
     capacity: 'sectionCapacity', nhansu: 'sectionNhanSu', lichlamviec: 'sectionLichLamViec',
-    sapramat: 'sectionComingSoon', lapday: 'sectionTyLeLapDay', doisoat: 'sectionDoiSoatVanTai' }[moduleId] || 'sectionVanHanh';
+    sapramat: 'sectionComingSoon', lapday: 'sectionTyLeLapDay', doisoat: 'sectionDoiSoatVanTai', kehoachevent: 'sectionKeHoachEvent' }[moduleId] || 'sectionVanHanh';
 }
 
 function setPreviewRole(role){

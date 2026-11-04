@@ -89,6 +89,7 @@ const MODULE_DEFS = [
   { id: 'llv_congviec', label: 'Lịch làm việc › Công việc', cap: 'tab', chaId: 'lichlamviec' },
   { id: 'llv_canhan', label: 'Lịch làm việc › Công việc cá nhân', cap: 'tab', chaId: 'lichlamviec' },
   { id: 'sapramat', label: 'Sắp ra mắt', cap: 'section', chaId: '' },
+  { id: 'kehoachevent', label: 'Kế hoạch Event', cap: 'section', chaId: '' },
   { id: 'lapday', label: 'Tỷ lệ lấp đầy', cap: 'section', chaId: '' },
   { id: 'doisoat', label: 'Đối soát vận tải', cap: 'section', chaId: '' }
 ];
