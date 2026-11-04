@@ -408,7 +408,8 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 }
 
 /* ================= NÚT TRÒN NỔI DBB + MENU ĐIỀU HƯỚNG CÁC MỤC ================= */
-.dbb-fab-wrap{position:fixed;right:24px;bottom:24px;z-index:3000;display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+.dbb-fab-wrap{position:fixed;right:24px;bottom:24px;z-index:3000;display:flex;flex-direction:column;align-items:flex-end;gap:12px;pointer-events:none} /* khung bọc (cao bằng cả menu ẩn) không được chặn bấm vào nội dung phía dưới */
+.dbb-fab{pointer-events:auto}
 .dbb-sub-menu{display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-bottom:2px;
   opacity:0;pointer-events:none;transform:translateY(12px);transition:opacity .18s ease,transform .18s ease}
 .dbb-sub-menu.open{opacity:1;pointer-events:auto;transform:translateY(0)}
