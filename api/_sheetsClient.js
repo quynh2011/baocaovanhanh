@@ -135,8 +135,14 @@ async function apiCall(spreadsheetId, pathAndQuery, opts) {
   const url = 'https://sheets.googleapis.com/v4/spreadsheets/' + spreadsheetId + pathAndQuery;
   const headers = Object.assign({ Authorization: 'Bearer ' + token }, opts.headers || {});
   if (opts.body) headers['Content-Type'] = 'application/json';
-  const r = await fetch(url, { method: opts.method || 'GET', headers: headers, body: opts.body });
-  const text = await r.text();
+  // Google giới hạn số lần đọc/ghi mỗi phút (mọi người dùng chung 1 tài khoản OAuth) → gặp 429/5xx thì chờ rồi thử lại (2026-11-04)
+  let r, text;
+  for (let attempt = 0; ; attempt++) {
+    r = await fetch(url, { method: opts.method || 'GET', headers: headers, body: opts.body });
+    text = await r.text();
+    if (!(r.status === 429 || r.status >= 500) || attempt >= 3) break;
+    await new Promise((ok) => setTimeout(ok, 1500 * Math.pow(2, attempt) + Math.random() * 500));
+  }
   let data = null;
   try { data = JSON.parse(text); } catch (e) { /* giữ null */ }
   if (!r.ok) {
@@ -811,10 +817,20 @@ async function handleGetSReport(body) {
 // ================================================================================================
 // ====== "CẤU HÌNH" CHO ADMIN — port từ Code.gs requireAdmin/requireActiveUser/isAdminEmail ======
 // ================================================================================================
+// Đọc sheet Main để kiểm tra quyền — giữ tạm 20s trong bộ nhớ (mỗi lượt tải trang gọi nhiều action song song,
+// đọc lại Main mỗi lần làm vượt giới hạn đọc/phút của Google → lỗi "Lỗi hệ thống", phải tải lại mấy lần mới được).
+let _mainCache = { at: 0, values: null, p: null };
+async function getMainValuesCached() {
+  const now = Date.now();
+  if (_mainCache.values && now - _mainCache.at < 20000) return _mainCache.values;
+  if (_mainCache.p) return _mainCache.p;
+  _mainCache.p = getValues(SHEET_ID, "'" + MAIN_SHEET_NAME + "'").then((v) => { _mainCache = { at: Date.now(), values: v, p: null }; return v; }, (e) => { _mainCache.p = null; throw e; });
+  return _mainCache.p;
+}
 async function requireAdmin(token) {
   const email = verifyToken(token);
   if (!email) return { error: 'session_expired' };
-  const mainValues = await getValues(SHEET_ID, "'" + MAIN_SHEET_NAME + "'");
+  const mainValues = await getValues(SHEET_ID, "'" + MAIN_SHEET_NAME + "'"); // Admin: đọc mới (dùng để ghi theo số dòng)
   const found = findUserRow(mainValues, email);
   if (!found || found.values[COL.ACTIVE - 1] !== true) return { error: 'account_inactive' };
   if (String(found.values[COL.VAITRO - 1] || '') !== 'Admin') return { error: 'forbidden' };
@@ -824,7 +840,7 @@ async function requireAdmin(token) {
 async function requireActiveUser(token) {
   const email = verifyToken(token);
   if (!email) return { error: 'session_expired' };
-  const mainValues = await getValues(SHEET_ID, "'" + MAIN_SHEET_NAME + "'");
+  const mainValues = await getMainValuesCached();
   const found = findUserRow(mainValues, email);
   if (!found || found.values[COL.ACTIVE - 1] !== true) return { error: 'account_inactive' };
   return { email, name: String(found.values[COL.HOTEN - 1] || email) };

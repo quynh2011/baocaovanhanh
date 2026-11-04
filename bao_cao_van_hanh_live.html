@@ -1715,7 +1715,9 @@ async function callBackend(action, payload){
   if (!DUNG_PROXY) return goiMotUrl(APPS_SCRIPT_URL, bodyStr);   // mở bằng file:// -> gọi thẳng
 
   try {
-    return await goiMotUrl(BACKEND_PROXY_URL, bodyStr);
+    const r = await goiMotUrl(BACKEND_PROXY_URL, bodyStr);
+    if (r && r.error === 'server_error') { window.__LAST_ERR_DETAIL = r.detail || ''; console.warn('[backend] ' + action + ' lỗi:', r.detail); }
+    return r;
   } catch (e) {
     // CHỈ lùi về gọi thẳng khi proxy hỏng ở tầng mạng (chưa deploy /api/gas, hoặc Vercel lỗi).
     // Nếu proxy đã trả lời có nội dung (kể cả báo lỗi) thì đó là câu trả lời thật của backend —
@@ -1795,7 +1797,14 @@ const LOGIN_ERR_MSG = {
   ai_empty_response: 'AI không trả về nội dung, vui lòng thử tổng hợp lại',
   ai_parse_error: 'Không đọc được kết quả AI trả về, vui lòng thử tổng hợp lại'
 };
-function errMsg(code){ return LOGIN_ERR_MSG[code] || ('Có lỗi xảy ra (' + code + ')'); }
+function errMsg(code){
+  if (code === 'server_error' && window.__LAST_ERR_DETAIL) {
+    const d = String(window.__LAST_ERR_DETAIL);
+    if (/_429_|quota|rate/i.test(d)) return 'Google Sheet đang quá tải (quá nhiều lượt đọc/phút), đợi 1 phút rồi thử lại';
+    return 'Lỗi hệ thống: ' + d.slice(0, 160);
+  }
+  return LOGIN_ERR_MSG[code] || ('Có lỗi xảy ra (' + code + ')');
+}
 
 async function handleLoginClick(){
   const email = document.getElementById('loginEmail').value.trim();
