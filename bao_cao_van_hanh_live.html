@@ -1566,15 +1566,14 @@ window.MODULE_CONFIG_CACHE = null; // cache bảng cấu hình hạng mục đ�
 // Hạng mục X có hiển thị được không, dưới góc nhìn quyền hiện tại (thật hoặc đang xem trước)?
 function modVisible(moduleId){
   if (window.PREVIEW_ROLE) {
-    if (window.PREVIEW_ROLE === 'Admin') return true;
     const cfg = window.MODULE_CONFIG_CACHE || [];
     const row = cfg.find(m => m.id === moduleId);
     if (!row) return true; // chưa tải được config thì mặc định hiện (an toàn, tránh trắng trang)
+    if (window.PREVIEW_ROLE === 'Admin') return !!row.batTat;
     const field = window.ROLE_FIELD[window.PREVIEW_ROLE] || 'nhanVien';
     return !!(row.batTat && row[field]);
   }
-  const role = AUTH.session && AUTH.session.role;
-  if (role === 'Admin') return true;
+  // Admin cũng bị ẩn khi công tắc Bật/Tắt của hạng mục đang tắt (backend trả moduleAccess theo batTat cho Admin)
   const access = (AUTH.session && AUTH.session.moduleAccess) || {};
   return access[moduleId] !== false; // mặc định true nếu backend cũ chưa trả moduleAccess (an toàn ngược)
 }
@@ -2052,7 +2051,11 @@ async function toggleModuleFlag(moduleId, field, checked){
   try {
     const res = await callBackend('updateModuleConfig', { token: AUTH.session.token, moduleId, field, value: checked });
     if (!res.ok) { showLoginError('cfgmModulesError', errMsg(res.error)); return; }
-    if (window.PREVIEW_ROLE) applyModuleVisibilityToDom();
+    if (field === 'batTat' && AUTH.session && AUTH.session.role === 'Admin') {
+      AUTH.session.moduleAccess = Object.assign({}, AUTH.session.moduleAccess || {}, { [moduleId]: checked });
+      try { localStorage.setItem('ghn_report_session_v1', JSON.stringify(AUTH.session)); } catch (e) {}
+      applyModuleVisibilityToDom();
+    } else if (window.PREVIEW_ROLE) applyModuleVisibilityToDom();
   } catch(e) {
     showLoginError('cfgmModulesError', 'Không kết nối được máy chủ: ' + e.message);
   }

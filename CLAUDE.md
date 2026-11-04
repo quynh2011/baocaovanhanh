@@ -42,7 +42,7 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 - Sheet `Main` (cột 1..16): Email, HoTen, Hash, Salt, Active, VaiTro, NgayTao, DangNhapGanNhat, SoLanSai, KhoaDenLuc, OTP, OTPHetHan, GhiChu, Quyen_TaiHTML, Quyen_Copy, Quyen_ChupManHinh.
 - Chỉ email `@ghn.vn`; mật khẩu sha256(password + ':' + salt); sai 5 lần khoá 15 phút; token HMAC hết hạn 24h → xác thực lại bằng OTP gửi Gmail (hiệu lực 60s).
 - Phiên lưu localStorage `ghn_report_session_v1`; email gần nhất `ghn_report_last_email_v1`.
-- 4 vai trò: Admin / Quản lý / Nhân viên xử lý / Nhân viên. Bật/tắt từng hạng mục ở sheet `CauHinhHangMuc` (MODULE_DEFS phải KHỚP giữa `_sheetsClient.js` và `window.MODULE_DEFS` trong HTML; nút DOM map ở `window.MODULE_DOM_MAP`).
+- 4 vai trò: Admin / Quản lý / Nhân viên xử lý / Nhân viên. Bật/tắt từng hạng mục ở sheet `CauHinhHangMuc` (cột **Bật/Tắt** là công tắc tổng — tắt thì ẩn với CẢ Admin, dùng để giấu mục đang làm dở như Vận hành › Tháng; cột quyền theo vai trò không áp cho Admin) (MODULE_DEFS phải KHỚP giữa `_sheetsClient.js` và `window.MODULE_DEFS` trong HTML; nút DOM map ở `window.MODULE_DOM_MAP`).
 - Non-Admin không có quyền: chặn copy/chuột phải/F12/Ctrl+P, watermark tên+email; nút "Xuất file HTML" chỉ hiện khi Admin hoặc có quyền Tải HTML.
 - Sheet `OnlineUsers`: heartbeat 25s, TTL 90s → thanh avatar người đang xem.
 
@@ -102,3 +102,4 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 - 2026-11-04: Tab Ngày — đổi TARGET theo bảng chủ dự án (xem 5b), bảng tín hiệu hiện ≥/≤ + màu đạt/chưa đạt, ô trống = "—". Rút gọn chữ mô tả (bỏ văn viết). Phần VII đổi "Dữ liệu gốc từng sheet" → "Các bảng dữ liệu tham khảo", tên bảng tiếng Việt (`DAY_SHEET_NAMES`), KHÔNG hiện tên/mã sheet ở báo cáo (bảng điểm AM, hồ sơ AM/BC).
 - 2026-11-04: Báo cáo Tuần — Admin bật/tắt mục hiển thị + bật/tắt "xu hướng tự chọn tất cả AM" (sheet `CauHinhBaoCaoTuan`, `handleSaveVHWeekConfig`, `vhConfig` trong `handleGetReportData`). Mục ẩn cũng bị bỏ khỏi mục lục + tổng quan đầu báo cáo.
 - 2026-11-04: Scorecard — Admin ẩn từng cột (vd BL Giao>120H, BL Trả>120H chưa có dữ liệu); cột ẩn không tính vào #đỏ. `renderScorecard` dựng cột động từ `SC_COLS`; lưu khoá `anCotScorecard` ở sheet `CauHinhBaoCaoTuan`.
+- 2026-11-04: Công tắc Bật/Tắt trong Cấu hình › Hạng mục & phân quyền giờ ẩn cả với Admin (`computeModuleAccessForRole`, `modVisible`; Admin bấm tắt là ẩn ngay không cần đăng nhập lại). Mục đích: ẩn tab Vận hành › Tháng chưa làm xong.

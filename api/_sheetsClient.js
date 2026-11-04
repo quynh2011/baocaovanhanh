@@ -405,10 +405,6 @@ function colLetter(n) {
 
 async function computeModuleAccessForRole(role) {
   const access = {};
-  if (role === 'Admin') {
-    MODULE_DEFS.forEach((m) => { access[m.id] = true; });
-    return access;
-  }
   let map = null;
   try {
     const values = await getValues(SHEET_ID, "'" + MODULE_CONFIG_SHEET_NAME + "'");
@@ -420,6 +416,11 @@ async function computeModuleAccessForRole(role) {
     }
   } catch (e) {
     map = null; // sheet "CauHinhHangMuc" chưa tồn tại hoặc lỗi đọc
+  }
+  // Admin: luôn có quyền, chỉ bị ẩn khi cột Bật/Tắt (công tắc tổng) tắt — để giấu mục đang làm dở với cả Admin (2026-11-04)
+  if (role === 'Admin') {
+    MODULE_DEFS.forEach((m) => { access[m.id] = !(map && map[m.id] && map[m.id].batTat === false); });
+    return access;
   }
   const field = ROLE_FIELD[role] || 'nhanVien';
   MODULE_DEFS.forEach((m) => {
