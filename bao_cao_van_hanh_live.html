@@ -3352,37 +3352,48 @@ function renderSectionVolPct(parsed, dir, numPrefix, firstColLabel, metricTitle)
 }
 
 // ---------- Scorecard (tự nhận nhóm theo cột "Nhóm", không cố định Vùng) ----------
+// Cột Scorecard — Admin ẩn được từng cột (VH_CFG.hiddenSc); cột ẩn KHÔNG tính vào #đỏ.
+const SC_COLS = [
+  { key:'slLay', label:'SL lấy' }, { key:'slGiao', label:'SL giao' },
+  { key:'oprShopee', grp:'OPR %OnT theo KH', label:'Shopee' }, { key:'oprBulky', grp:'OPR %OnT theo KH', label:'Bulky' }, { key:'oprTTS', grp:'OPR %OnT theo KH', label:'TTS' }, { key:'oprSME', grp:'OPR %OnT theo KH', label:'SME' },
+  { key:'odrShopee', grp:'ODR theo KH', label:'Shopee' }, { key:'odrBulky', grp:'ODR theo KH', label:'Bulky' }, { key:'odrTTS', grp:'ODR theo KH', label:'TTS' }, { key:'odrSME', grp:'ODR theo KH', label:'SME' },
+  { key:'fd', label:'FD' }, { key:'rotlc', label:'RớtLC' }, { key:'gtc', label:'GTC' }, { key:'blGiao120', label:'BL Giao&gt;120H' }, { key:'blTra120', label:'BL Trả&gt;120H' }
+];
 function renderScorecard(sc){
   const M = sc.METRICS;
-  const nonMetricCols = 3; // Vùng/AM + SL lấy + SL giao
-  let h1 = '<tr><th rowspan="2">Đối tượng</th><th rowspan="2">SL lấy</th><th rowspan="2">SL giao</th>' +
-    '<th colspan="4" class="wsep">OPR %OnT theo KH</th><th colspan="4" class="wsep">ODR theo KH</th>' +
-    '<th rowspan="2" class="wsep">FD</th><th rowspan="2">RớtLC</th><th rowspan="2">GTC</th>' +
-    '<th rowspan="2">BL Giao&gt;120H</th><th rowspan="2">BL Trả&gt;120H</th><th rowspan="2">#đỏ</th></tr>';
-  let h2 = '<tr class="subhead"><th class="wsep">Shopee</th><th>Bulky</th><th>TTS</th><th>SME</th>' +
-    '<th class="wsep">Shopee</th><th>Bulky</th><th>TTS</th><th>SME</th></tr>';
-  function metricCell(rec, key, isFirst){
+  const hidSc = new Set((window.VH_CFG && window.VH_CFG.hiddenSc) || []);
+  const cols = SC_COLS.filter(c => !hidSc.has(c.key));
+  // hàng tiêu đề: cột thuộc nhóm (OPR/ODR) gộp lại; cột đầu mỗi nhóm/khối có vạch ngăn
+  let h1 = '<tr><th rowspan="2">Đối tượng</th>', h2 = '<tr class="subhead">';
+  const sepKeys = new Set();
+  for (let i = 0; i < cols.length; ) {
+    const c = cols[i];
+    if (c.grp) { let n = 0; while (i + n < cols.length && cols[i + n].grp === c.grp) n++; h1 += '<th colspan="' + n + '" class="wsep">' + c.grp + '</th>'; sepKeys.add(c.key); cols.slice(i, i + n).forEach((x, j) => { h2 += '<th' + (j ? '' : ' class="wsep"') + '>' + x.label + '</th>'; }); i += n; }
+    else { const prev = cols[i - 1]; const sep = prev && prev.grp; if (sep) sepKeys.add(c.key); h1 += '<th rowspan="2"' + (sep ? ' class="wsep"' : '') + '>' + c.label + '</th>'; i++; }
+  }
+  h1 += '<th rowspan="2">#đỏ</th></tr>'; h2 += '</tr>';
+  const hasSub = cols.some(c => c.grp);
+  if (!hasSub) { h1 = h1.replace(/ rowspan="2"/g, ''); h2 = ''; }
+  const nCols = cols.length + 2;
+  function metricCell(rec, key){
     const mDef = M.find(m=>m.key===key);
     const v = rec.m[key];
+    if (!mDef || !v) return '<td></td>';
+    if (mDef.target === undefined) return '<td' + (sepKeys.has(key) ? ' class="wfirst"' : '') + '>' + fmtNum(v.w25) + '</td>';
     const cls = classFor(v.w25, mDef.target, mDef.dir);
-    return '<td class="'+(isFirst?'wfirst ':'')+cls+'">'+fmtPct(v.w25)+arrowSpanInline(v.w25, v.w24, mDef.dir)+'</td>';
+    return '<td class="'+(sepKeys.has(key)?'wfirst ':'')+cls+'">'+fmtPct(v.w25)+arrowSpanInline(v.w25, v.w24, mDef.dir)+'</td>';
   }
   function countRed(rec){
     let n = 0;
-    M.forEach(m => { if (m.target !== undefined) { const cls = classFor(rec.m[m.key].w25, m.target, m.dir); if (cls==='bad') n++; } });
+    M.forEach(m => { if (m.target !== undefined && !hidSc.has(m.key)) { const cls = classFor(rec.m[m.key].w25, m.target, m.dir); if (cls==='bad') n++; } });
     return n;
   }
   function metricsRowHtml(rec, rowClassAttr){
-    let row = '<tr'+rowClassAttr+'><td>'+esc(rec.dim2)+'</td><td>'+fmtNum(rec.m.slLay.w25)+'</td><td>'+fmtNum(rec.m.slGiao.w25)+'</td>';
-    row += metricCell(rec,'oprShopee',true)+metricCell(rec,'oprBulky')+metricCell(rec,'oprTTS')+metricCell(rec,'oprSME');
-    row += metricCell(rec,'odrShopee',true)+metricCell(rec,'odrBulky')+metricCell(rec,'odrTTS')+metricCell(rec,'odrSME');
-    row += metricCell(rec,'fd',true)+metricCell(rec,'rotlc')+metricCell(rec,'gtc')+metricCell(rec,'blGiao120')+metricCell(rec,'blTra120');
-    row += '<td><b>'+countRed(rec)+'</b></td></tr>';
-    return row;
+    return '<tr'+rowClassAttr+'><td>'+esc(rec.dim2)+'</td>' + cols.map(c => metricCell(rec, c.key)).join('') + '<td><b>'+countRed(rec)+'</b></td></tr>';
   }
   let body = '';
   sc.groups.forEach(g => {
-    body += '<tr class="group-row"><td colspan="17">'+esc(g.label)+'</td></tr>';
+    body += '<tr class="group-row"><td colspan="'+nCols+'">'+esc(g.label)+'</td></tr>';
     // sắp theo #đỏ giảm dần — ai nhiều chỉ số chưa đạt (đỏ) nhất lên trên; dòng Tổng/Grand Total luôn giữ ở cuối
     const totals = g.rows.filter(r => r.isTotalRow);
     const detail = g.rows.filter(r => !r.isTotalRow).slice().sort((a,b) => countRed(b) - countRed(a));
@@ -3390,7 +3401,7 @@ function renderScorecard(sc){
       body += metricsRowHtml(rec, rec.isTotalRow ? ' class="total-row"' : '');
     });
   });
-  if (!body) body = '<tr><td colspan="17" class="mut" style="text-align:center">Chưa có dữ liệu trong tab 01_Scorecard</td></tr>';
+  if (!body) body = '<tr><td colspan="'+nCols+'" class="mut" style="text-align:center">Chưa có dữ liệu trong tab 01_Scorecard</td></tr>';
   return '<div class="tbl-wrap"><table><thead>'+h1+h2+'</thead><tbody>'+body+'</tbody></table></div>';
 }
 
@@ -7557,24 +7568,27 @@ function renderVHAdminCfg(){
   const box = document.getElementById('vhAdminCfg'); if (!box) return;
   const isAdmin = AUTH && AUTH.session && AUTH.session.role === 'Admin' && !window.__STATIC_SNAPSHOT__;
   if (!isAdmin) { box.innerHTML = ''; return; }
-  const cfg = window.VH_CFG || { hidden: [], trendAll: true }; const hid = new Set(cfg.hidden || []);
+  const cfg = window.VH_CFG || { hidden: [], trendAll: true }; const hid = new Set(cfg.hidden || []); const hidSc = new Set(cfg.hiddenSc || []);
   const wasOpen = box.querySelector('.vhcfg.open');
-  box.innerHTML = '<div class="vhcfg' + (wasOpen ? ' open' : '') + '"><div class="vhcfg-h"><b>⚙️ Admin · Cấu hình báo cáo tuần</b><span class="vhcfg-msg">Đang hiện ' + (VH_SECTIONS.length - hid.size) + '/' + VH_SECTIONS.length + ' mục · Xu hướng: ' + (cfg.trendAll !== false ? 'tự chọn tất cả AM' : 'người xem tự chọn') + '</span>' +
+  box.innerHTML = '<div class="vhcfg' + (wasOpen ? ' open' : '') + '"><div class="vhcfg-h"><b>⚙️ Admin · Cấu hình báo cáo tuần</b><span class="vhcfg-msg">Đang hiện ' + (VH_SECTIONS.length - hid.size) + '/' + VH_SECTIONS.length + ' mục' + (hidSc.size ? ' · ẩn ' + hidSc.size + ' cột Scorecard' : '') + ' · Xu hướng: ' + (cfg.trendAll !== false ? 'tự chọn tất cả AM' : 'người xem tự chọn') + '</span>' +
     '<button class="vhcfg-btn" onclick="this.closest(\'.vhcfg\').classList.toggle(\'open\')">Chỉnh</button><span class="vhcfg-msg" id="vhCfgMsg"></span></div>' +
     '<div class="vhcfg-body"><div><b>Mục hiển thị</b> <span class="vhcfg-msg">(bỏ tick = ẩn với mọi người)</span></div><div class="vhcfg-grid">' +
     VH_SECTIONS.map(([k, lb]) => '<label><input type="checkbox" data-k="' + k + '"' + (hid.has(k) ? '' : ' checked') + ' onchange="saveVHAdminCfg()">' + esc(lb) + '</label>').join('') + '</div>' +
+    '<div><b>Cột Scorecard</b> <span class="vhcfg-msg">(bỏ tick = ẩn cột, không tính vào #đỏ)</span></div><div class="vhcfg-grid vhcfg-sc">' +
+    SC_COLS.map(c => '<label><input type="checkbox" data-c="' + c.key + '"' + (hidSc.has(c.key) ? '' : ' checked') + ' onchange="saveVHAdminCfg()">' + (c.grp ? c.grp.split(' ')[0] + ' ' : '') + c.label + '</label>').join('') + '</div>' +
     '<label class="vhcfg-sw"><input type="checkbox" id="vhCfgTrend"' + (cfg.trendAll !== false ? ' checked' : '') + ' onchange="saveVHAdminCfg()"> Biểu đồ xu hướng: Bật = tự chọn tất cả AM · Tắt = không chọn, người xem tự chọn</label></div></div>';
 }
 async function saveVHAdminCfg(){
   const box = document.getElementById('vhAdminCfg'); const msg = document.getElementById('vhCfgMsg');
-  const hidden = Array.from(box.querySelectorAll('.vhcfg-grid input')).filter(i => !i.checked).map(i => i.dataset.k);
+  const hidden = Array.from(box.querySelectorAll('.vhcfg-grid input[data-k]')).filter(i => !i.checked).map(i => i.dataset.k);
+  const hiddenSc = Array.from(box.querySelectorAll('.vhcfg-grid input[data-c]')).filter(i => !i.checked).map(i => i.dataset.c);
   const trendAll = document.getElementById('vhCfgTrend').checked;
   const prev = window.VH_CFG;
-  window.VH_CFG = { hidden, trendAll };
+  window.VH_CFG = { hidden, hiddenSc, trendAll };
   renderVanHanhReport();
   const m2 = document.getElementById('vhCfgMsg'); if (m2) m2.textContent = 'Đang lưu…';
   try {
-    const res = await callBackend('saveVHWeekConfig', { token: AUTH.session.token, hidden, trendAll });
+    const res = await callBackend('saveVHWeekConfig', { token: AUTH.session.token, hidden, hiddenSc, trendAll });
     const m3 = document.getElementById('vhCfgMsg');
     if (!res.ok) { window.VH_CFG = prev; renderVanHanhReport(); const m4 = document.getElementById('vhCfgMsg'); if (m4) m4.textContent = '❌ Không lưu được: ' + errMsg(res.error); return; }
     if (m3) m3.textContent = '✓ Đã lưu cho mọi người';

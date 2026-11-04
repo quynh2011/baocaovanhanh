@@ -734,9 +734,11 @@ async function handleGetReportData(body) {
 // Sheet "CauHinhBaoCaoTuan": cột A = khoá, cột B = giá trị.
 //   anMuc     = danh sách id mục bị ẨN, cách nhau dấu phẩy (scorecard, opr, odr, fd, rotlc, bl36h, gtc, blgiao120,
 //               bltra48h, bltra120h, ktccho, ktcnhapxuat, ktcton24h)
+//   anCotScorecard = id cột Scorecard bị ẩn (không tính #đỏ): slLay, slGiao, oprShopee…oprSME, odrShopee…odrSME, fd, rotlc, gtc, blGiao120, blTra120
 //   xuHuongChonTatCa = TRUE → biểu đồ xu hướng tự tick mọi AM/dòng; FALSE → không tick, người xem tự chọn
 const VH_WEEK_CFG_SHEET = 'CauHinhBaoCaoTuan';
-const VH_WEEK_CFG_DEFAULT = { hidden: [], trendAll: true };
+const VH_WEEK_CFG_DEFAULT = { hidden: [], hiddenSc: [], trendAll: true };
+const VH_SC_COL_IDS = ['slLay', 'slGiao', 'oprShopee', 'oprBulky', 'oprTTS', 'oprSME', 'odrShopee', 'odrBulky', 'odrTTS', 'odrSME', 'fd', 'rotlc', 'gtc', 'blGiao120', 'blTra120'];
 const VH_WEEK_SECTION_IDS = ['scorecard', 'opr', 'odr', 'fd', 'rotlc', 'bl36h', 'gtc', 'blgiao120', 'bltra48h', 'bltra120h', 'ktccho', 'ktcnhapxuat', 'ktcton24h'];
 function parseVHWeekConfig(values) {
   const kv = {};
@@ -744,20 +746,23 @@ function parseVHWeekConfig(values) {
   const hidden = String(kv.anMuc || '').split(',').map((x) => x.trim()).filter((x) => VH_WEEK_SECTION_IDS.indexOf(x) !== -1);
   const t = kv.xuHuongChonTatCa;
   const trendAll = !(t === false || String(t).toUpperCase() === 'FALSE');
-  return { hidden: hidden, trendAll: trendAll };
+  const hiddenSc = String(kv.anCotScorecard || '').split(',').map((x) => x.trim()).filter((x) => VH_SC_COL_IDS.indexOf(x) !== -1);
+  return { hidden: hidden, hiddenSc: hiddenSc, trendAll: trendAll };
 }
 async function handleSaveVHWeekConfig(body) {
   const auth = await requireAdmin(body.token);
   if (auth.error) return { ok: false, error: auth.error };
   const hidden = (Array.isArray(body.hidden) ? body.hidden : []).map(String).filter((x) => VH_WEEK_SECTION_IDS.indexOf(x) !== -1);
+  const hiddenSc = (Array.isArray(body.hiddenSc) ? body.hiddenSc : []).map(String).filter((x) => VH_SC_COL_IDS.indexOf(x) !== -1);
   const trendAll = body.trendAll !== false;
   await ensureSheetWithHeaders(SHEET_ID, VH_WEEK_CFG_SHEET, null);
   await putValues(SHEET_ID, "'" + VH_WEEK_CFG_SHEET + "'!A1", [
     ['anMuc', hidden.join(',')],
     ['xuHuongChonTatCa', trendAll ? 'TRUE' : 'FALSE'],
+    ['anCotScorecard', hiddenSc.join(',')],
     ['capNhat', auth.email + ' ' + new Date().toISOString()]
   ]);
-  return { ok: true, vhConfig: { hidden: hidden, trendAll: trendAll } };
+  return { ok: true, vhConfig: { hidden: hidden, hiddenSc: hiddenSc, trendAll: trendAll } };
 }
 
 // ====== BÁO CÁO VẬN HÀNH › NGÀY (2026-11-03) ======
