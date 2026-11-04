@@ -108,3 +108,4 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 - 2026-11-04: [S]-Report — bỏ tên file khỏi dòng thông tin trên đầu; `loadSReport` xoá ghi chú "Nguồn: GHN Data API …" trong báo cáo gốc trước khi hiển thị (regex trên HTML, không sửa file gốc).
 - 2026-11-04: Thêm hạng mục `kehoachevent` (Kế hoạch Event) vào cấu hình Hạng mục & phân quyền.
 - 2026-11-04: FIX không bấm được nút bên phải màn hình (vd "Định nghĩa & target" trong [S]-Report): khung `.dbb-fab-wrap` (cao bằng cả menu DBB đang ẩn) chặn chuột → thêm `pointer-events:none`, chỉ nút `.dbb-fab` và menu đang mở nhận bấm.
+- 2026-11-04: Tab Ngày — mục lục chuyển thành nút nổi "☰ Mục lục" góc phải (`#dnTocFab` + `#dnTocPanel`, `dnTocToggle`/`dnTocClose`) giống báo cáo Tuần, bỏ khối mục lục to ở đầu trang (ô tìm AM/BC vẫn ở đầu). Xuất HTML mang theo mục lục.

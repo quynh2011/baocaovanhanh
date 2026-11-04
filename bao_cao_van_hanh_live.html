@@ -703,6 +703,8 @@ td.dn-keycol{background:#FBF7EE}
 .dn-ent:hover{color:var(--accent);border-bottom-color:var(--accent)}
 .dn-sig td{vertical-align:middle}
 .dn-toc{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
+.dn-toc-panel .dn-toc-p{font-family:var(--mono);font-size:10.5px;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 2px;padding-top:6px;border-top:1px solid var(--border)}
+.dn-toc-panel{max-width:min(380px,calc(100vw - 36px))}
 .dn-toc-p{width:100%;font-family:var(--mono);font-size:10.5px;color:var(--hint);text-transform:uppercase;letter-spacing:.05em;margin-top:6px}
 .dn-search{width:100%;margin-bottom:4px}
 .dn-search input{width:100%;max-width:420px;font-family:var(--f);font-size:13px;padding:7px 12px;border:1px solid var(--border-strong);border-radius:8px;background:#fff}
@@ -978,6 +980,8 @@ td.dn-keycol{background:#FBF7EE}
     <iframe id="srFrame" title="Siêu báo cáo" sandbox="allow-scripts allow-popups allow-downloads allow-modals" style="display:none"></iframe>
   </div>
   <div id="vhNgay" class="vh-pane">
+<button class="toc-fab" id="dnTocFab" style="display:none" onclick="dnTocToggle()">☰ Mục lục</button>
+<div class="toc-panel dn-toc-panel" id="dnTocPanel"></div>
 <div class="page">
   <div class="report-header" id="dntop">
     <div>
@@ -2513,7 +2517,7 @@ function hydrateFromSnapshot(snap){
 // Kế hoạch hay Báo cáo kết quả vẫn luôn xuất nhầm nội dung "Kinh doanh Tuần" vì querySelector('.page') chỉ lấy
 // phần tử ĐẦU TIÊN khớp trong toàn section, bất kể pane nào đang active).
 const EXPORT_PANE_META = {
-  vhNgay: { tocFabId: '', tocPanelId: '', title: 'Báo Cáo Vận Hành Ngày — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_van_hanh_ngay_' },
+  vhNgay: { tocFabId: 'dnTocFab', tocPanelId: 'dnTocPanel', title: 'Báo Cáo Vận Hành Ngày — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_van_hanh_ngay_' },
   vhTuan: { tocFabId: 'tocFab', tocPanelId: 'tocPanel', title: 'Báo Cáo Vận Hành Tuần — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_van_hanh_tuan_' },
   kdTuan: { tocFabId: 'kdTocFab', tocPanelId: 'kdTocPanel', title: 'Báo Cáo Kinh Doanh — GHN (Bản xuất tĩnh)', filePrefix: 'bao_cao_kinh_doanh_' },
   kdKeHoach: { tocFabId: 'khTocFab', tocPanelId: 'khTocPanel', title: 'Kế Hoạch Kinh Doanh — GHN (Bản xuất tĩnh)', filePrefix: 'ke_hoach_kinh_doanh_' },
@@ -6780,6 +6784,9 @@ async function loadVanHanhNgay(force){
   }
 }
 
+function dnTocToggle(){ const el = document.getElementById('dnTocPanel'); if (el) el.classList.toggle('open'); }
+function dnTocClose(){ const el = document.getElementById('dnTocPanel'); if (el) el.classList.remove('open'); }
+document.addEventListener('click', function(e){ const p = document.getElementById('dnTocPanel'), b = document.getElementById('dnTocFab'); if (p && b && p.classList.contains('open') && !p.contains(e.target) && !b.contains(e.target)) p.classList.remove('open'); });
 function dnGoTo(id){ const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 
 // ---------- 0. TỔNG QUAN ----------
@@ -7472,8 +7479,12 @@ function renderVanHanhNgay(){
     item('dn-dinhnghia', 'Định nghĩa & target', '', '<div class="dn-defs">' + DAY_DEFS.map(d => '<div>• ' + dnE(d[1]) + '</div>').join('') + '<div>• Mốc so sánh khi không có target: chỉ số % so với mức chung Vùng; chỉ số số đơn so với trung bình mỗi AM / bưu cục (kém = cao hơn 30%).</div><div>• N-1 = ngày gần nhất có dữ liệu; "So hôm trước" = N-1 vs N-2; "So cùng thứ tuần trước" = N-1 vs N-8.</div></div>');
   out += part('VII', 'Tham khảo', 'Bảng dữ liệu tham khảo, định nghĩa & target.', p7);
   const search = '<div class="dn-search"><input list="dnEntList" placeholder="🔎 Tìm AM / bưu cục để xem hồ sơ…" onchange="dnSearchEntity(this)"><datalist id="dnEntList">' + Object.values(M.links.am).map(e => '<option value="' + attrEsc(e.name) + '">').join('') + Object.values(M.links.bc).map(e => '<option value="' + attrEsc(e.name) + '">').join('') + '</datalist></div>';
-  const tocHtml = '<div class="dn-toc">' + search + toc.map(t => t.part ? '<div class="dn-toc-p">' + dnE(t.title) + '</div>' : '<a href="javascript:void(0)" onclick="dnGoTo(\'' + t.id + '\')"><span class="tnum">' + t.num + '</span>' + dnE(t.title.split(' — ')[0]) + '</a>').join('') + '</div>';
-  body.innerHTML = tocHtml + out;
+  // mục lục: nút nổi "☰ Mục lục" góc phải (giống báo cáo Tuần), bấm để chọn mục cần xem
+  const panel = document.getElementById('dnTocPanel');
+  if (panel) panel.innerHTML = '<div class="toc-panel-title">Chuyển nhanh</div><a href="javascript:void(0)" class="toc-top" onclick="dnGoTo(\'dntop\');dnTocClose()">🏠 Đầu trang</a>' +
+    toc.map(t => t.part ? '<div class="dn-toc-p">' + dnE(t.title) + '</div>' : '<a href="javascript:void(0)" onclick="dnGoTo(\'' + t.id + '\');dnTocClose()"><span class="tnum">' + t.num + '</span>' + dnE(t.title.split(' — ')[0]) + '</a>').join('');
+  const fab = document.getElementById('dnTocFab'); if (fab) fab.style.display = '';
+  body.innerHTML = search + out;
 }
 
 
