@@ -607,6 +607,13 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .dn-card{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:12px 14px;min-width:0}
 .dn-card-t{font-size:13px;font-weight:700;margin-bottom:6px}
 .dn-svg{width:100%;height:auto;display:block}
+.dn-chwrap{position:relative}
+.dn-hit{fill:transparent;cursor:crosshair}
+.dn-guide{stroke:#8A867D;stroke-width:1;stroke-dasharray:3 3;pointer-events:none}
+.dn-tip{position:absolute;pointer-events:none;background:#1F1E1B;color:#fff;border-radius:8px;padding:7px 10px;font-size:12px;line-height:1.5;box-shadow:0 6px 18px rgba(0,0,0,.25);white-space:nowrap;z-index:5;display:none}
+.dn-tip b{font-family:var(--mono)}
+.dn-tip .dn-tip-h{font-weight:700;margin-bottom:2px}
+.dn-pv-live.dn-pv-hover{background:#FFF6E0;border-radius:6px;margin:-4px -6px;padding:4px 6px}
 .dn-grid{stroke:#ECE9E3;stroke-width:1}
 .dn-ax{font-family:var(--mono);font-size:10px;fill:#9E9B93}
 .dn-ax2{font-size:9px}
@@ -2501,6 +2508,7 @@ function hydrateFromSnapshot(snap){
   if (snap.banMoiModeState && snap.banMoiModeState.current) BANMOI_MODE_STATE.current = snap.banMoiModeState.current;
   Object.assign(BANMOI_AI_STORE, snap.banMoiAiStore || {});
   // Vận hành › Ngày: dựng lại mô hình từ dữ liệu thô đã nhúng để các nút (đổi AM/Bưu cục, tab theo ngày) vẫn bấm được
+  if (snap.dnCh) window.DN_CH = snap.dnCh; // dữ liệu rê chuột biểu đồ Ngày
   if (snap.dayRaw && typeof dnBuildModel === 'function') { window.DAY.raw = snap.dayRaw; window.DAY.M = dnBuildModel(snap.dayRaw); window.DAY.loaded = true; }
   const vac = document.getElementById('vhAdminCfg'); if (vac) vac.innerHTML = ''; // thanh cấu hình Admin không đi theo file xuất
   const ln = document.getElementById('loadingNote'); if (ln) ln.style.display = 'none';
@@ -2546,7 +2554,8 @@ function exportStaticHtml(){
       banMoiMetricState: { current: BANMOI_METRIC_STATE.current },
       banMoiModeState: { current: BANMOI_MODE_STATE.current },
       banMoiAiStore: BANMOI_AI_STORE,
-      dayRaw: (activePaneEl && activePaneEl.id === 'vhNgay' && window.DAY) ? window.DAY.raw : null
+      dayRaw: (activePaneEl && activePaneEl.id === 'vhNgay' && window.DAY) ? window.DAY.raw : null,
+      dnCh: (activePaneEl && activePaneEl.id === 'vhNgay') ? (window.DN_CH || null) : null
     };
     const pageEl = activePaneEl ? activePaneEl.querySelector('.page') : document.querySelector('.page');
     const tocFabEl = document.getElementById(meta.tocFabId);
@@ -6874,7 +6883,7 @@ function dnTrendHtml(M){
   }
   return html;
 }
-function dnLineChart(days, series, target){
+function dnLineChart(days, series, target, opts){
   const W = 560, H = 250, pl = 44, pr = 14, pt = 16, pb = 34;
   const allV = series.flatMap(s => s.vals).filter(v => v !== null && v !== undefined).concat(target ? [target] : []);
   let lo = Math.min(...allV), hi = Math.max(...allV); const pad = (hi - lo) * 0.12 || 0.05; lo = Math.max(0, lo - pad); hi = Math.min(1.05, hi + pad);
@@ -6892,9 +6901,54 @@ function dnLineChart(days, series, target){
       g += '<text x="'+x(i)+'" y="'+(y(v)-8)+'" class="dn-lbl" text-anchor="middle" fill="'+s.color+'">'+(v*100).toFixed(1).replace('.',',')+'</text>'; });
   });
   const leg = series.map(s => '<span class="lg-item"><span class="lg-dot" style="background:'+s.color+'"></span>'+s.name+'</span>').join('') + '<span class="lg-item"><span class="lg-dot" style="background:#E8E5DF"></span>Chủ nhật</span>';
-  return '<svg viewBox="0 0 '+W+' '+H+'" class="dn-svg" role="img">' + g + '</svg><div class="trend-legend">' + leg + '</div>';
+  g += dnHitZones(days, i => x(i), pt, H - pb, (W - pl - pr) / Math.max(1, days.length - 1));
+  return dnChWrap({ days, series: series.map(s => ({ name: s.name, color: s.color, vals: s.vals })), kind: 'pct', W, opts }, '<svg viewBox="0 0 '+W+' '+H+'" class="dn-svg" role="img">' + g + '</svg>') + '<div class="trend-legend">' + leg + '</div>';
 }
-function dnBarChart(days, moi, ton, name1){
+// ---- rê chuột trên biểu đồ ngày: vạch dọc + hộp số + panel bên phải nhảy theo ngày (2026-11-04) ----
+function dnHitZones(days, xf, y0, y1, step){
+  let h = '<line class="dn-guide" x1="0" x2="0" y1="'+y0+'" y2="'+y1+'" style="display:none"/>';
+  days.forEach((d, i) => { h += '<rect class="dn-hit" x="'+(xf(i) - step/2)+'" y="'+y0+'" width="'+step+'" height="'+(y1-y0)+'" data-i="'+i+'" data-x="'+xf(i)+'" onmouseenter="dnChHover(this)"/>'; });
+  return h;
+}
+function dnChWrap(data, inner){
+  const id = 'dnch' + (++window.__dnChSeq || (window.__dnChSeq = 1));
+  (window.DN_CH || (window.DN_CH = {}))[id] = data;
+  return '<div class="dn-chwrap" id="'+id+'" onmouseleave="dnChLeave(this)">' + inner + '<div class="dn-tip"></div></div>';
+}
+function dnChHover(r){
+  const wrap = r.closest('.dn-chwrap'); const D = (window.DN_CH || {})[wrap.id]; if (!D) return;
+  const i = +r.dataset.i, svg = wrap.querySelector('svg'), gd = svg.querySelector('.dn-guide');
+  gd.setAttribute('x1', r.dataset.x); gd.setAttribute('x2', r.dataset.x); gd.style.display = '';
+  const fmt = v => v === null || v === undefined ? '—' : (D.kind === 'pct' ? dnP(v) : dnI(v));
+  const d = D.days[i];
+  const tip = wrap.querySelector('.dn-tip');
+  tip.innerHTML = '<div class="dn-tip-h">' + dnE((d.dow || '') + ' ' + d.short) + '</div>' + D.series.map(s => '<div><span style="color:'+s.color+'">●</span> ' + dnE(s.name) + ': <b>' + fmt(s.vals[i]) + '</b>' + (i > 0 && s.vals[i] !== null && s.vals[i-1] !== null && s.vals[i-1] !== undefined ? ' <span style="opacity:.75">(' + (D.kind === 'pct' ? ((s.vals[i]-s.vals[i-1]) >= 0 ? '+' : '') + ((s.vals[i]-s.vals[i-1])*100).toFixed(2).replace('.', ',') + '%' : ((s.vals[i]-s.vals[i-1]) >= 0 ? '+' : '') + dnI(s.vals[i]-s.vals[i-1])) + ')</span>' : '') + '</div>').join('');
+  tip.style.display = 'block';
+  const sr = svg.getBoundingClientRect(), wr = wrap.getBoundingClientRect(); const px = sr.left - wr.left + (+r.dataset.x) / D.W * sr.width;
+  const left = px + 12 + tip.offsetWidth > wr.width ? px - 12 - tip.offsetWidth : px + 12;
+  tip.style.left = Math.max(0, left) + 'px'; tip.style.top = (sr.top - wr.top + 6) + 'px';
+  if (D.opts && D.opts.panelId) dnPanelDay(D, i);
+}
+function dnChLeave(wrap){
+  const gd = wrap.querySelector('.dn-guide'); if (gd) gd.style.display = 'none';
+  const tip = wrap.querySelector('.dn-tip'); if (tip) tip.style.display = 'none';
+  const D = (window.DN_CH || {})[wrap.id]; if (D && D.opts && D.opts.panelId) { const el = document.getElementById(D.opts.panelId); if (el && el.dataset.orig) { el.innerHTML = el.dataset.orig; el.classList.remove('dn-pv-hover'); } }
+}
+// panel bên phải: đổi sang số của ngày đang rê chuột (giá trị, so hôm trước, so cùng thứ tuần trước, target)
+function dnPanelDay(D, i){
+  const el = document.getElementById(D.opts.panelId); if (!el) return;
+  if (!el.dataset.orig) el.dataset.orig = el.innerHTML;
+  const s = D.series[0], v = s.vals[i], dir = D.opts.dir || 0, kind = D.kind;
+  const dd = (a, b) => a === null || a === undefined || b === null || b === undefined ? null : a - b;
+  const pv = (lbl, val, cls) => '<div class="dn-pv"><span>' + lbl + '</span><b class="' + (cls || '') + '">' + val + '</b></div>';
+  const ds = x => x === null ? '<span class="mut">—</span>' : (kind === 'pct' ? dnDeltaSpan(x, dir) : dnDeltaSpan(x, dir, 'int'));
+  const t = D.opts.target;
+  el.innerHTML = '<div class="dn-pv-h">' + dnE((D.days[i].dow || '') + ' ' + D.days[i].short) + ' · Vùng</div>' + pv(dnE(D.opts.label || s.name), v === null || v === undefined ? '—' : dnFmtV(v, kind, 2)) +
+    pv('So hôm trước', ds(i > 0 ? dd(v, s.vals[i-1]) : null)) + pv('So cùng thứ tuần trước', ds(i >= 7 ? dd(v, s.vals[i-7]) : null)) +
+    (t !== null && t !== undefined && v !== null && v !== undefined ? pv('Target', dnE(D.opts.tgLabel || dnP(t, 0)), (v - t) * (dir || 1) >= 0 ? 'dn-good' : 'dn-bad') : '');
+  el.classList.add('dn-pv-hover');
+}
+function dnBarChart(days, moi, ton, name1, opts){
   const W = 560, H = 250, pl = 50, pr = 14, pt = 16, pb = 34;
   const tot = days.map((_, i) => (moi[i] || 0) + (ton[i] || 0)); const hi = Math.max(...tot) * 1.12 || 1;
   const bw = (W - pl - pr) / days.length; const y = v => pt + (1 - v / hi) * (H - pt - pb);
@@ -6908,7 +6962,9 @@ function dnBarChart(days, moi, ton, name1){
     if (m + t > 0 && ton.some(x => x)) g += '<text x="'+(cx+w/2)+'" y="'+(y(m+t)+11)+'" class="dn-lbl" text-anchor="middle" fill="#8B2C00">'+(t/(m+t)*100).toFixed(0)+'%</text>';
     g += '<text x="'+(cx+w/2)+'" y="'+(H-pb+14)+'" class="dn-ax" text-anchor="middle">'+d.short+'</text><text x="'+(cx+w/2)+'" y="'+(H-pb+26)+'" class="dn-ax dn-ax2" text-anchor="middle">'+d.dow+'</text>';
   });
-  return '<svg viewBox="0 0 '+W+' '+H+'" class="dn-svg" role="img">' + g + '</svg><div class="trend-legend"><span class="lg-item"><span class="lg-dot" style="background:#7FB2DA"></span>' + (name1 || 'Hàng mới về') + '</span>' + (ton.some(x => x) ? '<span class="lg-item"><span class="lg-dot" style="background:#F5A27F"></span>Hàng tồn (số % = tỷ trọng tồn)</span>' : '') + '</div>';
+  g += dnHitZones(days, i => pl + bw * i + bw / 2, pt, H - pb, bw);
+  const hasTon = ton.some(x => x);
+  return dnChWrap({ days, series: [{ name: name1 || 'Hàng mới về', color: '#4F8FC4', vals: moi.map(v => v === undefined ? null : v) }].concat(hasTon ? [{ name: 'Hàng tồn', color: '#E07B50', vals: ton }, { name: 'Tổng', color: '#fff', vals: days.map((_, i) => (moi[i] || 0) + (ton[i] || 0)) }] : []), kind: 'int', W, opts }, '<svg viewBox="0 0 '+W+' '+H+'" class="dn-svg" role="img">' + g + '</svg>') + '<div class="trend-legend"><span class="lg-item"><span class="lg-dot" style="background:#7FB2DA"></span>' + (name1 || 'Hàng mới về') + '</span>' + (ton.some(x => x) ? '<span class="lg-item"><span class="lg-dot" style="background:#F5A27F"></span>Hàng tồn (số % = tỷ trọng tồn)</span>' : '') + '</div>';
 }
 
 // ---------- 2. MA TRẬN GÁN × GTC ----------
@@ -7353,16 +7409,18 @@ function dnMetricItemHtml(M, b, bcB){
   if (b.isSeries && tot) {
     const di = b.cols.map((cc, i) => cc.isDate ? i : -1).filter(i => i >= 0);
     const days = di.map(i => b.cols[i].di); const vals = di.map(i => tot.vals[i]);
-    const chart = c.kind === 'pct' ? dnLineChart(days, [{ name: dnChipName(b) + ' Vùng', color: c.dir < 0 ? '#C04A1A' : '#0063AA', vals }], b.target)
-                                   : dnBarChart(days, vals, vals.map(() => 0), dnChipName(b) + ' Vùng');
+    const pid = 'dnpv' + (++window.__dnPvSeq || (window.__dnPvSeq = 1));
+    const copt = { panelId: pid, dir: c.dir, target: b.target !== null ? b.target : b.tgVung, tgLabel: dnTg(b), label: dnChipName(b) };
+    const chart = c.kind === 'pct' ? dnLineChart(days, [{ name: dnChipName(b) + ' Vùng', color: c.dir < 0 ? '#C04A1A' : '#0063AA', vals }], b.target, copt)
+                                   : dnBarChart(days, vals, vals.map(() => 0), dnChipName(b) + ' Vùng', copt);
     const wk = b.cols.map((cc, i) => (cc.isWeek || /^w\s*vs/i.test(cc.label)) ? i : -1).filter(i => i >= 0);
     const n8 = b.cols.findIndex(cc => /n-1\s*vs\s*n-8/i.test(cc.label));
     const list = b.rows.filter(r => !r.isTotal && r.vals[k] !== null); const bad = list.filter(r => dnStatus(b, r) < 0);
     const pv = (lbl, v, cls) => '<div class="dn-pv"><span>' + lbl + '</span><b class="' + (cls || '') + '">' + v + '</b></div>';
-    let panel = '<div class="dn-pv-h">' + dnE(c.di.dow + ' ' + c.di.short) + ' · Vùng</div>' + pv(dnE(dnChipName(b)), dnFmtV(tot.vals[k], c.kind, 2)) +
+    let panel = '<div class="dn-pv-live" id="' + pid + '"><div class="dn-pv-h">' + dnE(c.di.dow + ' ' + c.di.short) + ' · Vùng</div>' + pv(dnE(dnChipName(b)), dnFmtV(tot.vals[k], c.kind, 2)) +
       (b.diffCol >= 0 ? pv('So hôm trước', c.kind === 'pct' ? dnDeltaSpan(tot.vals[b.diffCol], c.dir) : dnDeltaSpan(tot.vals[b.diffCol], c.dir, 'int')) : '') +
       (n8 >= 0 ? pv('So cùng thứ tuần trước', c.kind === 'pct' ? dnDeltaSpan(tot.vals[n8], c.dir) : dnDeltaSpan(tot.vals[n8], c.dir, 'int')) : '') +
-      (b.target !== null ? pv('Target', dnTg(b), (tot.vals[k] - b.target) * c.dir >= 0 ? 'dn-good' : 'dn-bad') : '') +
+      (b.target !== null ? pv('Target', dnTg(b), (tot.vals[k] - b.target) * c.dir >= 0 ? 'dn-good' : 'dn-bad') : '') + '</div>' +
       pv((lvl === 'bc' ? 'BC' : 'AM') + ' kém (' + dnE(dnRef(b) !== null ? b._refLbl : '') + ')', bad.length + '/' + list.length, bad.length ? 'dn-bad' : 'dn-good');
     if (wk.length) panel += '<div class="dn-pv-sep"></div>' + wk.map(i => pv(dnE(/vs/i.test(b.cols[i].label) ? 'Tuần so tuần trước' : 'Tuần ' + b.cols[i].label), /vs/i.test(b.cols[i].label) ? (c.kind === 'pct' ? dnDeltaSpan(tot.vals[i], c.dir) : dnDeltaSpan(tot.vals[i], c.dir, 'int')) : dnFmtV(tot.vals[i], c.kind, 2))).join('');
     html += '<div class="dn-chartrow"><div class="dn-card">' + chart + '</div><div class="dn-panel">' + panel + '</div></div>';
