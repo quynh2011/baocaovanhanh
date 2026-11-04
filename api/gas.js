@@ -197,8 +197,11 @@ module.exports = async (req, res) => {
   if (req.method === 'GET') {
     const coCauHinhOAuth = !!(process.env.GOOGLE_OAUTH_CLIENT_ID &&
       process.env.GOOGLE_OAUTH_CLIENT_SECRET && process.env.GOOGLE_OAUTH_REFRESH_TOKEN);
+    // scope của OAuth token (chỉ tên quyền, không lộ dữ liệu) — để biết backend có đọc được Drive không
+    let scopes = null;
+    try { const tk = await sheetsClient.getAccessToken(); const ti = await fetch('https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(tk)).then(r => r.json()); scopes = ti && ti.scope ? ti.scope.split(' ').map(x => x.replace('https://www.googleapis.com/auth/', '')) : null; } catch (e) { scopes = 'loi: ' + String(e && e.message); }
     res.status(200).json({
-      ok: true,
+      ok: true, scopes: scopes,
       proxy: 'GHN report backend proxy (hybrid: Sheets API truc tiep cho login/OTP/doi mat khau/bao cao van hanh/Cau hinh/Ke hoach KD/BCKQKD/Ke hoach Event/dang online, Apps Script cho phan con lai: quen mat khau, Lich lam viec)',
       oauth: coCauHinhOAuth ? 'da cau hinh' : 'chua cau hinh',
       sessionSecret: !!process.env.SESSION_SECRET ? 'da cau hinh' : 'chua cau hinh',
