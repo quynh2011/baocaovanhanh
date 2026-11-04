@@ -723,7 +723,41 @@ async function handleGetReportData(body) {
       tables[name] = buildTableShape(header, dataRows, fmtRows);
     });
   }
-  return { ok: true, tables: tables };
+  let vhConfig = VH_WEEK_CFG_DEFAULT;
+  if (allTitles.indexOf(VH_WEEK_CFG_SHEET) !== -1) {
+    try { vhConfig = parseVHWeekConfig(await getValues(SHEET_ID, "'" + VH_WEEK_CFG_SHEET + "'!A1:B20")); } catch (e) { /* giữ mặc định */ }
+  }
+  return { ok: true, tables: tables, vhConfig: vhConfig };
+}
+
+// ====== CẤU HÌNH HIỂN THỊ BÁO CÁO VẬN HÀNH › TUẦN (2026-11-04) — Admin chọn mục nào hiện + mặc định biểu đồ xu hướng ======
+// Sheet "CauHinhBaoCaoTuan": cột A = khoá, cột B = giá trị.
+//   anMuc     = danh sách id mục bị ẨN, cách nhau dấu phẩy (scorecard, opr, odr, fd, rotlc, bl36h, gtc, blgiao120,
+//               bltra48h, bltra120h, ktccho, ktcnhapxuat, ktcton24h)
+//   xuHuongChonTatCa = TRUE → biểu đồ xu hướng tự tick mọi AM/dòng; FALSE → không tick, người xem tự chọn
+const VH_WEEK_CFG_SHEET = 'CauHinhBaoCaoTuan';
+const VH_WEEK_CFG_DEFAULT = { hidden: [], trendAll: true };
+const VH_WEEK_SECTION_IDS = ['scorecard', 'opr', 'odr', 'fd', 'rotlc', 'bl36h', 'gtc', 'blgiao120', 'bltra48h', 'bltra120h', 'ktccho', 'ktcnhapxuat', 'ktcton24h'];
+function parseVHWeekConfig(values) {
+  const kv = {};
+  (values || []).forEach((r) => { if (r && r[0]) kv[String(r[0]).trim()] = r[1]; });
+  const hidden = String(kv.anMuc || '').split(',').map((x) => x.trim()).filter((x) => VH_WEEK_SECTION_IDS.indexOf(x) !== -1);
+  const t = kv.xuHuongChonTatCa;
+  const trendAll = !(t === false || String(t).toUpperCase() === 'FALSE');
+  return { hidden: hidden, trendAll: trendAll };
+}
+async function handleSaveVHWeekConfig(body) {
+  const auth = await requireAdmin(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  const hidden = (Array.isArray(body.hidden) ? body.hidden : []).map(String).filter((x) => VH_WEEK_SECTION_IDS.indexOf(x) !== -1);
+  const trendAll = body.trendAll !== false;
+  await ensureSheetWithHeaders(SHEET_ID, VH_WEEK_CFG_SHEET, null);
+  await putValues(SHEET_ID, "'" + VH_WEEK_CFG_SHEET + "'!A1", [
+    ['anMuc', hidden.join(',')],
+    ['xuHuongChonTatCa', trendAll ? 'TRUE' : 'FALSE'],
+    ['capNhat', auth.email + ' ' + new Date().toISOString()]
+  ]);
+  return { ok: true, vhConfig: { hidden: hidden, trendAll: trendAll } };
 }
 
 // ====== BÁO CÁO VẬN HÀNH › NGÀY (2026-11-03) ======
@@ -2353,5 +2387,6 @@ module.exports = {
   handleGetLapDayData,
   handleGetRPLapDayData,
   handleGetDailyReport,
-  handleGetSReport
+  handleGetSReport,
+  handleSaveVHWeekConfig
 };

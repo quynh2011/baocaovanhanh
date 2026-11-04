@@ -105,7 +105,8 @@ const LOCAL_ACTIONS = {
   // Vận hành › Ngày — mọi sheet 1xx_ (2026-11-03)
   getDailyReport: sheetsClient.handleGetDailyReport,
   // [S]-Report — Siêu báo cáo (2026-11-04)
-  getSReport: sheetsClient.handleGetSReport
+  getSReport: sheetsClient.handleGetSReport,
+  saveVHWeekConfig: sheetsClient.handleSaveVHWeekConfig
 };
 
 // ================= NHÁNH CŨ: proxy sang Apps Script (giữ nguyên, dùng cho action chưa port) =================

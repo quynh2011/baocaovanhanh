@@ -69,6 +69,16 @@ body{font-family:var(--f);background:var(--bg);color:var(--text);line-height:1.5
 .sgc-val{font-size:16px;font-weight:700;font-family:var(--mono);letter-spacing:-.02em}
 .sgc-thresh{font-size:8.5px;font-family:var(--mono);color:var(--hint)}
 .empty-note{background:var(--surface);border:1px dashed var(--border-strong);border-radius:10px;padding:16px;margin-bottom:26px;font-size:13px;color:var(--muted)}
+.vhcfg{margin:0 0 14px;border:1px dashed #C9A227;border-radius:10px;background:#FFFBEA;padding:8px 12px;font-size:13px}
+.vhcfg-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vhcfg-h b{color:#8B6B00}
+.vhcfg-btn{border:1px solid #C9A227;background:#fff;color:#8B6B00;border-radius:7px;padding:4px 10px;font-size:12.5px;font-weight:600;cursor:pointer}
+.vhcfg-body{display:none;margin-top:10px}
+.vhcfg.open .vhcfg-body{display:block}
+.vhcfg-grid{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0 10px}
+.vhcfg-grid label{display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap}
+.vhcfg-sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:600}
+.vhcfg-msg{font-size:12px;color:var(--muted)}
 .toc{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:16px 20px 8px;margin-bottom:26px}
 .toc-gh{font-family:var(--mono);font-size:11px;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
 .toc a{display:inline-flex;align-items:center;gap:6px;margin:0 16px 6px 0;color:var(--text);text-decoration:none;font-size:13px;font-weight:500}
@@ -1019,6 +1029,7 @@ td.dn-keycol{background:#FBF7EE}
     <div class="meta">Modify by - Pham Van Quynh - DBB Live Report<br>Cập nhật lúc: <span id="updatedAt">—</span><br><button class="refresh-btn" onclick="location.reload()">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
   </div>
 
+  <div id="vhAdminCfg"></div>
   <div id="vhCutoffBar"></div>
   <div id="errBanner"></div>
   <div id="loadingNote" class="load-progress">
@@ -2468,6 +2479,7 @@ function hydrateFromSnapshot(snap){
   Object.assign(BANMOI_AI_STORE, snap.banMoiAiStore || {});
   // Vận hành › Ngày: dựng lại mô hình từ dữ liệu thô đã nhúng để các nút (đổi AM/Bưu cục, tab theo ngày) vẫn bấm được
   if (snap.dayRaw && typeof dnBuildModel === 'function') { window.DAY.raw = snap.dayRaw; window.DAY.M = dnBuildModel(snap.dayRaw); window.DAY.loaded = true; }
+  const vac = document.getElementById('vhAdminCfg'); if (vac) vac.innerHTML = ''; // thanh cấu hình Admin không đi theo file xuất
   const ln = document.getElementById('loadingNote'); if (ln) ln.style.display = 'none';
   const wt = document.getElementById('weekTag'); if (wt) wt.textContent = 'Bản xuất tĩnh';
   const ua = document.getElementById('updatedAt'); if (ua) ua.textContent = (snap.exportedAt || '') + ' (bản xuất tĩnh, không tự cập nhật)';
@@ -2582,7 +2594,9 @@ function chartContainerHtml(group, weekLabels, entityLabel, periodType){
   if (!weekLabels || weekLabels.length < 2) return '';
   const id = 'ch' + (CHART_SEQ++);
   CHART_STORE[id] = { group, weekLabels, entityLabel, periodType };
-  CHART_STATE[id] = { mode: 'detail', hidden: new Set() };
+  // Báo cáo Tuần: Admin có thể đặt mặc định KHÔNG tick dòng nào (người xem tự chọn) — xem VH_CFG.trendAll
+  const hidden = window.__CHART_NONE_DEFAULT ? new Set(group.rows.filter(r => !r.isTotalRow && !r.isGrand).map(r => r.label)) : new Set();
+  CHART_STATE[id] = { mode: 'detail', hidden };
   return '<div class="tbl-wrap trend-chart-wrap" id="chartwrap-'+id+'">' + renderChartInner(id) + '</div>';
 }
 function chartValOf(rec, wk){ return wk.pct !== undefined ? wk.pct : wk.val; }
@@ -2631,7 +2645,7 @@ function renderChartInner(id){
   return head + body + legend;
 }
 function renderChartSVG(lines, weekLabels, periodType){
-  if (!lines.length) return '<div class="mut" style="font-size:12px;padding:10px 0">Không có dòng nào được chọn để vẽ.</div>';
+  if (!lines.length) return '<div class="mut" style="font-size:12px;padding:10px 0">Chưa chọn dòng nào — tick ở danh sách bên dưới để vẽ.</div>';
   let vals = [];
   lines.forEach(({rec}) => rec.weeks.forEach(wk => { const v = chartValOf(rec, wk); if (v !== null && v !== undefined) vals.push(v); }));
   if (vals.length < 2) return '<div class="mut" style="font-size:12px;padding:10px 0">Chưa đủ dữ liệu để vẽ trend.</div>';
@@ -7503,6 +7517,7 @@ async function main(){
       showError('Không tải được dữ liệu: ' + errMsg(res.error));
     } else {
       Object.assign(tables, res.tables);
+      if (res.vhConfig) window.VH_CFG = res.vhConfig;
     }
   } catch (e) {
     showError('Không kết nối được máy chủ dữ liệu: ' + e.message);
@@ -7536,6 +7551,35 @@ async function main(){
 // Dựng + hiển thị TOÀN BỘ báo cáo Vận Hành Tuần từ window.RAW_VH_DATA đã cache (không gọi lại backend), áp
 // dụng đúng kỳ đang chọn xem (window.VH_CUTOFF_LABEL — null = kỳ mới nhất, y hệt hành vi mặc định trước khi
 // có tính năng "xem lại quá khứ"). Gọi lại hàm này mỗi khi đổi kỳ xem qua setVHCutoff().
+// ---------- CẤU HÌNH HIỂN THỊ BÁO CÁO TUẦN (chỉ Admin thấy) — lưu ở sheet CauHinhBaoCaoTuan, áp dụng cho MỌI người xem ----------
+const VH_SECTIONS = [['scorecard','0 · Scorecard'],['opr','1 · OPR'],['odr','2 · ODR'],['fd','3 · FD'],['rotlc','4 · RớtLC'],['bl36h','5 · BL LC >36H'],['gtc','6 · GTC'],['blgiao120','7 · BL Giao >120H'],['bltra48h','8 · BL LC Trả >48H'],['bltra120h','9 · BL Trả >120H'],['ktccho','10 · KTC Chờ nhập'],['ktcnhapxuat','11 · KTC Nhập→Xuất'],['ktcton24h','12 · KTC Tồn >24H']];
+function renderVHAdminCfg(){
+  const box = document.getElementById('vhAdminCfg'); if (!box) return;
+  const isAdmin = AUTH && AUTH.session && AUTH.session.role === 'Admin' && !window.__STATIC_SNAPSHOT__;
+  if (!isAdmin) { box.innerHTML = ''; return; }
+  const cfg = window.VH_CFG || { hidden: [], trendAll: true }; const hid = new Set(cfg.hidden || []);
+  const wasOpen = box.querySelector('.vhcfg.open');
+  box.innerHTML = '<div class="vhcfg' + (wasOpen ? ' open' : '') + '"><div class="vhcfg-h"><b>⚙️ Admin · Cấu hình báo cáo tuần</b><span class="vhcfg-msg">Đang hiện ' + (VH_SECTIONS.length - hid.size) + '/' + VH_SECTIONS.length + ' mục · Xu hướng: ' + (cfg.trendAll !== false ? 'tự chọn tất cả AM' : 'người xem tự chọn') + '</span>' +
+    '<button class="vhcfg-btn" onclick="this.closest(\'.vhcfg\').classList.toggle(\'open\')">Chỉnh</button><span class="vhcfg-msg" id="vhCfgMsg"></span></div>' +
+    '<div class="vhcfg-body"><div><b>Mục hiển thị</b> <span class="vhcfg-msg">(bỏ tick = ẩn với mọi người)</span></div><div class="vhcfg-grid">' +
+    VH_SECTIONS.map(([k, lb]) => '<label><input type="checkbox" data-k="' + k + '"' + (hid.has(k) ? '' : ' checked') + ' onchange="saveVHAdminCfg()">' + esc(lb) + '</label>').join('') + '</div>' +
+    '<label class="vhcfg-sw"><input type="checkbox" id="vhCfgTrend"' + (cfg.trendAll !== false ? ' checked' : '') + ' onchange="saveVHAdminCfg()"> Biểu đồ xu hướng: Bật = tự chọn tất cả AM · Tắt = không chọn, người xem tự chọn</label></div></div>';
+}
+async function saveVHAdminCfg(){
+  const box = document.getElementById('vhAdminCfg'); const msg = document.getElementById('vhCfgMsg');
+  const hidden = Array.from(box.querySelectorAll('.vhcfg-grid input')).filter(i => !i.checked).map(i => i.dataset.k);
+  const trendAll = document.getElementById('vhCfgTrend').checked;
+  const prev = window.VH_CFG;
+  window.VH_CFG = { hidden, trendAll };
+  renderVanHanhReport();
+  const m2 = document.getElementById('vhCfgMsg'); if (m2) m2.textContent = 'Đang lưu…';
+  try {
+    const res = await callBackend('saveVHWeekConfig', { token: AUTH.session.token, hidden, trendAll });
+    const m3 = document.getElementById('vhCfgMsg');
+    if (!res.ok) { window.VH_CFG = prev; renderVanHanhReport(); const m4 = document.getElementById('vhCfgMsg'); if (m4) m4.textContent = '❌ Không lưu được: ' + errMsg(res.error); return; }
+    if (m3) m3.textContent = '✓ Đã lưu cho mọi người';
+  } catch (e) { const m5 = document.getElementById('vhCfgMsg'); if (m5) m5.textContent = '❌ Lỗi kết nối: ' + e.message; }
+}
 function renderVanHanhReport(){
   if (!window.RAW_VH_DATA) return;
   const data = applyWeekCutoff(window.RAW_VH_DATA, window.VH_CUTOFF_LABEL);
@@ -7549,10 +7593,18 @@ function renderVanHanhReport(){
       ? '12 chỉ số vận hành · ' + wkInfo.count + ' tuần (từ ' + wkInfo.from + ' đến ' + wkInfo.to + ')'
       : '12 chỉ số vận hành';
   });
-  safeRun('summary banner', () => buildSummaryBanner(data));
+  const cfg = window.VH_CFG || { hidden: [], trendAll: true };
+  const hid = new Set(cfg.hidden || []);
+  const shown = k => !hid.has(k);
+  safeRun('cấu hình admin', () => renderVHAdminCfg());
+  document.querySelectorAll('#tocPanel a[href^="#"], .toc a[href^="#"]').forEach(a => { const k = a.getAttribute('href').slice(1); if (k !== 'top') a.style.display = hid.has(k) ? 'none' : ''; });
+  // tóm tắt đầu báo cáo chỉ xét các mục đang hiện
+  const sumData = Object.assign({}, data); hid.forEach(k => { if (k === 'scorecard') sumData.scorecard = { groups: [], METRICS: [] }; else if (sumData[k]) sumData[k] = { weeksCount: 0, weekLabels: [], groups: [] }; });
+  safeRun('summary banner', () => buildSummaryBanner(sumData));
 
+  window.__CHART_NONE_DEFAULT = cfg.trendAll === false;
   let out = '';
-  safeRun('scorecard', () => {
+  if (shown('scorecard')) safeRun('scorecard', () => {
     out += partBanner('scorecard', '0', '🗺️ Scorecard');
     out += renderScorecard(data.scorecard);
     out += '</div>';
@@ -7560,7 +7612,7 @@ function renderVanHanhReport(){
   // 9 chỉ số đầu (OPR..BL Trả>120H) đều cùng 1 khuôn dạng vol+pct theo tuần — render bằng vòng lặp qua
   // METRIC_META duy nhất (xem định nghĩa phía trên) thay vì lặp lại 9 khối gần giống hệt nhau như trước.
   // Muốn thêm chỉ số mới dạng này: chỉ cần thêm 1 dòng vào METRIC_META, KHÔNG cần sửa gì ở đây.
-  METRIC_META.filter(m => m.key !== 'ktcton24h').forEach(m => {
+  METRIC_META.filter(m => m.key !== 'ktcton24h' && shown(m.key)).forEach(m => {
     safeRun(m.key, () => {
       out += partBanner(m.key, m.num, m.title);
       out += NOTES[m.key];
@@ -7568,7 +7620,7 @@ function renderVanHanhReport(){
       out += '</div>';
     });
   });
-  safeRun('ktccho', () => {
+  if (shown('ktccho')) safeRun('ktccho', () => {
     out += partBanner('ktccho', '10', 'KTC — Leadtime chờ nhập');
     out += NOTES.ktccho;
     (data.ktccho.groups.length ? data.ktccho.groups : [{label:'', rows:[]}]).forEach((g,i) => {
@@ -7579,7 +7631,7 @@ function renderVanHanhReport(){
     });
     out += '</div>';
   });
-  safeRun('ktcnhapxuat', () => {
+  if (shown('ktcnhapxuat')) safeRun('ktcnhapxuat', () => {
     out += partBanner('ktcnhapxuat', '11', 'KTC — Leadtime nhập→xuất');
     out += NOTES.ktcnhapxuat;
     data.ktcnhapxuat.groups.forEach((g,i) => {
@@ -7589,14 +7641,15 @@ function renderVanHanhReport(){
     out += '</div>';
   });
   const ktcton24hMeta = METRIC_META.find(m => m.key === 'ktcton24h');
-  safeRun('ktcton24h', () => {
+  if (shown('ktcton24h')) safeRun('ktcton24h', () => {
     out += partBanner(ktcton24hMeta.key, ktcton24hMeta.num, ktcton24hMeta.title);
     out += NOTES[ktcton24hMeta.key];
     out += renderSectionVolPct(data[ktcton24hMeta.key], ktcton24hMeta.dir, ktcton24hMeta.num, ktcton24hMeta.firstColLabel, ktcton24hMeta.title);
     out += '</div>';
   });
 
-  document.getElementById('reportBody').innerHTML = out;
+  window.__CHART_NONE_DEFAULT = false;
+  document.getElementById('reportBody').innerHTML = out || '<div class="mut" style="padding:20px 0">Admin đang ẩn toàn bộ các mục của báo cáo tuần.</div>';
   // Chỉ âm thầm nâng cấp nhận xét AI khi đang xem đúng KỲ MỚI NHẤT — xem lại quá khứ giữ nguyên bản rule-based
   // (đủ chính xác, không tốn quota AI vô ích, tránh nhận định AI bị hiểu nhầm là "hiện tại" khi đang xem 1 kỳ đã qua).
   if (!window.VH_CUTOFF_LABEL) opsEnhanceWithAI();
