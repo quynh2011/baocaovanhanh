@@ -7499,13 +7499,15 @@ async function loadSReport(force){
     const m = head.meta || {}; SR.meta = m;
     if (!force && SR.url && SR.fileId === m.fileId) { prog.finish('srLoading'); SR.loading = false; return; }
     const d = (m.fileDate || '').split('-');
-    metaEl.innerHTML = 'File <b>' + esc(m.fileName || '') + '</b>' + (d.length === 3 ? ' · số liệu đến ngày <b>' + d[2] + '/' + d[1] + '/' + d[0] + '</b>' : '') + ' · đồng bộ lúc ' + esc(m.updatedAt || '—') + (m.status && m.status !== 'OK' ? ' · <span class="dn-bad">' + esc(m.status + ' ' + (m.lastError || '')) + '</span>' : '');
+    metaEl.innerHTML = (d.length === 3 ? 'Số liệu đến ngày <b>' + d[2] + '/' + d[1] + '/' + d[0] + '</b>' : '') + ' · đồng bộ lúc ' + esc(m.updatedAt || '—') + (m.status && m.status !== 'OK' ? ' · <span class="dn-bad">' + esc(m.status + ' ' + (m.lastError || '')) + '</span>' : '');
     const parts = await Promise.all(Array.from({ length: head.parts }, (_, i) => callBackend('getSReport', { token: AUTH.session.token, part: i })));
     const bad = parts.find(p => !p.ok); if (bad) throw new Error(errMsg(bad.error));
     let html = parts.sort((a, b) => a.part - b.part).map(p => p.text).join('');
     // iframe sandbox (không same-origin) chặn localStorage → cấp 1 kho tạm trong bộ nhớ để báo cáo gốc chạy êm
     const shim = '<script>(function(){function S(){var d={};return{getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},setItem:function(k,v){d[k]=String(v)},removeItem:function(k){delete d[k]},clear:function(){d={}},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}' +
       '["localStorage","sessionStorage"].forEach(function(n){try{window[n].length}catch(e){try{Object.defineProperty(window,n,{value:S(),configurable:true})}catch(_){}}})})();<\/script>';
+    // bỏ ghi chú nguồn trong báo cáo gốc ("Nguồn: GHN Data API dd/mm/yyyy hh:mm (… → …)") theo yêu cầu chủ dự án
+    html = html.replace(/(<b>)?Nguồn:(<\/b>)?\s*GHN Data API[^<.]*\)?\.?\s*(<br\s*\/?>)?/g, '');
     const hi = html.search(/<head[^>]*>/i);
     html = hi >= 0 ? html.replace(/<head[^>]*>/i, m => m + shim) : shim + html;
     if (SR.url) URL.revokeObjectURL(SR.url);
