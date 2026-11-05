@@ -7609,6 +7609,7 @@ const SR_ADDON_JS = `(function(){
     if (last < 7) return;
     var show = []; for (var i = Math.max(0, last - 7); i <= last; i++) show.push(i);   // 8 ngày hiển thị
     var win = show.slice(-7);                                                          // 7 ngày cộng dồn
+    var prevWin = win.map(function(d){ return d - 7; }).filter(function(d){ return d >= 0; }); // 7 ngày liền trước (so sánh)
     var sum = function(a, b, ds){ return ds.reduce(function(s, d){ return s + at(a, b, d); }, 0); };
     var rows = []; for (var b = 0; b < nb; b++) rows.push({ b: b, r7: sum(R, b, win) });
     rows.sort(function(x, y){ return y.r7 - x.r7; }); var top = rows.slice(0, 10).map(function(x){ return x.b; });
@@ -7623,10 +7624,57 @@ const SR_ADDON_JS = `(function(){
     var cP = function(x){ return !isFinite(x) ? '' : (x > KPI ? 'background:#FDE2E1;color:#B42318;font-weight:600' : 'background:#E6F4EC;color:#0F6E56'); };
     var dl = function(d){ var p = D.days[d].split('-'); return p[2] + '/' + p[1]; };
     var esc = function(x){ return String(x).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); };
+    // icon tăng/giảm: badUp = true → tăng là xấu (đỏ); false → tăng là tốt (xanh); null → trung tính (xám)
+    var arr = function(delta, badUp, txt){ if (!isFinite(delta)) return '<span style="color:#9E9B93">–</span>';
+      if (Math.abs(delta) < 1e-9) return '<span style="color:#6B6860;font-weight:600">● ' + (txt || 'không đổi') + '</span>';
+      var up = delta > 0, col = badUp === null ? '#6B6860' : ((up === badUp) ? '#C0392B' : '#0F6E56');
+      return '<span style="color:' + col + ';font-weight:600;white-space:nowrap">' + (up ? '▲' : '▼') + ' ' + txt + '</span>'; };
+    var sgn = function(x){ return (x > 0 ? '+' : x < 0 ? '−' : '') ; };
+    var dN = function(x){ return sgn(x) + fN(Math.abs(x)); };
+    var dP = function(x){ return sgn(x) + (Math.abs(x) * 100).toFixed(1).replace('.', ',') + '%'; };
     var head = '<tr><th>Hạng</th><th>Mã BC</th><th style="text-align:left">BC giao</th><th style="text-align:left">Tỉnh</th>' + show.map(function(d){ return '<th>' + dl(d) + '</th>'; }).join('') + '<th>7 ngày</th></tr>';
     var cell = function(kind, bs, d){ var ds = d === null ? win : [d];
-      if (kind === 'fd') { var v = agg(R, bs, ds) / agg(T, bs, ds); return '<td style="text-align:right;' + cP(v) + (d === null ? ';font-weight:700' : '') + '">' + fP(v) + '</td>'; }
-      var v2 = agg(kind === 'r' ? R : T, bs, ds); return '<td style="text-align:right' + (d === null ? ';font-weight:700' : '') + '">' + fN(v2) + '</td>'; };
+      if (kind === 'fd') { var v = agg(R, bs, ds) / agg(T, bs, ds);
+        var tail = d === null && prevWin.length ? ' <span style="font-size:11px">' + arr(v - agg(R, bs, prevWin) / agg(T, bs, prevWin), true, '') + '</span>' : '';
+        return '<td style="text-align:right;' + cP(v) + (d === null ? ';font-weight:700' : '') + '">' + fP(v) + tail + '</td>'; }
+      var A = kind === 'r' ? R : T, v2 = agg(A, bs, ds);
+      var tail2 = d === null && prevWin.length ? ' <span style="font-size:11px">' + arr(v2 - agg(A, bs, prevWin), kind === 'r' ? true : null, '') + '</span>' : '';
+      return '<td style="text-align:right' + (d === null ? ';font-weight:700' : '') + '">' + fN(v2) + tail2 + '</td>'; };
+    // ---- nhận xét từng bưu cục (2026-11-05): FD 7 ngày vs KPI & vs 7 ngày trước, số ngày vượt, chuỗi vượt liên tiếp, vol trả, đơn hoàn tất, ngày gần nhất ----
+    var remark = function(b){
+      var r7 = sum(R, b, win), t7 = sum(T, b, win), f7 = r7 / t7;
+      var rP = sum(R, b, prevWin), tP = sum(T, b, prevWin), fP7 = rP / tP;
+      var L = win[win.length - 1], L1 = L - 1;
+      var rL = at(R, b, L), rL1 = at(R, b, L1), tL = at(T, b, L), tL1 = at(T, b, L1), fL = rL / tL, fL1 = rL1 / tL1;
+      var fdDays = win.map(function(d){ var t = at(T, b, d); return t ? at(R, b, d) / t : NaN; });
+      var over = fdDays.filter(function(x){ return x > KPI; }).length, streak = 0;
+      for (var i = fdDays.length - 1; i >= 0 && fdDays[i] > KPI; i--) streak++;
+      var mx = win.reduce(function(m, d){ return at(R, b, d) > at(R, b, m) ? d : m; }, win[0]);
+      var dF = f7 - fP7, gR = rP ? (r7 - rP) / rP : NaN, gT = tP ? (t7 - tP) / tP : NaN;
+      var lvl = !isFinite(f7) ? 0 : f7 > KPI ? (dF > 0.002 ? 3 : 2) : 1;
+      var badge = ['', '🟢', '🟠', '🔴'][lvl];
+      var why = '';
+      if (isFinite(dF) && Math.abs(dF) > 0.002) {
+        if (dF > 0) why = isFinite(gR) && isFinite(gT) && gR > 0.03 && gR > gT ? 'FD xấu đi do vol trả tăng nhanh hơn đơn hoàn tất' : (isFinite(gT) && gT < -0.03 ? 'FD xấu đi chủ yếu do đơn hoàn tất giảm' : 'FD xấu đi so với 7 ngày trước');
+        else why = isFinite(gR) && gR < -0.03 ? 'FD cải thiện nhờ vol trả giảm' : (isFinite(gT) && gT > 0.03 ? 'FD cải thiện nhờ đơn hoàn tất tăng' : 'FD cải thiện so với 7 ngày trước');
+      } else why = 'FD đi ngang so với 7 ngày trước';
+      if (f7 > KPI) why += streak >= 3 ? ' — đang vượt KPI ' + streak + ' ngày liên tiếp, cần xử lý ngay' : (over >= 5 ? ' — vượt KPI phần lớn các ngày' : '');
+      else why += over ? ' — vẫn có ' + over + ' ngày vượt KPI' : ' — giữ dưới KPI cả 7 ngày';
+      var li = function(t){ return '<div style="margin:2px 0">• ' + t + '</div>'; };
+      return '<b>' + badge + ' ' + why + '.</b>' +
+        li('FD 7 ngày <b>' + fP(f7) + '</b> ' + (f7 > KPI ? '(vượt KPI ' + dP(f7 - KPI).replace('+', '') + ')' : '(đạt KPI)') + ' · ' + arr(dF, true, dP(dF) + ' so 7 ngày trước (' + fP(fP7) + ')') + ' · <b>' + over + '/7</b> ngày vượt 5%' + (streak ? ', vượt liên tiếp <b>' + streak + '</b> ngày gần nhất' : '')) +
+        li('Vol trả <b>' + fN(r7) + '</b> đơn · ' + arr(r7 - rP, true, dN(r7 - rP) + (isFinite(gR) ? ' (' + dP(gR) + ')' : '') + ' so 7 ngày trước') + ' · cao nhất ' + dl(mx) + ' (' + fN(at(R, b, mx)) + ' đơn)') +
+        li('Đơn hoàn tất <b>' + fN(t7) + '</b> · ' + arr(t7 - tP, null, dN(t7 - tP) + (isFinite(gT) ? ' (' + dP(gT) + ')' : '') + ' so 7 ngày trước')) +
+        li('Ngày ' + dl(L) + ': trả ' + fN(rL) + ' ' + arr(rL - rL1, true, dN(rL - rL1)) + ' · FD ' + fP(fL) + ' ' + arr(fL - fL1, true, dP(fL - fL1)) + ' so ' + dl(L1));
+    };
+    var remarks = function(){
+      var rows = top.map(function(b, i){ var bc = D.bcs[b];
+        return '<tr><td style="text-align:center;vertical-align:top">' + (i + 1) + '</td><td style="text-align:left;vertical-align:top;white-space:nowrap"><b>' + esc(bc[1]) + '</b><div style="color:#8A867D;font-size:11.5px">' + esc(tinhOf(bc)) + '</div></td><td style="text-align:left;white-space:normal;line-height:1.55">' + remark(b) + '</td></tr>'; }).join('');
+      var vr7 = agg(R, all, win), vt7 = agg(T, all, win), vf = vr7 / vt7, vfP = agg(R, all, prevWin) / agg(T, all, prevWin);
+      var tr7 = agg(R, top, win), nOver = top.filter(function(b){ return sum(R, b, win) / sum(T, b, win) > KPI; }).length;
+      var lead = '<div class="sub" style="max-width:none;color:inherit;font-size:12.5px;margin:4px 0 8px">Vùng TNT: FD 7 ngày <b>' + fP(vf) + '</b> ' + arr(vf - vfP, true, dP(vf - vfP) + ' so 7 ngày trước') + '. Top 10 chiếm <b>' + fP(tr7 / vr7) + '</b> vol trả toàn vùng; <b>' + nOver + '/10</b> BC đang vượt KPI 5%. 🔴 vượt KPI & xấu đi · 🟠 vượt KPI nhưng đang cải thiện / đi ngang · 🟢 đạt KPI.</div>';
+      return lead + '<div class="tw"><table><thead><tr><th>Hạng</th><th style="text-align:left">Bưu cục</th><th style="text-align:left">Nhận xét</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    };
     var table = function(kind){
       var body = top.map(function(b, i){ var bc = D.bcs[b];
         return '<tr><td style="text-align:center">' + (i + 1) + '</td><td style="text-align:center">' + esc(bc[0]) + '</td><td style="text-align:left;white-space:nowrap">' + esc(bc[1]) + '</td><td style="text-align:left;white-space:nowrap">' + esc(tinhOf(bc)) + '</td>' + show.map(function(d){ return cell(kind, [b], d); }).join('') + cell(kind, [b], null) + '</tr>'; }).join('');
@@ -7636,10 +7684,11 @@ const SR_ADDON_JS = `(function(){
     var range = dl(win[0]) + ' – ' + dl(win[win.length - 1]);
     var sec = document.createElement('section'); sec.id = 'srTop10Sec';
     sec.innerHTML = '<h2><span class="n">·</span><span>Theo dõi top 10 BC giao trả TTS COD nhiều nhất <span class="scp">toàn vùng</span></span></h2>' +
-      '<div class="sub">Top 10 bưu cục giao theo tổng vol trả TTS COD 7 ngày (' + range + '). FD COD TTS = vol trả ÷ đơn hoàn tất, KPI ≤ 5% (đỏ = vượt). Cột "7 ngày" = cộng dồn 7 ngày gần nhất.</div>' +
+      '<div class="sub">Top 10 bưu cục giao theo tổng vol trả TTS COD 7 ngày (' + range + '). FD COD TTS = vol trả ÷ đơn hoàn tất, KPI ≤ 5% (đỏ = vượt). Cột "7 ngày" = cộng dồn 7 ngày gần nhất, mũi tên ▲▼ = so với 7 ngày liền trước (đỏ = xấu đi, xanh = tốt lên).</div>' +
       '<h3 style="font-size:13.5px;margin:10px 0 6px">1. Vol trả (TTS COD)</h3>' + table('r') +
       '<h3 style="font-size:13.5px;margin:10px 0 6px">2. FD COD TTS</h3>' + table('fd') +
-      '<h3 style="font-size:13.5px;margin:10px 0 6px">3. Đơn hoàn tất (TTS COD)</h3>' + table('t');
+      '<h3 style="font-size:13.5px;margin:10px 0 6px">3. Đơn hoàn tất (TTS COD)</h3>' + table('t') +
+      '<h3 style="font-size:13.5px;margin:14px 0 6px">4. Nhận xét từng bưu cục</h3>' + remarks();
     var anchor = document.getElementById('fdtsec');
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(sec, anchor.nextSibling);
     else { var hd = document.querySelector('header.report-header'); if (hd && hd.parentNode) hd.parentNode.insertBefore(sec, hd.nextSibling); else document.body.appendChild(sec); }
