@@ -7632,14 +7632,26 @@ const SR_ADDON_JS = `(function(){
     var sgn = function(x){ return (x > 0 ? '+' : x < 0 ? '−' : '') ; };
     var dN = function(x){ return sgn(x) + fN(Math.abs(x)); };
     var dP = function(x){ return sgn(x) + (Math.abs(x) * 100).toFixed(1).replace('.', ',') + '%'; };
+    // đường xu hướng nhỏ trong cột "7 ngày": vẽ 7 ngày; dốc lên = đỏ, dốc xuống = xanh, gần như phẳng = xám (độ dốc theo bình phương tối thiểu)
+    var spark = function(vals){ var v = vals.map(function(x){ return isFinite(x) ? x : null; }), ok = v.filter(function(x){ return x !== null; });
+      if (ok.length < 2) return '';
+      var n = v.length, xs = [], ys = []; v.forEach(function(y, i){ if (y !== null) { xs.push(i); ys.push(y); } });
+      var mx = xs.reduce(function(a, b){ return a + b; }, 0) / xs.length, my = ys.reduce(function(a, b){ return a + b; }, 0) / ys.length;
+      var num = 0, den = 0; xs.forEach(function(x, i){ num += (x - mx) * (ys[i] - my); den += (x - mx) * (x - mx); });
+      var slope = den ? num / den : 0, rel = my ? slope * (n - 1) / Math.abs(my) : 0;
+      var col = rel > 0.05 ? '#C0392B' : rel < -0.05 ? '#0F6E56' : '#8A867D';
+      var lo = Math.min.apply(null, ok), hi = Math.max.apply(null, ok), rg = hi - lo || 1, W = 62, H = 18;
+      var pts = []; v.forEach(function(y, i){ if (y !== null) pts.push((2 + i * (W - 4) / (n - 1)).toFixed(1) + ',' + (H - 2 - (y - lo) / rg * (H - 4)).toFixed(1)); });
+      var lp = pts[pts.length - 1].split(',');
+      return '<svg width="' + W + '" height="' + H + '" style="vertical-align:middle;margin-left:6px"><polyline points="' + pts.join(' ') + '" fill="none" stroke="' + col + '" stroke-width="1.8" stroke-linejoin="round"/><circle cx="' + lp[0] + '" cy="' + lp[1] + '" r="2.4" fill="' + col + '"/></svg>'; };
     var head = '<tr><th>Hạng</th><th>Mã BC</th><th style="text-align:left">BC giao</th><th style="text-align:left">Tỉnh</th>' + show.map(function(d){ return '<th>' + dl(d) + '</th>'; }).join('') + '<th>7 ngày</th></tr>';
     var cell = function(kind, bs, d){ var ds = d === null ? win : [d];
       if (kind === 'fd') { var v = agg(R, bs, ds) / agg(T, bs, ds);
-        var tail = d === null && prevWin.length ? ' <span style="font-size:11px">' + arr(v - agg(R, bs, prevWin) / agg(T, bs, prevWin), true, '') + '</span>' : '';
-        return '<td style="text-align:right;' + cP(v) + (d === null ? ';font-weight:700' : '') + '">' + fP(v) + tail + '</td>'; }
+        var tail = d === null ? spark(win.map(function(dd){ return agg(R, bs, [dd]) / agg(T, bs, [dd]); })) : '';
+        return '<td style="text-align:right;white-space:nowrap;' + cP(v) + (d === null ? ';font-weight:700' : '') + '">' + fP(v) + tail + '</td>'; }
       var A = kind === 'r' ? R : T, v2 = agg(A, bs, ds);
-      var tail2 = d === null && prevWin.length ? ' <span style="font-size:11px">' + arr(v2 - agg(A, bs, prevWin), kind === 'r' ? true : null, '') + '</span>' : '';
-      return '<td style="text-align:right' + (d === null ? ';font-weight:700' : '') + '">' + fN(v2) + tail2 + '</td>'; };
+      var tail2 = d === null ? spark(win.map(function(dd){ return agg(A, bs, [dd]); })) : '';
+      return '<td style="text-align:right;white-space:nowrap' + (d === null ? ';font-weight:700' : '') + '">' + fN(v2) + tail2 + '</td>'; };
     // ---- nhận xét từng bưu cục (2026-11-05): FD 7 ngày vs KPI & vs 7 ngày trước, số ngày vượt, chuỗi vượt liên tiếp, vol trả, đơn hoàn tất, ngày gần nhất ----
     var remark = function(b){
       var r7 = sum(R, b, win), t7 = sum(T, b, win), f7 = r7 / t7;
@@ -7653,13 +7665,19 @@ const SR_ADDON_JS = `(function(){
       var dF = f7 - fP7, gR = rP ? (r7 - rP) / rP : NaN, gT = tP ? (t7 - tP) / tP : NaN;
       var lvl = !isFinite(f7) ? 0 : f7 > KPI ? (dF > 0.002 ? 3 : 2) : 1;
       var badge = ['', '🟢', '🟠', '🔴'][lvl];
-      var why = '';
-      if (isFinite(dF) && Math.abs(dF) > 0.002) {
-        if (dF > 0) why = isFinite(gR) && isFinite(gT) && gR > 0.03 && gR > gT ? 'FD xấu đi do vol trả tăng nhanh hơn đơn hoàn tất' : (isFinite(gT) && gT < -0.03 ? 'FD xấu đi chủ yếu do đơn hoàn tất giảm' : 'FD xấu đi so với 7 ngày trước');
-        else why = isFinite(gR) && gR < -0.03 ? 'FD cải thiện nhờ vol trả giảm' : (isFinite(gT) && gT > 0.03 ? 'FD cải thiện nhờ đơn hoàn tất tăng' : 'FD cải thiện so với 7 ngày trước');
-      } else why = 'FD đi ngang so với 7 ngày trước';
-      if (f7 > KPI) why += streak >= 3 ? ' — đang vượt KPI ' + streak + ' ngày liên tiếp, cần xử lý ngay' : (over >= 5 ? ' — vượt KPI phần lớn các ngày' : '');
-      else why += over ? ' — vẫn có ' + over + ' ngày vượt KPI' : ' — giữ dưới KPI cả 7 ngày';
+      // câu kết luận: nêu NGUYÊN NHÂN bằng số cụ thể của chính BC (tránh câu na ná nhau); chuỗi ngày vượt KPI để ở dòng chi tiết bên dưới
+      var pc = function(x){ return isFinite(x) ? dP(x) : '–'; }, pa = function(x){ return isFinite(x) ? (Math.abs(x) * 100).toFixed(1).replace('.', ',') + '%' : '–'; }, why;
+      if (isFinite(dF) && dF > 0.002) {
+        if (isFinite(gR) && isFinite(gT) && gR > 0.03 && gR > gT) why = 'Vol trả tăng ' + pa(gR) + ', nhanh hơn đơn hoàn tất (' + pc(gT) + ') → FD lên ' + fP(f7);
+        else if (isFinite(gT) && gT < -0.03) why = 'Đơn hoàn tất giảm ' + pa(gT) + (isFinite(gR) && gR < 0 ? ', nhiều hơn mức giảm vol trả (' + pa(gR) + ')' : ' trong khi vol trả ' + (isFinite(gR) && gR > 0 ? 'tăng ' + pa(gR) : 'đi ngang')) + ' → FD lên ' + fP(f7);
+        else why = 'FD tăng từ ' + fP(fP7) + ' lên ' + fP(f7);
+      } else if (isFinite(dF) && dF < -0.002) {
+        if (isFinite(gR) && gR < -0.03) why = 'Vol trả giảm ' + pa(gR) + ' → FD xuống ' + fP(f7);
+        else if (isFinite(gT) && gT > 0.03) why = 'Đơn hoàn tất tăng ' + pa(gT) + ' → FD xuống ' + fP(f7);
+        else why = 'FD giảm từ ' + fP(fP7) + ' xuống ' + fP(f7);
+        why += f7 > KPI ? ', vẫn trên KPI' : ', đã về dưới KPI';
+      } else why = 'FD giữ quanh ' + fP(f7) + (f7 > KPI ? ', chưa về KPI' : ', trong KPI');
+      if (f7 > KPI && over === 7) why += ' — vượt 5% cả 7 ngày';
       var li = function(t){ return '<div style="margin:2px 0">• ' + t + '</div>'; };
       return '<b>' + badge + ' ' + why + '.</b>' +
         li('FD 7 ngày <b>' + fP(f7) + '</b> ' + (f7 > KPI ? '(vượt KPI ' + dP(f7 - KPI).replace('+', '') + ')' : '(đạt KPI)') + ' · ' + arr(dF, true, dP(dF) + ' so 7 ngày trước (' + fP(fP7) + ')') + ' · <b>' + over + '/7</b> ngày vượt 5%' + (streak ? ', vượt liên tiếp <b>' + streak + '</b> ngày gần nhất' : '')) +
@@ -7684,7 +7702,7 @@ const SR_ADDON_JS = `(function(){
     var range = dl(win[0]) + ' – ' + dl(win[win.length - 1]);
     var sec = document.createElement('section'); sec.id = 'srTop10Sec';
     sec.innerHTML = '<h2><span class="n">·</span><span>Theo dõi top 10 BC giao trả TTS COD nhiều nhất <span class="scp">toàn vùng</span></span></h2>' +
-      '<div class="sub">Top 10 bưu cục giao theo tổng vol trả TTS COD 7 ngày (' + range + '). FD COD TTS = vol trả ÷ đơn hoàn tất, KPI ≤ 5% (đỏ = vượt). Cột "7 ngày" = cộng dồn 7 ngày gần nhất, mũi tên ▲▼ = so với 7 ngày liền trước (đỏ = xấu đi, xanh = tốt lên).</div>' +
+      '<div class="sub">Top 10 bưu cục giao theo tổng vol trả TTS COD 7 ngày (' + range + '). FD COD TTS = vol trả ÷ đơn hoàn tất, KPI ≤ 5% (đỏ = vượt). Cột "7 ngày" = cộng dồn 7 ngày gần nhất, đường xu hướng bên cạnh vẽ 7 ngày: đi lên = đỏ, đi xuống = xanh, gần như phẳng = xám.</div>' +
       '<h3 style="font-size:13.5px;margin:10px 0 6px">1. Vol trả (TTS COD)</h3>' + table('r') +
       '<h3 style="font-size:13.5px;margin:10px 0 6px">2. FD COD TTS</h3>' + table('fd') +
       '<h3 style="font-size:13.5px;margin:10px 0 6px">3. Đơn hoàn tất (TTS COD)</h3>' + table('t') +
