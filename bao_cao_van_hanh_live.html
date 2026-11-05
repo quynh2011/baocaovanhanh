@@ -7699,6 +7699,26 @@ const SR_ADDON_JS = `(function(){
       var tr = function(lbl, bs){ return '<tr style="background:#E8EEF6;font-weight:700"><td></td><td></td><td style="text-align:left">' + lbl + '</td><td></td>' + show.map(function(d){ return cell(kind, bs, d); }).join('') + cell(kind, bs, null) + '</tr>'; };
       return '<div class="tw" style="margin-bottom:14px"><table><thead>' + head + '</thead><tbody>' + body + tr('Tổng top 10', top) + tr('Vùng TNT', all) + '</tbody></table></div>';
     };
+    // ---- 5. danh sách FULL toàn vùng (2026-11-05): mọi BC có đơn, mặc định xếp vol trả 7 ngày cao → thấp; bấm tiêu đề cột để đổi cách xếp ----
+    var fullRows = all.map(function(b){ var r7 = sum(R, b, win), t7 = sum(T, b, win), rP = sum(R, b, prevWin), tP = sum(T, b, prevWin);
+        var over = win.filter(function(d){ var t = at(T, b, d); return t && at(R, b, d) / t > KPI; }).length;
+        return { b: b, r7: r7, t7: t7, f7: t7 ? r7 / t7 : NaN, dF: (t7 && tP) ? r7 / t7 - rP / tP : NaN, dR: r7 - rP, over: over }; })
+      .filter(function(x){ return x.r7 > 0 || x.t7 > 0; });
+    var fullHtml = function(key){
+      var list = fullRows.slice().sort(function(x, y){ var a = x[key], c = y[key]; a = isFinite(a) ? a : -1e9; c = isFinite(c) ? c : -1e9; return c - a || y.r7 - x.r7; });
+      var th = function(k, lbl, left){ return '<th style="position:sticky;top:0;z-index:1;cursor:pointer;' + (left ? 'text-align:left;' : '') + (key === k ? 'text-decoration:underline' : '') + '" onclick="srFullSort(\\'' + k + '\\')">' + lbl + (key === k ? ' ▼' : '') + '</th>'; };
+      var body = list.map(function(x, i){ var bc = D.bcs[x.b];
+        return '<tr' + (top.indexOf(x.b) >= 0 ? ' style="background:#FFF6E0"' : '') + '><td style="text-align:center">' + (i + 1) + '</td><td style="text-align:center">' + esc(bc[0]) + '</td><td style="text-align:left;white-space:nowrap">' + esc(bc[1]) + '</td><td style="text-align:left;white-space:nowrap">' + esc(tinhOf(bc)) + '</td>' +
+          '<td style="text-align:right;white-space:nowrap;font-weight:700">' + fN(x.r7) + spark(win.map(function(d){ return at(R, x.b, d); })) + '</td>' +
+          '<td style="text-align:right;white-space:nowrap">' + arr(x.dR, true, dN(x.dR)) + '</td>' +
+          '<td style="text-align:right;white-space:nowrap">' + fN(x.t7) + spark(win.map(function(d){ return at(T, x.b, d); })) + '</td>' +
+          '<td style="text-align:right;white-space:nowrap;font-weight:700;' + cP(x.f7) + '">' + fP(x.f7) + spark(win.map(function(d){ var t = at(T, x.b, d); return t ? at(R, x.b, d) / t : NaN; })) + '</td>' +
+          '<td style="text-align:right;white-space:nowrap">' + arr(x.dF, true, dP(x.dF)) + '</td>' +
+          '<td style="text-align:center' + (x.over >= 5 ? ';color:#C0392B;font-weight:700' : '') + '">' + x.over + '/7</td></tr>'; }).join('');
+      return '<div class="tw" style="max-height:640px;overflow:auto"><table><thead><tr>' + th('', 'Hạng') + '<th style="position:sticky;top:0;z-index:1">Mã BC</th><th style="position:sticky;top:0;z-index:1;text-align:left">BC giao</th><th style="position:sticky;top:0;z-index:1;text-align:left">Tỉnh</th>' +
+        th('r7', 'Vol trả 7 ngày') + th('dR', 'So 7 ngày trước') + th('t7', 'Đơn hoàn tất 7 ngày') + th('f7', 'FD COD TTS 7 ngày') + th('dF', 'FD so 7 ngày trước') + th('over', 'Số ngày vượt 5%') + '</tr></thead><tbody>' + body + '</tbody></table></div>';
+    };
+    window.srFullSort = function(k){ if (!k) return; var box = document.getElementById('srFullBox'); if (box) box.innerHTML = fullHtml(k); };
     var range = dl(win[0]) + ' – ' + dl(win[win.length - 1]);
     var sec = document.createElement('section'); sec.id = 'srTop10Sec';
     sec.innerHTML = '<h2><span class="n">·</span><span>Theo dõi top 10 BC giao trả TTS COD nhiều nhất <span class="scp">toàn vùng</span></span></h2>' +
@@ -7706,7 +7726,10 @@ const SR_ADDON_JS = `(function(){
       '<h3 style="font-size:13.5px;margin:10px 0 6px">1. Vol trả (TTS COD)</h3>' + table('r') +
       '<h3 style="font-size:13.5px;margin:10px 0 6px">2. FD COD TTS</h3>' + table('fd') +
       '<h3 style="font-size:13.5px;margin:10px 0 6px">3. Đơn hoàn tất (TTS COD)</h3>' + table('t') +
-      '<h3 style="font-size:13.5px;margin:14px 0 6px">4. Nhận xét từng bưu cục</h3>' + remarks();
+      '<h3 style="font-size:13.5px;margin:14px 0 6px">4. Nhận xét từng bưu cục</h3>' + remarks() +
+      '<h3 style="font-size:13.5px;margin:16px 0 4px">5. Danh sách toàn vùng (' + fullRows.length + ' BC) — xếp theo vol trả 7 ngày cao → thấp</h3>' +
+      '<div class="sub" style="max-width:none">Tô vàng = BC trong top 10. Bấm tiêu đề cột để xếp theo cột đó (cao → thấp). Đường xu hướng 7 ngày: lên = đỏ, xuống = xanh.</div>' +
+      '<div id="srFullBox">' + fullHtml('r7') + '</div>';
     var anchor = document.getElementById('fdtsec');
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(sec, anchor.nextSibling);
     else { var hd = document.querySelector('header.report-header'); if (hd && hd.parentNode) hd.parentNode.insertBefore(sec, hd.nextSibling); else document.body.appendChild(sec); }
