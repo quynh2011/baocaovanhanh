@@ -7580,6 +7580,8 @@ async function loadSReport(force){
       '["localStorage","sessionStorage"].forEach(function(n){try{window[n].length}catch(e){try{Object.defineProperty(window,n,{value:S(),configurable:true})}catch(_){}}})})();<\/script>';
     // bỏ ghi chú nguồn trong báo cáo gốc ("Nguồn: GHN Data API dd/mm/yyyy hh:mm (… → …)") theo yêu cầu chủ dự án
     html = html.replace(/(<b>)?Nguồn:(<\/b>)?\s*GHN Data API[^<.]*\)?\.?\s*(<br\s*\/?>)?/g, '');
+    // gắn bảng theo dõi bổ sung (chạy sau khi báo cáo gốc dựng xong)
+    html = /<\/body>/i.test(html) ? html.replace(/<\/body>(?![\s\S]*<\/body>)/i, () => '<script>' + SR_ADDON_JS + '<\/script></body>') : html + '<script>' + SR_ADDON_JS + '<\/script>';
     const hi = html.search(/<head[^>]*>/i);
     html = hi >= 0 ? html.replace(/<head[^>]*>/i, m => m + shim) : shim + html;
     if (SR.url) URL.revokeObjectURL(SR.url);
@@ -7594,6 +7596,55 @@ async function loadSReport(force){
     prog.finish('srLoading'); SR.loading = false;
   }
 }
+// ---- [S]-Report: bảng theo dõi bổ sung (2026-11-05) — chèn vào báo cáo gốc, tự tính từ dữ liệu trong file (D.FD_R_TTS / D.FD_T_TTS, BC × ngày) ----
+// Top 10 BC giao theo tổng vol trả TTS COD 7 ngày gần nhất → 3 bảng: Vol trả · FD COD TTS (= vol trả ÷ đơn hoàn tất) · Đơn hoàn tất. Nằm ngay sau mục "Bưu cục trả hàng nhiều nhất".
+const SR_ADDON_JS = `(function(){
+  if (typeof APP !== 'function') return;
+  var _APP = APP;
+  APP = function(D){ var r = _APP.apply(this, arguments); try { srAddTop10(D); } catch (e) { console.warn('[bảng bổ sung]', e); } return r; };
+  function srAddTop10(D){
+    var R = D.FD_R_TTS, T = D.FD_T_TTS; if (!R || !T || !D.bcs || !D.days) return;
+    var nd = D.days.length, nb = D.bcs.length, at = function(a, b, d){ return +a[b * nd + d] || 0; };
+    var last = -1; for (var d = nd - 1; d >= 0; d--) { var t = 0; for (var b = 0; b < nb; b++) t += at(T, b, d); if (t > 0) { last = d; break; } }
+    if (last < 7) return;
+    var show = []; for (var i = Math.max(0, last - 7); i <= last; i++) show.push(i);   // 8 ngày hiển thị
+    var win = show.slice(-7);                                                          // 7 ngày cộng dồn
+    var sum = function(a, b, ds){ return ds.reduce(function(s, d){ return s + at(a, b, d); }, 0); };
+    var rows = []; for (var b = 0; b < nb; b++) rows.push({ b: b, r7: sum(R, b, win) });
+    rows.sort(function(x, y){ return y.r7 - x.r7; }); var top = rows.slice(0, 10).map(function(x){ return x.b; });
+    var all = []; for (var b2 = 0; b2 < nb; b2++) all.push(b2);
+    var agg = function(a, bs, ds){ return bs.reduce(function(s, b){ return s + sum(a, b, ds); }, 0); };
+    var nf = new Intl.NumberFormat('vi-VN'), fN = function(x){ return nf.format(Math.round(x)); };
+    var fP = function(x){ return isFinite(x) ? (x * 100).toFixed(1).replace('.', ',') + '%' : '–'; };
+    var KPI = 0.05;
+    // tỉnh theo mã trong tên BC (tên tỉnh cũ như GHN đang dùng: (VPH) → Vĩnh Phúc…); mã lạ thì lấy theo dữ liệu
+    var TINH = { THN:'Thái Nguyên', VPH:'Vĩnh Phúc', HNA:'Hà Nam', TQU:'Tuyên Quang', HBI:'Hòa Bình', PTH:'Phú Thọ', NDI:'Nam Định', HAG:'Hà Giang', CBA:'Cao Bằng', BKA:'Bắc Kạn', NBI:'Ninh Bình' };
+    var tinhOf = function(bc){ var m = String(bc[1] || '').match(/^\\(([A-Z]{3})\\)/); return (m && TINH[m[1]]) || String(bc[3] || '').replace(/^Tỉnh\\s*/, '').replace(/^Thành phố\\s*/, ''); };
+    var cP = function(x){ return !isFinite(x) ? '' : (x > KPI ? 'background:#FDE2E1;color:#B42318;font-weight:600' : 'background:#E6F4EC;color:#0F6E56'); };
+    var dl = function(d){ var p = D.days[d].split('-'); return p[2] + '/' + p[1]; };
+    var esc = function(x){ return String(x).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); };
+    var head = '<tr><th>Hạng</th><th>Mã BC</th><th style="text-align:left">BC giao</th><th style="text-align:left">Tỉnh</th>' + show.map(function(d){ return '<th>' + dl(d) + '</th>'; }).join('') + '<th>7 ngày</th></tr>';
+    var cell = function(kind, bs, d){ var ds = d === null ? win : [d];
+      if (kind === 'fd') { var v = agg(R, bs, ds) / agg(T, bs, ds); return '<td style="text-align:right;' + cP(v) + (d === null ? ';font-weight:700' : '') + '">' + fP(v) + '</td>'; }
+      var v2 = agg(kind === 'r' ? R : T, bs, ds); return '<td style="text-align:right' + (d === null ? ';font-weight:700' : '') + '">' + fN(v2) + '</td>'; };
+    var table = function(kind){
+      var body = top.map(function(b, i){ var bc = D.bcs[b];
+        return '<tr><td style="text-align:center">' + (i + 1) + '</td><td style="text-align:center">' + esc(bc[0]) + '</td><td style="text-align:left;white-space:nowrap">' + esc(bc[1]) + '</td><td style="text-align:left;white-space:nowrap">' + esc(tinhOf(bc)) + '</td>' + show.map(function(d){ return cell(kind, [b], d); }).join('') + cell(kind, [b], null) + '</tr>'; }).join('');
+      var tr = function(lbl, bs){ return '<tr style="background:#E8EEF6;font-weight:700"><td></td><td></td><td style="text-align:left">' + lbl + '</td><td></td>' + show.map(function(d){ return cell(kind, bs, d); }).join('') + cell(kind, bs, null) + '</tr>'; };
+      return '<div class="tw" style="margin-bottom:14px"><table><thead>' + head + '</thead><tbody>' + body + tr('Tổng top 10', top) + tr('Vùng TNT', all) + '</tbody></table></div>';
+    };
+    var range = dl(win[0]) + ' – ' + dl(win[win.length - 1]);
+    var sec = document.createElement('section'); sec.id = 'srTop10Sec';
+    sec.innerHTML = '<h2><span class="n">·</span><span>Theo dõi top 10 BC giao trả TTS COD nhiều nhất <span class="scp">toàn vùng</span></span></h2>' +
+      '<div class="sub">Top 10 bưu cục giao theo tổng vol trả TTS COD 7 ngày (' + range + '). FD COD TTS = vol trả ÷ đơn hoàn tất, KPI ≤ 5% (đỏ = vượt). Cột "7 ngày" = cộng dồn 7 ngày gần nhất.</div>' +
+      '<h3 style="font-size:13.5px;margin:10px 0 6px">1. Vol trả (TTS COD)</h3>' + table('r') +
+      '<h3 style="font-size:13.5px;margin:10px 0 6px">2. FD COD TTS</h3>' + table('fd') +
+      '<h3 style="font-size:13.5px;margin:10px 0 6px">3. Đơn hoàn tất (TTS COD)</h3>' + table('t');
+    var anchor = document.getElementById('fdtsec');
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(sec, anchor.nextSibling);
+    else { var hd = document.querySelector('header.report-header'); if (hd && hd.parentNode) hd.parentNode.insertBefore(sec, hd.nextSibling); else document.body.appendChild(sec); }
+  }
+})();`;
 function srOpenFull(){ const f = document.getElementById('srFrame'); if (f && f.requestFullscreen) f.requestFullscreen().catch(() => {}); }
 
 async function main(){
