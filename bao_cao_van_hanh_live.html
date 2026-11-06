@@ -7938,6 +7938,25 @@ const SR_CA2_JS = `(function(){
         var bcRows = bs.slice().sort(function(a, b){ return wv([a], weeks[0].ds).p - wv([b], weeks[0].ds).p; }).map(function(b){ return wRow('<span style="padding-left:22px">' + esc(D.bcs[b][1]) + '</span>', '', [b], 'ca2w-bc', ' data-p="' + code + '" style="display:none;background:#FCFBF8"'); }).join('');
         return wRow('<span class="ca2w-tg" style="color:#2B5FA6;display:inline-block;width:14px">▸</span><b>' + esc(code) + '</b> <span style="color:#8A867D">· ' + bs.length + ' BC</span>', '', bs, 'ca2w-pv', ' data-code="' + code + '" style="cursor:pointer"') + bcRows; }).join('');
     var wkTbl = '<div id="srCa2Week">' + tbl(wkHead, wkBody) + '</div>';
+
+    // ===== top 10 BC sản lượng ca 2 lớn: tốt nhất / tệ nhất (06/11) — "sản lượng lớn" = về ca 2 TB/ngày ≥ trung vị các BC có ca 2 =====
+    var vols = rowsF.map(function(x){ return x.v2; }).sort(function(a, b){ return a - b; });
+    var med = vols.length ? vols[Math.floor(vols.length / 2)] : 0;
+    var big = rowsF.filter(function(x){ return x.v2 >= med; });
+    var best10 = big.slice().sort(function(a, b){ return b.p2 - a.p2 || b.v2 - a.v2; }).slice(0, 10);
+    var worst10 = big.slice().sort(function(a, b){ return a.p2 - b.p2 || b.v2 - a.v2; }).slice(0, 10);
+    var grp = function(L){ var v = 0, g = 0; L.forEach(function(x){ v += x.v2; g += x.g2; }); return { v: v, g: g, p: v ? g / v : NaN }; };
+    var gb = grp(best10), gw = grp(worst10);
+    var gain = Math.max(0, gw.v * w.p2 - gw.g); // nếu nhóm tệ lên bằng mức vùng
+    var gain2 = Math.max(0, gw.v * gb.p - gw.g); // nếu nhóm tệ lên bằng nhóm tốt
+    var t10 = function(L, good){ return tbl(thr(['Hạng','<Bưu cục','<Tỉnh','Về ca 2 TB/ngày','Giao ca 2 TB/ngày','% GTC ca 2','% GTC ca 1','Tỷ trọng ca 2','% GTC ca 2 so 7 ngày trước','Ngày giao 0 đơn ca 2']),
+      L.map(function(x, i){ var bc = D.bcs[x.b];
+        return '<tr><td style="text-align:center">' + (i + 1) + '</td>' + tdl('<b>' + esc(bc[1]) + '</b>') + tdl(esc(tinhOf(bc))) + td(fA(x.v2) + spark(x.vols, null)) + td(fA(x.g2)) +
+          td('<b>' + fP(x.p2) + '</b>' + spark(x.daily, 'up'), cP2(x.p2, w.p2)) + td(fP(x.p1)) + td(fP(x.sh)) + td(arr(x.dp, 'up', dP(x.dp))) + td(x.zero ? '<b style="color:' + BAD + '">' + x.zero + '</b>' : '0') + '</tr>'; }).join('') +
+      '<tr style="background:#E8EEF6;font-weight:700"><td></td>' + tdl('Cộng 10 BC') + '<td></td>' + td(fA(grp(L).v)) + td(fA(grp(L).g)) + td(fP(grp(L).p), cP2(grp(L).p, w.p2)) + '<td></td><td></td><td></td><td></td></tr>'); };
+    var cmpNote = '<div style="line-height:1.65;font-size:13px;margin:4px 0 8px">• Nhóm sản lượng lớn = <b>' + big.length + '</b> BC về từ <b>' + fA(med) + '</b> đơn ca 2/ngày trở lên (trung vị toàn vùng).' +
+      '<br>• 10 BC tốt nhất giao ca 2 <b style="color:' + GOOD + '">' + fP(gb.p) + '</b>, 10 BC tệ nhất chỉ <b style="color:' + BAD + '">' + fP(gw.p) + '</b> — chênh <b>' + pa(gb.p - gw.p) + '</b> dù cùng là BC nhận nhiều hàng ca 2.' +
+      '<br>• Nhóm tệ về TB <b>' + fA(gw.v) + '</b> đơn ca 2/ngày. Nếu lên bằng mức vùng (' + fP(w.p2) + ') → giao thêm ~<b>' + fA(gain) + '</b> đơn/ngày; nếu lên bằng nhóm tốt (' + fP(gb.p) + ') → thêm ~<b>' + fA(gain2) + '</b> đơn/ngày, giảm tương ứng tồn hôm sau.</div>';
     var sec = document.createElement('section'); sec.id = 'srCa2Sec';
     sec.innerHTML = '<h2><span class="n">·</span><span>Phân tích hàng ca 2 <span class="scp">toàn vùng</span></span></h2>' +
       note('Ca 2 = đơn nhập về bưu cục giao từ 9h đến 15h (ca 1: trước 9h · ca 3: sau 15h, tính cho hôm sau). % GTC ca 2 = số đơn ca 2 giao thành công trong ngày ÷ số đơn về ca 2. Số liệu 7 ngày ' + dl(win[0]) + ' – ' + dl(last) + ', tất cả nhóm khách hàng; số đơn hiển thị là <b>trung bình 1 ngày</b> (bảng theo ngày là số từng ngày). Màu % GTC ca 2: đỏ &lt; 25% · cam dưới mức vùng (' + fP(w.p2) + ') · xanh từ mức vùng trở lên.') +
@@ -7949,8 +7968,11 @@ const SR_CA2_JS = `(function(){
       h3('3. Diễn biến theo ngày (14 ngày)') + note('Hàng xám = Chủ nhật. "Ca 2 / tổng đơn mới chưa giao" = trong số đơn về ca 1 + ca 2 không giao được trong ngày, bao nhiêu % là của ca 2.') + dayTbl +
       h3('4. Theo nhóm khách hàng (7 ngày)') + khTbl +
       h3('5. Theo thứ trong tuần (4 tuần gần nhất)') + dowTbl +
-      h3('6. Top 15 bưu cục nhiều đơn ca 2 chưa giao nhất (7 ngày) — nhận xét từng bưu cục') + note('🔴 giao ca 2 &lt; 25% · 🟠 dưới mức vùng · 🟢 từ mức vùng trở lên. Đường xu hướng % GTC ca 2: lên = xanh, xuống = đỏ.') + topTbl +
-      h3('7. Danh sách toàn vùng (' + rowsF.length + ' BC)') + note('Số đơn = trung bình 1 ngày trong 7 ngày. Chỉ tính BC về ≥ 10 đơn ca 2 trong 7 ngày. Mặc định xếp theo số đơn ca 2 chưa giao, cao → thấp. Bấm tiêu đề cột để xếp lại (bấm lần nữa để đảo chiều). Tô vàng = BC trong top 15.') +
+      h3('6. Top 10 bưu cục sản lượng ca 2 lớn — tốt nhất & tệ nhất') + cmpNote +
+      '<div style="font-weight:700;color:' + GOOD + ';margin:8px 0 4px">6a. 10 BC giao ca 2 TỐT nhất</div>' + t10(best10, true) +
+      '<div style="font-weight:700;color:' + BAD + ';margin:12px 0 4px">6b. 10 BC giao ca 2 TỆ nhất</div>' + t10(worst10, false) +
+      h3('7. Top 15 bưu cục nhiều đơn ca 2 chưa giao nhất (7 ngày) — nhận xét từng bưu cục') + note('🔴 giao ca 2 &lt; 25% · 🟠 dưới mức vùng · 🟢 từ mức vùng trở lên. Đường xu hướng % GTC ca 2: lên = xanh, xuống = đỏ.') + topTbl +
+      h3('8. Danh sách toàn vùng (' + rowsF.length + ' BC)') + note('Số đơn = trung bình 1 ngày trong 7 ngày. Chỉ tính BC về ≥ 10 đơn ca 2 trong 7 ngày. Mặc định xếp theo số đơn ca 2 chưa giao, cao → thấp. Bấm tiêu đề cột để xếp lại (bấm lần nữa để đảo chiều). Tô vàng = BC trong top 15.') +
       '<div id="srCa2Full">' + fullHtml('left', false) + '</div>';
     sec.querySelector('#srCa2Week').addEventListener('click', function(e){ var tr = e.target.closest ? e.target.closest('tr[data-code]') : null; if (!tr) return;
       var code = tr.getAttribute('data-code'), open = tr.getAttribute('data-open') !== '1'; tr.setAttribute('data-open', open ? '1' : '0');
