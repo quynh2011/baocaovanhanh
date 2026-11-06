@@ -7808,6 +7808,7 @@ const SR_CA2_JS = `(function(){
     var V = function(ds){ var o = { v1: vsum('VE_C1', ds), v2: vsum('VE_C2', ds), v3: vsum('VE_C3', ds), g1: vsum('GTC_C1', ds), g2: vsum('GTC_C2', ds), g3: vsum('GTC_C3', ds) };
       o.p1 = o.g1 / o.v1; o.p2 = o.g2 / o.v2; o.share = o.v2 / (o.v1 + o.v2 + o.v3); o.left2 = o.v2 - o.g2; o.left1 = o.v1 - o.g1; return o; };
     var w = V(win), pw = V(prev);
+    var nW = win.length, fA = function(x){ return fN(x / nW); }; // số đơn hiển thị = TRUNG BÌNH 1 NGÀY trong 7 ngày (chủ dự án yêu cầu 06/11)
     var GOOD = '#0F6E56', BAD = '#C0392B';
     var cP2 = function(p, ref){ return !isFinite(p) ? '' : p < 0.25 ? 'background:#FDE2E1;color:#B42318;font-weight:600' : p < ref ? 'background:#FFF1DC;color:#9A5B00' : 'background:#E6F4EC;color:#0F6E56'; };
 
@@ -7822,8 +7823,8 @@ const SR_CA2_JS = `(function(){
     for (var h = 0; h < nh; h++) { var v2 = hsum('VE_C2', h, win), g2 = hsum('GTC_C2', h, win), v1 = hsum('VE_C1', h, win), g1 = hsum('GTC_C1', h, win), pv2 = hsum('VE_C2', h, prev), pg2 = hsum('GTC_C2', h, prev);
       if (!v2) continue; khRows.push({ h: h, v2: v2, p2: g2 / v2, p1: g1 / v1, d: g2 / v2 - pg2 / pv2, left: v2 - g2, sh: v2 / w.v2 }); }
     khRows.sort(function(a, b){ return b.left - a.left; });
-    var khTbl = tbl(thr(['<Nhóm khách hàng','Về ca 2 (7 ngày)','% hàng ca 2 của vùng','% GTC ca 2','% GTC ca 1','Chênh ca 2 − ca 1','% GTC ca 2 so 7 ngày trước','Ca 2 chưa giao']),
-      khRows.map(function(x){ return '<tr>' + tdl('<b>' + esc(KH[khs[x.h]] || khs[x.h]) + '</b>') + td(fN(x.v2)) + td(fP(x.sh)) + td('<b>' + fP(x.p2) + '</b>', cP2(x.p2, w.p2)) + td(fP(x.p1)) + td(dP(x.p2 - x.p1), 'color:' + BAD) + td(arr(x.d, 'up', dP(x.d))) + td(fN(x.left)) + '</tr>'; }).join(''));
+    var khTbl = tbl(thr(['<Nhóm khách hàng','Về ca 2 TB/ngày','% hàng ca 2 của vùng','% GTC ca 2','% GTC ca 1','Chênh ca 2 − ca 1','% GTC ca 2 so 7 ngày trước','Ca 2 chưa giao TB/ngày']),
+      khRows.map(function(x){ return '<tr>' + tdl('<b>' + esc(KH[khs[x.h]] || khs[x.h]) + '</b>') + td(fA(x.v2)) + td(fP(x.sh)) + td('<b>' + fP(x.p2) + '</b>', cP2(x.p2, w.p2)) + td(fP(x.p1)) + td(dP(x.p2 - x.p1), 'color:' + BAD) + td(arr(x.d, 'up', dP(x.d))) + td(fA(x.left)) + '</tr>'; }).join(''));
 
     // ===== C. theo thứ trong tuần (28 ngày) =====
     var byDow = [0,1,2,3,4,5,6].map(function(k){ var ds = d28.filter(function(d){ return dow(d) === k; }); var o = V(ds); o.n = ds.length; o.k = k; return o; });
@@ -7855,7 +7856,7 @@ const SR_CA2_JS = `(function(){
     var remark = function(x){
       var lvl = x.p2 < 0.25 ? 3 : x.p2 < w.p2 ? 2 : 1, badge = ['', '🟢', '🟠', '🔴'][lvl];
       // câu kết luận bằng số riêng của BC + chỉ thêm nguyên nhân nào thực sự đúng với BC đó (tránh câu lặp giữa các BC)
-      var head = 'Về ' + fN(x.v2) + ' đơn ca 2, giao ' + fN(x.g2) + ' (' + fP(x.p2) + ') → ' + fN(x.left) + ' đơn dồn sang hôm sau', why = [];
+      var head = 'TB mỗi ngày về ' + fA(x.v2) + ' đơn ca 2, giao ' + fA(x.g2) + ' (' + fP(x.p2) + ') → ' + fA(x.left) + ' đơn/ngày dồn sang hôm sau', why = [];
       if (x.sh > 0.4) why.push('hàng về dồn vào ca 2 (' + fP(x.sh) + ' tổng hàng về, vùng ' + fP(w.share) + ') → xe về muộn, nên đẩy chuyến sớm hơn');
       else if (isFinite(x.p1) && x.p1 - x.p2 > 0.5) why.push('ca 1 giao ' + fP(x.p1) + ' → thiếu tuyến/chuyến chiều cho hàng ca 2');
       if (isFinite(x.dp) && x.dp > 0.05) why.push('đang cải thiện ' + dP(x.dp) + ' so 7 ngày trước');
@@ -7864,19 +7865,19 @@ const SR_CA2_JS = `(function(){
       var li = function(t){ return '<div style="margin:2px 0">• ' + t + '</div>'; };
       return '<b>' + badge + ' ' + head + '.</b>' +
         li('Chiếm <b>' + fP(x.left / totLeft) + '</b> số đơn ca 2 chưa giao của vùng' + (x.sh > 0.4 ? '' : ' · hàng ca 2 = ' + fP(x.sh) + ' hàng về của BC (vùng ' + fP(w.share) + ')')) +
-        li('% GTC ca 2 ' + arr(x.dp, 'up', dP(x.dp) + ' so 7 ngày trước') + ' · về ca 2 ' + arr(x.dv, null, (x.dv > 0 ? '+' : x.dv < 0 ? '−' : '') + fN(Math.abs(x.dv)) + ' đơn so 7 ngày trước')) +
+        li('% GTC ca 2 ' + arr(x.dp, 'up', dP(x.dp) + ' so 7 ngày trước') + ' · về ca 2 TB/ngày ' + arr(x.dv, null, (x.dv > 0 ? '+' : x.dv < 0 ? '−' : '') + fA(Math.abs(x.dv)) + ' đơn so 7 ngày trước')) +
         li('Ngày kém nhất ' + DOW[dow(x.worst)] + ' ' + dl(x.worst) + ': về ' + fN(A.VE_C2[x.b * nd + x.worst]) + ', giao ' + fN(A.GTC_C2[x.b * nd + x.worst]) + (x.zero ? ' · <b style="color:' + BAD + '">' + x.zero + ' ngày</b> về ≥ 10 đơn ca 2 mà giao 0 đơn' : ''));
     };
-    var topTbl = tbl(thr(['Hạng','<Bưu cục','Về ca 2 (7 ngày)','% GTC ca 2','% GTC ca 1','Ca 2 chưa giao','<Nhận xét']),
+    var topTbl = tbl(thr(['Hạng','<Bưu cục','Về ca 2 TB/ngày','% GTC ca 2','% GTC ca 1','Ca 2 chưa giao TB/ngày','<Nhận xét']),
       top.map(function(x, i){ var bc = D.bcs[x.b];
         return '<tr><td style="text-align:center;vertical-align:top">' + (i + 1) + '</td><td style="text-align:left;vertical-align:top;white-space:nowrap"><b>' + esc(bc[1]) + '</b><div style="color:#8A867D;font-size:11.5px">' + esc(tinhOf(bc)) + '</div></td>' +
-          '<td style="text-align:right;vertical-align:top;white-space:nowrap">' + fN(x.v2) + spark(x.vols, null) + '</td>' +
+          '<td style="text-align:right;vertical-align:top;white-space:nowrap">' + fA(x.v2) + spark(x.vols, null) + '</td>' +
           '<td style="text-align:right;vertical-align:top;white-space:nowrap;' + cP2(x.p2, w.p2) + '"><b>' + fP(x.p2) + '</b>' + spark(x.daily, 'up') + '</td>' +
-          '<td style="text-align:right;vertical-align:top">' + fP(x.p1) + '</td><td style="text-align:right;vertical-align:top"><b>' + fN(x.left) + '</b></td>' +
+          '<td style="text-align:right;vertical-align:top">' + fP(x.p1) + '</td><td style="text-align:right;vertical-align:top"><b>' + fA(x.left) + '</b></td>' +
           '<td style="text-align:left;white-space:normal;line-height:1.55;min-width:420px">' + remark(x) + '</td></tr>'; }).join(''));
 
     // ===== E. danh sách toàn vùng (bấm tiêu đề để xếp) =====
-    var COLS = [['v2','Về ca 2 (7 ngày)'],['sh','Tỷ trọng ca 2'],['p2','% GTC ca 2'],['dp','% GTC ca 2 so 7 ngày trước'],['p1','% GTC ca 1'],['gap','Chênh ca 1 − ca 2'],['left','Ca 2 chưa giao'],['zero','Ngày giao 0 đơn ca 2']];
+    var COLS = [['v2','Về ca 2 TB/ngày'],['sh','Tỷ trọng ca 2'],['p2','% GTC ca 2'],['dp','% GTC ca 2 so 7 ngày trước'],['p1','% GTC ca 1'],['gap','Chênh ca 1 − ca 2'],['left','Ca 2 chưa giao TB/ngày'],['zero','Ngày giao 0 đơn ca 2 (7 ngày)']];
     rows.forEach(function(x){ x.gap = x.p1 - x.p2; });
     var rowsF = rows.filter(function(x){ return x.v2 >= 10; }); // bỏ BC về ca 2 < 10 đơn/7 ngày (tỷ lệ % không có ý nghĩa)
     var fullHtml = function(key, asc){
@@ -7885,16 +7886,16 @@ const SR_CA2_JS = `(function(){
         COLS.map(function(c){ return '<th data-k="' + c[0] + '" style="position:sticky;top:0;z-index:1;cursor:pointer' + (key === c[0] ? ';text-decoration:underline' : '') + '">' + c[1] + (key === c[0] ? (asc ? ' ▲' : ' ▼') : '') + '</th>'; }).join('') + '</tr>';
       var body = list.map(function(x, i){ var bc = D.bcs[x.b];
         return '<tr' + (top.indexOf(x) >= 0 ? ' style="background:#FFF6E0"' : '') + '><td style="text-align:center">' + (i + 1) + '</td>' + tdl(esc(bc[1])) + tdl(esc(tinhOf(bc))) +
-          td(fN(x.v2) + spark(x.vols, null)) + td(fP(x.sh)) + td('<b>' + fP(x.p2) + '</b>' + spark(x.daily, 'up'), cP2(x.p2, w.p2)) + td(arr(x.dp, 'up', dP(x.dp))) + td(fP(x.p1)) + td(dP(x.gap).replace('+', '')) + td('<b>' + fN(x.left) + '</b>') + td(x.zero ? '<b style="color:' + BAD + '">' + x.zero + '</b>' : '0') + '</tr>'; }).join('');
+          td(fA(x.v2) + spark(x.vols, null)) + td(fP(x.sh)) + td('<b>' + fP(x.p2) + '</b>' + spark(x.daily, 'up'), cP2(x.p2, w.p2)) + td(arr(x.dp, 'up', dP(x.dp))) + td(fP(x.p1)) + td(dP(x.gap).replace('+', '')) + td('<b>' + fA(x.left) + '</b>') + td(x.zero ? '<b style="color:' + BAD + '">' + x.zero + '</b>' : '0') + '</tr>'; }).join('');
       return tbl(head, body, 'max-height:640px;overflow:auto');
     };
 
     // ===== kết luận chính (có số chứng minh) =====
     var worstKh = khRows.slice().sort(function(a, b){ return a.p2 - b.p2; })[0];
     var findings = [
-      'Hàng ca 2 (nhập 9h–15h) chỉ giao được <b>' + fP(w.p2) + '</b> trong ngày, trong khi ca 1 đạt <b>' + fP(w.p1) + '</b> — thấp hơn <b>' + pa(w.p1 - w.p2) + '</b>. 7 ngày ' + dl(win[0]) + '–' + dl(last) + ' có <b>' + fN(w.v2) + '</b> đơn về ca 2, <b>' + fN(w.left2) + '</b> đơn không giao kịp trong ngày (TB ' + fN(w.left2 / 7) + ' đơn/ngày) → dồn thành tồn hôm sau.',
+      'Hàng ca 2 (nhập 9h–15h) chỉ giao được <b>' + fP(w.p2) + '</b> trong ngày, trong khi ca 1 đạt <b>' + fP(w.p1) + '</b> — thấp hơn <b>' + pa(w.p1 - w.p2) + '</b>. Trung bình mỗi ngày (' + dl(win[0]) + '–' + dl(last) + ') về <b>' + fA(w.v2) + '</b> đơn ca 2, <b>' + fA(w.left2) + '</b> đơn không giao kịp trong ngày → dồn thành tồn hôm sau.',
       'Ca 2 chỉ chiếm <b>' + fP(w.share) + '</b> hàng về nhưng gây ra <b>' + fP(w.left2 / (w.left1 + w.left2)) + '</b> số đơn mới (ca 1 + ca 2) không giao được trong ngày.',
-      'So với 7 ngày trước: % GTC ca 2 ' + arr(w.p2 - pw.p2, 'up', dP(w.p2 - pw.p2) + ' (' + fP(pw.p2) + ' → ' + fP(w.p2) + ')') + ', lượng về ca 2 ' + arr(w.v2 - pw.v2, null, (w.v2 >= pw.v2 ? '+' : '−') + fN(Math.abs(w.v2 - pw.v2)) + ' đơn') + '.',
+      'So với 7 ngày trước: % GTC ca 2 ' + arr(w.p2 - pw.p2, 'up', dP(w.p2 - pw.p2) + ' (' + fP(pw.p2) + ' → ' + fP(w.p2) + ')') + ', về ca 2 TB/ngày ' + arr(w.v2 - pw.v2, null, (w.v2 >= pw.v2 ? '+' : '−') + fA(Math.abs(w.v2 - pw.v2)) + ' đơn (' + fA(pw.v2) + ' → ' + fA(w.v2) + ')') + '.',
       'Tập trung: <b>' + n50 + '/' + rows.length + '</b> bưu cục gánh 50% số đơn ca 2 chưa giao; top 15 bưu cục ở bảng dưới chiếm <b>' + fP(topLeft / totLeft) + '</b>.',
       low.length ? '<b>' + low.length + '</b> bưu cục (về ≥ 70 đơn ca 2/7 ngày) giao ca 2 dưới 25%: ' + low.slice(0, 8).sort(function(a, b){ return a.p2 - b.p2; }).map(function(x){ return nm(x) + ' ' + fP(x.p2); }).join(', ') + (low.length > 8 ? '…' : '') + '.' : 'Không có bưu cục lớn nào giao ca 2 dưới 25%.',
       gapBig.length ? '<b>' + gapBig.length + '</b> bưu cục ca 1 tốt nhưng ca 2 thấp hơn trên 50% (vd ' + gapBig.slice(0, 5).map(function(x){ return nm(x) + ': ca 1 ' + fP(x.p1) + ' / ca 2 ' + fP(x.p2); }).join('; ') + ') → có năng lực giao, vấn đề là không có tuyến/chuyến giao buổi chiều cho hàng về giữa ngày.' : '',
@@ -7905,16 +7906,16 @@ const SR_CA2_JS = `(function(){
 
     var sec = document.createElement('section'); sec.id = 'srCa2Sec';
     sec.innerHTML = '<h2><span class="n">·</span><span>Phân tích hàng ca 2 <span class="scp">toàn vùng</span></span></h2>' +
-      note('Ca 2 = đơn nhập về bưu cục giao từ 9h đến 15h (ca 1: trước 9h · ca 3: sau 15h, tính cho hôm sau). % GTC ca 2 = số đơn ca 2 giao thành công trong ngày ÷ số đơn về ca 2. Số liệu 7 ngày ' + dl(win[0]) + ' – ' + dl(last) + ', tất cả nhóm khách hàng. Màu % GTC ca 2: đỏ &lt; 25% · cam dưới mức vùng (' + fP(w.p2) + ') · xanh từ mức vùng trở lên.') +
+      note('Ca 2 = đơn nhập về bưu cục giao từ 9h đến 15h (ca 1: trước 9h · ca 3: sau 15h, tính cho hôm sau). % GTC ca 2 = số đơn ca 2 giao thành công trong ngày ÷ số đơn về ca 2. Số liệu 7 ngày ' + dl(win[0]) + ' – ' + dl(last) + ', tất cả nhóm khách hàng; số đơn hiển thị là <b>trung bình 1 ngày</b> (bảng theo ngày là số từng ngày). Màu % GTC ca 2: đỏ &lt; 25% · cam dưới mức vùng (' + fP(w.p2) + ') · xanh từ mức vùng trở lên.') +
       '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:10px 0">' +
-        [['Về ca 2 (7 ngày)', fN(w.v2), fP(w.share) + ' tổng hàng về'], ['% GTC ca 2', fP(w.p2), 'ca 1: ' + fP(w.p1)], ['Ca 2 chưa giao trong ngày', fN(w.left2), 'TB ' + fN(w.left2 / 7) + ' đơn/ngày'], ['So 7 ngày trước', dP(w.p2 - pw.p2), '% GTC ca 2: ' + fP(pw.p2) + ' → ' + fP(w.p2)]]
+        [['Về ca 2 · TB/ngày', fA(w.v2), fP(w.share) + ' tổng hàng về · cả 7 ngày ' + fN(w.v2)], ['% GTC ca 2', fP(w.p2), 'ca 1: ' + fP(w.p1)], ['Ca 2 chưa giao · TB/ngày', fA(w.left2), 'cả 7 ngày ' + fN(w.left2)], ['So 7 ngày trước', dP(w.p2 - pw.p2), '% GTC ca 2: ' + fP(pw.p2) + ' → ' + fP(w.p2)]]
         .map(function(c, i){ return '<div style="flex:1;min-width:170px;background:#fff;border:1px solid #E8E5DF;border-radius:10px;padding:10px 12px"><div style="font-size:11.5px;color:#8A867D">' + c[0] + '</div><div style="font-size:22px;font-weight:700;margin:2px 0;color:' + (i === 1 ? BAD : i === 3 ? (w.p2 >= pw.p2 ? GOOD : BAD) : '#1F1E1B') + '">' + c[1] + '</div><div style="font-size:11.5px;color:#6B6860">' + c[2] + '</div></div>'; }).join('') + '</div>' +
       h3('1. Kết luận chính') + '<div style="line-height:1.65;font-size:13px">' + findings.map(function(f){ return '<div style="margin:3px 0">• ' + f + '</div>'; }).join('') + '</div>' +
       h3('2. Diễn biến theo ngày (14 ngày)') + note('Hàng xám = Chủ nhật. "Ca 2 / tổng đơn mới chưa giao" = trong số đơn về ca 1 + ca 2 không giao được trong ngày, bao nhiêu % là của ca 2.') + dayTbl +
       h3('3. Theo nhóm khách hàng (7 ngày)') + khTbl +
       h3('4. Theo thứ trong tuần (4 tuần gần nhất)') + dowTbl +
       h3('5. Top 15 bưu cục nhiều đơn ca 2 chưa giao nhất (7 ngày) — nhận xét từng bưu cục') + note('🔴 giao ca 2 &lt; 25% · 🟠 dưới mức vùng · 🟢 từ mức vùng trở lên. Đường xu hướng % GTC ca 2: lên = xanh, xuống = đỏ.') + topTbl +
-      h3('6. Danh sách toàn vùng (' + rowsF.length + ' BC)') + note('Chỉ tính BC về ≥ 10 đơn ca 2 trong 7 ngày. Mặc định xếp theo số đơn ca 2 chưa giao, cao → thấp. Bấm tiêu đề cột để xếp lại (bấm lần nữa để đảo chiều). Tô vàng = BC trong top 15.') +
+      h3('6. Danh sách toàn vùng (' + rowsF.length + ' BC)') + note('Số đơn = trung bình 1 ngày trong 7 ngày. Chỉ tính BC về ≥ 10 đơn ca 2 trong 7 ngày. Mặc định xếp theo số đơn ca 2 chưa giao, cao → thấp. Bấm tiêu đề cột để xếp lại (bấm lần nữa để đảo chiều). Tô vàng = BC trong top 15.') +
       '<div id="srCa2Full">' + fullHtml('left', false) + '</div>';
     var box = sec.querySelector('#srCa2Full'), cur = 'left', asc = false;
     box.addEventListener('click', function(e){ var th = e.target.closest ? e.target.closest('th[data-k]') : null; if (!th) return; var k = th.getAttribute('data-k'); asc = (k === cur) ? !asc : false; cur = k; box.innerHTML = fullHtml(k, asc); });
