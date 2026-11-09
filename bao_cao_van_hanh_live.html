@@ -797,6 +797,25 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-warn{background:#FFF3E8;border:1px solid #F5C9A6;color:#9A3F12;border-radius:8px;padding:8px 12px;margin:8px 0;font-size:13px}
 .tnt-empty{padding:40px;text-align:center;color:#8A8170}
 .tnt-note{font-size:12px;color:#8A8170;margin-top:8px}
+.tnt-h3{font-size:15px;font-weight:800;margin:16px 0 8px;color:#2B2618}
+.tnt-h3 span{font-size:12px;font-weight:500;color:#7A6E52;margin-left:6px}
+.tnt-tw{overflow-x:auto;border:1px solid #D9CDB0;border-radius:10px;background:#FFFDF7}
+.tnt-tb{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;min-width:100%}
+.tnt-tb th,.tnt-tb td{font-family:inherit;border:0}
+.tnt-tb thead tr:first-child th{background:#2F5E9E;color:#fff;font-size:12.5px;font-weight:700;text-align:right;padding:7px 10px;line-height:1.2;white-space:nowrap;border-right:1px solid rgba(255,255,255,.18);letter-spacing:0}
+.tnt-tb thead tr:first-child th:first-child{text-align:left;padding-left:12px;position:sticky;left:0;z-index:2;font-size:13px}
+.tnt-tb thead th small{display:block;font-weight:500;opacity:.85;font-size:11px}
+.tnt-tb thead tr:first-child th.tnt-cn{background:#C2541E}
+.tnt-tb td{padding:6px 10px;text-align:right;border-bottom:1px solid #EDE4CF;white-space:nowrap;font-size:13.5px}
+.tnt-tb td small{display:block;font-size:11px;color:#9A8F74;font-family:var(--mono)}
+.tnt-tb td.tnt-cn{background:#F9EADF}
+.tnt-tb td:first-child{text-align:left;position:sticky;left:0;background:#FFFDF7;z-index:1;min-width:250px;border-right:1px solid #EDE4CF;font-size:13.5px}
+.tnt-tb tr.tnt-g td{font-weight:800;background:#F7F1E2}
+.tnt-tb tr.tnt-g td.tnt-cn{background:#F2DFD0}
+.tnt-tb tr.tnt-g td:first-child{background:#EFE6CF;cursor:pointer}
+.tnt-tb tr.tnt-s td:first-child{padding-left:30px}
+.tnt-tb tr.tnt-off td{opacity:.4}
+.tnt-tb .tnt-tg{display:inline-block;width:14px;color:#2F5E9E}
 @media (max-width:1100px){.tnt-kpis{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:900px){   .tnt-chartrow{grid-template-columns:1fr}.tnt-kpis{grid-template-columns:1fr 1fr}}
 </style>
@@ -1061,6 +1080,7 @@ td.dn-keycol{background:#FBF7EE}
     <div class="tnt-wrap" id="tntBody" style="display:none">
       <div id="tntCtl"></div>
       <div class="tnt-h"><h2>I · Tổng quan giao hàng</h2><span id="tntScopeLab"></span></div>
+      <div class="tnt-h3">1. Biểu đồ tổng quan</div>
       <div class="tnt-kpis" id="tntKpis"></div>
       <div id="tntMiss"></div>
       <div class="tnt-legend" id="tntLegend"></div>
@@ -1069,6 +1089,8 @@ td.dn-keycol{background:#FBF7EE}
         <div class="tnt-panel" id="tntPanel"></div>
       </div>
       <div class="tnt-note">Cột = sản lượng cần giao (Ca 1 + Ca 2 + Hàng tồn, cột Volume). Năng suất = đơn giao thành công (cột Đơn GTC). % GTC = Đơn GTC ÷ Volume · % Gán = Đơn gán ÷ Volume. Bấm chú thích để bật/tắt từng phần (tắt Ca/Tồn thì các chỉ số tính lại theo phần còn bật). Rê chuột vào cột để xem số, bấm để ghim. Xem theo tuần: số đơn là trung bình 1 ngày, tuần có * là chưa đủ 7 ngày.</div>
+      <div class="tnt-h3">2. Bảng số liệu tổng quan <span id="tntTblSub"></span></div>
+      <div id="tntTbl"></div>
     </div>
   </div>
   <div id="vhNgay" class="vh-pane">
@@ -7851,6 +7873,36 @@ function tntSet(k, v) { TNT[k] = v; TNT.pin = -1; tntRender(); }
 function tntStep(d) { const o = tntEntOptions(); if (!o.length) return; let i = o.indexOf(TNT.ent) + d; if (i < 0) i = o.length - 1; if (i >= o.length) i = 0; TNT.ent = o[i]; tntRender(); }
 function tntQuick(n) { const D = TNT.data.dates; n = +n; if (n) tntDefaultRange(n); else { TNT.to = D[D.length - 1]; TNT.from = D[0]; } TNT.pin = -1; tntRender(); }
 function tntToggle(kind, k) { TNT[kind][k] = TNT[kind][k] ? 0 : 1; if (kind === 'parts' && !TNT.parts.ca1 && !TNT.parts.ca2 && !TNT.parts.ton) TNT.parts[k] = 1; tntRender(); }
+// 2. Bảng số liệu tổng quan — dạng bảng ngày của [S]-Report: cột = ngày/tuần (mới → cũ, CN tô cam), dòng = nhóm chỉ số + chi tiết Ca 1/Ca 2/Tồn
+const TNT_TBL = [
+  ['v', '1. Cần giao (ca 1 + ca 2 + tồn)', '', (q) => q.v, (q, c) => c.v ? q.v / c.v : null, null],
+  ['g', '2. Đơn gán', 'Gán ', (q) => q.g, (q) => q.v ? q.g / q.v : null, (c) => c.gan],
+  ['k', '3. GTC — năng suất (ca 1 + ca 2 + tồn)', 'GTC ', (q) => q.k, (q) => q.v ? q.k / q.v : null, (c) => c.gtc],
+  ['t', '4. Chưa giao (cần giao − GTC)', 'Chưa giao ', (q) => q.v - q.k, (q) => q.v ? (q.v - q.k) / q.v : null, (c) => c.v ? (c.v - c.k) / c.v : null]
+];
+function tntTblToggle(k) { TNT.tblShut = TNT.tblShut || {}; TNT.tblShut[k] = !TNT.tblShut[k]; document.getElementById('tntTbl').innerHTML = tntTableHtml(); }
+function tntTableHtml() {
+  const cols = TNT.cols.slice().reverse(); if (!cols.length) return '';
+  const shut = TNT.tblShut || {}, day = TNT.mode === 'day';
+  const D = TNT.data, col = { tinh: 2, am: 1, bc: 0 }[TNT.scope];
+  const nBC = TNT.scope === 'all' || !TNT.ent ? D.ents.length : D.ents.filter((e) => e[col] === TNT.ent).length;
+  const scopeLab = TNT.scope === 'all' || !TNT.ent ? 'Vùng TNT' : TNT.ent;
+  const cn = (c) => day && c.sub === 'CN' ? ' class="tnt-cn"' : '';
+  const v = (c, x) => tntN(tntPerDay(c, x));
+  let h = '<div class="tnt-tw"><table class="tnt-tb"><thead><tr><th>' + esc(scopeLab) + ' · ' + nBC + ' BC' + (TNT.cust === 'tts' ? ' · TTS' : '') + '</th>' +
+    cols.map((c) => '<th' + cn(c) + '>' + esc(c.lab) + '<small>' + esc(day ? c.sub : c.sub) + '</small></th>').join('') + '</tr></thead><tbody>';
+  const tot = { v: (c) => c.v, g: (c) => c.g, k: (c) => c.k, t: (c) => c.v - c.k };
+  TNT_TBL.forEach(([k, title, pre, fv, fp, ftp]) => {
+    h += '<tr class="tnt-g" onclick="tntTblToggle(\'' + k + '\')"><td><span class="tnt-tg">' + (shut[k] ? '▸' : '▾') + '</span>' + title + '</td>' +
+      cols.map((c) => { const p = ftp ? ftp(c) : null; return '<td' + cn(c) + '>' + v(c, tot[k](c)) + (p !== null && p !== undefined ? '<small>' + tntP(p) + '</small>' : '') + '</td>'; }).join('') + '</tr>';
+    if (shut[k]) return;
+    TNT_PARTS.forEach(([p, lab]) => {
+      h += '<tr class="tnt-s' + (TNT.parts[p] ? '' : ' tnt-off') + '"><td>' + pre + (pre ? lab.toLowerCase() : lab) + '</td>' +
+        cols.map((c) => { const q = c.p[p], pp = fp(q, c); return '<td' + cn(c) + '>' + v(c, fv(q)) + '<small>' + (TNT.parts[p] ? tntP(pp) : '—') + '</small></td>'; }).join('') + '</tr>';
+    });
+  });
+  return h + '</tbody></table></div>';
+}
 function tntRender() {
   if (!TNT.data) return;
   tntRenderControls();
@@ -7864,6 +7916,8 @@ function tntRender() {
   document.getElementById('tntChartBox').innerHTML = tntChartSvg(TNT.cols);
   document.getElementById('tntMiss').innerHTML = TNT.missing.length ? '<div class="tnt-warn">Chưa thấy sheet dữ liệu cho: ' + TNT.missing.join(', ') + (TNT.cust === 'tts' ? ' (TikTok Shop)' : '') + '.</div>' : '';
   tntHover(TNT.pin >= 0 && TNT.pin < TNT.cols.length ? TNT.pin : -1);
+  document.getElementById('tntTbl').innerHTML = tntTableHtml();
+  document.getElementById('tntTblSub').textContent = TNT.mode === 'week' ? '· số đơn = trung bình 1 ngày của tuần' : '· ngày mới nhất bên trái, Chủ nhật tô cam';
 }
 // Tải [TNT]-Report thành 1 file HTML độc lập: nhúng CSS #tntCss + dữ liệu + mọi hàm tnt* → mở offline vẫn đổi phạm vi/ngày/rê chuột được
 function tntDownloadHtml() {
@@ -7872,10 +7926,10 @@ function tntDownloadHtml() {
   const fns = Object.keys(window).filter((k) => /^tnt/.test(k) && typeof window[k] === 'function' && !skip[k]).map((k) => window[k].toString()).join('\n');
   const st = Object.assign({}, TNT, { data: null, cols: [], loading: false });
   const D = TNT.data.dates, last = D[D.length - 1];
-  const js = 'var TNT=' + JSON.stringify(st) + ';TNT.data=' + JSON.stringify(TNT.data) + ';\nvar TNT_PARTS=' + JSON.stringify(TNT_PARTS) + ',TNT_LINES=' + JSON.stringify(TNT_LINES) + ',TNT_WD=' + JSON.stringify(TNT_WD) + ';\n' +
+  const js = 'var TNT=' + JSON.stringify(st) + ';TNT.data=' + JSON.stringify(TNT.data) + ';\nvar TNT_PARTS=' + JSON.stringify(TNT_PARTS) + ',TNT_LINES=' + JSON.stringify(TNT_LINES) + ',TNT_WD=' + JSON.stringify(TNT_WD) + ',TNT_TBL=[' + TNT_TBL.map((r) => '[' + r.map((x) => typeof x === 'function' ? x.toString() : JSON.stringify(x)).join(',') + ']').join(',') + '];\n' +
     esc.toString() + '\n' + fns + '\ntntRender();window.addEventListener("resize",function(){clearTimeout(window.__r);window.__r=setTimeout(tntRender,200)});';
   const body = document.getElementById('tntBody').cloneNode(true); body.style.display = '';
-  ['tntCtl', 'tntKpis', 'tntLegend', 'tntChartBox', 'tntPanel', 'tntMiss'].forEach((id) => { const el = body.querySelector('#' + id); if (el) el.innerHTML = ''; });
+  ['tntCtl', 'tntKpis', 'tntLegend', 'tntChartBox', 'tntPanel', 'tntMiss', 'tntTbl'].forEach((id) => { const el = body.querySelector('#' + id); if (el) el.innerHTML = ''; });
   const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>[TNT]-Report ' + tntDmy(last) + '</title>' +
     '<style>body{margin:0;padding:16px;background:#EFE7D3;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#2B2618}.tnt-top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #F26522;padding-bottom:8px;margin-bottom:10px}.tnt-top b{font-size:20px}.tnt-top div{font-size:12px;color:#7A6E52}table{border-collapse:collapse}</style>' +
     document.getElementById('tntCss').outerHTML + '</head><body><div class="tnt-top"><b>[TNT]-Report</b><div>' + document.getElementById('tntMeta').innerHTML + '</div></div>' +
