@@ -66,6 +66,7 @@ const MODULE_DEFS = [
   { id: 'vh_tuan', label: 'Vận hành › Tuần', cap: 'tab', chaId: 'vanhanh' },
   { id: 'vh_thang', label: 'Vận hành › Tháng', cap: 'tab', chaId: 'vanhanh' },
   { id: 'vh_sreport', label: 'Vận hành › [S]-Report (Siêu báo cáo)', cap: 'tab', chaId: 'vanhanh' },
+  { id: 'vh_tnt', label: 'Vận hành › [TNT]-Report', cap: 'tab', chaId: 'vanhanh' },
   { id: 'kinhdoanh', label: 'Kinh doanh', cap: 'section', chaId: '' },
   { id: 'kd_ngay', label: 'Kinh doanh › Ngày', cap: 'tab', chaId: 'kinhdoanh' },
   { id: 'kd_tuan', label: 'Kinh doanh › Tuần', cap: 'tab', chaId: 'kinhdoanh' },
@@ -779,7 +780,7 @@ async function handleSaveVHWeekConfig(body) {
 // Tự nhận diện MỌI sheet có tên bắt đầu bằng mã 3 chữ số từ 100 đến 200 + "_" (100_ReportGTC, 101_..., 102_..., sau này
 // 103_, 104_... tự hiện, KHÔNG cần sửa code). Trả về giá trị ĐÃ ĐỊNH DẠNG (FORMATTED_VALUE) đúng như hiển thị
 // trên Sheet ("77,14%", "2.800", "26/10/2026"); việc tách bảng (hàng tiêu đề gộp) + phân tích làm ở frontend.
-const DAY_SHEET_RE = /^(1\d\d|200)_/; // mã 100 → 200
+const DAY_SHEET_RE = /^1\d\d_/; // mã 100 → 199 (từ 2026-11-09 các sheet 200_… thuộc [TNT]-Report)
 async function handleGetDailyReport(body) {
   const auth = await requireActiveUser(body.token);
   if (auth.error) return { ok: false, error: auth.error };
@@ -788,6 +789,53 @@ async function handleGetDailyReport(body) {
   const valueRanges = await batchGetValues(SHEET_ID, titles, { valueRenderOption: 'FORMATTED_VALUE' });
   const sheets = titles.map((name, i) => ({ name: name, rows: (valueRanges[i] && valueRanges[i].values) || [] }));
   return { ok: true, sheets: sheets, thoiGian: new Date().toISOString() };
+}
+
+// ====== [TNT]-REPORT (2026-11-09) ======
+// Đọc MỌI sheet có mã 3 số từ 200 trở đi ("200_1_GTCCA1", "200_1_GTCTTSTon"…). Mỗi sheet: 1 hàng tiêu đề, mỗi dòng = 1 bưu cục × 1 ngày
+// (dòng "Grand Total" bỏ qua — frontend tự cộng). Cột dò theo TÊN: Chi tiết (BC), Cấp Quản lý (AM, lấy cột xuất hiện SAU CÙNG),
+// Tỉnh, Volume, Đơn gán, Đơn GTC, Chuẩn ngày (hoặc Time "yyyy-mm-dd - Thứ…"). Trả gọn: danh mục BC dùng chung + mỗi sheet 5 mảng số
+// song song d (chỉ số ngày), b (chỉ số BC), v (Volume), g (Đơn gán), k (Đơn GTC) để không vượt giới hạn 4,5MB của Vercel.
+const TNT_SHEET_RE = /^2\d\d_/;
+function tntNorm(x) { return String(x === undefined || x === null ? '' : x).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/\s+/g, ' ').trim(); }
+function tntDate(v) {
+  if (typeof v === 'number' && isFinite(v) && v > 20000) return new Date(Math.round((v - 25569) * 86400000)).toISOString().slice(0, 10);
+  const s = String(v === undefined || v === null ? '' : v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+  return '';
+}
+async function handleGetTntReport(body) {
+  const auth = await requireActiveUser(body.token);
+  if (auth.error) return { ok: false, error: auth.error };
+  const titles = (await getSheetTitles(SHEET_ID)).filter((t) => TNT_SHEET_RE.test(t)).sort();
+  if (!titles.length) return { ok: true, sheets: [], ents: [], dates: [] };
+  const valueRanges = await batchGetValues(SHEET_ID, titles, { valueRenderOption: 'UNFORMATTED_VALUE' });
+  const ents = [], entIdx = {}, dateSet = {};
+  const parsed = titles.map((name, i) => {
+    const rows = (valueRanges[i] && valueRanges[i].values) || [];
+    const H = (rows[0] || []).map(tntNorm);
+    const find = (re, last) => { let k = -1; H.forEach((h, j) => { if (re.test(h) && (last || k < 0)) k = j; }); return k; };
+    const c = { bc: find(/^chi tiet/), am: find(/^cap quan ly/, true), tinh: find(/^tinh$/), v: find(/^volume/), g: find(/^don gan/), k: find(/^don gtc/), day: find(/^chuan ngay/), time: find(/^time|^thoi gian|^ngay$/) };
+    const out = { name: name, cols: c, d: [], b: [], v: [], g: [], k: [] };
+    if (c.bc < 0 || c.v < 0) { out.error = 'thieu_cot'; return out; }
+    for (let r = 1; r < rows.length; r++) {
+      const row = rows[r]; const bc = String(row[c.bc] === undefined ? '' : row[c.bc]).trim();
+      if (!bc || /^(grand total|tong)/.test(tntNorm(bc))) continue;
+      const day = tntDate(c.day >= 0 ? row[c.day] : '') || tntDate(c.time >= 0 ? row[c.time] : '');
+      if (!day) continue;
+      let e = entIdx[bc];
+      if (e === undefined) { e = entIdx[bc] = ents.length; ents.push([bc, '', '']); }
+      if (c.am >= 0 && row[c.am]) ents[e][1] = String(row[c.am]).trim();
+      if (c.tinh >= 0 && row[c.tinh]) ents[e][2] = String(row[c.tinh]).trim();
+      dateSet[day] = 1;
+      out.d.push(day); out.b.push(e); out.v.push(+row[c.v] || 0); out.g.push(c.g >= 0 ? (+row[c.g] || 0) : 0); out.k.push(c.k >= 0 ? (+row[c.k] || 0) : 0);
+    }
+    return out;
+  });
+  const dates = Object.keys(dateSet).sort(); const di = {}; dates.forEach((d, i) => { di[d] = i; });
+  parsed.forEach((p) => { p.d = p.d.map((d) => di[d]); });
+  return { ok: true, sheets: parsed, ents: ents, dates: dates, thoiGian: new Date().toISOString() };
 }
 
 // ====== [S]-REPORT — "Siêu báo cáo" (2026-11-04) ======
@@ -2412,6 +2460,7 @@ module.exports = {
   handleGetLapDayData,
   handleGetRPLapDayData,
   handleGetDailyReport,
+  handleGetTntReport,
   handleGetSReport,
   handleSaveVHWeekConfig
 };

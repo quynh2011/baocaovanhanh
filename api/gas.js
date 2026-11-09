@@ -104,6 +104,7 @@ const LOCAL_ACTIONS = {
   getRPLapDayData: sheetsClient.handleGetRPLapDayData,
   // Vận hành › Ngày — mọi sheet 1xx_ (2026-11-03)
   getDailyReport: sheetsClient.handleGetDailyReport,
+  getTntReport: sheetsClient.handleGetTntReport,
   // [S]-Report — Siêu báo cáo (2026-11-04)
   getSReport: sheetsClient.handleGetSReport,
   saveVHWeekConfig: sheetsClient.handleSaveVHWeekConfig
