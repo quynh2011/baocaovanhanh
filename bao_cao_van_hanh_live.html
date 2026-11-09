@@ -831,9 +831,9 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-tb td.tnt-ancc{min-width:150px;box-shadow:inset 2px 0 0 #2B2618,inset -2px 0 0 #2B2618}
 .tnt-tb thead tr:first-child th.tnt-anc{box-shadow:inset 2px 0 0 #2B2618,inset -2px 0 0 #2B2618}
 .tnt-ancl{display:block;font-size:9.5px;font-weight:600;opacity:.85;text-transform:uppercase;letter-spacing:.04em}
-.tnt-tb tr.tnt-trh td{position:static;background:#2B2618;color:#FFF6E0;padding:8px 12px;text-align:left;font-size:13px}
+.tnt-tb tr.tnt-trh td{position:static;background:#5A4E33;color:#FFF6E0;padding:5px 12px;text-align:left;font-size:12.5px}
 .tnt-trbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:sticky;left:12px;width:max-content;max-width:calc(100vw - 120px)}
-.tnt-trbar b{font-size:14px;margin-right:10px}
+.tnt-trbar b{font-size:12.5px;margin-right:6px}
 .tnt-trbar span{font-size:12px;opacity:.75}
 .tnt-trbar button{border:1px solid rgba(255,246,224,.35);background:none;color:#FFF6E0;border-radius:6px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer}
 .tnt-trbar button.on{background:#F26522;border-color:#F26522;font-weight:700}
@@ -7961,11 +7961,11 @@ function tntSumEnts(ents, idxs) {
   o.gtc = o.v ? o.k / o.v : null; o.gan = o.v ? o.g / o.v : null;
   return o;
 }
-function tntTreeMetric(k) { TNT.treeM = k; document.getElementById('tntTbl').innerHTML = tntTableHtml(); }
 function tntTreeToggle(key) { TNT.treeOpen = TNT.treeOpen || {}; TNT.treeOpen[key] = !TNT.treeOpen[key]; document.getElementById('tntTbl').innerHTML = tntTableHtml(); }
-function tntTreeAll(open) {
-  TNT.treeOpen = {};
-  if (open) TNT.data.ents.forEach((e) => { if (tntEntOk(e)) { TNT.treeOpen['t|' + e[2]] = 1; TNT.treeOpen['a|' + e[2] + '|' + e[1]] = 1; } });
+function tntTreeAll(open, m) {
+  TNT.treeOpen = TNT.treeOpen || {};
+  Object.keys(TNT.treeOpen).forEach((k) => { if (k.indexOf(m + '|') === 0) delete TNT.treeOpen[k]; });
+  if (open) TNT.data.ents.forEach((e) => { if (tntEntOk(e)) { TNT.treeOpen[m + '|t|' + e[2]] = 1; TNT.treeOpen[m + '|a|' + e[2] + '|' + e[1]] = 1; } });
   document.getElementById('tntTbl').innerHTML = tntTableHtml();
 }
 function tntTableHtml() {
@@ -8003,6 +8003,42 @@ function tntTableHtml() {
   let h = '<div class="tnt-tw"><table class="tnt-tb"><thead><tr><th>' + esc(scopeLab) + ' · ' + nBC + ' BC' + (TNT.cust === 'tts' ? ' · TTS' : '') + '</th>' +
     cols.map((c, i) => '<th' + (i === ai ? ' class="tnt-anc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (i === ai ? '<span class="tnt-ancl">mốc so sánh</span>' : '') + esc(c.lab) + '<small>' + esc(c.sub) + '</small></th>').join('') + '</tr></thead><tbody>';
   const tot = { v: (c) => c.v, g: (c) => c.g, k: (c) => c.k, t: (c) => c.v - c.k };
+  // Chi tiết Tỉnh → AM → Bưu cục NẰM TRONG từng nhóm chỉ số (mở nhóm ra: Ca 1/Ca 2/Tồn rồi tới các tỉnh); cùng cột mốc so sánh
+  const open = TNT.treeOpen || {}, ncol = cols.length + 1, c0i = cols[ai];
+  const okE = D.ents.map((e, i) => tntEntOk(e) ? i : -1).filter((i) => i >= 0);
+  const groupBy = (list, col) => { const m = {}; list.forEach((e) => { const kk = D.ents[e][col] || '(chưa rõ)'; (m[kk] = m[kk] || []).push(e); }); return m; };
+  const treeRows = (TM) => {
+    const mdef = TNT_TBL.find((r) => r[0] === TM), fN = tot[TM], fP = mdef[5] || null, dirM = DIR[TM];
+    const sortKey = (ents) => { const o = tntSumEnts(ents, c0i.idx); const pv = fP ? fP(o) : null; return TM === 'v' ? -o.v : TM === 't' ? -(pv === null ? -1 : pv) : (pv === null ? 2 : pv); };
+    const sorted = (m) => Object.keys(m).map((kk) => [kk, m[kk], sortKey(m[kk])]).sort((a, b) => a[2] - b[2]);
+    const rowCells = (ents) => cols.map((c, i) => {
+      const o = tntSumEnts(ents, c.idx), pv = fP ? fP(o) : null;
+      let cmp = '';
+      if (i === ai) {
+        const pr = c.prevIdx ? tntSumEnts(ents, c.prevIdx) : null, wk = c.wkIdx ? tntSumEnts(ents, c.wkIdx) : null;
+        const x = day ? [one(o, pr, fN, fP, dirM, 'N-2'), one(o, wk, fN, fP, dirM, 'N-8')] : [one(o, pr, fN, fP, dirM, 'Tuần trước')];
+        cmp = '<span class="tnt-cmpl">' + x.join('') + '</span>';
+      }
+      return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (o.v ? v(c, fN(o)) : '<span class="tnt-dz2">—</span>') + (pv !== null && o.v ? '<small>' + tntP(pv) + '</small>' : '') + cmp + '</td>';
+    }).join('');
+    const q = (x) => esc(x).replace(/'/g, "\\'");
+    let r = '<tr class="tnt-trh"><td colspan="' + ncol + '"><div class="tnt-trbar"><b>Theo Tỉnh → AM → Bưu cục</b><em>' +
+      ({ k: 'xếp % GTC thấp → cao', g: 'xếp % gán thấp → cao', t: 'xếp % chưa giao cao → thấp', v: 'xếp sản lượng cao → thấp' }[TM]) + ' (theo cột mốc)</em>' +
+      '<button onclick="tntTreeAll(1,\'' + TM + '\')">Mở hết</button><button onclick="tntTreeAll(0,\'' + TM + '\')">Thu hết</button></div></td></tr>';
+    const autoT = !!TNT.f.tinh, autoA = !!TNT.f.am;
+    sorted(groupBy(okE, 2)).forEach(([tinh, te]) => {
+      const kt = TM + '|t|' + tinh, ot = autoT || open[kt];
+      r += '<tr class="tnt-tr1" onclick="tntTreeToggle(\'' + q(kt) + '\')"><td><span class="tnt-tg">' + (ot ? '▾' : '▸') + '</span>' + esc(tinh) + ' <i class="tnt-trn">' + te.length + ' BC</i></td>' + rowCells(te) + '</tr>';
+      if (!ot) return;
+      sorted(groupBy(te, 1)).forEach(([am, ae]) => {
+        const ka = TM + '|a|' + tinh + '|' + am, oa = autoA || open[ka];
+        r += '<tr class="tnt-tr2" onclick="tntTreeToggle(\'' + q(ka) + '\')"><td><span class="tnt-tg">' + (oa ? '▾' : '▸') + '</span>' + esc(am) + ' <i class="tnt-trn">' + ae.length + ' BC</i></td>' + rowCells(ae) + '</tr>';
+        if (!oa) return;
+        sorted(groupBy(ae, 0)).forEach(([bc, be]) => { r += '<tr class="tnt-tr3' + (TNT.f.bc === bc ? ' tnt-trsel' : '') + '"><td>' + esc(bc) + '</td>' + rowCells(be) + '</tr>'; });
+      });
+    });
+    return r;
+  };
   TNT_TBL.forEach(([k, title, pre, fv, fp, ftp]) => {
     h += '<tr class="tnt-g" onclick="tntTblToggle(\'' + k + '\')"><td><span class="tnt-tg">' + (shut[k] ? '▸' : '▾') + '</span>' + title + '</td>' +
       cols.map((c, i) => { const p = ftp ? ftp(c) : null; return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + v(c, tot[k](c)) + (p !== null && p !== undefined ? '<small>' + tntP(p) + '</small>' : '') + dline(i, c, tot[k], ftp, DIR[k]) + '</td>'; }).join('') + '</tr>';
@@ -8011,43 +8047,7 @@ function tntTableHtml() {
       h += '<tr class="tnt-s' + (TNT.parts[p] ? '' : ' tnt-off') + '"><td>' + pre + (pre ? lab.toLowerCase() : lab) + '</td>' +
         cols.map((c, i) => { const q = c.p[p], pp = fp(q, c); return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + v(c, fv(q)) + '<small>' + (TNT.parts[p] ? tntP(pp) : '—') + '</small>' + (TNT.parts[p] ? dline(i, c, (o) => fv(o.p[p]), (o) => fp(o.p[p], o), k === 'v' ? 0 : DIR[k]) : '') + '</td>'; }).join('') + '</tr>';
     });
-  });
-  // ===== 5. Chi tiết Tỉnh → AM → Bưu cục (cùng cột ngày/tuần, cùng cột mốc so sánh) =====
-  const TM = TNT.treeM || 'k', mdef = TNT_TBL.find((r) => r[0] === TM), open = TNT.treeOpen || {};
-  const fN = tot[TM], fP = mdef[5] || null, dirM = DIR[TM];
-  const ncol = cols.length + 1;
-  h += '<tr class="tnt-trh"><td colspan="' + ncol + '"><div class="tnt-trbar"><b>5. Chi tiết theo Tỉnh → AM → Bưu cục</b><span>Chỉ số:</span>' +
-    TNT_TBL.map((r) => '<button class="' + (r[0] === TM ? 'on' : '') + '" onclick="tntTreeMetric(\'' + r[0] + '\')">' + r[1].replace(/^\d\.\s*/, '').replace(/\s*\(.*\)$/, '').replace(/\s*—.*$/, '') + '</button>').join('') +
-    '<span class="tnt-trsp"></span><button onclick="tntTreeAll(1)">Mở hết</button><button onclick="tntTreeAll(0)">Thu hết</button>' +
-    '<em>' + ({ k: 'xếp % GTC thấp → cao', g: 'xếp % gán thấp → cao', t: 'xếp % chưa giao cao → thấp', v: 'xếp sản lượng cao → thấp' }[TM]) + ' (theo cột mốc)</em></div></td></tr>';
-  const ok = D.ents.map((e, i) => tntEntOk(e) ? i : -1).filter((i) => i >= 0);
-  const groupBy = (list, col) => { const m = {}; list.forEach((e) => { const kk = D.ents[e][col] || '(chưa rõ)'; (m[kk] = m[kk] || []).push(e); }); return m; };
-  const c0i = cols[ai];
-  const sortKey = (ents) => { const o = tntSumEnts(ents, c0i.idx); const pv = fP ? fP(o) : null; return TM === 'v' ? -o.v : TM === 't' ? -(pv === null ? -1 : pv) : (pv === null ? 2 : pv); };
-  const sorted = (m) => Object.keys(m).map((kk) => [kk, m[kk], sortKey(m[kk])]).sort((a, b) => a[2] - b[2]);
-  const rowCells = (ents) => cols.map((c, i) => {
-    const o = tntSumEnts(ents, c.idx), pv = fP ? fP(o) : null;
-    let cmp = '';
-    if (i === ai) {
-      const pr = c.prevIdx ? tntSumEnts(ents, c.prevIdx) : null, wk = c.wkIdx ? tntSumEnts(ents, c.wkIdx) : null;
-      const x = day ? [one(o, pr, fN, fP, dirM, 'N-2'), one(o, wk, fN, fP, dirM, 'N-8')] : [one(o, pr, fN, fP, dirM, 'Tuần trước')];
-      cmp = '<span class="tnt-cmpl">' + x.join('') + '</span>';
-    }
-    return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (o.v ? v(c, fN(o)) : '<span class="tnt-dz2">—</span>') + (pv !== null && o.v ? '<small>' + tntP(pv) + '</small>' : '') + cmp + '</td>';
-  }).join('');
-  const autoT = !!TNT.f.tinh, autoA = !!TNT.f.am;
-  sorted(groupBy(ok, 2)).forEach(([tinh, te]) => {
-    const kt = 't|' + tinh, ot = autoT || open[kt];
-    h += '<tr class="tnt-tr1" onclick="tntTreeToggle(\'' + esc(kt).replace(/'/g, "\\'") + '\')"><td><span class="tnt-tg">' + (ot ? '▾' : '▸') + '</span>' + esc(tinh) + ' <i class="tnt-trn">' + te.length + ' BC</i></td>' + rowCells(te) + '</tr>';
-    if (!ot) return;
-    sorted(groupBy(te, 1)).forEach(([am, ae]) => {
-      const ka = 'a|' + tinh + '|' + am, oa = autoA || open[ka];
-      h += '<tr class="tnt-tr2" onclick="tntTreeToggle(\'' + esc(ka).replace(/'/g, "\\'") + '\')"><td><span class="tnt-tg">' + (oa ? '▾' : '▸') + '</span>' + esc(am) + ' <i class="tnt-trn">' + ae.length + ' BC</i></td>' + rowCells(ae) + '</tr>';
-      if (!oa) return;
-      sorted(groupBy(ae, 0)).forEach(([bc, be]) => {
-        h += '<tr class="tnt-tr3' + (TNT.f.bc === bc ? ' tnt-trsel' : '') + '"><td>' + esc(bc) + '</td>' + rowCells(be) + '</tr>';
-      });
-    });
+    h += treeRows(k);
   });
   return h + '</tbody></table></div>';
 }
