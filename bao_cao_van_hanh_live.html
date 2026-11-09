@@ -752,6 +752,12 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-seg button.on{background:#2B2618;color:#FFF6E0;font-weight:700}
 .tnt-sel{border:1px solid #D6C9A8;border-radius:8px;background:#FFFDF7;padding:6px 8px;font:inherit;font-size:13px;max-width:300px}
 .tnt-sd{max-width:130px}
+.tnt-lv{display:inline-flex;align-items:center;border:1px solid #D6C9A8;border-radius:8px;background:#FFFDF7;overflow:hidden;height:32px}
+.tnt-lv.on{border-color:#2B2618;box-shadow:inset 0 0 0 1px #2B2618}
+.tnt-lv span{font-size:12px;font-weight:700;color:#7A6E52;padding:0 8px;border-right:1px solid #E6DCC3;height:100%;display:flex;align-items:center;background:#F7F0DE}
+.tnt-lv input{border:0;background:none;font:inherit;font-size:13px;padding:0 8px;width:210px;outline:none;height:100%}
+.tnt-lv.on input{font-weight:700}
+.tnt-lv button{border:0;background:none;cursor:pointer;font-size:16px;color:#9A3F12;padding:0 8px;height:100%}
 .tnt-nb{border:1px solid #D6C9A8;background:#FFFDF7;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px}
 .tnt-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:14px 0 10px;border-bottom:2px solid #2B2618;padding-bottom:6px}
 .tnt-h h2{font-size:18px;margin:0}
@@ -7668,7 +7674,7 @@ window.SR = { loading: false, url: null, fileId: null, meta: null };
 // Nguồn: mọi sheet mã 200 trở đi (backend handleGetTntReport). Mỗi sheet = 1 bưu cục × 1 ngày: Volume (cột D = sản lượng cần giao),
 // Đơn gán (J), Đơn GTC (K = năng suất). Phần I Tổng quan: cột chồng Ca 1 + Ca 2 + Hàng tồn, line Năng suất (xanh), % GTC = K/D (cam),
 // % Gán = J/D (đen). Khách hàng "Tất cả" dùng sheet …GTCCA1/GTCCA2/GTCTon, "TTS" dùng …GTCTTSCA1/GTCTTSCA2/GTCTTSTon (dò theo đuôi tên).
-window.TNT = { tblShut: { v: 1, g: 1, k: 1, t: 1 }, data: null, loading: false, scope: 'all', ent: '', cust: 'all', mode: 'day', from: '', to: '', parts: { ca1: 1, ca2: 1, ton: 1 }, lines: { ns: 1, gtc: 1, gan: 1 }, cols: [], hover: -1 };
+window.TNT = { tblShut: { v: 1, g: 1, k: 1, t: 1 }, data: null, loading: false, f: { tinh: '', am: '', bc: '' }, cust: 'all', mode: 'day', from: '', to: '', parts: { ca1: 1, ca2: 1, ton: 1 }, lines: { ns: 1, gtc: 1, gan: 1 }, cols: [], hover: -1 };
 const TNT_PARTS = [['ca1', 'Ca 1', '#A9C6E8'], ['ca2', 'Ca 2', '#5B86C0'], ['ton', 'Hàng tồn', '#CDBF9F']];
 const TNT_LINES = [['ns', 'Năng suất (đơn GTC)', '#14915F'], ['gtc', '% GTC', '#F26522'], ['gan', '% Gán', '#1F1F1F']];
 const TNT_WD = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -7694,8 +7700,7 @@ function tntSheet(suffix) { return (TNT.data.sheets || []).find((s) => s.name.to
 // Cộng dữ liệu theo ngày cho phạm vi đang chọn → per[part] = {v,g,k} mảng theo chỉ số ngày
 function tntBuildPer() {
   const T = TNT, D = T.data, nD = D.dates.length, pre = T.cust === 'tts' ? 'gtctts' : 'gtc';
-  const col = { tinh: 2, am: 1, bc: 0 }[T.scope];
-  const ok = T.scope === 'all' || !T.ent ? null : D.ents.map((e) => e[col] === T.ent);
+  const ok = T.f.tinh || T.f.am || T.f.bc ? D.ents.map((e) => tntEntOk(e)) : null;
   const per = {}; T.missing = [];
   TNT_PARTS.forEach(([p, lab]) => {
     const s = tntSheet(pre + p); const v = new Float64Array(nD), g = new Float64Array(nD), k = new Float64Array(nD);
@@ -7841,20 +7846,53 @@ function tntKpiHtml(per) {
     card('% Gán cả kỳ', tntP(a.gan), (b ? tntDelta(a.gan, b.gan, true, 1) : '') + sub) +
     card('Tỷ trọng Ca 1 / Ca 2 / Tồn', ['ca1', 'ca2', 'ton'].map((p) => a.v ? Math.round(a.p[p].v / (a.p.ca1.v + a.p.ca2.v + a.p.ton.v) * 100) + '%' : '—').join(' / '), '<span class="tnt-k2">' + n + ' ngày · ' + tntDm(TNT.data.dates[idx[0]]) + '–' + tntDm(TNT.data.dates[idx[n - 1]]) + '</span>');
 }
-function tntEntOptions() {
-  const D = TNT.data, col = { tinh: 2, am: 1, bc: 0 }[TNT.scope]; if (col === undefined) return [];
-  const set = {}; D.ents.forEach((e) => { if (e[col]) set[e[col]] = (set[e[col]] || 0) + 1; });
+// Bộ lọc theo cấp Tỉnh → AM → Bưu cục: mỗi cấp chỉ liệt kê những gì thuộc cấp trên đang chọn; ô có tìm kiếm (gõ để lọc)
+const TNT_LV = [['tinh', 2, 'Tỉnh', 'tỉnh'], ['am', 1, 'AM', 'AM'], ['bc', 0, 'Bưu cục', 'bưu cục']];
+function tntEntOk(e, upto) {
+  const F = TNT.f; let ok = true;
+  TNT_LV.forEach(([k, c], li) => { if (upto !== undefined && li >= upto) return; if (F[k] && e[c] !== F[k]) ok = false; });
+  return ok;
+}
+function tntLvOptions(li) {
+  const c = TNT_LV[li][1], set = {};
+  TNT.data.ents.forEach((e) => { if (e[c] && tntEntOk(e, li)) set[e[c]] = 1; });
   return Object.keys(set).sort((x, y) => x.localeCompare(y, 'vi'));
+}
+function tntPickLv(k, v) {
+  const F = TNT.f, li = TNT_LV.findIndex((x) => x[0] === k); v = String(v || '').trim();
+  if (v && tntLvOptions(li).indexOf(v) < 0) {
+    // gõ không khớp hẳn → lấy mục đầu tiên chứa chữ đã gõ (không phân biệt dấu/hoa thường)
+    const n = (x) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+    const m = tntLvOptions(li).find((o) => n(o).indexOf(n(v)) >= 0); v = m || '';
+  }
+  F[k] = v;
+  for (let j = li + 1; j < TNT_LV.length; j++) { const kk = TNT_LV[j][0]; if (F[kk] && tntLvOptions(j).indexOf(F[kk]) < 0) F[kk] = ''; }
+  // chọn cấp dưới → tự điền cấp trên (nếu duy nhất)
+  if (v) for (let j = li - 1; j >= 0; j--) {
+    const [kk, c] = TNT_LV[j]; const set = {}; TNT.data.ents.forEach((e) => { if (e[TNT_LV[li][1]] === v && e[c]) set[e[c]] = 1; });
+    const ks = Object.keys(set); if (ks.length === 1) F[kk] = ks[0];
+  }
+  TNT.pin = -1; tntRender();
+}
+function tntResetScope() { TNT.f = { tinh: '', am: '', bc: '' }; TNT.pin = -1; tntRender(); }
+function tntStep(d) {
+  const F = TNT.f; let li = TNT_LV.length - 1; while (li > 0 && !F[TNT_LV[li][0]]) li--;
+  if (!F[TNT_LV[li][0]] && F.tinh === '') li = 0;
+  const k = TNT_LV[li][0], save = F[k]; F[k] = ''; const o = tntLvOptions(li); F[k] = save; if (!o.length) return;
+  let i = o.indexOf(F[k]) + d; if (i < 0) i = o.length - 1; if (i >= o.length) i = 0; tntPickLv(k, o[i]);
 }
 function tntRenderControls() {
   const T = TNT, D = T.data.dates;
   const seg = (name, cur, items, fn) => '<div class="tnt-seg">' + items.map(([v, l]) => '<button class="' + (v === cur ? 'on' : '') + '" onclick="' + fn + '(\'' + v + '\')">' + l + '</button>').join('') + '</div>';
-  let h = '<div class="tnt-ctl"><span class="tnt-cl">Phạm vi</span>' + seg('scope', T.scope, [['all', 'Toàn vùng'], ['tinh', 'Tỉnh'], ['am', 'AM'], ['bc', 'Bưu cục']], 'tntSetScope');
-  if (T.scope !== 'all') {
-    const opts = tntEntOptions();
-    h += '<select class="tnt-sel" onchange="tntSet(\'ent\',this.value)"><option value="">— Tất cả ' + ({ tinh: 'tỉnh', am: 'AM', bc: 'bưu cục' }[T.scope]) + ' —</option>' + opts.map((o) => '<option' + (o === T.ent ? ' selected' : '') + ' value="' + esc(o) + '">' + esc(o) + '</option>').join('') + '</select>';
-    h += '<button class="tnt-nb" title="Trước" onclick="tntStep(-1)">‹</button><button class="tnt-nb" title="Sau" onclick="tntStep(1)">›</button>';
-  }
+  const all = !(T.f.tinh || T.f.am || T.f.bc);
+  let h = '<div class="tnt-ctl"><span class="tnt-cl">Phạm vi</span><div class="tnt-seg"><button class="' + (all ? 'on' : '') + '" onclick="tntResetScope()">Toàn vùng</button></div>';
+  TNT_LV.forEach(([k, , lab, low], li) => {
+    const opts = tntLvOptions(li);
+    h += '<label class="tnt-lv' + (T.f[k] ? ' on' : '') + '"><span>' + lab + '</span><input list="tntDl_' + k + '" value="' + esc(T.f[k]) + '" placeholder="Tất cả ' + low + ' (' + opts.length + ') — gõ để tìm" onfocus="this.select()" onchange="tntPickLv(\'' + k + '\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()">' +
+      (T.f[k] ? '<button title="Bỏ chọn" onclick="event.preventDefault();tntPickLv(\'' + k + '\',\'\')">×</button>' : '') + '</label>' +
+      '<datalist id="tntDl_' + k + '">' + opts.map((o) => '<option value="' + esc(o) + '"></option>').join('') + '</datalist>';
+  });
+  h += '<button class="tnt-nb" title="Trước" onclick="tntStep(-1)">‹</button><button class="tnt-nb" title="Sau" onclick="tntStep(1)">›</button>';
   h += '</div><div class="tnt-ctl"><span class="tnt-cl">Khách hàng</span>' + seg('cust', T.cust, [['all', 'Tất cả'], ['tts', 'TikTok Shop']], 'tntSetCust') +
     '<span class="tnt-cl">Xem theo</span>' + seg('mode', T.mode, [['day', 'Ngày'], ['week', 'Tuần']], 'tntSetMode') +
     '<span class="tnt-cl">Từ</span><select class="tnt-sel tnt-sd" onchange="tntSet(\'from\',this.value)">' + D.map((d) => '<option' + (d === T.from ? ' selected' : '') + ' value="' + d + '">' + tntDmy(d) + '</option>').join('') + '</select>' +
@@ -7862,7 +7900,6 @@ function tntRenderControls() {
     seg('q', '', (T.mode === 'week' ? [['35', '5 tuần'], ['56', '8 tuần'], ['0', 'Tất cả']] : [['7', '7 ngày'], ['15', '15 ngày'], ['30', '30 ngày'], ['0', 'Tất cả']]), 'tntQuick') + '</div>';
   document.getElementById('tntCtl').innerHTML = h;
 }
-function tntSetScope(v) { TNT.scope = v; TNT.ent = ''; TNT.pin = -1; tntRender(); }
 function tntSetCust(v) { TNT.cust = v; tntRender(); }
 // Khoảng mặc định: Ngày = 15 ngày gần nhất; Tuần = 5 tuần ISO gần nhất (tính cả tuần hiện tại chưa đủ ngày)
 function tntDefaultRange(n) {
@@ -7872,7 +7909,6 @@ function tntDefaultRange(n) {
 }
 function tntSetMode(v) { TNT.mode = v; TNT.pin = -1; tntDefaultRange(); tntRender(); }
 function tntSet(k, v) { TNT[k] = v; TNT.pin = -1; tntRender(); }
-function tntStep(d) { const o = tntEntOptions(); if (!o.length) return; let i = o.indexOf(TNT.ent) + d; if (i < 0) i = o.length - 1; if (i >= o.length) i = 0; TNT.ent = o[i]; tntRender(); }
 function tntQuick(n) { const D = TNT.data.dates; n = +n; if (n) tntDefaultRange(n); else { TNT.to = D[D.length - 1]; TNT.from = D[0]; } TNT.pin = -1; tntRender(); }
 function tntToggle(kind, k) { TNT[kind][k] = TNT[kind][k] ? 0 : 1; if (kind === 'parts' && !TNT.parts.ca1 && !TNT.parts.ca2 && !TNT.parts.ton) TNT.parts[k] = 1; tntRender(); }
 // 2. Bảng số liệu tổng quan — dạng bảng ngày của [S]-Report: cột = ngày/tuần (mới → cũ, CN tô cam), dòng = nhóm chỉ số + chi tiết Ca 1/Ca 2/Tồn
@@ -7886,9 +7922,8 @@ function tntTblToggle(k) { TNT.tblShut = TNT.tblShut || {}; TNT.tblShut[k] = !TN
 function tntTableHtml() {
   const cols = TNT.cols.slice().reverse(); if (!cols.length) return '';
   const shut = TNT.tblShut || {}, day = TNT.mode === 'day';
-  const D = TNT.data, col = { tinh: 2, am: 1, bc: 0 }[TNT.scope];
-  const nBC = TNT.scope === 'all' || !TNT.ent ? D.ents.length : D.ents.filter((e) => e[col] === TNT.ent).length;
-  const scopeLab = TNT.scope === 'all' || !TNT.ent ? 'Vùng TNT' : TNT.ent;
+  const D = TNT.data, nBC = D.ents.filter((e) => tntEntOk(e)).length;
+  const scopeLab = TNT.f.bc || TNT.f.am || TNT.f.tinh || 'Vùng TNT';
   const cn = (c) => day && c.sub === 'CN' ? ' class="tnt-cn"' : '';
   const v = (c, x) => tntN(tntPerDay(c, x));
   let h = '<div class="tnt-tw"><table class="tnt-tb"><thead><tr><th>' + esc(scopeLab) + ' · ' + nBC + ' BC' + (TNT.cust === 'tts' ? ' · TTS' : '') + '</th>' +
@@ -7909,7 +7944,7 @@ function tntRender() {
   if (!TNT.data) return;
   tntRenderControls();
   const per = tntBuildPer(); TNT.cols = tntBuildCols(per);
-  const scopeLab = TNT.scope === 'all' || !TNT.ent ? 'Toàn vùng TNT' : ({ tinh: 'Tỉnh ', am: 'AM ', bc: 'Bưu cục ' }[TNT.scope]) + TNT.ent;
+  const F = TNT.f, scopeLab = !(F.tinh || F.am || F.bc) ? 'Toàn vùng TNT' : [F.tinh && 'Tỉnh ' + F.tinh, F.am && 'AM ' + F.am, F.bc && 'Bưu cục ' + F.bc].filter(Boolean).join(' › ');
   document.getElementById('tntScopeLab').textContent = scopeLab + (TNT.cust === 'tts' ? ' · TikTok Shop' : '');
   document.getElementById('tntKpis').innerHTML = TNT.cols.length ? tntKpiHtml(per) : '';
   const lg = TNT_PARTS.map(([p, l, c]) => '<button class="tnt-lg' + (TNT.parts[p] ? '' : ' off') + '" onclick="tntToggle(\'parts\',\'' + p + '\')"><i style="background:' + c + '"></i>' + l + '</button>').join('') +
@@ -7928,7 +7963,7 @@ function tntDownloadHtml() {
   const fns = Object.keys(window).filter((k) => /^tnt/.test(k) && typeof window[k] === 'function' && !skip[k]).map((k) => window[k].toString()).join('\n');
   const st = Object.assign({}, TNT, { data: null, cols: [], loading: false });
   const D = TNT.data.dates, last = D[D.length - 1];
-  const js = 'var TNT=' + JSON.stringify(st) + ';TNT.data=' + JSON.stringify(TNT.data) + ';\nvar TNT_PARTS=' + JSON.stringify(TNT_PARTS) + ',TNT_LINES=' + JSON.stringify(TNT_LINES) + ',TNT_WD=' + JSON.stringify(TNT_WD) + ',TNT_TBL=[' + TNT_TBL.map((r) => '[' + r.map((x) => typeof x === 'function' ? x.toString() : JSON.stringify(x)).join(',') + ']').join(',') + '];\n' +
+  const js = 'var TNT=' + JSON.stringify(st) + ';TNT.data=' + JSON.stringify(TNT.data) + ';\nvar TNT_PARTS=' + JSON.stringify(TNT_PARTS) + ',TNT_LINES=' + JSON.stringify(TNT_LINES) + ',TNT_WD=' + JSON.stringify(TNT_WD) + ',TNT_LV=' + JSON.stringify(TNT_LV) + ',TNT_TBL=[' + TNT_TBL.map((r) => '[' + r.map((x) => typeof x === 'function' ? x.toString() : JSON.stringify(x)).join(',') + ']').join(',') + '];\n' +
     esc.toString() + '\n' + fns + '\ntntRender();window.addEventListener("resize",function(){clearTimeout(window.__r);window.__r=setTimeout(tntRender,200)});';
   const body = document.getElementById('tntBody').cloneNode(true); body.style.display = '';
   ['tntCtl', 'tntKpis', 'tntLegend', 'tntChartBox', 'tntPanel', 'tntMiss', 'tntTbl'].forEach((id) => { const el = body.querySelector('#' + id); if (el) el.innerHTML = ''; });
