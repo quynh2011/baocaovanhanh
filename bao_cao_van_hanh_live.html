@@ -840,6 +840,8 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-trbar .tnt-trsp{width:12px}
 .tnt-trbar em{font-style:normal;font-size:11.5px;opacity:.7;margin-left:6px}
 .tnt-tb tr.tnt-sclk td{cursor:pointer}
+.tnt-tb tr.tnt-trclk td{cursor:pointer}
+.tnt-tg2{display:inline-block;width:14px}
 .tnt-tb tr.tnt-sclk td:first-child{padding-left:14px}
 .tnt-tb tr.tnt-trh.tnt-trp td{background:#8A7A55;padding:3px 12px}
 .tnt-tb tr.tnt-tr1.tnt-trp td:first-child{padding-left:30px}
@@ -7955,7 +7957,8 @@ const TNT_TBL = [
   ['k', '3. GTC — năng suất (ca 1 + ca 2 + tồn)', 'GTC ', (q) => q.k, (q) => q.v ? q.k / q.v : null, (c) => c.gtc],
   ['t', '4. Chưa giao (Tồn cuối ngày)', 'Chưa giao ', (q) => q.v - q.k, (q) => q.v ? (q.v - q.k) / q.v : null, (c) => c.v ? (c.v - c.k) / c.v : null]
 ];
-function tntTblToggle(k) { TNT.tblShut = TNT.tblShut || {}; TNT.tblShut[k] = !TNT.tblShut[k]; document.getElementById('tntTbl').innerHTML = tntTableHtml(); }
+function tntTblToggle(k) { TNT.tblShut = TNT.tblShut || {}; TNT.tblShut[k] = !TNT.tblShut[k];
+  if (TNT.tblShut[k] && TNT.treeOpen) Object.keys(TNT.treeOpen).forEach((x) => { if (x.indexOf(k + '|') === 0 || x.indexOf(k + ':') === 0) delete TNT.treeOpen[x]; }); document.getElementById('tntTbl').innerHTML = tntTableHtml(); }
 // Tổng của 1 nhóm bưu cục (ents = danh sách chỉ số BC) trong 1 nhóm ngày — cùng dạng với tntSum
 function tntSumEnts(ents, idxs) {
   const nD = TNT.data.dates.length, EP = TNT.EP, o = { n: idxs.length, p: {}, v: 0, g: 0, k: 0 };
@@ -7970,7 +7973,7 @@ function tntSumEnts(ents, idxs) {
 function tntTreeToggle(key) { TNT.treeOpen = TNT.treeOpen || {}; TNT.treeOpen[key] = !TNT.treeOpen[key]; document.getElementById('tntTbl').innerHTML = tntTableHtml(); }
 function tntTreeAll(open, m) {
   TNT.treeOpen = TNT.treeOpen || {};
-  Object.keys(TNT.treeOpen).forEach((k) => { if (k.indexOf(m + '|') === 0 && !/\|open$/.test(k)) delete TNT.treeOpen[k]; });
+  Object.keys(TNT.treeOpen).forEach((k) => { if (k.indexOf(m + '|') === 0 && !/\|(open|tree)$/.test(k)) delete TNT.treeOpen[k]; });
   if (open) TNT.data.ents.forEach((e) => { if (tntEntOk(e)) { TNT.treeOpen[m + '|t|' + e[2]] = 1; TNT.treeOpen[m + '|a|' + e[2] + '|' + e[1]] = 1; } });
   document.getElementById('tntTbl').innerHTML = tntTableHtml();
 }
@@ -8032,10 +8035,12 @@ function tntTableHtml() {
       return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (o.v ? v(c, fN(o)) : '<span class="tnt-dz2">—</span>') + (pv !== null && o.v ? '<small>' + tntP(pv) + '</small>' : '') + cmp + '</td>';
     }).join('');
     const q = (x) => esc(x).replace(/'/g, "\\'");
-    let r = part ? '' : '<tr class="tnt-trh"><td colspan="' + ncol + '"><div class="tnt-trbar"><b>Theo Tỉnh → AM → Bưu cục</b><em>' +
+    const tOpen = !!open[TM + '|tree'];
+    let r = part ? '' : '<tr class="tnt-trh tnt-trclk" onclick="if(event.target.tagName!==\'BUTTON\')tntTreeToggle(\'' + TM + '|tree\')"><td colspan="' + ncol + '"><div class="tnt-trbar"><b><span class="tnt-tg2">' + (tOpen ? '▾' : '▸') + '</span>Theo Tỉnh → AM → Bưu cục</b><em>' +
       ({ k: 'xếp % GTC thấp → cao', g: 'xếp % gán thấp → cao', t: 'xếp % chưa giao cao → thấp', v: 'xếp sản lượng cao → thấp' }[TM]) + ' (theo cột mốc)</em>' +
-      '<button onclick="tntTreeAll(1,\'' + TM + '\')">Mở hết</button><button onclick="tntTreeAll(0,\'' + TM + '\')">Thu hết</button></div></td></tr>';
+      (tOpen ? '<button onclick="tntTreeAll(1,\'' + TM + '\')">Mở hết</button><button onclick="tntTreeAll(0,\'' + TM + '\')">Thu hết</button>' : '<em>— bấm để xem</em>') + '</div></td></tr>';
     if (part) { const lab = (TNT_PARTS.find((x) => x[0] === part) || [])[1] || part; r = '<tr class="tnt-trh tnt-trp"><td colspan="' + ncol + '"><div class="tnt-trbar"><b>' + esc(mdef[2] + lab) + ' — theo Tỉnh → AM → Bưu cục</b><button onclick="tntTreeAll(1,\'' + KP + '\')">Mở hết</button><button onclick="tntTreeAll(0,\'' + KP + '\')">Thu hết</button></div></td></tr>'; }
+    if (!part && !tOpen) return r; // mặc định thu gọn ở cấp Vùng — bấm thanh mới hiện các tỉnh
     const autoT = !!TNT.f.tinh, autoA = !!TNT.f.am;
     sorted(groupBy(okE, 2)).forEach(([tinh, te]) => {
       const kt = KP + '|t|' + tinh, ot = autoT || open[kt];
