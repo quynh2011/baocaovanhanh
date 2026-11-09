@@ -7835,15 +7835,21 @@ function tntRenderControls() {
     '<span class="tnt-cl">Xem theo</span>' + seg('mode', T.mode, [['day', 'Ngày'], ['week', 'Tuần']], 'tntSetMode') +
     '<span class="tnt-cl">Từ</span><select class="tnt-sel tnt-sd" onchange="tntSet(\'from\',this.value)">' + D.map((d) => '<option' + (d === T.from ? ' selected' : '') + ' value="' + d + '">' + tntDmy(d) + '</option>').join('') + '</select>' +
     '<span class="tnt-cl">đến</span><select class="tnt-sel tnt-sd" onchange="tntSet(\'to\',this.value)">' + D.map((d) => '<option' + (d === T.to ? ' selected' : '') + ' value="' + d + '">' + tntDmy(d) + '</option>').join('') + '</select>' +
-    seg('q', '', [['7', '7 ngày'], ['14', '14 ngày'], ['28', '4 tuần'], ['0', 'Tất cả']], 'tntQuick') + '</div>';
+    seg('q', '', (T.mode === 'week' ? [['35', '5 tuần'], ['56', '8 tuần'], ['0', 'Tất cả']] : [['7', '7 ngày'], ['15', '15 ngày'], ['30', '30 ngày'], ['0', 'Tất cả']]), 'tntQuick') + '</div>';
   document.getElementById('tntCtl').innerHTML = h;
 }
 function tntSetScope(v) { TNT.scope = v; TNT.ent = ''; TNT.pin = -1; tntRender(); }
 function tntSetCust(v) { TNT.cust = v; tntRender(); }
-function tntSetMode(v) { TNT.mode = v; TNT.pin = -1; tntRender(); }
+// Khoảng mặc định: Ngày = 15 ngày gần nhất; Tuần = 5 tuần ISO gần nhất (tính cả tuần hiện tại chưa đủ ngày)
+function tntDefaultRange(n) {
+  const D = TNT.data.dates; TNT.to = D[D.length - 1];
+  if (TNT.mode === 'week') { const wk = []; D.forEach((d) => { const w = tntIsoWeek(d); if (wk[wk.length - 1] !== w) wk.push(w); }); const keep = wk.slice(-(n ? Math.round(n / 7) : 5)); TNT.from = D.find((d) => keep.indexOf(tntIsoWeek(d)) >= 0); }
+  else TNT.from = D[Math.max(0, D.length - (n || 15))];
+}
+function tntSetMode(v) { TNT.mode = v; TNT.pin = -1; tntDefaultRange(); tntRender(); }
 function tntSet(k, v) { TNT[k] = v; TNT.pin = -1; tntRender(); }
 function tntStep(d) { const o = tntEntOptions(); if (!o.length) return; let i = o.indexOf(TNT.ent) + d; if (i < 0) i = o.length - 1; if (i >= o.length) i = 0; TNT.ent = o[i]; tntRender(); }
-function tntQuick(n) { const D = TNT.data.dates; n = +n; TNT.to = D[D.length - 1]; TNT.from = n ? D[Math.max(0, D.length - n)] : D[0]; TNT.pin = -1; tntRender(); }
+function tntQuick(n) { const D = TNT.data.dates; n = +n; if (n) tntDefaultRange(n); else { TNT.to = D[D.length - 1]; TNT.from = D[0]; } TNT.pin = -1; tntRender(); }
 function tntToggle(kind, k) { TNT[kind][k] = TNT[kind][k] ? 0 : 1; if (kind === 'parts' && !TNT.parts.ca1 && !TNT.parts.ca2 && !TNT.parts.ton) TNT.parts[k] = 1; tntRender(); }
 function tntRender() {
   if (!TNT.data) return;
@@ -7890,7 +7896,7 @@ async function loadTntReport(force) {
     if (!res.dates || !res.dates.length) throw new Error('Chưa có sheet dữ liệu mã 200 trở đi (vd 200_1_GTCCA1) hoặc sheet chưa có dòng nào.');
     T.data = res; T.pin = -1;
     const D = res.dates; if (!T.to || D.indexOf(T.to) < 0) T.to = D[D.length - 1];
-    if (!T.from || D.indexOf(T.from) < 0) T.from = D[Math.max(0, D.length - 14)];
+    if (!T.from || D.indexOf(T.from) < 0) tntDefaultRange();
     const t = new Date(res.thoiGian || Date.now());
     document.getElementById('tntMeta').innerHTML = 'Dữ liệu ' + tntDmy(D[0]) + ' → <b>' + tntDmy(D[D.length - 1]) + '</b> · ' + res.ents.length + ' bưu cục · tải lúc ' + t.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     document.getElementById('tntBody').style.display = '';
