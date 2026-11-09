@@ -736,6 +736,8 @@ td.dn-keycol{background:#FBF7EE}
 .sr-actions{display:flex;gap:6px}
 #srFrame{width:100%;height:calc(100vh - 120px);min-height:640px;border:1px solid var(--border);border-radius:10px;background:#F4EDDB;display:block}
 #vhSReport .sr-bar{margin:4px 4px 8px}
+</style>
+<style id="tntCss">
 /* ---- [TNT]-Report ---- */
 #vhTnt{max-width:none;width:100%;margin:0;padding:0 10px 16px}
 .tnt-wrap{background:#F4EDDB;border:1px solid #E2D7BD;border-radius:12px;padding:14px 16px 18px;color:#2B2618}
@@ -772,7 +774,9 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-axt{font-size:11px;fill:#8A8170;font-weight:700}
 .tnt-xl{font-size:11px;fill:#4A4232;font-weight:600}
 .tnt-xs{font-size:10px;fill:#9A8F74}.tnt-sun{fill:#D1352B}
+.tnt-xk{fill:#2B2618;font-weight:800;text-decoration:underline}
 .tnt-pl{font-size:10.5px;font-weight:800;paint-order:stroke;stroke:#FFFDF7;stroke-width:3px;stroke-linejoin:round}
+.tnt-pl.tnt-plb{stroke:none}
 .tnt-band{fill:#2B2618;opacity:.07}
 .tnt-panel{background:#FFFDF7;border:1px solid #E2D7BD;border-radius:10px;padding:12px 14px;position:sticky;top:10px}
 .tnt-ph{font-weight:800;font-size:14px;margin-bottom:8px;border-bottom:1px solid #ECE3CF;padding-bottom:6px}
@@ -1047,7 +1051,7 @@ td.dn-keycol{background:#FBF7EE}
   <div id="vhTnt" class="vh-pane">
     <div class="sr-bar">
       <div><b class="sr-title">[TNT]-Report <span class="rh-tag">Live</span></b><div class="sr-meta" id="tntMeta">Đang kiểm tra dữ liệu…</div></div>
-      <div class="sr-actions"><button class="refresh-btn" onclick="loadTntReport(true)">↻ Tải lại</button></div>
+      <div class="sr-actions"><button class="refresh-btn" onclick="loadTntReport(true)">↻ Tải lại</button><button class="export-btn" onclick="tntDownloadHtml()" title="Tải báo cáo về máy, mở offline vẫn chọn/rê chuột được">⬇ Tải file HTML</button></div>
     </div>
     <div id="tntLoading" class="load-progress" style="display:none"><span>Đang tải [TNT]-Report…</span><span class="load-progress-track"><span class="load-progress-fill" id="tntLoadingFill"></span></span><span class="load-progress-pct" id="tntLoadingPct">0%</span></div>
     <div id="tntErr"></div>
@@ -7718,7 +7722,9 @@ function tntBuildCols(per) {
 function tntPerDay(s, x) { return TNT.mode === 'week' && s.n ? x / s.n : x; }
 function tntNice(x) { if (x <= 0) return 10; const e = Math.pow(10, Math.floor(Math.log10(x))); const f = x / e; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e; }
 function tntChartSvg(cols) {
-  const box = document.getElementById('tntChartBox'); const W = Math.max(620, (box && box.clientWidth) || 900), H = 400;
+  const box = document.getElementById('tntChartBox'); const W = Math.max(620, ((box && box.clientWidth) || 900) - 18), H = 400;
+  // Điền số cách quãng: xem ngày → chỉ các cột CÙNG THỨ với ngày cuối (cách 7 ngày); ≤ 8 cột hoặc xem tuần → mọi cột
+  const showLab = (i) => TNT.mode === 'week' || cols.length <= 8 || (cols.length - 1 - i) % 7 === 0;
   const L = 62, R = 54, Tp = 26, B = 52, pw = W - L - R, ph = H - Tp - B, n = cols.length;
   if (!n) return '<div class="tnt-empty">Không có dữ liệu trong khoảng đã chọn.</div>';
   const bw = pw / n, barW = Math.min(46, bw * 0.64);
@@ -7743,22 +7749,23 @@ function tntChartSvg(cols) {
       if (!TNT.parts[p]) return; const v = tntPerDay(c, c.p[p].v); if (!v) return;
       const y1 = y(base + v), y0 = y(base); s += '<rect x="' + x + '" y="' + y1 + '" width="' + barW + '" height="' + Math.max(0, y0 - y1) + '" fill="' + clr + '"/>'; base += v;
     });
+    if (showLab(i) && base) s += '<text x="' + cx(i) + '" y="' + (y(base) + 13) + '" class="tnt-pl tnt-plb" fill="#2B2618" text-anchor="middle">' + tntN(base) + '</text>';
     if (i % step === 0 || i === n - 1) {
-      s += '<text x="' + cx(i) + '" y="' + (H - B + 18) + '" class="tnt-xl" text-anchor="middle">' + esc(c.lab) + '</text>';
+      s += '<text x="' + cx(i) + '" y="' + (H - B + 18) + '" class="tnt-xl' + (showLab(i) && TNT.mode === 'day' && n > 8 ? ' tnt-xk' : '') + '" text-anchor="middle">' + esc(c.lab) + '</text>';
       if (TNT.mode === 'day') s += '<text x="' + cx(i) + '" y="' + (H - B + 32) + '" class="tnt-xs' + (c.sub === 'CN' ? ' tnt-sun' : '') + '" text-anchor="middle">' + c.sub + '</text>';
     }
   });
-  const line = (key, fy, clr, dash, lab) => {
+  const line = (key, fy, clr, dash, lab, dy) => {
     const pts = []; cols.forEach((c, i) => { const v = fy(c); if (v !== null && isFinite(v)) pts.push([cx(i), v, i]); });
     if (!pts.length) return '';
     let o = '<polyline points="' + pts.map((p) => p[0] + ',' + p[1]).join(' ') + '" fill="none" stroke="' + clr + '" stroke-width="2.2"' + (dash ? ' stroke-dasharray="6 4"' : '') + '/>';
     pts.forEach((p) => { o += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="3.2" fill="#FFFDF7" stroke="' + clr + '" stroke-width="2"/>'; });
-    if (lab && n <= 21) pts.forEach((p) => { o += '<text x="' + p[0] + '" y="' + (p[1] - 8) + '" class="tnt-pl" fill="' + clr + '" text-anchor="middle">' + lab(cols[p[2]]) + '</text>'; });
+    if (lab) pts.forEach((p) => { if (showLab(p[2])) o += '<text x="' + p[0] + '" y="' + (p[1] + (dy || -8)) + '" class="tnt-pl" fill="' + clr + '" text-anchor="middle">' + lab(cols[p[2]]) + '</text>'; });
     return o;
   };
-  if (TNT.lines.ns) s += line('ns', (c) => y(tntPerDay(c, c.k)), '#14915F', false, null);
-  if (TNT.lines.gan) s += line('gan', (c) => c.gan === null ? null : yp(c.gan), '#1F1F1F', true, null);
-  if (TNT.lines.gtc) s += line('gtc', (c) => c.gtc === null ? null : yp(c.gtc), '#F26522', false, (c) => tntP(c.gtc, 1));
+  if (TNT.lines.ns) s += line('ns', (c) => y(tntPerDay(c, c.k)), '#14915F', false, (c) => tntN(tntPerDay(c, c.k)), -9);
+  if (TNT.lines.gan) s += line('gan', (c) => c.gan === null ? null : yp(c.gan), '#1F1F1F', true, (c) => tntP(c.gan, 1), -9);
+  if (TNT.lines.gtc) s += line('gtc', (c) => c.gtc === null ? null : yp(c.gtc), '#F26522', false, (c) => tntP(c.gtc, 1), 17);
   cols.forEach((c, i) => { s += '<rect x="' + (L + bw * i) + '" y="' + Tp + '" width="' + bw + '" height="' + ph + '" fill="transparent" onmouseenter="tntHover(' + i + ')" onclick="tntHover(' + i + ',1)"/>'; });
   return s + '</svg>';
 }
@@ -7846,6 +7853,24 @@ function tntRender() {
   document.getElementById('tntChartBox').innerHTML = tntChartSvg(TNT.cols);
   document.getElementById('tntMiss').innerHTML = TNT.missing.length ? '<div class="tnt-warn">Chưa thấy sheet dữ liệu cho: ' + TNT.missing.join(', ') + (TNT.cust === 'tts' ? ' (TikTok Shop)' : '') + '.</div>' : '';
   tntHover(TNT.pin >= 0 && TNT.pin < TNT.cols.length ? TNT.pin : -1);
+}
+// Tải [TNT]-Report thành 1 file HTML độc lập: nhúng CSS #tntCss + dữ liệu + mọi hàm tnt* → mở offline vẫn đổi phạm vi/ngày/rê chuột được
+function tntDownloadHtml() {
+  if (!TNT.data) { alert('Chưa có dữ liệu [TNT]-Report.'); return; }
+  const skip = { loadTntReport: 1, tntDownloadHtml: 1 };
+  const fns = Object.keys(window).filter((k) => /^tnt/.test(k) && typeof window[k] === 'function' && !skip[k]).map((k) => window[k].toString()).join('\n');
+  const st = Object.assign({}, TNT, { data: null, cols: [], loading: false });
+  const D = TNT.data.dates, last = D[D.length - 1];
+  const js = 'var TNT=' + JSON.stringify(st) + ';TNT.data=' + JSON.stringify(TNT.data) + ';\nvar TNT_PARTS=' + JSON.stringify(TNT_PARTS) + ',TNT_LINES=' + JSON.stringify(TNT_LINES) + ',TNT_WD=' + JSON.stringify(TNT_WD) + ';\n' +
+    esc.toString() + '\n' + fns + '\ntntRender();window.addEventListener("resize",function(){clearTimeout(window.__r);window.__r=setTimeout(tntRender,200)});';
+  const body = document.getElementById('tntBody').cloneNode(true); body.style.display = '';
+  ['tntCtl', 'tntKpis', 'tntLegend', 'tntChartBox', 'tntPanel', 'tntMiss'].forEach((id) => { const el = body.querySelector('#' + id); if (el) el.innerHTML = ''; });
+  const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>[TNT]-Report ' + tntDmy(last) + '</title>' +
+    '<style>body{margin:0;padding:16px;background:#EFE7D3;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#2B2618}.tnt-top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #F26522;padding-bottom:8px;margin-bottom:10px}.tnt-top b{font-size:20px}.tnt-top div{font-size:12px;color:#7A6E52}table{border-collapse:collapse}</style>' +
+    document.getElementById('tntCss').outerHTML + '</head><body><div class="tnt-top"><b>[TNT]-Report</b><div>' + document.getElementById('tntMeta').innerHTML + '</div></div>' +
+    body.outerHTML + '<script>' + js.replace(/<\/script/gi, '<\\/script') + '<\/script></body></html>';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' })); a.download = 'TNT-Report-' + last + '.html';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 async function loadTntReport(force) {
   if (window.__STATIC_SNAPSHOT__) { if (TNT.data) tntRender(); return; }
