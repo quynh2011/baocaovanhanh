@@ -7936,7 +7936,7 @@ function tntTableHtml() {
   const v = (c, x) => tntN(tntPerDay(c, x));
   // So sánh CHỈ ở cột mốc: xem ngày = N-1 (ngày mới nhất); xem tuần = tuần mới nhất đã đủ 7 ngày.
   // Phép so = TRỪ TRỰC TIẾP: % thì lấy % mốc − % kỳ so (chênh %), số đơn thì đơn mốc − đơn kỳ so.
-  // Gán/GTC: % tăng = tốt; Chưa giao: % giảm = tốt → tốt: ▲ xanh lá đậm, tệ: ▼ đỏ. Cần giao: chỉ chênh số đơn (xám).
+  // Gán/GTC: % tăng = tốt; Chưa giao: % giảm = tốt → tốt: ▲ xanh lá đậm, tệ: ▼ đỏ. Cần giao: chênh số đơn, tăng = xanh ▲, giảm = đỏ ▼.
   let ai = 0; if (!day) { const f = cols.findIndex((c) => c.n >= 7); if (f >= 0) ai = f; }
   const pd = (o, x) => !day && o.n ? x / o.n : x;
   const DIR = { v: 0, g: 1, k: 1, t: -1 };
@@ -7951,7 +7951,8 @@ function tntTableHtml() {
       const cls = flat ? 'tnt-dz2' : good ? 'tnt-up2' : 'tnt-dn2';
       return '<span class="tnt-cmpr"><b>' + lab + '</b><span class="' + cls + '">' + (flat ? '■ 0,0%' : (good ? '▲ ' : '▼ ') + fmtP(d)) + '</span><em>' + fmtN(dn) + '</em></span>';
     }
-    return '<span class="tnt-cmpr"><b>' + lab + '</b><span class="tnt-dz2">' + (dn === 0 ? '■ 0' : (dn > 0 ? '▲ ' : '▼ ') + fmtN(dn)) + '</span></span>';
+    // Cần giao: so số đơn — nhiều hơn = xanh ▲, ít hơn = đỏ ▼
+    return '<span class="tnt-cmpr"><b>' + lab + '</b><span class="' + (dn === 0 ? 'tnt-dz2' : dn > 0 ? 'tnt-up2' : 'tnt-dn2') + '">' + (dn === 0 ? '■ 0' : (dn > 0 ? '▲ ' : '▼ ') + fmtN(dn)) + '</span></span>';
   };
   const dline = (i, c, fNum, fPct, dir) => {
     if (i !== ai) return '';
