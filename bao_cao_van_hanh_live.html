@@ -823,12 +823,9 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-tb tr.tnt-g td:first-child{background:#EFE6CF;cursor:pointer}
 .tnt-tb tr.tnt-s td:first-child{padding-left:30px}
 .tnt-tb tr.tnt-off td{opacity:.4}
-.tnt-tb thead tr:first-child th.tnt-dch{background:#33415A;font-size:12px}
-.tnt-tb td.tnt-dc{background:#F2F0EA;color:#6F6756;font-weight:700;font-size:13px;border-left:1px solid #E2D9C4}
-.tnt-tb td.tnt-dc small{font-family:inherit;font-weight:500}
-.tnt-tb td.tnt-dup,.tnt-tb tr.tnt-g td.tnt-dup{background:#DDF1E3;color:#0B7A43;font-weight:800}
-.tnt-tb td.tnt-ddn,.tnt-tb tr.tnt-g td.tnt-ddn{background:#FBE1DE;color:#C0261C;font-weight:800}
-.tnt-tb td.tnt-dup small{color:#2E8B57}.tnt-tb td.tnt-ddn small{color:#C0504A}
+.tnt-tb .tnt-cmpl{display:block;font-size:11px;font-weight:700;margin-top:2px;white-space:nowrap}
+.tnt-tb .tnt-cmpl i{font-style:normal;color:#CFC4A8;margin:0 3px;font-weight:400}
+.tnt-up2{color:#0B7A43}.tnt-dn2{color:#C0261C}.tnt-dz2{color:#9A8F74}
 .tnt-tb .tnt-tg{display:inline-block;width:14px;color:#2F5E9E}
 @media (max-width:1100px){.tnt-kpis{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:900px){   .tnt-chartrow{grid-template-columns:1fr}.tnt-kpis{grid-template-columns:1fr 1fr}}
@@ -7932,39 +7929,36 @@ function tntTableHtml() {
   const scopeLab = TNT.f.bc || TNT.f.am || TNT.f.tinh || 'Vùng TNT';
   const cn = (c) => day && c.sub === 'CN' ? ' class="tnt-cn"' : '';
   const v = (c, x) => tntN(tntPerDay(c, x));
-  // Cột so sánh ngay sau cột mới nhất (N-1): so N-2 (hôm trước) + so N-8 (cùng thứ tuần trước); xem tuần: so tuần trước
-  const c0 = cols[0], cmps = [];
-  const dm = (lab) => { const m = String(lab || '').match(/\(([^)]*)\)/); return m ? m[1] : ''; };
-  if (c0.prev) cmps.push([c0.prev, day ? 'So N-2' : 'So tuần trước', day ? dm(c0.prevLab) : String(c0.prevLab || '').replace('tuần ', '')]);
-  if (day && c0.wk) cmps.push([c0.wk, 'So N-8 (cùng kỳ)', dm(c0.wkLab)]);
+  // So sánh điền NGAY TRONG Ô: dòng cuối mỗi ô = so hôm trước | so cùng thứ tuần trước (xem tuần: so tuần trước).
+  // Gán/GTC: % tăng = tốt; Chưa giao: % giảm = tốt → tốt: ▲ xanh, tệ: ▼ đỏ; Cần giao trung tính (xám, % thay đổi sản lượng)
   const pd = (o, x) => !day && o.n ? x / o.n : x;
   const DIR = { v: 0, g: 1, k: 1, t: -1 };
-  const dcell = (fNum, fPct, dir) => cmps.map(([o]) => {
-    const a = pd(c0, fNum(c0)), b = pd(o, fNum(o)), pa = fPct ? fPct(c0) : null, pb = fPct ? fPct(o) : null;
-    let main, cls = 'tnt-dc';
-    if (dir && pa !== null && pb !== null && isFinite(pa) && isFinite(pb)) {
-      const d = pa - pb, flat = Math.abs(d) < 0.0005, good = d * dir > 0;
-      cls += flat ? '' : good ? ' tnt-dup' : ' tnt-ddn';
-      main = (flat ? '■ ' : good ? '▲ ' : '▼ ') + (d > 0 ? '+' : '') + (d * 100).toFixed(1).replace('.', ',') + '%';
-    } else {
-      const d = b ? (a - b) / b : null;
-      main = d === null ? '—' : (Math.abs(d) < 0.0005 ? '■ ' : d > 0 ? '▲ ' : '▼ ') + (d > 0 ? '+' : '') + (d * 100).toFixed(1).replace('.', ',') + '%';
-    }
-    const dn = Math.round(a - b);
-    return '<td class="' + cls + '">' + main + '<small>' + (dn > 0 ? '+' : '') + tntN(dn) + ' đơn</small></td>';
-  }).join('');
-  const cmpTh = cmps.map(([, l, d]) => '<th class="tnt-dch">' + l + '<small>' + esc(d) + '</small></th>').join('');
+  const one = (c, o, fNum, fPct, dir, lab) => {
+    if (!o) return '';
+    const a = pd(c, fNum(c)), b = pd(o, fNum(o)), pa = fPct ? fPct(c) : null, pb = fPct ? fPct(o) : null, dn = Math.round(a - b);
+    let d, cls = 'tnt-dz2', isP = false;
+    if (dir && pa !== null && pb !== null && isFinite(pa) && isFinite(pb)) { d = pa - pb; isP = true; }
+    else { if (!b) return ''; d = (a - b) / b; }
+    const flat = Math.abs(d) < 0.0005;
+    let arrow = flat ? '■' : d > 0 ? '▲' : '▼';
+    if (isP && !flat) { const good = d * dir > 0; cls = good ? 'tnt-up2' : 'tnt-dn2'; arrow = good ? '▲' : '▼'; }
+    return '<span class="' + cls + '" title="' + lab + ': ' + (d > 0 ? '+' : '') + (d * 100).toFixed(1).replace('.', ',') + '% · ' + (dn > 0 ? '+' : '') + tntN(dn) + ' đơn">' + arrow + (d > 0 ? '+' : '') + (d * 100).toFixed(1).replace('.', ',') + '%</span>';
+  };
+  const dline = (c, fNum, fPct, dir) => {
+    const x = [one(c, c.prev, fNum, fPct, dir, day ? 'So hôm trước' : 'So tuần trước')];
+    if (day) x.push(one(c, c.wk, fNum, fPct, dir, 'So cùng thứ tuần trước'));
+    const t = x.filter(Boolean); return t.length ? '<span class="tnt-cmpl">' + x.map((z) => z || '<span class="tnt-dz2">—</span>').join('<i>|</i>') + '</span>' : '';
+  };
   let h = '<div class="tnt-tw"><table class="tnt-tb"><thead><tr><th>' + esc(scopeLab) + ' · ' + nBC + ' BC' + (TNT.cust === 'tts' ? ' · TTS' : '') + '</th>' +
-    cols.map((c, i) => '<th' + cn(c) + '>' + esc(c.lab) + '<small>' + esc(c.sub) + '</small></th>' + (i === 0 ? cmpTh : '')).join('') + '</tr></thead><tbody>';
+    cols.map((c) => '<th' + cn(c) + '>' + esc(c.lab) + '<small>' + esc(c.sub) + '</small></th>').join('') + '</tr></thead><tbody>';
   const tot = { v: (c) => c.v, g: (c) => c.g, k: (c) => c.k, t: (c) => c.v - c.k };
   TNT_TBL.forEach(([k, title, pre, fv, fp, ftp]) => {
     h += '<tr class="tnt-g" onclick="tntTblToggle(\'' + k + '\')"><td><span class="tnt-tg">' + (shut[k] ? '▸' : '▾') + '</span>' + title + '</td>' +
-      cols.map((c, i) => { const p = ftp ? ftp(c) : null; return '<td' + cn(c) + '>' + v(c, tot[k](c)) + (p !== null && p !== undefined ? '<small>' + tntP(p) + '</small>' : '') + '</td>' + (i === 0 ? dcell(tot[k], ftp, DIR[k]) : ''); }).join('') + '</tr>';
+      cols.map((c, i) => { const p = ftp ? ftp(c) : null; return '<td' + cn(c) + '>' + v(c, tot[k](c)) + (p !== null && p !== undefined ? '<small>' + tntP(p) + '</small>' : '') + dline(c, tot[k], ftp, DIR[k]) + '</td>'; }).join('') + '</tr>';
     if (shut[k]) return;
     TNT_PARTS.forEach(([p, lab]) => {
       h += '<tr class="tnt-s' + (TNT.parts[p] ? '' : ' tnt-off') + '"><td>' + pre + (pre ? lab.toLowerCase() : lab) + '</td>' +
-        cols.map((c, i) => { const q = c.p[p], pp = fp(q, c); return '<td' + cn(c) + '>' + v(c, fv(q)) + '<small>' + (TNT.parts[p] ? tntP(pp) : '—') + '</small></td>' +
-          (i === 0 ? dcell((o) => fv(o.p[p]), (o) => fp(o.p[p], o), k === 'v' ? 0 : DIR[k]) : ''); }).join('') + '</tr>';
+        cols.map((c, i) => { const q = c.p[p], pp = fp(q, c); return '<td' + cn(c) + '>' + v(c, fv(q)) + '<small>' + (TNT.parts[p] ? tntP(pp) : '—') + '</small>' + (TNT.parts[p] ? dline(c, (o) => fv(o.p[p]), (o) => fp(o.p[p], o), k === 'v' ? 0 : DIR[k]) : '') + '</td>'; }).join('') + '</tr>';
     });
   });
   return h + '</tbody></table></div>';
@@ -7983,7 +7977,7 @@ function tntRender() {
   document.getElementById('tntMiss').innerHTML = TNT.missing.length ? '<div class="tnt-warn">Chưa thấy sheet dữ liệu cho: ' + TNT.missing.join(', ') + (TNT.cust === 'tts' ? ' (TikTok Shop)' : '') + '.</div>' : '';
   tntHover(TNT.pin >= 0 && TNT.pin < TNT.cols.length ? TNT.pin : -1);
   document.getElementById('tntTbl').innerHTML = tntTableHtml();
-  document.getElementById('tntTblSub').textContent = TNT.mode === 'week' ? '· số đơn = trung bình 1 ngày của tuần' : '· ngày mới nhất bên trái, Chủ nhật tô cam';
+  document.getElementById('tntTblSub').textContent = TNT.mode === 'week' ? '· số đơn = trung bình 1 ngày của tuần · dòng cuối mỗi ô: so tuần trước' : '· dòng cuối mỗi ô: so hôm trước | so cùng thứ tuần trước (▲ xanh = tốt hơn, ▼ đỏ = tệ hơn; rê chuột xem chênh số đơn)';
 }
 // Tải [TNT]-Report thành 1 file HTML độc lập: nhúng CSS #tntCss + dữ liệu + mọi hàm tnt* → mở offline vẫn đổi phạm vi/ngày/rê chuột được
 function tntDownloadHtml() {
