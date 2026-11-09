@@ -797,6 +797,8 @@ async function handleGetDailyReport(body) {
 // Tỉnh, Volume, Đơn gán, Đơn GTC, Chuẩn ngày (hoặc Time "yyyy-mm-dd - Thứ…"). Trả gọn: danh mục BC dùng chung + mỗi sheet 5 mảng số
 // song song d (chỉ số ngày), b (chỉ số BC), v (Volume), g (Đơn gán), k (Đơn GTC) để không vượt giới hạn 4,5MB của Vercel.
 const TNT_SHEET_RE = /^2\d\d_/;
+// Bưu cục đã đóng → bỏ khỏi [TNT]-Report (so khớp tên đã bỏ dấu, chữ thường). Thêm BC đóng mới vào đây.
+const TNT_BC_DONG = ['(thn) ck tich luong'];
 function tntNorm(x) { return String(x === undefined || x === null ? '' : x).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/\s+/g, ' ').trim(); }
 function tntDate(v) {
   if (typeof v === 'number' && isFinite(v) && v > 20000) return new Date(Math.round((v - 25569) * 86400000)).toISOString().slice(0, 10);
@@ -821,7 +823,7 @@ async function handleGetTntReport(body) {
     if (c.bc < 0 || c.v < 0) { out.error = 'thieu_cot'; return out; }
     for (let r = 1; r < rows.length; r++) {
       const row = rows[r]; const bc = String(row[c.bc] === undefined ? '' : row[c.bc]).trim();
-      if (!bc || /^(grand total|tong)/.test(tntNorm(bc))) continue;
+      if (!bc || /^(grand total|tong)/.test(tntNorm(bc)) || TNT_BC_DONG.indexOf(tntNorm(bc)) >= 0) continue;
       const day = tntDate(c.day >= 0 ? row[c.day] : '') || tntDate(c.time >= 0 ? row[c.time] : '');
       if (!day) continue;
       let e = entIdx[bc];
