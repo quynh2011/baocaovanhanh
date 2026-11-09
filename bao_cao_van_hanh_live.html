@@ -7682,7 +7682,7 @@ window.SR = { loading: false, url: null, fileId: null, meta: null };
 // Nguồn: mọi sheet mã 200 trở đi (backend handleGetTntReport). Mỗi sheet = 1 bưu cục × 1 ngày: Volume (cột D = sản lượng cần giao),
 // Đơn gán (J), Đơn GTC (K = năng suất). Phần I Tổng quan: cột chồng Ca 1 + Ca 2 + Hàng tồn, line Năng suất (xanh), % GTC = K/D (cam),
 // % Gán = J/D (đen). Khách hàng "Tất cả" dùng sheet …GTCCA1/GTCCA2/GTCTon, "TTS" dùng …GTCTTSCA1/GTCTTSCA2/GTCTTSTon (dò theo đuôi tên).
-window.TNT = { tblShut: { v: 1, g: 1, k: 1, t: 1 }, data: null, loading: false, f: { tinh: '', am: '', bc: '' }, cust: 'all', mode: 'day', from: '', to: '', parts: { ca1: 1, ca2: 1, ton: 1 }, lines: { ns: 1, gtc: 1, gan: 1 }, cols: [], hover: -1 };
+window.TNT = { tblShut: { v: 1, g: 1, k: 1, t: 1 }, data: null, loading: false, f: { tinh: '', am: '', bc: '' }, cust: 'all', mode: 'week', from: '', to: '', parts: { ca1: 1, ca2: 1, ton: 1 }, lines: { ns: 1, gtc: 1, gan: 1 }, cols: [], hover: -1 };
 const TNT_PARTS = [['ca1', 'Ca 1', '#A9C6E8'], ['ca2', 'Ca 2', '#5B86C0'], ['ton', 'Hàng tồn', '#CDBF9F']];
 const TNT_LINES = [['ns', 'Năng suất (đơn GTC)', '#14915F'], ['gtc', '% GTC', '#F26522'], ['gan', '% Gán', '#1F1F1F']];
 const TNT_WD = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
