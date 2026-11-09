@@ -8036,7 +8036,7 @@ function tntTableHtml() {
     }).join('');
     const q = (x) => esc(x).replace(/'/g, "\\'");
     const tOpen = !!open[TM + '|tree'];
-    let r = part ? '' : '<tr class="tnt-trh tnt-trclk" onclick="if(event.target.tagName!==\'BUTTON\')tntTreeToggle(\'' + TM + '|tree\')"><td colspan="' + ncol + '"><div class="tnt-trbar"><b><span class="tnt-tg2">' + (tOpen ? '▾' : '▸') + '</span>Theo Tỉnh → AM → Bưu cục</b><em>' +
+    let r = part ? '' : '<tr class="tnt-trh tnt-trclk" onclick="if(event.target.tagName!==\'BUTTON\')tntTreeToggle(\'' + TM + '|tree\')"><td colspan="' + ncol + '"><div class="tnt-trbar"><b><span class="tnt-tg2">' + (tOpen ? '▾' : '▸') + '</span>Tổng cả vùng</b><em>theo Tỉnh → AM → Bưu cục · ' +
       ({ k: 'xếp % GTC thấp → cao', g: 'xếp % gán thấp → cao', t: 'xếp % chưa giao cao → thấp', v: 'xếp sản lượng cao → thấp' }[TM]) + ' (theo cột mốc)</em>' +
       (tOpen ? '<button onclick="tntTreeAll(1,\'' + TM + '\')">Mở hết</button><button onclick="tntTreeAll(0,\'' + TM + '\')">Thu hết</button>' : '<em>— bấm để xem</em>') + '</div></td></tr>';
     if (part) { const lab = (TNT_PARTS.find((x) => x[0] === part) || [])[1] || part; r = '<tr class="tnt-trh tnt-trp"><td colspan="' + ncol + '"><div class="tnt-trbar"><b>' + esc(mdef[2] + lab) + ' — theo Tỉnh → AM → Bưu cục</b><button onclick="tntTreeAll(1,\'' + KP + '\')">Mở hết</button><button onclick="tntTreeAll(0,\'' + KP + '\')">Thu hết</button></div></td></tr>'; }
