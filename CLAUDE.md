@@ -138,3 +138,4 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 - 2026-11-10: [TNT]-Report bảng số liệu — mọi cấp mặc định THU GỌN về Vùng: mở nhóm chỉ hiện Ca 1/Ca 2/Tồn + thanh "▸ Theo Tỉnh → AM → Bưu cục — bấm để xem" (khoá `<chỉ số>|tree`), bấm mới ra các tỉnh; Ca 1/Ca 2/Tồn bấm mới ra cây riêng. Thu nhóm lại là xoá hết trạng thái mở bên trong nhóm đó (`tntTblToggle`).
 - 2026-11-10: [TNT]-Report — thanh cây tổng trong mỗi nhóm đổi tên "Tổng cả vùng" (theo Tỉnh → AM → Bưu cục), vẫn thu gọn mặc định.
 - 2026-11-10: [TNT]-Report — cây Tỉnh → AM → BC đổi sang tông xanh xám (thanh "Tổng cả vùng" #3E5878, tỉnh #EEF3F9, AM #F7FAFD, BC trắng) cho khác màu nhóm cha.
+- 2026-11-10: [TNT]-Report — đổi tên nhóm 2 "% Gán - Sản lượng gán", nhóm 3 "% GTC - Năng suất (ca 1 + ca 2 + tồn)".
