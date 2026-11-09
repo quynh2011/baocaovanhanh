@@ -831,6 +831,22 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-tb td.tnt-ancc{min-width:150px;box-shadow:inset 2px 0 0 #2B2618,inset -2px 0 0 #2B2618}
 .tnt-tb thead tr:first-child th.tnt-anc{box-shadow:inset 2px 0 0 #2B2618,inset -2px 0 0 #2B2618}
 .tnt-ancl{display:block;font-size:9.5px;font-weight:600;opacity:.85;text-transform:uppercase;letter-spacing:.04em}
+.tnt-tb tr.tnt-trh td{position:static;background:#2B2618;color:#FFF6E0;padding:8px 12px;text-align:left;font-size:13px}
+.tnt-trbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:sticky;left:12px;width:max-content;max-width:calc(100vw - 120px)}
+.tnt-trbar b{font-size:14px;margin-right:10px}
+.tnt-trbar span{font-size:12px;opacity:.75}
+.tnt-trbar button{border:1px solid rgba(255,246,224,.35);background:none;color:#FFF6E0;border-radius:6px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer}
+.tnt-trbar button.on{background:#F26522;border-color:#F26522;font-weight:700}
+.tnt-trbar .tnt-trsp{width:12px}
+.tnt-trbar em{font-style:normal;font-size:11.5px;opacity:.7;margin-left:6px}
+.tnt-tb tr.tnt-tr1 td{background:#F3ECD9;font-weight:700;cursor:pointer}
+.tnt-tb tr.tnt-tr1 td:first-child{background:#EADFC3}
+.tnt-tb tr.tnt-tr2 td{background:#FBF7EC;cursor:pointer}
+.tnt-tb tr.tnt-tr2 td:first-child{padding-left:28px;background:#F6EFDC;font-weight:600}
+.tnt-tb tr.tnt-tr3 td:first-child{padding-left:52px;font-size:13px}
+.tnt-tb tr.tnt-tr1 td.tnt-cn,.tnt-tb tr.tnt-tr2 td.tnt-cn{background:#F2DFD0}
+.tnt-tb tr.tnt-trsel td{background:#FFF3C4}
+.tnt-trn{font-style:normal;font-size:11px;color:#9A8F74;font-weight:500}
 .tnt-tb .tnt-tg{display:inline-block;width:14px;color:#2F5E9E}
 @media (max-width:1100px){.tnt-kpis{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:900px){   .tnt-chartrow{grid-template-columns:1fr}.tnt-kpis{grid-template-columns:1fr 1fr}}
@@ -7709,13 +7725,18 @@ function tntSheet(suffix) { return (TNT.data.sheets || []).find((s) => s.name.to
 function tntBuildPer() {
   const T = TNT, D = T.data, nD = D.dates.length, pre = T.cust === 'tts' ? 'gtctts' : 'gtc';
   const ok = T.f.tinh || T.f.am || T.f.bc ? D.ents.map((e) => tntEntOk(e)) : null;
-  const per = {}; T.missing = [];
+  const per = {}, EP = {}; T.missing = [];
   TNT_PARTS.forEach(([p, lab]) => {
     const s = tntSheet(pre + p); const v = new Float64Array(nD), g = new Float64Array(nD), k = new Float64Array(nD);
     if (!s) T.missing.push(lab);
     else for (let i = 0; i < s.d.length; i++) { if (ok && !ok[s.b[i]]) continue; const di = s.d[i]; v[di] += s.v[i]; g[di] += s.g[i]; k[di] += s.k[i]; }
     per[p] = { v: v, g: g, k: k };
+    // mảng theo bưu cục × ngày (cho bảng chi tiết Tỉnh → AM → Bưu cục)
+    const nE = D.ents.length, ev = new Float64Array(nE * nD), eg = new Float64Array(nE * nD), ek = new Float64Array(nE * nD);
+    if (s) for (let i = 0; i < s.d.length; i++) { const x = s.b[i] * nD + s.d[i]; ev[x] += s.v[i]; eg[x] += s.g[i]; ek[x] += s.k[i]; }
+    EP[p] = { v: ev, g: eg, k: ek };
   });
+  T.EP = EP;
   return per;
 }
 // Tổng 1 nhóm ngày (idxs) → số liệu từng phần + tổng theo các phần đang bật; chia TB/ngày khi xem tuần
@@ -7740,6 +7761,7 @@ function tntBuildCols(per) {
       const s = tntSum(per, [i]); const d = D[i];
       s.key = d; s.lab = tntDm(d); s.sub = TNT_WD[tntWd(d)]; s.title = (tntWd(d) === 0 ? 'Chủ nhật' : 'Thứ ' + (tntWd(d) + 1)) + ', ' + tntDmy(d);
       s.prev = i > 0 ? tntSum(per, [i - 1]) : null; s.prevLab = i > 0 ? 'hôm trước (' + tntDm(D[i - 1]) + ')' : '';
+      s.idx = [i]; s.prevIdx = i > 0 ? [i - 1] : null; s.wkIdx = i >= 7 ? [i - 7] : null;
       s.wk = i >= 7 ? tntSum(per, [i - 7]) : null; s.wkLab = i >= 7 ? 'cùng thứ tuần trước (' + tntDm(D[i - 7]) + ')' : '';
       cols.push(s);
     });
@@ -7752,6 +7774,7 @@ function tntBuildCols(per) {
       const part = ids.length < 7;
       s.key = w; s.lab = 'T' + w.split('/')[1] + (part ? '*' : ''); s.sub = tntDm(D[ids[0]]) + '–' + tntDm(D[ids[ids.length - 1]]);
       s.title = 'Tuần ' + w + ' (' + s.sub + ', ' + ids.length + ' ngày' + (part ? ' — chưa đủ tuần' : '') + ')';
+      s.idx = ids; s.prevIdx = wi > 0 ? all[keys[wi - 1]] : null; s.wkIdx = null;
       if (wi > 0) { s.prev = tntSum(per, all[keys[wi - 1]]); s.prevLab = 'tuần ' + keys[wi - 1]; }
       cols.push(s);
     });
@@ -7927,6 +7950,24 @@ const TNT_TBL = [
   ['t', '4. Chưa giao (Tồn cuối ngày)', 'Chưa giao ', (q) => q.v - q.k, (q) => q.v ? (q.v - q.k) / q.v : null, (c) => c.v ? (c.v - c.k) / c.v : null]
 ];
 function tntTblToggle(k) { TNT.tblShut = TNT.tblShut || {}; TNT.tblShut[k] = !TNT.tblShut[k]; document.getElementById('tntTbl').innerHTML = tntTableHtml(); }
+// Tổng của 1 nhóm bưu cục (ents = danh sách chỉ số BC) trong 1 nhóm ngày — cùng dạng với tntSum
+function tntSumEnts(ents, idxs) {
+  const nD = TNT.data.dates.length, EP = TNT.EP, o = { n: idxs.length, p: {}, v: 0, g: 0, k: 0 };
+  TNT_PARTS.forEach(([p]) => {
+    let v = 0, g = 0, k = 0; const A = EP[p];
+    ents.forEach((e) => { idxs.forEach((d) => { const x = e * nD + d; v += A.v[x]; g += A.g[x]; k += A.k[x]; }); });
+    o.p[p] = { v: v, g: g, k: k }; if (TNT.parts[p]) { o.v += v; o.g += g; o.k += k; }
+  });
+  o.gtc = o.v ? o.k / o.v : null; o.gan = o.v ? o.g / o.v : null;
+  return o;
+}
+function tntTreeMetric(k) { TNT.treeM = k; document.getElementById('tntTbl').innerHTML = tntTableHtml(); }
+function tntTreeToggle(key) { TNT.treeOpen = TNT.treeOpen || {}; TNT.treeOpen[key] = !TNT.treeOpen[key]; document.getElementById('tntTbl').innerHTML = tntTableHtml(); }
+function tntTreeAll(open) {
+  TNT.treeOpen = {};
+  if (open) TNT.data.ents.forEach((e) => { if (tntEntOk(e)) { TNT.treeOpen['t|' + e[2]] = 1; TNT.treeOpen['a|' + e[2] + '|' + e[1]] = 1; } });
+  document.getElementById('tntTbl').innerHTML = tntTableHtml();
+}
 function tntTableHtml() {
   const cols = TNT.cols.slice().reverse(); if (!cols.length) return '';
   const shut = TNT.tblShut || {}, day = TNT.mode === 'day';
@@ -7971,6 +8012,43 @@ function tntTableHtml() {
         cols.map((c, i) => { const q = c.p[p], pp = fp(q, c); return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + v(c, fv(q)) + '<small>' + (TNT.parts[p] ? tntP(pp) : '—') + '</small>' + (TNT.parts[p] ? dline(i, c, (o) => fv(o.p[p]), (o) => fp(o.p[p], o), k === 'v' ? 0 : DIR[k]) : '') + '</td>'; }).join('') + '</tr>';
     });
   });
+  // ===== 5. Chi tiết Tỉnh → AM → Bưu cục (cùng cột ngày/tuần, cùng cột mốc so sánh) =====
+  const TM = TNT.treeM || 'k', mdef = TNT_TBL.find((r) => r[0] === TM), open = TNT.treeOpen || {};
+  const fN = tot[TM], fP = mdef[5] || null, dirM = DIR[TM];
+  const ncol = cols.length + 1;
+  h += '<tr class="tnt-trh"><td colspan="' + ncol + '"><div class="tnt-trbar"><b>5. Chi tiết theo Tỉnh → AM → Bưu cục</b><span>Chỉ số:</span>' +
+    TNT_TBL.map((r) => '<button class="' + (r[0] === TM ? 'on' : '') + '" onclick="tntTreeMetric(\'' + r[0] + '\')">' + r[1].replace(/^\d\.\s*/, '').replace(/\s*\(.*\)$/, '').replace(/\s*—.*$/, '') + '</button>').join('') +
+    '<span class="tnt-trsp"></span><button onclick="tntTreeAll(1)">Mở hết</button><button onclick="tntTreeAll(0)">Thu hết</button>' +
+    '<em>' + ({ k: 'xếp % GTC thấp → cao', g: 'xếp % gán thấp → cao', t: 'xếp % chưa giao cao → thấp', v: 'xếp sản lượng cao → thấp' }[TM]) + ' (theo cột mốc)</em></div></td></tr>';
+  const ok = D.ents.map((e, i) => tntEntOk(e) ? i : -1).filter((i) => i >= 0);
+  const groupBy = (list, col) => { const m = {}; list.forEach((e) => { const kk = D.ents[e][col] || '(chưa rõ)'; (m[kk] = m[kk] || []).push(e); }); return m; };
+  const c0i = cols[ai];
+  const sortKey = (ents) => { const o = tntSumEnts(ents, c0i.idx); const pv = fP ? fP(o) : null; return TM === 'v' ? -o.v : TM === 't' ? -(pv === null ? -1 : pv) : (pv === null ? 2 : pv); };
+  const sorted = (m) => Object.keys(m).map((kk) => [kk, m[kk], sortKey(m[kk])]).sort((a, b) => a[2] - b[2]);
+  const rowCells = (ents) => cols.map((c, i) => {
+    const o = tntSumEnts(ents, c.idx), pv = fP ? fP(o) : null;
+    let cmp = '';
+    if (i === ai) {
+      const pr = c.prevIdx ? tntSumEnts(ents, c.prevIdx) : null, wk = c.wkIdx ? tntSumEnts(ents, c.wkIdx) : null;
+      const x = day ? [one(o, pr, fN, fP, dirM, 'N-2'), one(o, wk, fN, fP, dirM, 'N-8')] : [one(o, pr, fN, fP, dirM, 'Tuần trước')];
+      cmp = '<span class="tnt-cmpl">' + x.join('') + '</span>';
+    }
+    return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (o.v ? v(c, fN(o)) : '<span class="tnt-dz2">—</span>') + (pv !== null && o.v ? '<small>' + tntP(pv) + '</small>' : '') + cmp + '</td>';
+  }).join('');
+  const autoT = !!TNT.f.tinh, autoA = !!TNT.f.am;
+  sorted(groupBy(ok, 2)).forEach(([tinh, te]) => {
+    const kt = 't|' + tinh, ot = autoT || open[kt];
+    h += '<tr class="tnt-tr1" onclick="tntTreeToggle(\'' + esc(kt).replace(/'/g, "\\'") + '\')"><td><span class="tnt-tg">' + (ot ? '▾' : '▸') + '</span>' + esc(tinh) + ' <i class="tnt-trn">' + te.length + ' BC</i></td>' + rowCells(te) + '</tr>';
+    if (!ot) return;
+    sorted(groupBy(te, 1)).forEach(([am, ae]) => {
+      const ka = 'a|' + tinh + '|' + am, oa = autoA || open[ka];
+      h += '<tr class="tnt-tr2" onclick="tntTreeToggle(\'' + esc(ka).replace(/'/g, "\\'") + '\')"><td><span class="tnt-tg">' + (oa ? '▾' : '▸') + '</span>' + esc(am) + ' <i class="tnt-trn">' + ae.length + ' BC</i></td>' + rowCells(ae) + '</tr>';
+      if (!oa) return;
+      sorted(groupBy(ae, 0)).forEach(([bc, be]) => {
+        h += '<tr class="tnt-tr3' + (TNT.f.bc === bc ? ' tnt-trsel' : '') + '"><td>' + esc(bc) + '</td>' + rowCells(be) + '</tr>';
+      });
+    });
+  });
   return h + '</tbody></table></div>';
 }
 function tntRender() {
@@ -7994,7 +8072,7 @@ function tntDownloadHtml() {
   if (!TNT.data) { alert('Chưa có dữ liệu [TNT]-Report.'); return; }
   const skip = { loadTntReport: 1, tntDownloadHtml: 1 };
   const fns = Object.keys(window).filter((k) => /^tnt/.test(k) && typeof window[k] === 'function' && !skip[k]).map((k) => window[k].toString()).join('\n');
-  const st = Object.assign({}, TNT, { data: null, cols: [], loading: false });
+  const st = Object.assign({}, TNT, { data: null, cols: [], loading: false, EP: null });
   const D = TNT.data.dates, last = D[D.length - 1];
   const js = 'var TNT=' + JSON.stringify(st) + ';TNT.data=' + JSON.stringify(TNT.data) + ';\nvar TNT_PARTS=' + JSON.stringify(TNT_PARTS) + ',TNT_LINES=' + JSON.stringify(TNT_LINES) + ',TNT_WD=' + JSON.stringify(TNT_WD) + ',TNT_LV=' + JSON.stringify(TNT_LV) + ',TNT_TBL=[' + TNT_TBL.map((r) => '[' + r.map((x) => typeof x === 'function' ? x.toString() : JSON.stringify(x)).join(',') + ']').join(',') + '];\n' +
     esc.toString() + '\n' + fns + '\ntntRender();window.addEventListener("resize",function(){clearTimeout(window.__r);window.__r=setTimeout(tntRender,200)});';
