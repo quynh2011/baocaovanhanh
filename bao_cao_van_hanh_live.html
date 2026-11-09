@@ -7942,7 +7942,7 @@ function tntTableHtml() {
     const flat = Math.abs(d) < 0.0005;
     let arrow = flat ? '■' : d > 0 ? '▲' : '▼';
     if (isP && !flat) { const good = d * dir > 0; cls = good ? 'tnt-up2' : 'tnt-dn2'; arrow = good ? '▲' : '▼'; }
-    return '<span class="' + cls + '" title="' + lab + ': ' + (d > 0 ? '+' : '') + (d * 100).toFixed(1).replace('.', ',') + '% · ' + (dn > 0 ? '+' : '') + tntN(dn) + ' đơn">' + arrow + (d > 0 ? '+' : '') + (d * 100).toFixed(1).replace('.', ',') + '%</span>';
+    return '<span class="' + cls + '" title="' + lab + ': ' + (d > 0 ? '+' : '') + (d * 100).toFixed(1).replace('.', ',') + '% · ' + (dn > 0 ? '+' : '') + tntN(dn) + ' đơn">' + arrow + (flat ? '0,0' : (d > 0 ? '+' : '') + (d * 100).toFixed(1).replace('.', ',')) + '%</span>';
   };
   const dline = (c, fNum, fPct, dir) => {
     const x = [one(c, c.prev, fNum, fPct, dir, day ? 'So hôm trước' : 'So tuần trước')];
