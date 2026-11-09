@@ -7916,7 +7916,7 @@ const TNT_TBL = [
   ['v', '1. Cần giao (ca 1 + ca 2 + tồn)', '', (q) => q.v, (q, c) => c.v ? q.v / c.v : null, null],
   ['g', '2. Đơn gán', 'Gán ', (q) => q.g, (q) => q.v ? q.g / q.v : null, (c) => c.gan],
   ['k', '3. GTC — năng suất (ca 1 + ca 2 + tồn)', 'GTC ', (q) => q.k, (q) => q.v ? q.k / q.v : null, (c) => c.gtc],
-  ['t', '4. Chưa giao (cần giao − GTC)', 'Chưa giao ', (q) => q.v - q.k, (q) => q.v ? (q.v - q.k) / q.v : null, (c) => c.v ? (c.v - c.k) / c.v : null]
+  ['t', '4. Chưa giao (Tồn cuối ngày)', 'Chưa giao ', (q) => q.v - q.k, (q) => q.v ? (q.v - q.k) / q.v : null, (c) => c.v ? (c.v - c.k) / c.v : null]
 ];
 function tntTblToggle(k) { TNT.tblShut = TNT.tblShut || {}; TNT.tblShut[k] = !TNT.tblShut[k]; document.getElementById('tntTbl').innerHTML = tntTableHtml(); }
 function tntTableHtml() {
