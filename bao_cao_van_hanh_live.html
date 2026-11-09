@@ -742,6 +742,8 @@ td.dn-keycol{background:#FBF7EE}
 #vhTnt{max-width:none;width:100%;margin:0;padding:0 clamp(16px,4vw,90px) 16px;box-sizing:border-box}
 @media (max-width:900px){#vhTnt{padding:0 10px 16px}}
 .tnt-wrap{background:#F4EDDB;border:1px solid #E2D7BD;border-radius:12px;padding:14px 16px 18px;color:#2B2618}
+#tntCtl{position:sticky;top:0;z-index:30;background:#F4EDDB;margin:-14px -16px 0;padding:12px 16px 4px;border-radius:12px 12px 0 0;border-bottom:1px solid transparent;transition:box-shadow .15s}
+#tntCtl.tnt-stuck{box-shadow:0 6px 14px -8px rgba(60,45,10,.35);border-bottom-color:#E2D7BD;border-radius:0}
 .tnt-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}
 .tnt-cl{font-size:12px;font-weight:700;color:#7A6E52;text-transform:uppercase;letter-spacing:.04em;margin-left:4px}
 .tnt-seg{display:inline-flex;border:1px solid #D6C9A8;border-radius:8px;overflow:hidden;background:#FFFDF7}
@@ -7666,7 +7668,7 @@ window.SR = { loading: false, url: null, fileId: null, meta: null };
 // Nguồn: mọi sheet mã 200 trở đi (backend handleGetTntReport). Mỗi sheet = 1 bưu cục × 1 ngày: Volume (cột D = sản lượng cần giao),
 // Đơn gán (J), Đơn GTC (K = năng suất). Phần I Tổng quan: cột chồng Ca 1 + Ca 2 + Hàng tồn, line Năng suất (xanh), % GTC = K/D (cam),
 // % Gán = J/D (đen). Khách hàng "Tất cả" dùng sheet …GTCCA1/GTCCA2/GTCTon, "TTS" dùng …GTCTTSCA1/GTCTTSCA2/GTCTTSTon (dò theo đuôi tên).
-window.TNT = { data: null, loading: false, scope: 'all', ent: '', cust: 'all', mode: 'day', from: '', to: '', parts: { ca1: 1, ca2: 1, ton: 1 }, lines: { ns: 1, gtc: 1, gan: 1 }, cols: [], hover: -1 };
+window.TNT = { tblShut: { v: 1, g: 1, k: 1, t: 1 }, data: null, loading: false, scope: 'all', ent: '', cust: 'all', mode: 'day', from: '', to: '', parts: { ca1: 1, ca2: 1, ton: 1 }, lines: { ns: 1, gtc: 1, gan: 1 }, cols: [], hover: -1 };
 const TNT_PARTS = [['ca1', 'Ca 1', '#A9C6E8'], ['ca2', 'Ca 2', '#5B86C0'], ['ton', 'Hàng tồn', '#CDBF9F']];
 const TNT_LINES = [['ns', 'Năng suất (đơn GTC)', '#14915F'], ['gtc', '% GTC', '#F26522'], ['gan', '% Gán', '#1F1F1F']];
 const TNT_WD = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -7959,6 +7961,7 @@ async function loadTntReport(force) {
     err.innerHTML = '<div class="tnt-warn">Không tải được [TNT]-Report: ' + esc(e.message) + '</div>';
   } finally { prog.finish('tntLoading'); T.loading = false; }
 }
+window.addEventListener('scroll', () => { const c = document.getElementById('tntCtl'); if (c && c.offsetParent) c.classList.toggle('tnt-stuck', c.getBoundingClientRect().top <= 0.5 && window.scrollY > 0); }, { passive: true });
 window.addEventListener('resize', () => { clearTimeout(window.__tntRz); window.__tntRz = setTimeout(() => { const p = document.getElementById('vhTnt'); if (TNT.data && p && p.classList.contains('active')) tntRender(); }, 200); });
 async function loadSReport(force){
   if (window.__STATIC_SNAPSHOT__) return;
