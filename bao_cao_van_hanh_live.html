@@ -867,7 +867,7 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-tip .tnt-tiph{border-top:1px solid #3A3D44;padding-top:8px;color:#8EB6E8;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 .tnt-tip ul{margin:4px 0 0 18px;padding:0}.tnt-tip .tnt-tipb ul{margin:4px 0 0 16px}
 .tnt-ght td.tnt-ghm,.tnt-ght th.tnt-ghm{border-left:2px solid #2B2618;border-right:2px solid #2B2618}.tnt-ght th.tnt-ghm{background:#1F3F6E}
-.tnt-ght tr.tnt-ght1 td{background:#EEF3F9}.tnt-ght tr.tnt-ght2 td{background:#F7FAFD}.tnt-ght tr.tnt-ght3 td{background:#fff}.tnt-ght td small{display:block}.tnt-ghmore{display:inline-flex;gap:8px;align-items:center}.tnt-ghmore .tnt-colb{margin-left:0}.tnt-ghmore i{font-style:normal;color:#9A8F74;font-size:12px}.tnt-tip li{margin:2px 0}
+.tnt-ght tr.tnt-ght1 td{background:#EEF3F9}.tnt-ght tr.tnt-ght2 td{background:#F7FAFD}.tnt-ght tr.tnt-ght3 td{background:#fff}.tnt-ght td small{display:block}.tnt-ght tr.tnt-ghsm td{color:#9A8F74}.tnt-ght tr.tnt-ghsm td b{color:#9A8F74!important}.tnt-ghfew{font-style:normal;color:#B0623A;font-weight:700}.tnt-ghmore{display:inline-flex;gap:8px;align-items:center}.tnt-ghmore .tnt-colb{margin-left:0}.tnt-ghmore i{font-style:normal;color:#9A8F74;font-size:12px}.tnt-tip li{margin:2px 0}
 .tnt-tip .tnt-red,.tnt-tip .tnt-tg-bad{color:#FF7A6B}.tnt-tip .tnt-up2,.tnt-tip .tnt-tg-ok{color:#5FD08E}
 .tnt-tipcell{cursor:help}.tnt-tipi{color:#8EA3C0;font-size:12px}.tnt-tipcell:hover b{text-decoration:underline dotted}
 .tnt-more{margin:8px 6px 0 0;padding:5px 12px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-weight:700;font-size:12.5px;cursor:pointer}
@@ -8643,6 +8643,8 @@ function tntGhSpark(v, end, good, ov) {
   const dots = sl ? '<circle cx="' + X(sl.a).toFixed(1) + '" cy="' + Y(sl.va).toFixed(1) + '" r="2" fill="#fff" stroke="' + col + '"/><circle cx="' + X(sl.e).toFixed(1) + '" cy="' + Y(sl.ve).toFixed(1) + '" r="2.8" fill="' + col + '"/>' : '<circle cx="' + X(le).toFixed(1) + '" cy="' + Y(v[le]).toFixed(1) + '" r="2.8" fill="' + col + '"/>';
   return '<svg width="' + W + '" height="' + H + '" class="tnt-spk"><polyline points="' + pts + '" fill="none" stroke="' + col + '" stroke-width="2"/>' + dots + '</svg><small style="color:' + col + '">' + (flat ? '■ không đổi' : (ch > 0 ? '▲ tăng +' : '▼ giảm −') + tntP(Math.abs(ch))) + '</small>';
 }
+// "ít hàng": nhóm (tỉnh/AM/BC) có sản lượng < 20% TB các nhóm cùng cấp → không xét kém/tốt (vd cả tỉnh chỉ 32 đơn ca 2 = coi như không có hàng ca 2)
+function tntGhSmallSet(list, getV) { const vs = list.map(getV), avg = vs.reduce((a, b) => a + b, 0) / (vs.length || 1); return list.map((x, i) => vs[i] < 0.2 * avg); }
 function tntGhK(v) { return v >= 1000 ? (v / 1000).toFixed(1).replace('.', ',') + 'k' : tntN(v); }
 // ---------- khung mục IV
 function tntGhHtml() {
@@ -8686,8 +8688,10 @@ function tntGhInsightHtml(G) {
   }
   // tỉnh kém nhất / tốt nhất ở kỳ mốc
   const D = TNT.data, tm = {}; es.forEach((e) => { const k = D.ents[e][2] || '—'; (tm[k] = tm[k] || []).push(e); });
-  const tl = Object.keys(tm).map((k) => ({ k: k, o: tntGhSum(G, tm[k], C.idx, all3) })).filter((x) => x.o.v > 0).sort((a, b) => a.o.p - b.o.p);
-  if (tl.length > 1) ins.push('Tỉnh kém nhất <b class="tnt-red">' + esc(tl[0].k) + ' ' + tntP(tl[0].o.p) + '</b> (chưa giao ' + tntN(pd(tl[0].o.v - tl[0].o.k)) + (day ? '' : '/ngày') + ') · tốt nhất <b class="tnt-up2">' + esc(tl[tl.length - 1].k) + ' ' + tntP(tl[tl.length - 1].o.p) + '</b>.');
+  let tl = Object.keys(tm).map((k) => ({ k: k, o: tntGhSum(G, tm[k], C.idx, all3) })).filter((x) => x.o.v > 0);
+  { const sm = tntGhSmallSet(tl, (x) => x.o.v), few = tl.filter((x, i) => sm[i]); tl = tl.filter((x, i) => !sm[i]).sort((a, b) => a.o.p - b.o.p);
+    var fewTxt = few.length ? ' <i>(không xét tỉnh ít hàng: ' + few.map((x) => esc(x.k) + ' ' + tntN(pd(x.o.v)) + ' đơn' + (day ? '' : '/ngày')).join(', ') + ')</i>' : ''; }
+  if (tl.length > 1) ins.push('Tỉnh kém nhất <b class="tnt-red">' + esc(tl[0].k) + ' ' + tntP(tl[0].o.p) + '</b> (chưa giao ' + tntN(pd(tl[0].o.v - tl[0].o.k)) + (day ? '' : '/ngày') + ') · tốt nhất <b class="tnt-up2">' + esc(tl[tl.length - 1].k) + ' ' + tntP(tl[tl.length - 1].o.p) + '</b>.' + fewTxt);
   return '<div class="tnt-insight"><b>Nhận xét nhanh</b><ul>' + ins.map((x) => '<li>' + x + '</li>').join('') + '</ul></div>';
 }
 // ---------- 1. biểu đồ hàng cần giao theo ca & % GTC
@@ -8749,8 +8753,9 @@ function tntGhPartHtml(p) {
   const crv = cols.slice().reverse(), tr = crv.map((c) => tntGhSum(G, es, c.idx, PP).p), sl = tntGhSlope(tr, cols.length - 1 - ai);
   if (sl) ins.push('Xu hướng: % GTC ' + esc(crv[sl.e].lab) + ' (mốc) ' + tntP(sl.ve) + ' so ' + esc(crv[sl.a].lab) + ' ' + tntP(sl.va) + ' = ' + tntGhD(sl.tot, 1) + '.');
   const tm = {}; es.forEach((e) => { const k = D.ents[e][2] || '—'; (tm[k] = tm[k] || []).push(e); });
-  const tl = Object.keys(tm).map((k) => ({ k: k, o: tntGhSum(G, tm[k], C.idx, PP) })).filter((x) => x.o.v > 0).sort((a, b) => a.o.p - b.o.p);
-  if (tl.length > 1) ins.push('Tỉnh kém nhất <b class="tnt-red">' + esc(tl[0].k) + ' ' + tntP(tl[0].o.p) + '</b> · tốt nhất <b class="tnt-up2">' + esc(tl[tl.length - 1].k) + ' ' + tntP(tl[tl.length - 1].o.p) + '</b>.');
+  let tl = Object.keys(tm).map((k) => ({ k: k, o: tntGhSum(G, tm[k], C.idx, PP) })).filter((x) => x.o.v > 0);
+  const smT = tntGhSmallSet(tl, (x) => x.o.v), fewT = tl.filter((x, i) => smT[i]); tl = tl.filter((x, i) => !smT[i]).sort((a, b) => a.o.p - b.o.p);
+  if (tl.length > 1) ins.push('Tỉnh kém nhất <b class="tnt-red">' + esc(tl[0].k) + ' ' + tntP(tl[0].o.p) + '</b> · tốt nhất <b class="tnt-up2">' + esc(tl[tl.length - 1].k) + ' ' + tntP(tl[tl.length - 1].o.p) + '</b>.' + (fewT.length ? ' <i>(không xét tỉnh ít hàng ' + nm + ': ' + fewT.map((x) => esc(x.k) + ' ' + tntN(pd(x.o.v)) + ' đơn' + (day ? '' : '/ngày')).join(', ') + ' — coi như không có hàng ' + nm + ')</i>' : ''));
   const bl = es.map((e) => ({ e: e, o: tntGhSum(G, [e], C.idx, PP), b: C.prevIdx ? tntGhSum(G, [e], C.prevIdx, PP) : null })).filter((x) => pd(x.o.v) >= 10);
   if (bl.length) {
     const under = bl.filter((x) => x.o.p < r.p - 0.02), ug = bl.reduce((a, x) => a + (x.o.v - x.o.k), 0), top10 = bl.slice().sort((a, b) => (b.o.v - b.o.k) - (a.o.v - a.o.k)).slice(0, 10), t10 = top10.reduce((a, x) => a + (x.o.v - x.o.k), 0);
@@ -8775,12 +8780,13 @@ function tntGhTblHtml(p) {
   const TL = Array.from(new Set(D.ents.map((e) => e[2] || '—'))).sort(), AL = Array.from(new Set(D.ents.map((e) => e[1] || '—'))).sort();
   const cn = (c) => day && c.sub === 'CN' ? ' tnt-cn' : '';
   const info = (ents) => { const m = tntGhSum(G, ents, C.idx, parts), b = C.prevIdx ? tntGhSum(G, ents, C.prevIdx, parts) : null; return { m: m, b: b, miss: pd(m.v - m.k), d: b && b.p !== null && m.p !== null ? m.p - b.p : null }; };
-  const sortF = (a, b) => st.sort === 'p' ? ((pd(b.i.m.v) >= 10) - (pd(a.i.m.v) >= 10)) || ((a.i.m.p === null ? 9 : a.i.m.p) - (b.i.m.p === null ? 9 : b.i.m.p)) : st.sort === 'd' ? (a.i.d === null ? 9 : a.i.d) - (b.i.d === null ? 9 : b.i.d) : b.i.miss - a.i.miss;
-  const row = (name, sub, ents, cls, pad, click, tipE) => { const tipJs = typeof tipE === 'string' ? tipE : tipE !== undefined ? 'tntGhTip(event,' + tipE + ',\'' + p + '\')' : '';
+  const mk = (list) => { const sm = tntGhSmallSet(list, (x) => x.i.m.v); list.forEach((x, i) => { x.sm = sm[i]; }); return list; };
+  const sortF = (a, b) => ((a.sm ? 1 : 0) - (b.sm ? 1 : 0)) || (st.sort === 'p' ? ((pd(b.i.m.v) >= 10) - (pd(a.i.m.v) >= 10)) || ((a.i.m.p === null ? 9 : a.i.m.p) - (b.i.m.p === null ? 9 : b.i.m.p)) : st.sort === 'd' ? (a.i.d === null ? 9 : a.i.d) - (b.i.d === null ? 9 : b.i.d) : b.i.miss - a.i.miss);
+  const row = (name, sub, ents, cls, pad, click, tipE, few) => { if (few) { cls += ' tnt-ghsm'; sub = (sub ? sub + ' · ' : '') + '<em class="tnt-ghfew">ít hàng — không xét</em>'; } const tipJs = typeof tipE === 'string' ? tipE : tipE !== undefined ? 'tntGhTip(event,' + tipE + ',\'' + p + '\')' : '';
     const i = info(ents), vals = [];
     let r = '<tr class="' + cls + '"' + (click ? ' style="cursor:pointer" onclick="' + click + '"' : '') + '><td class="l" style="padding-left:' + (8 + pad) + 'px"' + (tipJs ? ' onmouseenter="' + tipJs + '" onmousemove="tntTipMove(event)" onmouseleave="tntTipHide()"' : '') + '><b>' + name + '</b>' + (tipJs ? ' <span class="tnt-tipi">ⓘ</span>' : '') + (sub ? '<small>' + sub + '</small>' : '') + '</td>';
     cols.forEach((c, k) => { const o = k === ai ? i.m : tntGhSum(G, ents, c.idx, parts); vals.unshift(o.p);
-      r += '<td class="tnt-tpc' + cn(c) + (k === ai ? ' tnt-ghm' : '') + '">' + (o.v ? tntGhPc(o.p, cls.indexOf('tnt-ovr') >= 0 ? null : RV[k].p, true) + '<small>' + tntN(pd(o.k, c.idx)) + ' / ' + tntN(pd(o.v, c.idx)) + '</small>' + (k === ai && i.b ? '<small>' + tntGhD(i.d, 1) + '</small>' : '') : '<span class="tnt-dz2">·</span>') + '</td>'; });
+      r += '<td class="tnt-tpc' + cn(c) + (k === ai ? ' tnt-ghm' : '') + '">' + (o.v ? tntGhPc(o.p, cls.indexOf('tnt-ovr') >= 0 || few ? null : RV[k].p, true) + '<small>' + tntN(pd(o.k, c.idx)) + ' / ' + tntN(pd(o.v, c.idx)) + '</small>' + (k === ai && i.b ? '<small>' + tntGhD(i.d, 1) + '</small>' : '') : '<span class="tnt-dz2">·</span>') + '</td>'; });
     return r + '<td><b>' + tntN(i.miss) + '</b>' + (i.b ? '<small>' + tntGhDn(i.miss - pd(i.b.v - i.b.k, C.prevIdx), -1) + '</small>' : '') + '</td><td>' + tntGhSpark(vals, cols.length - 1 - ai) + '</td></tr>';
   };
   let h = '<div class="tnt-osum">Ô = <b>% GTC ' + (p === 'tot' ? 'tổng' : p === 'ton' ? 'hàng tồn' : p.replace('ca', 'ca ')) + '</b> · dưới: GTC / cần giao' + (day ? '' : ' (TB/ngày)') + ' · đỏ/xanh = thấp/cao hơn mức ' + (es.length === D.ents.length ? 'vùng' : 'phạm vi') + ' cùng kỳ quá 2% · cột viền đậm = mốc so sánh (so ' + esc(day ? 'hôm trước' : WL.toLowerCase()) + ')</div>';
@@ -8789,23 +8795,23 @@ function tntGhTblHtml(p) {
   if (st.lv === 'tree') {
     if (Object.keys(st.open).some((k) => st.open[k])) h += '<tr><td class="l" colspan="' + (cols.length + 3) + '"><span class="tnt-ghmore"><button class="tnt-colb" onclick="tntGhTreeAll(\'' + p + '\')">▴ Thu gọn hết về Tỉnh</button></span></td></tr>';
     const tm = {}; es.forEach((e) => { const k = D.ents[e][2] || '—'; (tm[k] = tm[k] || []).push(e); });
-    Object.keys(tm).map((k) => ({ k: k, es: tm[k], i: info(tm[k]) })).sort(sortF).forEach((T) => {
+    mk(Object.keys(tm).map((k) => ({ k: k, es: tm[k], i: info(tm[k]) }))).sort(sortF).forEach((T) => {
       const tk = 't' + TL.indexOf(T.k), to = st.open[tk];
-      h += row((to ? '▾ ' : '▸ ') + esc(T.k), T.es.length + ' BC', T.es, 'tnt-ght1', 0, 'tntGhTreeTog(\'' + p + '\',\'' + tk + '\')', 'tntGhTipG(event,\'t\',' + TL.indexOf(T.k) + ',\'' + p + '\',-1)');
+      h += row((to ? '▾ ' : '▸ ') + esc(T.k), T.es.length + ' BC', T.es, 'tnt-ght1', 0, 'tntGhTreeTog(\'' + p + '\',\'' + tk + '\')', 'tntGhTipG(event,\'t\',' + TL.indexOf(T.k) + ',\'' + p + '\',-1)', T.sm);
       if (!to) return;
       const am = {}; T.es.forEach((e) => { const k = D.ents[e][1] || '—'; (am[k] = am[k] || []).push(e); });
-      Object.keys(am).map((k) => ({ k: k, es: am[k], i: info(am[k]) })).sort(sortF).forEach((A) => {
+      mk(Object.keys(am).map((k) => ({ k: k, es: am[k], i: info(am[k]) }))).sort(sortF).forEach((A) => {
         const ak = tk + 'a' + AL.indexOf(A.k), ao = st.open[ak];
-        h += row((ao ? '▾ ' : '▸ ') + esc(A.k), A.es.length + ' BC', A.es, 'tnt-ght2', 18, 'tntGhTreeTog(\'' + p + '\',\'' + ak + '\')', 'tntGhTipG(event,\'a\',' + AL.indexOf(A.k) + ',\'' + p + '\',' + TL.indexOf(T.k) + ')');
-        if (ao) A.es.map((e) => ({ e: e, i: info([e]) })).filter((x) => x.i.m.v || (x.i.b && x.i.b.v)).sort(sortF).forEach((B) => { h += row(esc(D.ents[B.e][0]), '', [B.e], 'tnt-ght3', 38, '', B.e); });
+        h += row((ao ? '▾ ' : '▸ ') + esc(A.k), A.es.length + ' BC', A.es, 'tnt-ght2', 18, 'tntGhTreeTog(\'' + p + '\',\'' + ak + '\')', 'tntGhTipG(event,\'a\',' + AL.indexOf(A.k) + ',\'' + p + '\',' + TL.indexOf(T.k) + ')', A.sm);
+        if (ao) mk(A.es.map((e) => ({ e: e, i: info([e]) })).filter((x) => x.i.m.v || (x.i.b && x.i.b.v))).sort(sortF).forEach((B) => { h += row(esc(D.ents[B.e][0]), '', [B.e], 'tnt-ght3', 38, '', B.e, B.sm); });
       });
     });
   } else {
     let list;
     if (st.lv === 'am') { const am = {}; es.forEach((e) => { const k = D.ents[e][1] || '—'; (am[k] = am[k] || []).push(e); }); list = Object.keys(am).map((k) => ({ k: k, es: am[k], i: info(am[k]) })); }
     else list = es.map((e) => ({ e: e, es: [e], i: info([e]) })).filter((x) => x.i.m.v || (x.i.b && x.i.b.v));
-    list.sort(sortF);
-    list.slice(0, st.more).forEach((x) => { h += x.e !== undefined ? row(esc(D.ents[x.e][0]), esc((D.ents[x.e][2] || '') + ' · ' + (D.ents[x.e][1] || '')), [x.e], '', 0, '', x.e) : row(esc(x.k), esc(D.ents[x.es[0]][2] || '') + ' · ' + x.es.length + ' BC', x.es, '', 0, '', 'tntGhTipG(event,\'a\',' + AL.indexOf(x.k) + ',\'' + p + '\',-1)'); });
+    mk(list).sort(sortF);
+    list.slice(0, st.more).forEach((x) => { h += x.e !== undefined ? row(esc(D.ents[x.e][0]), esc((D.ents[x.e][2] || '') + ' · ' + (D.ents[x.e][1] || '')), [x.e], '', 0, '', x.e, x.sm) : row(esc(x.k), esc(D.ents[x.es[0]][2] || '') + ' · ' + x.es.length + ' BC', x.es, '', 0, '', 'tntGhTipG(event,\'a\',' + AL.indexOf(x.k) + ',\'' + p + '\',-1)', x.sm); });
     if (list.length > st.more || st.more > 20) h += '<tr><td class="l" colspan="' + (cols.length + 3) + '"><span class="tnt-ghmore">' + (list.length > st.more ? '<button class="tnt-colb" onclick="tntGhTblSet(\'' + p + '\',\'more\',' + (st.more + 20) + ')">▾ Hiện thêm 20 (còn ' + (list.length - st.more) + ')</button>' : '') + (st.more > 20 ? '<button class="tnt-colb" onclick="tntGhTblSet(\'' + p + '\',\'more\',20)">▴ Thu gọn về 20</button>' : '') + '<i>đang hiện ' + Math.min(st.more, list.length) + '/' + list.length + '</i></span></td></tr>';
   }
   return h + '</tbody></table></div>' + '<div class="tnt-rmd">ⓘ Rê chuột vào tên tỉnh / AM / bưu cục để xem nhận xét chi tiết.</div>';
@@ -8865,7 +8871,7 @@ function tntGhTipCore(ev, es0, kind, key, m, tn) {
     const bl = es0.map((x) => { const o = tntGhSum(G, [x], w7, parts); return { x: x, o: o, ms: (V.p * o.v - o.k) / n7 }; }).filter((r) => r.o.v);
     const bad = bl.filter((r) => r.ms > 0.5).sort((a, b) => b.ms - a.ms), sb = bad.reduce((a, r) => a + r.ms, 0);
     why.push('<b>' + bad.length + '/' + bl.length + '</b> bưu cục thấp hơn mức vùng' + (bad.length ? ' — kéo xuống nhiều nhất: ' + bad.slice(0, 3).map((r) => '<b>' + esc(D.ents[r.x][0]) + '</b> ' + tntP(r.o.p) + ' (~' + tntN(r.ms) + ' đơn/ngày, ' + tntP(sb ? r.ms / sb : null, 0) + ')').join(', ') : '') + '.');
-    if (kind === 't') { const am = {}; es0.forEach((x) => { const k = D.ents[x][1] || '—'; (am[k] = am[k] || []).push(x); }); const al = Object.keys(am).map((k) => ({ k: k, o: tntGhSum(G, am[k], w7, parts) })).filter((r) => r.o.v).sort((a, b) => a.o.p - b.o.p);
+    if (kind === 't') { const am = {}; es0.forEach((x) => { const k = D.ents[x][1] || '—'; (am[k] = am[k] || []).push(x); }); let al = Object.keys(am).map((k) => ({ k: k, o: tntGhSum(G, am[k], w7, parts) })).filter((r) => r.o.v); { const sm = tntGhSmallSet(al, (r) => r.o.v); al = al.filter((r, i) => !sm[i]).sort((a, b) => a.o.p - b.o.p); }
       if (al.length > 1) why.push('AM kém nhất: <b>' + esc(al[0].k) + '</b> ' + tntP(al[0].o.p) + ' · tốt nhất ' + esc(al[al.length - 1].k) + ' ' + tntP(al[al.length - 1].o.p) + '.'); }
   }
   if (!why.length) why.push('% GTC 7 ngày ' + tntP(c.p) + ' (vùng ' + tntP(V.p) + ').');
@@ -8884,6 +8890,7 @@ function tntGhTipCore(ev, es0, kind, key, m, tn) {
     b.v && b.p !== null ? 'xu hướng: 7 ngày gần ' + tntP(c.p) + ' so 7 ngày trước (' + tntGhFd(p7[p7.length - 1]) + ' → ' + tntGhFd(p7[0]) + ') ' + tntP(b.p) + ' = ' + tntGhD(c.p - b.p, 1) : '',
     dl.v ? 'ngày ' + tntGhFd(W.last) + ': ' + tntP(dl.p) + (dlp.v ? ' (' + tntGhD(dl.p - dlp.p, 1) + ' so hôm trước)' : '') : '',
     rk >= 0 && sib.length > 1 ? 'xếp thứ ' + (rk + 1) + '/' + sib.length + ' ' + rkLab + ' (1 = kém nhất)' : ''].filter(Boolean);
+  if (sib.length > 1) { const avg = sib.reduce((a, x) => a + x.o.v, 0) / sib.length; if (c.v < 0.2 * avg) why.unshift('<b>Ít hàng</b>: chỉ ' + tntN(c.v / n7) + ' đơn/ngày (TB ' + (isBc ? 'các BC cùng AM' : kind === 't' ? 'mỗi tỉnh' : 'mỗi AM') + ' ' + tntN(avg / n7) + ') → coi như không có hàng phần này, % GTC không dùng để đánh giá.'); }
   const ttl = isBc ? esc(E[0]) : (kind === 't' ? 'Tỉnh ' : 'AM ') + esc(key), sub0 = isBc ? esc(E[2] || '') + ' · ' + esc(E[1] || '') : es0.length + ' bưu cục' + (tn ? ' · ' + esc(tn) : kind === 'a' ? ' · ' + esc(Array.from(new Set(es0.map((x) => D.ents[x][2] || ''))).join(', ')) : '');
   const t = '<div class="tnt-tipt">' + lv + ' ' + ttl + '</div><div class="tnt-tips">' + sub0 + ' · ' + esc(tntGhMN(m)) + ' · ' + (S.c === 'tts' ? 'TTS' : 'Tất cả KH') + ' · 7 ngày ' + tntGhFd(w7[n7 - 1]) + ' → ' + tntGhFd(W.last) + ' — <b class="' + (!below ? 'tnt-tg-ok' : 'tnt-tg-bad') + '">' + lvT + '</b></div><div class="tnt-tipb"><b>Nguyên nhân</b><ul>' + why.map((x) => '<li>' + x + '</li>').join('') + '</ul></div><div class="tnt-tiph">Chi tiết 7 ngày</div><ul>' + det.map((x) => '<li>' + x + '</li>').join('') + '</ul>';
   let el = document.getElementById('tntTip'); if (!el) { el = document.createElement('div'); el.id = 'tntTip'; el.className = 'tnt-tip'; document.body.appendChild(el); }
