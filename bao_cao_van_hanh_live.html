@@ -867,7 +867,7 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-tip .tnt-tiph{border-top:1px solid #3A3D44;padding-top:8px;color:#8EB6E8;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 .tnt-tip ul{margin:4px 0 0 18px;padding:0}.tnt-tip .tnt-tipb ul{margin:4px 0 0 16px}
 .tnt-ght td.tnt-ghm,.tnt-ght th.tnt-ghm{border-left:2px solid #2B2618;border-right:2px solid #2B2618}.tnt-ght th.tnt-ghm{background:#1F3F6E}
-.tnt-ght tr.tnt-ght1 td{background:#EEF3F9}.tnt-ght tr.tnt-ght2 td{background:#F7FAFD}.tnt-ght tr.tnt-ght3 td{background:#fff}.tnt-ght td small{display:block}.tnt-tip li{margin:2px 0}
+.tnt-ght tr.tnt-ght1 td{background:#EEF3F9}.tnt-ght tr.tnt-ght2 td{background:#F7FAFD}.tnt-ght tr.tnt-ght3 td{background:#fff}.tnt-ght td small{display:block}.tnt-ghmore{display:inline-flex;gap:8px;align-items:center}.tnt-ghmore .tnt-colb{margin-left:0}.tnt-ghmore i{font-style:normal;color:#9A8F74;font-size:12px}.tnt-tip li{margin:2px 0}
 .tnt-tip .tnt-red,.tnt-tip .tnt-tg-bad{color:#FF7A6B}.tnt-tip .tnt-up2,.tnt-tip .tnt-tg-ok{color:#5FD08E}
 .tnt-tipcell{cursor:help}.tnt-tipi{color:#8EA3C0;font-size:12px}.tnt-tipcell:hover b{text-decoration:underline dotted}
 .tnt-more{margin:8px 6px 0 0;padding:5px 12px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-weight:700;font-size:12.5px;cursor:pointer}
@@ -8740,6 +8740,7 @@ function tntGhPartHtml(p) {
   return h;
 }
 function tntGhTblSet(p, k, v) { const st = tntGhSt().t[p]; st[k] = v; if (k !== 'more') st.more = 20; const el = document.getElementById('tntGhT_' + p); if (el) el.innerHTML = tntGhTblHtml(p); if (k === 'lv') tntGhRender(); }
+function tntGhTreeAll(p) { const st = tntGhSt().t[p]; st.open = {}; const el = document.getElementById('tntGhT_' + p); if (el) el.innerHTML = tntGhTblHtml(p); }
 function tntGhTreeTog(p, key) { const st = tntGhSt().t[p]; st.open[key] = !st.open[key]; const el = document.getElementById('tntGhT_' + p); if (el) el.innerHTML = tntGhTblHtml(p); }
 function tntGhTblHtml(p) {
   const S = tntGhSt(), G = tntGhData(S.c), { cols, day, WL, ai } = tntTblBase(), C = cols[ai]; if (!C) return '';
@@ -8760,6 +8761,7 @@ function tntGhTblHtml(p) {
   h += '<div class="tnt-tw"><table class="tnt-ot tnt-oct tnt-tpt tnt-ght"><thead><tr><th class="l">' + (st.lv === 'tree' ? 'Tỉnh → AM → Bưu cục' : st.lv === 'am' ? 'AM' : 'Bưu cục') + '</th>' + cols.map((c, k) => '<th class="' + cn(c) + (k === ai ? ' tnt-ghm' : '') + '">' + esc(day ? c.sub : c.lab) + '<small>' + esc(day ? c.lab : c.sub) + (k === ai ? ' · mốc' : '') + '</small></th>').join('') + '<th>Chưa giao<small>mốc' + (day ? '' : ' · /ngày') + '</small></th><th>Xu hướng<small>% GTC</small></th></tr></thead><tbody>';
   h += row(es.length === D.ents.length ? 'Vùng TNT' : 'Phạm vi đang lọc', '', es, 'tnt-ovr', 0, '');
   if (st.lv === 'tree') {
+    if (Object.keys(st.open).some((k) => st.open[k])) h += '<tr><td class="l" colspan="' + (cols.length + 3) + '"><span class="tnt-ghmore"><button class="tnt-colb" onclick="tntGhTreeAll(\'' + p + '\')">▴ Thu gọn hết về Tỉnh</button></span></td></tr>';
     const tm = {}; es.forEach((e) => { const k = D.ents[e][2] || '—'; (tm[k] = tm[k] || []).push(e); });
     Object.keys(tm).map((k) => ({ k: k, es: tm[k], i: info(tm[k]) })).sort(sortF).forEach((T) => {
       const tk = 't' + TL.indexOf(T.k), to = st.open[tk];
@@ -8778,7 +8780,7 @@ function tntGhTblHtml(p) {
     else list = es.map((e) => ({ e: e, es: [e], i: info([e]) })).filter((x) => x.i.m.v || (x.i.b && x.i.b.v));
     list.sort(sortF);
     list.slice(0, st.more).forEach((x) => { h += x.e !== undefined ? row(esc(D.ents[x.e][0]), esc((D.ents[x.e][2] || '') + ' · ' + (D.ents[x.e][1] || '')), [x.e], '', 0, '', x.e) : row(esc(x.k), esc(D.ents[x.es[0]][2] || '') + ' · ' + x.es.length + ' BC', x.es, '', 0, '', 'tntGhTipG(event,\'a\',' + AL.indexOf(x.k) + ',\'' + p + '\',-1)'); });
-    if (list.length > st.more) h += '<tr><td class="l" colspan="' + (cols.length + 3) + '"><button class="tnt-colb" onclick="tntGhTblSet(\'' + p + '\',\'more\',' + (st.more + 20) + ')">Hiện thêm 20 (còn ' + (list.length - st.more) + ')</button></td></tr>';
+    if (list.length > st.more || st.more > 20) h += '<tr><td class="l" colspan="' + (cols.length + 3) + '"><span class="tnt-ghmore">' + (list.length > st.more ? '<button class="tnt-colb" onclick="tntGhTblSet(\'' + p + '\',\'more\',' + (st.more + 20) + ')">▾ Hiện thêm 20 (còn ' + (list.length - st.more) + ')</button>' : '') + (st.more > 20 ? '<button class="tnt-colb" onclick="tntGhTblSet(\'' + p + '\',\'more\',20)">▴ Thu gọn về 20</button>' : '') + '<i>đang hiện ' + Math.min(st.more, list.length) + '/' + list.length + '</i></span></td></tr>';
   }
   return h + '</tbody></table></div>' + '<div class="tnt-rmd">ⓘ Rê chuột vào tên tỉnh / AM / bưu cục để xem nhận xét chi tiết.</div>';
 }
