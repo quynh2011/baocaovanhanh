@@ -924,7 +924,7 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-tb tr.tnt-trsel td{background:#FFF3C4}
 .tnt-trn{font-style:normal;font-size:11px;color:#9A8F74;font-weight:500}
 .tnt-tb tr.tnt-sec td{position:static;background:#EDE4CF;padding:9px 12px;text-align:left;border-bottom:1px solid #DCCFAF}
-.tnt-tb tr.tnt-secclk{cursor:pointer}.tnt-tb tr.tnt-sec td span em.tnt-secbtn{font-style:normal;margin-left:14px;padding:2px 10px;border:1px solid #C9BB95;border-radius:6px;background:#FFFDF6;color:#2B2618;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none}.tnt-tb tr.tnt-secclk:hover em.tnt-secbtn{background:#2B2618;color:#fff;border-color:#2B2618}.tnt-tb tr.tnt-secclk:hover td{background:#E5D9BC}
+.tnt-tb tr.tnt-secclk{cursor:pointer}.tnt-tb tr.tnt-sec td em.tnt-secbtn{float:right;position:sticky;right:12px;font-style:normal;padding:2px 10px;border:1px solid #C9BB95;border-radius:6px;background:#FFFDF6;color:#2B2618;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none}.tnt-tb tr.tnt-secclk:hover td em.tnt-secbtn{background:#2B2618;color:#fff;border-color:#2B2618}.tnt-tb tr.tnt-secclk:hover td{background:#E5D9BC}
 .tnt-tb tr.tnt-sec td span b.tnt-tg{font-size:11px;margin-right:8px}.tnt-tb tr.tnt-sec td span i{font-style:normal;font-weight:600;font-size:12px;color:#7A6E52;text-transform:none;letter-spacing:0}
 .tnt-tb tr.tnt-sec td span{position:sticky;left:12px;font-size:14px;font-weight:800;color:#2F5E9E;text-transform:uppercase;letter-spacing:.06em}
 .tnt-odr{font-weight:800;font-size:14.5px;font-variant-numeric:tabular-nums}
@@ -8666,7 +8666,7 @@ function tntTableHtml() {
   TNT_TBL.forEach(([k, title, pre, fv, fp, ftp, subs]) => {
     const sc = secOf(k);
     if (sc !== lastSec) { lastSec = sc; const n = TNT_TBL.filter((r) => secOf(r[0]) === sc).length;
-      h += '<tr class="tnt-sec tnt-secclk" onclick="tntSecToggle(\'' + sc + '\')"><td colspan="' + ncol + '"><span><b class="tnt-tg">' + (secOpen[sc] ? '▾' : '▸') + '</b>' + SECS[sc] + ' <i>· ' + n + ' chỉ số</i><em class="tnt-secbtn">' + (secOpen[sc] ? '▴ Thu gọn' : '▾ Mở rộng') + '</em></span></td></tr>'; }
+      h += '<tr class="tnt-sec tnt-secclk" onclick="tntSecToggle(\'' + sc + '\')"><td colspan="' + ncol + '"><span><b class="tnt-tg">' + (secOpen[sc] ? '▾' : '▸') + '</b>' + SECS[sc] + ' <i>· ' + n + ' chỉ số</i></span><em class="tnt-secbtn">' + (secOpen[sc] ? 'Thu gọn' : 'Mở rộng') + '</em></td></tr>'; }
     if (!secOpen[sc]) return;
     const note = k === 'b' || k === 'lb' ? (TNT.BL ? (k === 'lb' && !TNT.BL.lgAll ? ' <i class="tnt-trn">— file [S]-Report chưa có backlog luân chuyển</i>' : '') : TNT.blErr ? ' <i class="tnt-trn">— chưa lấy được dữ liệu: ' + esc(TNT.blErr) + '</i>' : ' <i class="tnt-trn">— đang tải dữ liệu từ [S]-Report…</i>') : '';
     h += '<tr class="tnt-g" onclick="tntTblToggle(\'' + k + '\')"><td><span class="tnt-tg">' + (shut[k] ? '▸' : '▾') + '</span>' + title + note + '</td>' +
