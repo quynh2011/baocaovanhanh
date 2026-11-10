@@ -821,8 +821,9 @@ async function handleGetTntReport(body) {
     // Sheet GTC (Volume/Đơn gán/Đơn GTC) và sheet ODR TTS (GTC = cột D, Đơn đúng OT = cột F, Chuẩn AM) dùng chung khung:
     // v = mẫu số (Volume hoặc GTC), k = tử số (Đơn GTC hoặc Đơn đúng OT), g = Đơn gán (không có thì 0)
     const pick = (...a) => { for (const k of a) if (k >= 0) return k; return -1; };
-    const c = { bc: find(/^chi tiet/), am: pick(find(/^cap quan ly/, true), find(/^chuan am/), find(/^quan ly/)), tinh: find(/^tinh$/),
-      v: pick(find(/^volume/), find(/^gtc$/)), g: find(/^don gan/), k: pick(find(/^don gtc/), find(/^don dung ot/), find(/^don dung ontime/)),
+    // Sheet FD (200_1_FD_*): Bưu cục, %vol (D) = mẫu số, %FD (G) = tử số — tỷ lệ trả = Σ%FD ÷ Σ%vol
+    const c = { bc: pick(find(/^chi tiet/), find(/^buu cuc$/)), am: pick(find(/^cap quan ly/, true), find(/^chuan am/), find(/^quan ly/)), tinh: find(/^tinh$/),
+      v: pick(find(/^volume/), find(/^gtc$/), find(/^% ?vol/)), g: find(/^don gan/), k: pick(find(/^don gtc/), find(/^don dung ot/), find(/^don dung ontime/), find(/^% ?fd/)),
       day: find(/^chuan ngay/), time: find(/^time|^thoi gian|^ngay$/) };
     const isMain = find(/^volume/) >= 0;
     const out = { name: name, cols: c, main: isMain, d: [], b: [], v: [], g: [], k: [] };
