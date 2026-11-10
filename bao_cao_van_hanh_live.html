@@ -857,6 +857,7 @@ td.dn-keycol{background:#FBF7EE}
 @media (max-width:900px){.tnt-rwrap{grid-template-columns:1fr}}
 .tnt-tpt td.tnt-tpc{text-align:right;min-width:78px}.tnt-tpt td.tnt-tpc .tnt-tpp{font-size:14px}.tnt-tpt td.tnt-tpc small{display:block;font-size:11px;color:#8A8068;white-space:nowrap}
 .tnt-tpt td.tnt-tp7,.tnt-tpt th.tnt-tp7{background:#F6EEDB;border-left:2px solid #2B2618;border-right:2px solid #2B2618}.tnt-tpt th.tnt-tp7{background:#1E3F6E}
+.tnt-tpt td.tnt-tpc small b.tnt-tpt-t{font-weight:800;color:inherit}
 .tnt-tpt td.l small{display:block;font-size:11px;color:#9A8F74;font-weight:500}.tnt-spk{display:block;margin-left:auto}.tnt-tpt td small[style]{display:block;text-align:right;font-size:11px;font-weight:700}
 .tnt-rmk{display:grid;gap:8px}.tnt-rmh{background:#FFF8E6;border:1px solid #E8D6A6;border-radius:8px;padding:8px 12px;font-size:13.5px}
 .tnt-rmi{background:#FFFDF6;border:1px solid #E7DEC8;border-radius:8px;padding:8px 12px;font-size:13px;line-height:1.55}.tnt-rmt i{font-style:normal;color:#9A8F74;font-size:12px}.tnt-rmw{margin-top:2px}.tnt-rmd{color:#5C5240;font-size:12.5px;margin-top:2px}.tnt-rmi .tnt-up2,.tnt-rmh .tnt-up2{color:#0A7A3E;font-weight:800}.tnt-rmi .tnt-red,.tnt-rmh .tnt-red{color:#C62116}
@@ -8503,13 +8504,13 @@ function tntRetTopHtml() {
   const top = ents.map((e) => ({ e: e, s: sum([e], w7) })).filter((r) => r.s.t > 0).sort((a, b) => b.s.t - a.s.t).slice(0, 10);
   const tg = G[4], vAll = sum(ents, w7), mk = tg !== null ? tg : vAll.p, isOver = (p) => p !== null && (tg !== null ? (G[5] ? p > tg : p >= tg) : p > mk);
   const pc = (p) => p === null ? '<span class="tnt-dz2">—</span>' : '<b class="tnt-tpp ' + (tg === null && mk === null ? '' : isOver(p) ? 'tnt-red' : 'tnt-up2') + '">' + tntP(p) + '</b>';
-  const cell = (o, cls) => '<td class="tnt-tpc' + (cls || '') + '">' + (o.n ? pc(o.p) + '<small><span class="tnt-red">' + tntN(o.t) + '</span> | ' + tntN(o.n) + '</small>' : '<span class="tnt-dz2">·</span>') + '</td>';
+  const cell = (o, cls) => '<td class="tnt-tpc' + (cls || '') + '">' + (o.n ? pc(o.p) + '<small><b class="tnt-tpt-t">' + tntN(o.t) + '</b> | ' + tntN(o.n) + '</small>' : '<span class="tnt-dz2">·</span>') + '</td>';
   const spark = (es) => { const v = w7.slice().reverse().map((d) => sum(es, [d]).p).filter((x) => x !== null); if (v.length < 2) return ''; const mn = Math.min(...v), mx = Math.max(...v), W = 74, H = 22;
     const n = v.length, xm = (n - 1) / 2, ym = v.reduce((a, b) => a + b, 0) / n; let num = 0, den = 0; v.forEach((y, i) => { num += (i - xm) * (y - ym); den += (i - xm) * (i - xm); }); const rel = ym ? (num / den) * (n - 1) / ym : 0;
     const col = rel > 0.05 ? '#C62116' : rel < -0.05 ? '#0A7A3E' : '#9A8F74', pts = v.map((y, i) => (i * W / (n - 1)).toFixed(1) + ',' + (mx === mn ? H / 2 : H - 3 - (y - mn) / (mx - mn) * (H - 6)).toFixed(1)).join(' ');
     return '<svg width="' + W + '" height="' + H + '" class="tnt-spk"><polyline points="' + pts + '" fill="none" stroke="' + col + '" stroke-width="2"/><circle cx="' + W + '" cy="' + pts.split(' ').pop().split(',')[1] + '" r="2.5" fill="' + col + '"/></svg><small style="color:' + col + '">' + (rel > 0.05 ? '▲ tăng' : rel < -0.05 ? '▼ giảm' : '■ đi ngang') + '</small>'; };
   const cn = (d) => wd(d) === 'CN' ? ' tnt-cn' : '';
-  let h = '<div class="tnt-osum">Nhóm <b>' + esc(G[1]) + '</b> · top 10 BC nhiều đơn trả nhất 7 ngày ' + fd(w7[w7.length - 1]) + ' → ' + fd(last) + ' · ' + (tg !== null ? 'KPI ' + (G[5] ? '≤ ' : '< ') + tntP(tg, 1) : 'chưa có KPI → so FD bình quân phạm vi ' + tntP(vAll.p)) + ' · ô = <b>% FD</b> · dưới: <span class="tnt-red">đơn trả</span> | đơn hoàn tất (GTC + trả)</div>';
+  let h = '<div class="tnt-osum">Nhóm <b>' + esc(G[1]) + '</b> · top 10 BC nhiều đơn trả nhất 7 ngày ' + fd(w7[w7.length - 1]) + ' → ' + fd(last) + ' · ' + (tg !== null ? 'KPI ' + (G[5] ? '≤ ' : '< ') + tntP(tg, 1) : 'chưa có KPI → so FD bình quân phạm vi ' + tntP(vAll.p)) + ' · ô = <b>% FD</b> · dưới: <b>đơn trả</b> | đơn hoàn tất (GTC + trả)</div>';
   h += '<div class="tnt-tw"><table class="tnt-ot tnt-oct tnt-tpt"><thead><tr><th>#</th><th class="l">Bưu cục</th>' + d8.map((d) => '<th class="' + cn(d) + '">' + wd(d) + '<small>' + fd(d) + '</small></th>').join('') + '<th class="tnt-tp7">7 ngày<small>' + fd(w7[w7.length - 1]) + ' → ' + fd(last) + '</small></th><th>Xu hướng<small>% FD 7 ngày</small></th></tr></thead><tbody>';
   top.forEach((r, i) => { const E = D.ents[r.e]; h += '<tr><td>' + (i + 1) + '</td><td class="l"><b>' + esc(E[0]) + '</b><small>' + esc(E[2] || '') + ' · ' + esc(E[1] || '') + '</small></td>' + d8.map((d) => cell(sum([r.e], [d]), cn(d))).join('') + cell(r.s, ' tnt-tp7') + '<td>' + spark([r.e]) + '</td></tr>'; });
   const tes = top.map((r) => r.e);
