@@ -831,6 +831,9 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-osh:hover .tnt-colb{background:#2B2618;color:#fff}
 .tnt-oq{padding:5px 10px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-size:13px;min-width:220px;margin-left:8px}
 .tnt-osort{font-size:12.5px;color:#7A6E52;display:inline-flex;align-items:center;gap:6px;margin-left:6px}
+.tnt-ocbox{position:relative;display:inline-flex;align-items:center}
+.tnt-ocbox input{padding:5px 22px 5px 9px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-size:13px;font-weight:600;width:230px}
+.tnt-ocbox b{position:absolute;right:7px;cursor:pointer;color:#9A8F74;font-size:15px}
 .tnt-osort select{padding:5px 8px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-size:13px;font-weight:600}
 .tnt-osum{font-size:13px;color:#5C5240;margin:4px 0 8px}.tnt-osum i{font-style:normal;color:#9A8F74;font-size:12px}
 .tnt-ocw{max-height:720px;overflow:auto}
@@ -8262,8 +8265,10 @@ function tntOprHtml() {
     (() => { const amOf = (w) => { const e = S.kho[w][1], a = (e >= 0 ? D.ents[e][1] : S.kho[w][2]) || ''; return /^lo[aạ]i$/i.test(a.trim()) ? '' : a; };
       const ams = Array.from(new Set(S.kho.map((k, w) => kOk[w] ? amOf(w) : '').filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
       const bcs = S.kho.map((k, w) => w).filter((w) => kOk[w] && (!cf.am || amOf(w) === cf.am)).map((w) => S.kho[w][0]).sort((a, b) => a.localeCompare(b, 'vi'));
-      return '<label class="tnt-osort">AM <select onchange="TNT.oprCust.am=this.value;TNT.oprCust.bc=\'\';TNT.oprCust.more=30;tntRenderOpr()"><option value="">Tất cả AM (' + ams.length + ')</option>' + ams.map((a) => '<option' + (cf.am === a ? ' selected' : '') + '>' + esc(a) + '</option>').join('') + '</select></label>' +
-        '<label class="tnt-osort">Bưu cục <select onchange="TNT.oprCust.bc=this.value;TNT.oprCust.more=30;tntOprCustRender()"><option value="">Tất cả BC (' + bcs.length + ')</option>' + bcs.map((b) => '<option' + (cf.bc === b ? ' selected' : '') + '>' + esc(b) + '</option>').join('') + '</select></label>'; })() +
+      // ô gõ tìm (datalist) — gõ không dấu / 1 phần tên cũng được, chọn xong tự lọc; nút × bỏ chọn
+      const box = (kind, lab, cur, list) => '<label class="tnt-osort">' + lab + ' <span class="tnt-ocbox"><input list="tntOc_' + kind + '" value="' + esc(cur) + '" placeholder="Tất cả ' + lab + ' (' + list.length + ') — gõ để tìm" onchange="tntOcPick(\'' + kind + '\', this.value)" onkeydown="if(event.key===\'Enter\')tntOcPick(\'' + kind + '\', this.value)">' + (cur ? '<b onclick="tntOcPick(\'' + kind + '\', \'\')" title="Bỏ chọn">×</b>' : '') + '</span><datalist id="tntOc_' + kind + '">' + list.map((x) => '<option value="' + esc(x) + '">').join('') + '</datalist></label>';
+      window.__tntOcList = { am: ams, bc: bcs };
+      return box('am', 'AM', cf.am, ams) + box('bc', 'Bưu cục', cf.bc, bcs); })() +
     '<input class="tnt-oq" placeholder="Tìm khách / BC / AM" value="' + esc(cf.q) + '" oninput="TNT.oprCust.q=this.value;TNT.oprCust.more=30;clearTimeout(window.__tntOq);window.__tntOq=setTimeout(tntOprCustRender,250)">' +
     '<label class="tnt-osort">Sắp theo <select onchange="TNT.oprCust.sort=this.value;TNT.oprCust.more=30;tntOprCustRender()">' + [['n', 'Đơn lấy TC nhiều trước'], ['l', 'Lấy trễ nhiều trước'], ['p', '% OPR thấp trước (≥ 20 đơn)']].map(([k, l]) => '<option value="' + k + '"' + (cf.sort === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label></div>';
   h += '<div id="tntOprCust">' + tntOprCustHtml() + '</div></div>';
@@ -8318,6 +8323,13 @@ function tntOprCustHtml() {
   if (list.length > cf.more) h += '<button class="tnt-more" onclick="TNT.oprCust.more+=30;tntOprCustRender()">Hiện thêm 30 khách (còn ' + tntN(list.length - cf.more) + ')</button>';
   if (cf.more > 30) h += '<button class="tnt-more" onclick="TNT.oprCust.more=30;tntOprCustRender()">Thu gọn</button>';
   return h;
+}
+function tntOcPick(kind, val) {
+  const cf = TNT.oprCust, list = (window.__tntOcList || {})[kind] || [], nrm = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+  const q = nrm(val); let v = '';
+  if (q) { v = list.find((x) => nrm(x) === q) || ''; if (!v) { const m = list.filter((x) => nrm(x).indexOf(q) >= 0); if (m.length >= 1) v = m[0]; } if (!v) return; }
+  if (kind === 'am') { cf.am = v; cf.bc = ''; } else cf.bc = v;
+  cf.more = 30; tntRenderOpr();
 }
 function tntOprCustOpen(s) { const cf = TNT.oprCust; cf.open = cf.open || {}; cf.open[s] = !cf.open[s]; tntOprCustRender(); }
 function tntOprCustRender() { const el = document.getElementById('tntOprCust'); if (!el) return; el.innerHTML = tntOprCustHtml();
