@@ -818,6 +818,13 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-ot td i{font-style:normal;color:#9A8F74;font-size:11.5px}
 .tnt-ot tbody tr:hover td{background:#FBF4E3}
 .tnt-insight .tnt-up2,.tnt-ot .tnt-up2{color:#0A7A3E;font-weight:800}.tnt-insight .tnt-dn2,.tnt-ot .tnt-dn2{color:#C62116;font-weight:800}
+.tnt-red{color:#C62116;font-weight:800}
+.tnt-shs div{line-height:1.5}
+.tnt-fbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:2px 0 8px}
+.tnt-fbar button{padding:5px 12px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-weight:700;font-size:12.5px;cursor:pointer;color:#2B2618}
+.tnt-fbar button.on{background:#2B2618;color:#fff;border-color:#2B2618}
+.tnt-fbar button i{font-style:normal;opacity:.7;margin-left:4px}
+.tnt-fbar em{font-size:12px;color:#7A6E52;font-style:normal;margin-left:6px}
 .tnt-more{margin:8px 6px 0 0;padding:5px 12px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-weight:700;font-size:12.5px;cursor:pointer}
 .tnt-h3 .tnt-cmpsel{display:inline-flex;gap:6px;margin-left:12px;vertical-align:middle}
 .tnt-cmpsel label{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-size:12.5px;font-weight:700;color:#2B2618;cursor:pointer}
@@ -8071,17 +8078,14 @@ const TNT_TBL = [
   // LẤY HÀNG — 8. % OPR TTS = đơn ontime (F) ÷ đơn LTC (D), sheet 200_1_OPRTTS; target ≥ 80% (tntOprCell). Bấm mở là ra tỉnh luôn.
   ['op', '8. % OPR TTS (target ≥ 80%)', '', (q) => q.v, (q) => q.v ? q.k / q.v : null, (c) => c.p.opr.v ? c.p.opr.k / c.p.opr.v : null, []],
   // 9–11 từ sheet 200_1_LTCTTS; dòng con Hàng mới ca 1 / Hàng tồn (cờ 2 = bấm mở Tỉnh → AM → BC riêng)
-  ['pg', '9. % Gán TTS - Sản lượng gán lấy', '', (q) => q.g, (q) => q.v ? q.g / q.v : null, (c) => c.p.lgA.v ? c.p.lgA.g / c.p.lgA.v : null, [
-    ['lgM', 'Hàng mới ca 1', (q) => q.g, (q) => q.v ? q.g / q.v : null, 1, 2],
-    ['lgT', 'Hàng tồn', (q) => q.g, (q) => q.v ? q.g / q.v : null, 1, 2]]],
-  ['pl', '10. % LTC TTS - Lấy thành công', '', (q) => q.k, (q) => q.v ? q.k / q.v : null, (c) => c.p.lgA.v ? c.p.lgA.k / c.p.lgA.v : null, [
-    ['lgM', 'Hàng mới ca 1', (q) => q.k, (q) => q.v ? q.k / q.v : null, 1, 2],
-    ['lgT', 'Hàng tồn', (q) => q.k, (q) => q.v ? q.k / q.v : null, 1, 2]]],
+  // 9–11 từ sheet 200_1_LTCTTS (cộng Hàng mới ca 1 + Hàng tồn); % là số chính, số đơn ở dòng nhỏ; bấm mở là ra tỉnh luôn
+  ['pg', '9. % Gán TTS - Sản lượng gán lấy', '', (q) => q.g, (q) => q.v ? q.g / q.v : null, (c) => c.p.lgA.v ? c.p.lgA.g / c.p.lgA.v : null, []],
+  ['pl', '10. % LTC TTS - Lấy thành công', '', (q) => q.k, (q) => q.v ? q.k / q.v : null, (c) => c.p.lgA.v ? c.p.lgA.k / c.p.lgA.v : null, []],
   // Rớt luân chuyển = Volume rớt LC (cột T); % = rớt ÷ đơn LTC; thấp = tốt
-  ['pr', '11. Rớt luân chuyển TTS', '', (q) => q.x, (q) => q.k ? q.x / q.k : null, (c) => c.p.lgA.k ? c.p.lgA.x / c.p.lgA.k : null, [
-    ['lgM', 'Hàng mới ca 1', (q) => q.x, (q) => q.k ? q.x / q.k : null, -1, 2],
-    ['lgT', 'Hàng tồn', (q) => q.x, (q) => q.k ? q.x / q.k : null, -1, 2]]]
+  ['pr', '11. % Rớt luân chuyển TTS', '', (q) => q.x, (q) => q.k ? q.x / q.k : null, (c) => c.p.lgA.k ? c.p.lgA.x / c.p.lgA.k : null, []]
 ];
+// % là số chính (đen đậm), số đơn ở dòng nhỏ (Lấy hàng 9–11)
+function tntPctCell(pv, n, unit) { return pv === null || pv === undefined || !isFinite(pv) ? '<span class="tnt-dz2">—</span>' : '<span class="tnt-odr tnt-odr-n">' + tntP(pv) + '</span><small>' + n + ' ' + unit + '</small>'; }
 // % OPR TTS: ≥ 80% xanh đậm, dưới đỏ đậm; dòng nhỏ = số đơn LTC
 function tntOprCell(pv, n) { return pv === null || pv === undefined || !isFinite(pv) ? '<span class="tnt-dz2">—</span>' : '<span class="tnt-odr ' + (pv >= 0.8 ? 'tnt-odr-g' : 'tnt-odr-b') + '">' + tntP(pv) + '</span>' + (n !== undefined ? '<small>' + n + ' LTC</small>' : ''); }
 // % FD: chỉ hiện %, xanh đậm nếu đạt target, đỏ đậm nếu vượt (TTS COD ≤ 5%, SME COD < 7%, Tất cả < 6,5%)
@@ -8157,7 +8161,7 @@ function tntOprHtml() {
     const late = S.n[i] - S.o[i];
     const q = shop[S.s[i]] = shop[S.s[i]] || { s: S.s[i], n: 0, o: 0, bn: 0, bo: 0, h: new Float64Array(nH), w: {} };
     q.n += S.n[i]; q.o += S.o[i]; q.h[S.h[i]] += late; q.w[S.w[i]] = (q.w[S.w[i]] || 0) + S.n[i];
-    const k = kho[S.w[i]] = kho[S.w[i]] || { w: S.w[i], n: 0, o: 0, shops: {} }; k.n += S.n[i]; k.o += S.o[i]; if (late > 0) k.shops[S.s[i]] = (k.shops[S.s[i]] || 0) + late;
+    const k = kho[S.w[i]] = kho[S.w[i]] || { w: S.w[i], n: 0, o: 0, shops: {} }; k.n += S.n[i]; k.o += S.o[i]; const ks = k.shops[S.s[i]] = k.shops[S.s[i]] || { l: 0, n: 0 }; ks.l += late; ks.n += S.n[i];
     tot.n += S.n[i]; tot.o += S.o[i]; hT[S.h[i]] += late; hN[S.h[i]] += S.n[i];
   }
   const late = tot.n - tot.o, pct = (a, b) => b ? a / b : null;
@@ -8180,24 +8184,34 @@ function tntOprHtml() {
   let h = head + '<div class="tnt-insight"><b>Nhận xét nhanh</b><ul>' + ins.map((x) => '<li>' + x + '</li>').join('') + '</ul></div>';
   h += '<div class="tnt-h3">1. OPR theo khung giờ tạo đơn <span>· % ontime (≥ 80% xanh) · dòng nhỏ: đơn LTC · đơn trễ' + (day ? '' : ' (TB 1 ngày)') + ' · tạo 9h–19h phải lấy trong ngày; tạo 19h hôm trước → 9h phải lấy trước 12h</span></div>' + t1;
 
-  // Bảng shop
+  // Bảng shop — 2 nút lọc: Tất cả (xếp theo đơn trễ) / OPR tệ ở shop sản lượng cao (nhóm shop lớn chiếm 80% đơn LTC, OPR < 80%, xếp % OPR thấp → cao)
+  const nDay = (C.idx || []).filter((d) => has[d]).length || 1;
+  const bySize = shops.concat(Object.keys(shop).map((k) => shop[k]).filter((q) => q.n > 0 && q.n === q.o)).sort((a, b) => b.n - a.n);
+  let acc = 0, bigMin = 0; for (const q of bySize) { acc += q.n; bigMin = q.n; if (acc >= tot.n * 0.8) break; }
+  const flt = TNT.oprShopF === 'big' ? 'big' : 'all';
+  const list = flt === 'big' ? shops.filter((q) => q.n >= bigMin && q.o / q.n < 0.8).sort((a, b) => a.o / a.n - b.o / b.n || b.n - a.n) : shops;
   const more = TNT.oprMore || 15, hdrH = hOrd.map((x) => '<th>Trễ · ' + esc(hLab(x)) + '</th>').join('');
-  h += '<div class="tnt-h3">2. Shop kéo OPR xuống — ' + esc(perLab) + ' <span>· tổng ' + (C.idx || []).filter((d) => has[d]).length + ' ngày · xếp theo số đơn trễ</span></div>';
-  h += '<div class="tnt-tw"><table class="tnt-ot"><thead><tr><th>#</th><th class="l">Shop</th><th class="l">Kho lấy · AM</th><th>Đơn LTC</th><th>Đơn trễ</th><th>% OPR</th><th>' + (day ? 'Hôm trước' : esc(WL)) + '</th>' + hdrH + '<th>% trễ vùng</th></tr></thead><tbody>' +
-    shops.slice(0, more).map((q, i) => {
+  const kTinh = (w) => { const e = S.kho[w][1]; return e >= 0 ? D.ents[e][2] : S.kho[w][3]; };
+  h += '<div class="tnt-h3">2. Shop kéo OPR xuống — ' + esc(perLab) + ' <span>· tổng ' + nDay + ' ngày</span></div>';
+  h += '<div class="tnt-fbar"><button class="' + (flt === 'all' ? 'on' : '') + '" onclick="TNT.oprShopF=\'all\';TNT.oprMore=15;tntRenderOpr()">Tất cả shop trễ <i>' + tntN(shops.length) + '</i></button>' +
+    '<button class="' + (flt === 'big' ? 'on' : '') + '" onclick="TNT.oprShopF=\'big\';TNT.oprMore=15;tntRenderOpr()">% OPR tệ ở shop sản lượng cao <i>' + tntN(shops.filter((q) => q.n >= bigMin && q.o / q.n < 0.8).length) + '</i></button>' +
+    '<em>' + (flt === 'big' ? 'shop sản lượng cao = nhóm shop lớn nhất chiếm 80% đơn LTC (≥ ' + tntN(bigMin) + ' đơn/kỳ, ~' + tntN(bigMin / nDay) + '/ngày) · OPR < 80% · xếp % OPR thấp → cao' : 'xếp theo số đơn trễ nhiều → ít') + '</em></div>';
+  h += '<div class="tnt-tw"><table class="tnt-ot"><thead><tr><th>#</th><th class="l">Tỉnh</th><th class="l">AM</th><th class="l">Bưu cục (kho lấy)</th><th class="l">Shop</th><th>Đơn LTC</th><th>Đơn trễ</th><th>% OPR</th><th>' + (day ? 'Hôm trước' : esc(WL)) + '</th>' + hdrH + '<th>% trễ vùng</th></tr></thead><tbody>' +
+    list.slice(0, more).map((q, i) => {
       const ws = Object.keys(q.w).sort((a, b) => q.w[b] - q.w[a]), w0 = +ws[0], pb = q.bn ? q.bo / q.bn : null, pa = q.o / q.n;
-      return '<tr><td>' + (i + 1) + '</td><td class="l"><b>' + esc(S.shops[q.s]) + '</b></td><td class="l">' + esc(kName(w0)) + (ws.length > 1 ? ' <i>+' + (ws.length - 1) + ' kho</i>' : '') + '<small>' + esc(kAm(w0) || '') + '</small></td><td>' + tntN(q.n) + '</td><td><b>' + tntN(q.n - q.o) + '</b></td><td>' + tntOprCell(pa) + '</td><td>' +
+      return '<tr><td>' + (i + 1) + '</td><td class="l">' + esc(kTinh(w0) || '') + '</td><td class="l">' + esc(kAm(w0) || '') + '</td><td class="l">' + esc(kName(w0)) + (ws.length > 1 ? ' <i>+' + (ws.length - 1) + ' kho</i>' : '') + '</td><td class="l"><b>' + esc(S.shops[q.s]) + '</b></td><td>' + tntN(q.n) + (day ? '' : '<small>' + tntN(q.n / nDay) + '/ngày</small>') + '</td><td><b class="tnt-red">' + tntN(q.n - q.o) + '</b>' + (day ? '' : '<small>' + tntN((q.n - q.o) / nDay) + '/ngày</small>') + '</td><td>' + tntOprCell(pa) + '</td><td>' +
         (pb === null ? '<span class="tnt-dz2">—</span>' : tntP(pb) + '<small class="' + (pa - pb >= 0 ? 'tnt-up2' : 'tnt-dn2') + '">' + (pa - pb >= 0 ? '▲ ' : '▼ ') + fP(pa - pb) + '</small>') + '</td>' +
         hOrd.map((x) => '<td>' + (q.h[x] ? tntN(q.h[x]) : '<span class="tnt-dz2">·</span>') + '</td>').join('') + '<td>' + tntP(pct(q.n - q.o, late)) + '</td></tr>';
-    }).join('') + '</tbody></table></div>' +
-    (shops.length > more ? '<button class="tnt-more" onclick="TNT.oprMore=' + (more + 15) + ';tntRenderOpr()">Hiện thêm 15 shop (còn ' + (shops.length - more) + ')</button>' : '') +
+    }).join('') + (list.length ? '' : '<tr><td colspan="' + (10 + nH) + '" class="l"><span class="tnt-dz2">Không có shop nào.</span></td></tr>') + '</tbody></table></div>' +
+    (list.length > more ? '<button class="tnt-more" onclick="TNT.oprMore=' + (more + 15) + ';tntRenderOpr()">Hiện thêm 15 shop (còn ' + (list.length - more) + ')</button>' : '') +
     (more > 15 ? '<button class="tnt-more" onclick="TNT.oprMore=15;tntRenderOpr()">Thu gọn</button>' : '');
 
-  // Bảng kho lấy
-  h += '<div class="tnt-h3">3. Kho lấy nhiều đơn trễ — ' + esc(perLab) + ' <span>· shop trễ nhiều nhất của từng kho</span></div>';
-  h += '<div class="tnt-tw"><table class="tnt-ot"><thead><tr><th>#</th><th class="l">Kho lấy</th><th class="l">AM</th><th>Đơn LTC</th><th>Đơn trễ</th><th>% OPR</th><th class="l">Shop trễ nhiều nhất</th><th>% trễ vùng</th></tr></thead><tbody>' +
-    khos.slice(0, 15).map((k, i) => { const sh = Object.keys(k.shops).sort((a, b) => k.shops[b] - k.shops[a]).slice(0, 3);
-      return '<tr><td>' + (i + 1) + '</td><td class="l"><b>' + esc(kName(k.w)) + '</b></td><td class="l">' + esc(kAm(k.w) || '') + '</td><td>' + tntN(k.n) + '</td><td><b>' + tntN(k.n - k.o) + '</b></td><td>' + tntOprCell(k.o / k.n) + '</td><td class="l">' + sh.map((x) => esc(S.shops[x]) + ' <i>' + tntN(k.shops[x]) + '</i>').join(' · ') + '</td><td>' + tntP(pct(k.n - k.o, late)) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+  // Bảng kho lấy — 3 shop trễ nhiều nhất: đơn trễ (đỏ) / tổng đơn, kèm TB 1 ngày
+  h += '<div class="tnt-h3">3. Kho lấy nhiều đơn trễ — ' + esc(perLab) + ' <span>· 3 shop trễ nhiều nhất mỗi kho: <b class="tnt-red">trễ</b>/tổng đơn' + (day ? '' : ' (TB 1 ngày)') + '</span></div>';
+  h += '<div class="tnt-tw"><table class="tnt-ot"><thead><tr><th>#</th><th class="l">Tỉnh</th><th class="l">AM</th><th class="l">Bưu cục (kho lấy)</th><th>Đơn LTC</th><th>Đơn trễ</th><th>% OPR</th><th class="l">Shop trễ nhiều nhất</th><th>% trễ vùng</th></tr></thead><tbody>' +
+    khos.slice(0, 15).map((k, i) => { const sh = Object.keys(k.shops).filter((x) => k.shops[x].l > 0).sort((a, b) => k.shops[b].l - k.shops[a].l).slice(0, 3);
+      return '<tr><td>' + (i + 1) + '</td><td class="l">' + esc(kTinh(k.w) || '') + '</td><td class="l">' + esc(kAm(k.w) || '') + '</td><td class="l"><b>' + esc(kName(k.w)) + '</b></td><td>' + tntN(k.n) + '</td><td><b class="tnt-red">' + tntN(k.n - k.o) + '</b></td><td>' + tntOprCell(k.o / k.n) + '</td><td class="l tnt-shs">' +
+        sh.map((x) => { const q = k.shops[x]; return '<div><b>' + esc(S.shops[x]) + '</b> <span class="tnt-red">' + tntN(q.l) + '</span>/' + tntN(q.n) + ' đơn' + (day ? '' : ' <i>· TB ' + '<span class="tnt-red">' + tntN(q.l / nDay) + '</span>/' + tntN(q.n / nDay) + ' /ngày</i>') + '</div>'; }).join('') + '</td><td>' + tntP(pct(k.n - k.o, late)) + '</td></tr>'; }).join('') + '</tbody></table></div>';
   return h;
 }
 function tntRenderOpr() { const ob = document.getElementById('tntOpr'); if (ob) ob.innerHTML = tntOprHtml(); }
@@ -8277,7 +8291,7 @@ function tntTableHtml() {
         const x = day ? [one(o, pr, fN, fP, dirM, 'N-2', TM === 'b', TM === 'f'), one(o, wk, fN, fP, dirM, 'N-8', TM === 'b', TM === 'f')] : [one(o, pr, fN, fP, dirM, WL, TM === 'b', TM === 'f')];
         cmp = '<span class="tnt-cmpl">' + x.join('') + '</span>';
       }
-      return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (TM === 'f' ? (hasV(o) ? tntFdCell(pv, part || 'fdA') : '<span class="tnt-dz2">—</span>') : TM === 'op' ? (hasV(o) ? tntOprCell(pv, v(c, fN(o))) : '<span class="tnt-dz2">—</span>') : TM === 'o' ? (hasV(o) ? tntOdrCell(pv, v(c, fN(o))) : '<span class="tnt-dz2">—</span>') : (hasV(o) ? v(c, fN(o)) : '<span class="tnt-dz2">—</span>') + (pv !== null && hasV(o) ? '<small>' + tntP(pv) + '</small>' : '')) + cmp + '</td>';
+      return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (TM === 'f' ? (hasV(o) ? tntFdCell(pv, part || 'fdA') : '<span class="tnt-dz2">—</span>') : TM === 'op' ? (hasV(o) ? tntOprCell(pv, v(c, fN(o))) : '<span class="tnt-dz2">—</span>') : (TM === 'pg' || TM === 'pl' || TM === 'pr') ? (hasV(o) ? tntPctCell(pv, v(c, fN(o)), { pg: 'gán', pl: 'LTC', pr: 'rớt' }[TM]) : '<span class="tnt-dz2">—</span>') : TM === 'o' ? (hasV(o) ? tntOdrCell(pv, v(c, fN(o))) : '<span class="tnt-dz2">—</span>') : (hasV(o) ? v(c, fN(o)) : '<span class="tnt-dz2">—</span>') + (pv !== null && hasV(o) ? '<small>' + tntP(pv) + '</small>' : '')) + cmp + '</td>';
     }).join('');
     const q = (x) => esc(x).replace(/'/g, "\\'");
     const tOpen = direct || !!open[TM + '|tree'];
@@ -8306,7 +8320,7 @@ function tntTableHtml() {
     if (k === 'op') h += '<tr class="tnt-sec"><td colspan="' + ncol + '"><span>Lấy hàng (TikTok Shop)</span></td></tr>';
     const note = k === 'b' ? (TNT.BL ? '' : TNT.blErr ? ' <i class="tnt-trn">— chưa lấy được dữ liệu: ' + esc(TNT.blErr) + '</i>' : ' <i class="tnt-trn">— đang tải dữ liệu từ [S]-Report…</i>') : '';
     h += '<tr class="tnt-g" onclick="tntTblToggle(\'' + k + '\')"><td><span class="tnt-tg">' + (shut[k] ? '▸' : '▾') + '</span>' + title + note + '</td>' +
-      cols.map((c, i) => { const p = ftp ? ftp(c) : null; return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (k === 'f' ? tntFdCell(p, 'fdA') : k === 'op' ? tntOprCell(p, v(c, tot[k](c))) : (k === 'pg' || k === 'pl' || k === 'pr') && !c.p.lgA.v ? '<span class="tnt-dz2">—</span>' : k === 'o' ? tntOdrCell(p, v(c, tot[k](c))) : k === 'b' && !c.p.bl.has ? '<span class="tnt-dz2">—</span>' : v(c, tot[k](c)) + (p !== null && p !== undefined ? '<small>' + tntP(p) + '</small>' : '')) + dline(i, c, tot[k], ftp, DIR[k], k === 'b', k === 'f') + '</td>'; }).join('') + '</tr>';
+      cols.map((c, i) => { const p = ftp ? ftp(c) : null; return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (k === 'f' ? tntFdCell(p, 'fdA') : k === 'op' ? tntOprCell(p, v(c, tot[k](c))) : (k === 'pg' || k === 'pl' || k === 'pr') ? (c.p.lgA.v ? tntPctCell(p, v(c, tot[k](c)), { pg: 'gán', pl: 'LTC', pr: 'rớt' }[k]) : '<span class="tnt-dz2">—</span>') : k === 'o' ? tntOdrCell(p, v(c, tot[k](c))) : k === 'b' && !c.p.bl.has ? '<span class="tnt-dz2">—</span>' : v(c, tot[k](c)) + (p !== null && p !== undefined ? '<small>' + tntP(p) + '</small>' : '')) + dline(i, c, tot[k], ftp, DIR[k], k === 'b', k === 'f') + '</td>'; }).join('') + '</tr>';
     if (shut[k]) return;
     if (subs) { // dòng con riêng (vd ODR): không tách ca, không mở cây
       subs.forEach(([p, lab, sv, sp, sdir, fdf]) => {
