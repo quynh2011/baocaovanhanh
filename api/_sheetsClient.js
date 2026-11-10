@@ -814,19 +814,37 @@ async function handleGetTntReport(body) {
   if (!titles.length) return { ok: true, sheets: [], ents: [], dates: [] };
   const valueRanges = await batchGetValues(SHEET_ID, titles, { valueRenderOption: 'UNFORMATTED_VALUE' });
   const ents = [], entIdx = {}, dateSet = {};
-  const parsed = titles.map((name, i) => {
+  const caTao = []; // sheet "OPR theo ca tạo" (mỗi dòng = ngày × khung giờ tạo × kho lấy × shop) — xử lý sau khi có danh mục BC
+  const parsed = [];
+  titles.forEach((name, i) => {
     const rows = (valueRanges[i] && valueRanges[i].values) || [];
     const H = (rows[0] || []).map(tntNorm);
     const find = (re, last) => { let k = -1; H.forEach((h, j) => { if (re.test(h) && (last || k < 0)) k = j; }); return k; };
+    if (find(/^khung_?gio_?tao/) >= 0 && find(/^sellername|^shop/) >= 0) { caTao.push({ name: name, rows: rows, find: find }); return; }
+    // Sheet LTC TTS (200_1_LTCTTS): có cột Ca (Hàng Mới Ca 1 / Hàng Tồn) → tách 2 sheet ảo "<tên>#moi", "<tên>#ton";
+    // v = Volume (E), g = Đơn gán (K), k = Đơn LTC (L), x = Volume rớt LC (T)
+    const caCol = find(/^ca$/);
+    if (caCol >= 0) {
+      const groups = {};
+      rows.slice(1).forEach((r) => { const ca = tntNorm(r[caCol]); const key = /ton/.test(ca) ? 'ton' : 'moi'; (groups[key] = groups[key] || [rows[0]]).push(r); });
+      Object.keys(groups).sort().forEach((key) => parsed.push(parseOne(name + '#' + key, groups[key], H, find)));
+      return;
+    }
+    parsed.push(parseOne(name, rows, H, find));
+  });
+  function parseOne(name, rows, H, find) {
     // Sheet GTC (Volume/Đơn gán/Đơn GTC) và sheet ODR TTS (GTC = cột D, Đơn đúng OT = cột F, Chuẩn AM) dùng chung khung:
     // v = mẫu số (Volume hoặc GTC), k = tử số (Đơn GTC hoặc Đơn đúng OT), g = Đơn gán (không có thì 0)
     const pick = (...a) => { for (const k of a) if (k >= 0) return k; return -1; };
     // Sheet FD (200_1_FD_*): Bưu cục, %vol (D) = mẫu số, %FD (G) = tử số — tỷ lệ trả = Σ%FD ÷ Σ%vol
-    const c = { bc: pick(find(/^chi tiet/), find(/^buu cuc$/)), am: pick(find(/^cap quan ly/, true), find(/^chuan am/), find(/^quan ly/)), tinh: find(/^tinh$/),
-      v: pick(find(/^volume/), find(/^gtc$/), find(/^% ?vol/)), g: find(/^don gan/), k: pick(find(/^don gtc/), find(/^don dung ot/), find(/^don dung ontime/), find(/^% ?fd/)),
-      day: find(/^chuan ngay/), time: find(/^time|^thoi gian|^ngay$/) };
-    const isMain = find(/^volume/) >= 0;
+    const c = { bc: pick(find(/^chi tiet/), find(/^buu cuc$/)), am: /gtc/i.test(name) ? pick(find(/^cap quan ly/, true), find(/^chuan am/), find(/^quan ly/)) : pick(find(/^chuan am/), find(/^cap quan ly/, true), find(/^quan ly/)), tinh: find(/^tinh$/),
+      v: pick(find(/^volume$/), find(/^volume/), find(/^gtc$/), find(/^ltc$/), find(/^% ?vol/)), g: find(/^don gan/),
+      k: pick(find(/^don gtc/), find(/^don dung ot/), find(/^don dung ontime/), find(/^don ot$/), find(/^don ltc$/), find(/^% ?fd/)),
+      x: find(/^volume rot/), day: find(/^chuan ngay/), time: find(/^time|^thoi gian|^ngay$/) };
+    // Sheet chính = sheet GTC có cột Volume (quyết định khoảng ngày của báo cáo)
+    const isMain = find(/^volume/) >= 0 && /gtc/i.test(name);
     const out = { name: name, cols: c, main: isMain, d: [], b: [], v: [], g: [], k: [] };
+    if (c.x >= 0) out.x = [];
     if (c.bc < 0 || c.v < 0) { out.error = 'thieu_cot'; return out; }
     for (let r = 1; r < rows.length; r++) {
       const row = rows[r]; const bc = String(row[c.bc] === undefined ? '' : row[c.bc]).trim();
@@ -835,12 +853,30 @@ async function handleGetTntReport(body) {
       if (!day) continue;
       let e = entIdx[bc];
       if (e === undefined) { e = entIdx[bc] = ents.length; ents.push([bc, '', '']); }
-      if (c.am >= 0 && row[c.am]) ents[e][1] = String(row[c.am]).trim();
-      if (c.tinh >= 0 && row[c.tinh]) ents[e][2] = String(row[c.tinh]).trim();
+      // AM/Tỉnh lấy từ sheet GTC chính; sheet phụ chỉ điền khi BC chưa có (cột Cấp quản lý của sheet phụ có thể ghi nhiều người)
+      if (c.am >= 0 && row[c.am] && (isMain || !ents[e][1])) ents[e][1] = String(row[c.am]).trim();
+      if (c.tinh >= 0 && row[c.tinh] && (isMain || !ents[e][2])) ents[e][2] = String(row[c.tinh]).trim();
       dateSet[day] = 1;
       out.d.push(day); out.b.push(e); out.v.push(+row[c.v] || 0); out.g.push(c.g >= 0 ? (+row[c.g] || 0) : 0); out.k.push(c.k >= 0 ? (+row[c.k] || 0) : 0);
+      if (out.x) out.x.push(+row[c.x] || 0);
     }
     return out;
+  }
+  // OPR theo ca tạo: d ngày, w kho lấy (chỉ số trong kho[]), h khung giờ tạo, s shop, n đơn LTC, o đơn ontime.
+  // kho[] = [tên, chỉ số BC trong ents hoặc -1 nếu kho không có trong danh mục BC (chỉ tính khi xem Toàn vùng)]
+  caTao.forEach(({ name, rows, find }) => {
+    const c = { d: find(/^ngayltc|^ngay/), h: find(/^khung_?gio_?tao/), kho: find(/^kholay|^kho lay/), s: find(/^sellername|^shop/), n: find(/^don_?ltc/), o: find(/^don_?ontime/), am: find(/^chuan am/), tinh: find(/^tutinh/) };
+    const out = { name: name, kind: 'oprca', main: false, kho: [], khung: [], shops: [], d: [], w: [], h: [], s: [], n: [], o: [] };
+    const ki = {}, hi = {}, si = {};
+    for (let r = 1; r < rows.length; r++) {
+      const row = rows[r], kho = String(row[c.kho] === undefined ? '' : row[c.kho]).trim(), day = tntDate(row[c.d]);
+      if (!kho || !day || TNT_BC_DONG.indexOf(tntNorm(kho)) >= 0) continue;
+      let w = ki[kho]; if (w === undefined) { w = ki[kho] = out.kho.length; const e = entIdx[kho]; out.kho.push([kho, e === undefined ? -1 : e, c.am >= 0 ? String(row[c.am] || '') : '', c.tinh >= 0 ? String(row[c.tinh] || '') : '']); }
+      const hk = String(row[c.h] === undefined ? '' : row[c.h]).trim(); let h = hi[hk]; if (h === undefined) { h = hi[hk] = out.khung.length; out.khung.push(hk); }
+      const sk = String(row[c.s] === undefined ? '' : row[c.s]).trim() || '(không tên)'; let s = si[sk]; if (s === undefined) { s = si[sk] = out.shops.length; out.shops.push(sk); }
+      out.d.push(day); out.w.push(w); out.h.push(h); out.s.push(s); out.n.push(+row[c.n] || 0); out.o.push(+row[c.o] || 0);
+    }
+    parsed.push(out);
   });
   // Khoảng ngày lấy theo các sheet GTC chính (có cột Volume); sheet phụ (ODR…) có ngày ngoài khoảng đó thì bỏ
   const mainDays = {}; parsed.forEach((p) => { if (p.main) p.d.forEach((d) => { mainDays[d] = 1; }); });
@@ -850,7 +886,7 @@ async function handleGetTntReport(body) {
     parsed.forEach((p) => {
       if (p.main) return;
       const keep = p.d.map((d) => d >= lo && d <= hi);
-      ['d', 'b', 'v', 'g', 'k'].forEach((f) => { p[f] = p[f].filter((x, i) => keep[i]); });
+      ['d', 'b', 'v', 'g', 'k', 'x', 'w', 'h', 's', 'n', 'o'].forEach((f) => { if (p[f]) p[f] = p[f].filter((x, i) => keep[i]); });
     });
     Object.keys(dateSet).forEach((d) => { if (d < lo || d > hi) delete dateSet[d]; });
   }
