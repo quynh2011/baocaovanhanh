@@ -859,6 +859,8 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-trn{font-style:normal;font-size:11px;color:#9A8F74;font-weight:500}
 .tnt-tb tr.tnt-sec td{position:static;background:#EDE4CF;padding:9px 12px;text-align:left;border-bottom:1px solid #DCCFAF}
 .tnt-tb tr.tnt-sec td span{position:sticky;left:12px;font-size:14px;font-weight:800;color:#2F5E9E;text-transform:uppercase;letter-spacing:.06em}
+.tnt-odr{font-weight:800;font-size:14.5px;font-variant-numeric:tabular-nums}
+.tnt-odr-g{color:#0A7A3E}.tnt-odr-n{color:#1F1F1F}.tnt-odr-b{color:#B3140B}
 .tnt-tb .tnt-tg{display:inline-block;width:14px;color:#2F5E9E}
 @media (max-width:1100px){.tnt-kpis{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:900px){   .tnt-chartrow{grid-template-columns:1fr}.tnt-kpis{grid-template-columns:1fr 1fr}}
@@ -7966,9 +7968,11 @@ const TNT_TBL = [
   ['k', '3. % GTC - Năng suất (ca 1 + ca 2 + tồn)', 'GTC ', (q) => q.k, (q) => q.v ? q.k / q.v : null, (c) => c.gtc],
   ['t', '4. Chưa giao (Tồn cuối ngày)', 'Chưa giao ', (q) => q.v - q.k, (q) => q.v ? (q.v - q.k) / q.v : null, (c) => c.v ? (c.v - c.k) / c.v : null],
   // 5. % ODR TTS = đơn đúng ontime ÷ đơn GTC TTS (sheet 200_1_ODRTTS); phần tử 7 = dòng con riêng [khoá, nhãn, số, %]
-  ['o', '5. % ODR TTS', '', (q) => q.k, (q) => q.v ? q.k / q.v : null, (c) => c.p.odr.v ? c.p.odr.k / c.p.odr.v : null,
-    [['odr', 'Đơn GTC TTS', (q) => q.v, null], ['odr', 'Đơn đúng ontime', (q) => q.k, (q) => q.v ? q.k / q.v : null], ['odr', 'Đơn trễ ontime', (q) => q.v - q.k, (q) => q.v ? (q.v - q.k) / q.v : null]]]
+  // hiển thị: % ODR là số chính (>96% xanh đậm, 94–96% đen, <94% đỏ đậm — tntOdrCls), dưới là số đơn GTC TTS; không có dòng con
+  ['o', '5. % ODR TTS', '', (q) => q.v, (q) => q.v ? q.k / q.v : null, (c) => c.p.odr.v ? c.p.odr.k / c.p.odr.v : null, []]
 ];
+function tntOdrCls(p) { return p === null || p === undefined ? '' : p > 0.96 ? 'tnt-odr-g' : p >= 0.94 ? 'tnt-odr-n' : 'tnt-odr-b'; }
+function tntOdrCell(pv, n) { return pv === null || pv === undefined ? '<span class="tnt-dz2">—</span>' : '<span class="tnt-odr ' + tntOdrCls(pv) + '">' + tntP(pv) + '</span><small>' + n + ' GTC</small>'; }
 function tntTblToggle(k) { TNT.tblShut = TNT.tblShut || {}; TNT.tblShut[k] = !TNT.tblShut[k];
   if (TNT.tblShut[k] && TNT.treeOpen) Object.keys(TNT.treeOpen).forEach((x) => { if (x.indexOf(k + '|') === 0 || x.indexOf(k + ':') === 0) delete TNT.treeOpen[x]; }); document.getElementById('tntTbl').innerHTML = tntTableHtml(); }
 // Tổng của 1 nhóm bưu cục (ents = danh sách chỉ số BC) trong 1 nhóm ngày — cùng dạng với tntSum
@@ -8024,7 +8028,7 @@ function tntTableHtml() {
   };
   let h = '<div class="tnt-tw"><table class="tnt-tb"><thead><tr><th>' + esc(scopeLab) + ' · ' + nBC + ' BC' + (TNT.cust === 'tts' ? ' · TTS' : '') + '</th>' +
     cols.map((c, i) => '<th' + (i === ai ? ' class="tnt-anc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (i === ai ? '<span class="tnt-ancl">mốc so sánh</span>' : '') + esc(c.lab) + '<small>' + esc(c.sub) + '</small></th>').join('') + '</tr></thead><tbody>';
-  const tot = { v: (c) => c.v, g: (c) => c.g, k: (c) => c.k, t: (c) => c.v - c.k, o: (c) => c.p.odr.k };
+  const tot = { v: (c) => c.v, g: (c) => c.g, k: (c) => c.k, t: (c) => c.v - c.k, o: (c) => c.p.odr.v };
   // Chi tiết Tỉnh → AM → Bưu cục NẰM TRONG từng nhóm chỉ số (mở nhóm ra: Ca 1/Ca 2/Tồn rồi tới các tỉnh); cùng cột mốc so sánh
   const open = TNT.treeOpen || {}, ncol = cols.length + 1, c0i = cols[ai];
   const okE = D.ents.map((e, i) => tntEntOk(e) ? i : -1).filter((i) => i >= 0);
@@ -8046,7 +8050,7 @@ function tntTableHtml() {
         const x = day ? [one(o, pr, fN, fP, dirM, 'N-2'), one(o, wk, fN, fP, dirM, 'N-8')] : [one(o, pr, fN, fP, dirM, 'Tuần trước')];
         cmp = '<span class="tnt-cmpl">' + x.join('') + '</span>';
       }
-      return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (hasV(o) ? v(c, fN(o)) : '<span class="tnt-dz2">—</span>') + (pv !== null && hasV(o) ? '<small>' + tntP(pv) + '</small>' : '') + cmp + '</td>';
+      return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (TM === 'o' ? (hasV(o) ? tntOdrCell(pv, v(c, fN(o))) : '<span class="tnt-dz2">—</span>') : (hasV(o) ? v(c, fN(o)) : '<span class="tnt-dz2">—</span>') + (pv !== null && hasV(o) ? '<small>' + tntP(pv) + '</small>' : '')) + cmp + '</td>';
     }).join('');
     const q = (x) => esc(x).replace(/'/g, "\\'");
     const tOpen = !!open[TM + '|tree'];
@@ -8072,7 +8076,7 @@ function tntTableHtml() {
   h += '<tr class="tnt-sec"><td colspan="' + ncol + '"><span>Giao hàng</span></td></tr>';
   TNT_TBL.forEach(([k, title, pre, fv, fp, ftp, subs]) => {
     h += '<tr class="tnt-g" onclick="tntTblToggle(\'' + k + '\')"><td><span class="tnt-tg">' + (shut[k] ? '▸' : '▾') + '</span>' + title + '</td>' +
-      cols.map((c, i) => { const p = ftp ? ftp(c) : null; return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + v(c, tot[k](c)) + (p !== null && p !== undefined ? '<small>' + tntP(p) + '</small>' : '') + dline(i, c, tot[k], ftp, DIR[k]) + '</td>'; }).join('') + '</tr>';
+      cols.map((c, i) => { const p = ftp ? ftp(c) : null; return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (k === 'o' ? tntOdrCell(p, v(c, tot[k](c))) : v(c, tot[k](c)) + (p !== null && p !== undefined ? '<small>' + tntP(p) + '</small>' : '')) + dline(i, c, tot[k], ftp, DIR[k]) + '</td>'; }).join('') + '</tr>';
     if (shut[k]) return;
     if (subs) { // dòng con riêng (vd ODR): không tách ca, không mở cây
       subs.forEach(([p, lab, sv, sp]) => {
