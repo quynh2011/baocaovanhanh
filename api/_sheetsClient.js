@@ -842,7 +842,8 @@ async function handleGetTntReport(body) {
       k: pick(find(/^don gtc/), find(/^don dung ot/), find(/^don dung ontime/), find(/^don ot$/), find(/^don ltc$/), find(/^% ?fd/)),
       x: find(/^volume rot/), day: find(/^chuan ngay/), time: find(/^time|^thoi gian|^ngay$/) };
     // Sheet chính = sheet GTC có cột Volume (quyết định khoảng ngày của báo cáo)
-    const isMain = find(/^volume/) >= 0 && /gtc/i.test(name);
+    // (sheet GTC_Ngay_* là GTC theo nhóm KH để tính đơn trả → sheet phụ)
+    const isMain = find(/^volume/) >= 0 && /gtc/i.test(name) && !/gtc_?ngay/i.test(name);
     const out = { name: name, cols: c, main: isMain, d: [], b: [], v: [], g: [], k: [] };
     if (c.x >= 0) out.x = [];
     if (c.bc < 0 || c.v < 0) { out.error = 'thieu_cot'; return out; }
