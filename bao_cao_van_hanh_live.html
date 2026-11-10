@@ -8732,10 +8732,10 @@ function tntGhPartHtml(p) {
     const dn = bl.filter((x) => x.b && x.b.p !== null && pd(x.b.v, C.prevIdx) >= 10).map((x) => ({ e: x.e, d: x.o.p - x.b.p, p: x.o.p })).sort((a, b) => a.d - b.d).filter((x) => x.d < -0.02).slice(0, 3);
     if (dn.length) ins.push('Giảm mạnh nhất so ' + esc(vs) + ': ' + dn.map((x) => '<b>' + esc(D.ents[x.e][0]) + '</b> ' + tntP(x.p) + ' (' + tntGhD(x.d, 1) + ')').join(' · ') + '.');
   }
-  const st = S.t[p] || (S.t[p] = { lv: 'tree', sort: 'miss', more: 20, open: {} });
+  const st = S.t[p] || (S.t[p] = { lv: 'tree', sort: 'p', more: 20, open: {} });
   let h = '<div class="tnt-insight"><b>Nhận xét ' + nm + '</b><ul>' + ins.map((x) => '<li>' + x + '</li>').join('') + '</ul></div>';
   h += '<div class="tnt-fbar">' + [['tree', 'Tỉnh → AM → Bưu cục'], ['am', 'Theo AM'], ['bc', 'Theo bưu cục']].map(([k, l]) => '<button class="' + (st.lv === k ? 'on' : '') + '" onclick="tntGhTblSet(\'' + p + '\',\'lv\',\'' + k + '\')">' + l + '</button>').join('') +
-    '<label class="tnt-osort">Sắp theo <select onchange="tntGhTblSet(\'' + p + '\',\'sort\',this.value)">' + [['miss', 'Chưa giao nhiều nhất'], ['p', '% GTC thấp nhất (≥ 10 đơn/ngày)'], ['d', 'Giảm mạnh nhất so kỳ trước']].map(([k, l]) => '<option value="' + k + '"' + (st.sort === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label></div>';
+    '<label class="tnt-osort">Sắp theo <select onchange="tntGhTblSet(\'' + p + '\',\'sort\',this.value)">' + [['p', '% GTC thấp → cao'], ['miss', 'Chưa giao nhiều nhất'], ['d', 'Giảm mạnh nhất so kỳ trước']].map(([k, l]) => '<option value="' + k + '"' + (st.sort === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label></div>';
   h += '<div id="tntGhT_' + p + '">' + tntGhTblHtml(p) + '</div>';
   return h;
 }
