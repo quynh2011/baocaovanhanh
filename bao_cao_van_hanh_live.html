@@ -807,6 +807,10 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-note{font-size:12px;color:#8A8170;margin-top:8px}
 .tnt-h3{font-size:15px;font-weight:800;margin:16px 0 8px;color:#2B2618}
 .tnt-h3 span{font-size:12px;font-weight:500;color:#7A6E52;margin-left:6px}
+.tnt-h3 .tnt-cmpsel{display:inline-flex;gap:6px;margin-left:12px;vertical-align:middle}
+.tnt-cmpsel label{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-size:12.5px;font-weight:700;color:#2B2618;cursor:pointer}
+.tnt-cmpsel label:has(input:checked){background:#2B2618;color:#fff;border-color:#2B2618}
+.tnt-cmpsel input{margin:0;accent-color:#E8641E}
 .tnt-tw{overflow-x:auto;border:1px solid #D9CDB0;border-radius:10px;background:#FFFDF7}
 .tnt-tb{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;min-width:100%}
 .tnt-tb th,.tnt-tb td{font-family:inherit;border:0}
@@ -1135,7 +1139,7 @@ td.dn-keycol{background:#FBF7EE}
         <div class="tnt-panel" id="tntPanel"></div>
       </div>
       <div class="tnt-note">Cột = sản lượng cần giao (Ca 1 + Ca 2 + Hàng tồn, cột Volume). Năng suất = đơn giao thành công (cột Đơn GTC). % GTC = Đơn GTC ÷ Volume · % Gán = Đơn gán ÷ Volume. Bấm chú thích để bật/tắt từng phần (tắt Ca/Tồn thì các chỉ số tính lại theo phần còn bật). Rê chuột vào cột để xem số, bấm để ghim. Xem theo tuần: số đơn là trung bình 1 ngày, tuần có * là chưa đủ 7 ngày.</div>
-      <div class="tnt-h3">2. Bảng số liệu tổng quan <span id="tntTblSub"></span></div>
+      <div class="tnt-h3">2. Bảng số liệu tổng quan <span id="tntTblSub"></span><span id="tntCmp" class="tnt-cmpsel"></span></div>
       <div id="tntTbl"></div>
     </div>
   </div>
@@ -7712,7 +7716,7 @@ window.SR = { loading: false, url: null, fileId: null, meta: null };
 // Nguồn: mọi sheet mã 200 trở đi (backend handleGetTntReport). Mỗi sheet = 1 bưu cục × 1 ngày: Volume (cột D = sản lượng cần giao),
 // Đơn gán (J), Đơn GTC (K = năng suất). Phần I Tổng quan: cột chồng Ca 1 + Ca 2 + Hàng tồn, line Năng suất (xanh), % GTC = K/D (cam),
 // % Gán = J/D (đen). Khách hàng "Tất cả" dùng sheet …GTCCA1/GTCCA2/GTCTon, "TTS" dùng …GTCTTSCA1/GTCTTSCA2/GTCTTSTon (dò theo đuôi tên).
-window.TNT = { tblShut: { v: 1, g: 1, k: 1, t: 1, o: 1, b: 1, f: 1 }, data: null, loading: false, f: { tinh: '', am: '', bc: '' }, cust: 'all', mode: 'week', from: '', to: '', parts: { ca1: 1, ca2: 1, ton: 1 }, lines: { ns: 1, gtc: 1, gan: 1, odr: 1 }, cols: [], hover: -1 };
+window.TNT = { cmp: 'full', tblShut: { v: 1, g: 1, k: 1, t: 1, o: 1, b: 1, f: 1 }, data: null, loading: false, f: { tinh: '', am: '', bc: '' }, cust: 'all', mode: 'week', from: '', to: '', parts: { ca1: 1, ca2: 1, ton: 1 }, lines: { ns: 1, gtc: 1, gan: 1, odr: 1 }, cols: [], hover: -1 };
 const TNT_PARTS = [['ca1', 'Ca 1', '#A9C6E8'], ['ca2', 'Ca 2', '#5B86C0'], ['ton', 'Hàng tồn', '#CDBF9F']];
 const TNT_LINES = [['ns', 'Năng suất (đơn GTC)', '#14915F'], ['gtc', '% GTC', '#F26522'], ['gan', '% Gán', '#1F1F1F'], ['odr', '% ODR TTS', '#7B3FB5']];
 const TNT_WD = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -7805,6 +7809,8 @@ function tntBuildCols(per) {
       s.key = w; s.lab = 'T' + w.split('/')[1] + (part ? '*' : ''); s.sub = tntDm(D[ids[0]]) + '–' + tntDm(D[ids[ids.length - 1]]);
       s.title = 'Tuần ' + w + ' (' + s.sub + ', ' + ids.length + ' ngày' + (part ? ' — chưa đủ tuần' : '') + ')';
       s.idx = ids; s.prevIdx = wi > 0 ? all[keys[wi - 1]] : null; s.wkIdx = null;
+      // cùng kỳ tuần trước: đúng các thứ đã có của tuần này, lùi 7 ngày (vd T2–T3 tuần này ↔ T2–T3 tuần trước)
+      s.sameIdx = ids.map((i) => i - 7).filter((i) => i >= 0); s.samePrev = s.sameIdx.length === ids.length ? tntSum(per, s.sameIdx) : null; s.prevKey = wi > 0 ? keys[wi - 1] : '';
       if (wi > 0) { s.prev = tntSum(per, all[keys[wi - 1]]); s.prevLab = 'tuần ' + keys[wi - 1]; }
       cols.push(s);
     });
@@ -7970,6 +7976,7 @@ function tntDefaultRange(n) {
   if (TNT.mode === 'week') { const wk = []; D.forEach((d) => { const w = tntIsoWeek(d); if (wk[wk.length - 1] !== w) wk.push(w); }); const keep = wk.slice(-(n ? Math.round(n / 7) : 5)); TNT.from = D.find((d) => keep.indexOf(tntIsoWeek(d)) >= 0); }
   else TNT.from = D[Math.max(0, D.length - (n || 15))];
 }
+function tntSetCmp(v) { TNT.cmp = v; tntRender(); }
 function tntSetMode(v) { TNT.mode = v; TNT.pin = -1; tntDefaultRange(); tntRender(); }
 function tntSet(k, v) { TNT[k] = v; TNT.pin = -1; tntRender(); }
 function tntQuick(n) { const D = TNT.data.dates; n = +n; if (n) tntDefaultRange(n); else { TNT.to = D[D.length - 1]; TNT.from = D[0]; } TNT.pin = -1; tntRender(); }
@@ -8068,6 +8075,10 @@ function tntTreeAll(open, m) {
 function tntTableHtml() {
   const cols = TNT.cols.slice().reverse(); if (!cols.length) return '';
   const shut = TNT.tblShut || {}, day = TNT.mode === 'day';
+  // Tuần: 'full' = mốc là tuần mới nhất ĐỦ 7 ngày, so cả tuần trước; 'same' = mốc là tuần mới nhất (chưa đủ cũng được), so CÙNG KỲ (cùng các thứ) tuần trước
+  const same = !day && TNT.cmp === 'same';
+  if (same) cols[0] = Object.assign({}, cols[0], { prev: cols[0].samePrev, prevIdx: cols[0].samePrev ? cols[0].sameIdx : null });
+  const WL = same ? (cols[0].prevKey ? 'T' + cols[0].prevKey.split('/')[1] + ' cùng kỳ' : 'Cùng kỳ') : 'Tuần trước';
   const D = TNT.data, nBC = D.ents.filter((e) => tntEntOk(e)).length;
   const scopeLab = TNT.f.bc || TNT.f.am || TNT.f.tinh || 'Vùng TNT';
   const cn = (c) => day && c.sub === 'CN' ? ' class="tnt-cn"' : '';
@@ -8075,7 +8086,7 @@ function tntTableHtml() {
   // So sánh CHỈ ở cột mốc: xem ngày = N-1 (ngày mới nhất); xem tuần = tuần mới nhất đã đủ 7 ngày.
   // Phép so = TRỪ TRỰC TIẾP: % thì lấy % mốc − % kỳ so (chênh %), số đơn thì đơn mốc − đơn kỳ so.
   // Gán/GTC: % tăng = tốt; Chưa giao: % giảm = tốt → tốt: ▲ xanh lá đậm, tệ: ▼ đỏ. Cần giao: chênh số đơn, tăng = xanh ▲, giảm = đỏ ▼.
-  let ai = 0; if (!day) { const f = cols.findIndex((c) => c.n >= 7); if (f >= 0) ai = f; }
+  let ai = 0; if (!day && !same) { const f = cols.findIndex((c) => c.n >= 7); if (f >= 0) ai = f; }
   const pd = (o, x) => !day && o.n ? x / o.n : x;
   const DIR = { v: 0, g: 1, k: 1, t: -1, o: 1, b: -1, f: -1 };
   const fmtP = (d, dc) => (d > 0 ? '+' : '') + (d * 100).toFixed(dc || 1).replace('.', ',') + '%';
@@ -8098,7 +8109,7 @@ function tntTableHtml() {
   };
   const dline = (i, c, fNum, fPct, dir, bl, nf) => {
     if (i !== ai) return '';
-    const x = day ? [one(c, c.prev, fNum, fPct, dir, 'N-2', bl, nf), one(c, c.wk, fNum, fPct, dir, 'N-8', bl, nf)] : [one(c, c.prev, fNum, fPct, dir, 'Tuần trước', bl, nf)];
+    const x = day ? [one(c, c.prev, fNum, fPct, dir, 'N-2', bl, nf), one(c, c.wk, fNum, fPct, dir, 'N-8', bl, nf)] : [one(c, c.prev, fNum, fPct, dir, WL, bl, nf)];
     return '<span class="tnt-cmpl">' + x.join('') + '</span>';
   };
   let h = '<div class="tnt-tw"><table class="tnt-tb"><thead><tr><th>' + esc(scopeLab) + ' · ' + nBC + ' BC' + (TNT.cust === 'tts' ? ' · TTS' : '') + '</th>' +
@@ -8122,7 +8133,7 @@ function tntTableHtml() {
       let cmp = '';
       if (i === ai) {
         const pr = c.prevIdx ? tntSumEnts(ents, c.prevIdx) : null, wk = c.wkIdx ? tntSumEnts(ents, c.wkIdx) : null;
-        const x = day ? [one(o, pr, fN, fP, dirM, 'N-2', TM === 'b', TM === 'f'), one(o, wk, fN, fP, dirM, 'N-8', TM === 'b', TM === 'f')] : [one(o, pr, fN, fP, dirM, 'Tuần trước', TM === 'b', TM === 'f')];
+        const x = day ? [one(o, pr, fN, fP, dirM, 'N-2', TM === 'b', TM === 'f'), one(o, wk, fN, fP, dirM, 'N-8', TM === 'b', TM === 'f')] : [one(o, pr, fN, fP, dirM, WL, TM === 'b', TM === 'f')];
         cmp = '<span class="tnt-cmpl">' + x.join('') + '</span>';
       }
       return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (TM === 'f' ? (hasV(o) ? tntFdCell(pv, part || 'fdA') : '<span class="tnt-dz2">—</span>') : TM === 'o' ? (hasV(o) ? tntOdrCell(pv, v(c, fN(o))) : '<span class="tnt-dz2">—</span>') : (hasV(o) ? v(c, fN(o)) : '<span class="tnt-dz2">—</span>') + (pv !== null && hasV(o) ? '<small>' + tntP(pv) + '</small>' : '')) + cmp + '</td>';
@@ -8169,7 +8180,7 @@ function tntTableHtml() {
           const pp = sp ? sp(c.p[p]) : null;
           if (p === 'bl' && !c.p.bl.has) return '<td' + cn(c) + '><span class="tnt-dz2">—</span></td>';
           return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + v(c, sv(c.p[p])) + (pp !== null ? '<small>' + tntP(pp) + '</small>' : '') +
-            (i === ai ? '<span class="tnt-cmpl">' + (day ? [one(c, c.prev, (o) => sv(o.p[p]), sp ? (o) => sp(o.p[p]) : null, dd, 'N-2', p === 'bl'), one(c, c.wk, (o) => sv(o.p[p]), sp ? (o) => sp(o.p[p]) : null, dd, 'N-8', p === 'bl')] : [one(c, c.prev, (o) => sv(o.p[p]), sp ? (o) => sp(o.p[p]) : null, dd, 'Tuần trước', p === 'bl')]).join('') + '</span>' : '') + '</td>';
+            (i === ai ? '<span class="tnt-cmpl">' + (day ? [one(c, c.prev, (o) => sv(o.p[p]), sp ? (o) => sp(o.p[p]) : null, dd, 'N-2', p === 'bl'), one(c, c.wk, (o) => sv(o.p[p]), sp ? (o) => sp(o.p[p]) : null, dd, 'N-8', p === 'bl')] : [one(c, c.prev, (o) => sv(o.p[p]), sp ? (o) => sp(o.p[p]) : null, dd, WL, p === 'bl')]).join('') + '</span>' : '') + '</td>';
         }).join('') + '</tr>';
       });
       h += subs.length ? treeRows(k) : treeRows(k, null, true);
@@ -8200,7 +8211,8 @@ function tntRender() {
   tntHover(TNT.pin >= 0 && TNT.pin < TNT.cols.length ? TNT.pin : -1);
   document.getElementById('tntTbl').innerHTML = tntTableHtml();
   if (!TNT.BL && !TNT.blErr && typeof tntLoadBacklog === 'function') tntLoadBacklog();
-  document.getElementById('tntTblSub').textContent = TNT.mode === 'week' ? '· số đơn = trung bình 1 ngày của tuần · cột mốc = tuần mới nhất đã đủ 7 ngày, so với tuần trước — trừ trực tiếp' : '· cột mốc N-1 so với N-2 (hôm trước) và N-8 (cùng thứ tuần trước) — trừ trực tiếp; ▲ xanh = tốt hơn, ▼ đỏ = tệ hơn';
+  const cmpBox = document.getElementById('tntCmp'); if (cmpBox) { cmpBox.style.display = TNT.mode === 'week' ? '' : 'none'; cmpBox.innerHTML = [['full', 'So sánh tuần'], ['same', 'So sánh cùng kỳ tuần']].map(([k, l]) => '<label><input type="radio" name="tntCmp"' + (TNT.cmp === k ? ' checked' : '') + ' onchange="tntSetCmp(\'' + k + '\')">' + l + '</label>').join(''); }
+  document.getElementById('tntTblSub').textContent = TNT.mode === 'week' ? (TNT.cmp === 'same' ? '· số đơn = trung bình 1 ngày · cột mốc = tuần mới nhất (chưa đủ tuần cũng lấy), so với CÙNG CÁC THỨ của tuần trước — trừ trực tiếp' : '· số đơn = trung bình 1 ngày của tuần · cột mốc = tuần mới nhất đã đủ 7 ngày, so với cả tuần trước — trừ trực tiếp') : '· cột mốc N-1 so với N-2 (hôm trước) và N-8 (cùng thứ tuần trước) — trừ trực tiếp; ▲ xanh = tốt hơn, ▼ đỏ = tệ hơn';
 }
 // Tải [TNT]-Report thành 1 file HTML độc lập: nhúng CSS #tntCss + dữ liệu + mọi hàm tnt* → mở offline vẫn đổi phạm vi/ngày/rê chuột được
 function tntDownloadHtml() {
