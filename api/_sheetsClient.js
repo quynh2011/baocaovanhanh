@@ -854,7 +854,8 @@ async function handleGetTntReport(body) {
       let e = entIdx[bc];
       if (e === undefined) { e = entIdx[bc] = ents.length; ents.push([bc, '', '']); }
       // AM/Tỉnh lấy từ sheet GTC chính; sheet phụ chỉ điền khi BC chưa có (cột Cấp quản lý của sheet phụ có thể ghi nhiều người)
-      if (c.am >= 0 && row[c.am] && (isMain || !ents[e][1])) ents[e][1] = String(row[c.am]).trim();
+      // bỏ giá trị rác ở cột AM (vd "Loại")
+      if (c.am >= 0 && row[c.am] && tntNorm(row[c.am]) !== 'loai' && (isMain || !ents[e][1] || tntNorm(ents[e][1]) === 'loai')) ents[e][1] = String(row[c.am]).trim();
       if (c.tinh >= 0 && row[c.tinh] && (isMain || !ents[e][2])) ents[e][2] = String(row[c.tinh]).trim();
       dateSet[day] = 1;
       out.d.push(day); out.b.push(e); out.v.push(+row[c.v] || 0); out.g.push(c.g >= 0 ? (+row[c.g] || 0) : 0); out.k.push(c.k >= 0 ? (+row[c.k] || 0) : 0);
@@ -871,7 +872,7 @@ async function handleGetTntReport(body) {
     for (let r = 1; r < rows.length; r++) {
       const row = rows[r], kho = String(row[c.kho] === undefined ? '' : row[c.kho]).trim(), day = tntDate(row[c.d]);
       if (!kho || !day || TNT_BC_DONG.indexOf(tntNorm(kho)) >= 0) continue;
-      let w = ki[kho]; if (w === undefined) { w = ki[kho] = out.kho.length; const e = entIdx[kho]; out.kho.push([kho, e === undefined ? -1 : e, c.am >= 0 ? String(row[c.am] || '') : '', c.tinh >= 0 ? String(row[c.tinh] || '') : '']); }
+      let w = ki[kho]; if (w === undefined) { w = ki[kho] = out.kho.length; const e = entIdx[kho]; out.kho.push([kho, e === undefined ? -1 : e, c.am >= 0 && tntNorm(row[c.am]) !== 'loai' ? String(row[c.am] || '') : '', c.tinh >= 0 ? String(row[c.tinh] || '') : '']); }
       const hk = String(row[c.h] === undefined ? '' : row[c.h]).trim(); let h = hi[hk]; if (h === undefined) { h = hi[hk] = out.khung.length; out.khung.push(hk); }
       const sk = String(row[c.s] === undefined ? '' : row[c.s]).trim() || '(không tên)'; let s = si[sk]; if (s === undefined) { s = si[sk] = out.shops.length; out.shops.push(sk); }
       out.d.push(day); out.w.push(w); out.h.push(h); out.s.push(s); out.n.push(+row[c.n] || 0); out.o.push(+row[c.o] || 0);

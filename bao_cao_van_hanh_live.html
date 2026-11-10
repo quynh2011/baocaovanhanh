@@ -8259,7 +8259,7 @@ function tntOprHtml() {
   h += oh(4, '4. Lấy hàng TTS theo khách (OPR) <span>· mỗi dòng 1 shop · ô = đơn LTC' + (day ? '' : ' (TB 1 ngày)') + ', số nhỏ = % OPR (đỏ khi thấp hơn vùng ≥ 10%) · nền đỏ: OPR < 50% · nền xanh: OPR ≥ 95% · bấm tên shop xem theo khung giờ tạo</span>');
   const cf = TNT.oprCust || (TNT.oprCust = { h: -1, q: '', sort: 'n', more: 30, open: {} });
   h += '<div class="tnt-fbar">' + [[-1, 'Tất cả giờ tạo']].concat(hOrd.map((x) => [x, hLab(x)])).map(([x, l]) => '<button class="' + (cf.h === x ? 'on' : '') + '" onclick="TNT.oprCust.h=' + x + ';TNT.oprCust.more=30;tntOprCustRender()">' + esc(l) + '</button>').join('') +
-    (() => { const amOf = (w) => { const e = S.kho[w][1]; return (e >= 0 ? D.ents[e][1] : S.kho[w][2]) || ''; };
+    (() => { const amOf = (w) => { const e = S.kho[w][1], a = (e >= 0 ? D.ents[e][1] : S.kho[w][2]) || ''; return /^lo[aạ]i$/i.test(a.trim()) ? '' : a; };
       const ams = Array.from(new Set(S.kho.map((k, w) => kOk[w] ? amOf(w) : '').filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
       const bcs = S.kho.map((k, w) => w).filter((w) => kOk[w] && (!cf.am || amOf(w) === cf.am)).map((w) => S.kho[w][0]).sort((a, b) => a.localeCompare(b, 'vi'));
       return '<label class="tnt-osort">AM <select onchange="TNT.oprCust.am=this.value;TNT.oprCust.bc=\'\';TNT.oprCust.more=30;tntRenderOpr()"><option value="">Tất cả AM (' + ams.length + ')</option>' + ams.map((a) => '<option' + (cf.am === a ? ' selected' : '') + '>' + esc(a) + '</option>').join('') + '</select></label>' +
@@ -8280,7 +8280,7 @@ function tntOprCustHtml() {
   const days = new Float64Array(nC); const seen = new Uint8Array(nD);
   const nrm = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
   const q = nrm(cf.q).trim();
-  const amOf = (w) => { const e = S.kho[w][1]; return (e >= 0 ? D.ents[e][1] : S.kho[w][2]) || ''; };
+  const amOf = (w) => { const e = S.kho[w][1], a = (e >= 0 ? D.ents[e][1] : S.kho[w][2]) || ''; return /^lo[aạ]i$/i.test(a.trim()) ? '' : a; };
   const shops = {}, vN = new Float64Array(nC), vO = new Float64Array(nC);
   for (let i = 0; i < S.d.length; i++) {
     const d = S.d[i], j = ci[d]; if (j < 0) continue; if (!seen[d]) { seen[d] = 1; days[j]++; }
