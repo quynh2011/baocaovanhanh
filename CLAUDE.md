@@ -162,3 +162,4 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 - 2026-11-10: [TNT]-Report top 10 trả hàng — số đơn trả dưới ô đổi từ đỏ sang cùng màu tổng đơn, tô đậm (tránh trùng màu % FD).
 - 2026-11-10: [TNT]-Report top 10 trả hàng — bỏ danh sách nhận xét dài dưới bảng; nhận xét từng BC chuyển vào POPUP khi rê chuột vào tên bưu cục (ⓘ; `tntTipShow/tntTipMove/tntTipHide`, nội dung `window.__tntTips`, khung tối `.tnt-tip`: tiêu đề + mức 🔴🟠🟢, ô "Nguyên nhân", mục "Chi tiết 7 ngày" gạch đầu dòng). Dưới bảng chỉ còn 1 dòng tổng Vùng.
 - 2026-11-10: [TNT]-Report III mục 2 Bưu cục trả hàng nhiều nhất — mặc định chọn nhóm TTS COD (`TNT.retBc.g = 'T'`).
+- 2026-11-10: [TNT]-Report Bảng số liệu — dòng 3 mục lớn GIAO / TRẢ / LẤY HÀNG có nút chữ "▾ Mở rộng" / "▴ Thu gọn" ngay sau tên mục (`.tnt-secbtn`) để người xem biết bấm mở.
