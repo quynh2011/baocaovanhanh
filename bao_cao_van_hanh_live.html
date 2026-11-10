@@ -8409,7 +8409,7 @@ function tntRetHtml() {
   h += oh(1, '1. FD (tỷ lệ trả) toàn vùng <span>· đường đậm = Tất cả KH, đường mảnh = từng nhóm KH · cột = tổng đơn (tham khảo) · rê chuột xem từng ' + (day ? 'ngày' : 'tuần') + ' · bấm chú thích để ẩn/hiện đường</span>');
   h += '<div id="tntRetChart">' + tntRetChartHtml() + '</div></div>';
   h += oh(2, '2. Bưu cục trả hàng nhiều nhất <span>· 7 ngày gần nhất của khoảng đang xem · bấm dòng BC xem theo ngày</span>');
-  const cf = TNT.retBc || (TNT.retBc = { g: 'T', sort: 'over', q: '', more: 20, open: {} });
+  const cf = TNT.retBc || (TNT.retBc = { g: 'T', sort: 't', q: '', more: 20, open: {} });
   h += '<div class="tnt-fbar">' + TNT_RET_G.map(([g, nm]) => '<button class="' + (cf.g === g ? 'on' : '') + '" onclick="TNT.retBc.g=\'' + g + '\';TNT.retBc.more=20;tntRetBcRender()">' + esc(nm) + '</button>').join('') +
     '<input class="tnt-oq" placeholder="Tìm bưu cục / AM / tỉnh" value="' + esc(cf.q) + '" oninput="TNT.retBc.q=this.value;TNT.retBc.more=20;clearTimeout(window.__tntRq);window.__tntRq=setTimeout(tntRetBcRender,250)">' +
     '<label class="tnt-osort">Sắp theo <select onchange="TNT.retBc.sort=this.value;TNT.retBc.more=20;tntRetBcRender()">' + [['over', 'Trả vượt mốc nhiều nhất'], ['t', 'Đơn trả nhiều nhất'], ['p', '% FD cao nhất (≥ 50 đơn)'], ['d', 'FD tăng nhiều nhất so 7 ngày trước']].map(([k, l]) => '<option value="' + k + '"' + (cf.sort === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label></div>';
