@@ -876,6 +876,7 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-cmpsel label:has(input:checked){background:#2B2618;color:#fff;border-color:#2B2618}
 .tnt-cmpsel input{margin:0;accent-color:#E8641E}
 .tnt-tw{overflow-x:auto;border:1px solid #D9CDB0;border-radius:10px;background:#FFFDF7}
+#tntBody .tnt-tw{overflow:auto;overscroll-behavior:contain}#tntBody .tnt-tw thead th{position:sticky;top:0;z-index:3}#tntBody .tnt-tb thead tr:first-child th:first-child{z-index:4}
 .tnt-tb{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;min-width:100%}
 .tnt-tb th,.tnt-tb td{font-family:inherit;border:0}
 .tnt-tb thead tr:first-child th{background:#2F5E9E;color:#fff;font-size:12.5px;font-weight:700;text-align:right;padding:7px 10px;line-height:1.2;white-space:nowrap;border-right:1px solid rgba(255,255,255,.18);letter-spacing:0}
@@ -9000,8 +9001,24 @@ function tntTableHtml() {
   });
   return h + '</tbody></table></div>';
 }
+// Mọi bảng trong [TNT]-Report: khung chỉ cao bằng tiêu đề + 10 dòng, lăn chuột trong bảng, tiêu đề dính trên cùng
+function tntFitTables() {
+  const root = document.getElementById('tntBody'); if (!root) return;
+  root.querySelectorAll('.tnt-tw').forEach((w) => {
+    const t = w.querySelector('table'); if (!t || !t.tBodies[0] || !w.offsetHeight) return;
+    const rows = Array.from(t.tBodies[0].rows).filter((r) => r.offsetHeight > 0);
+    if (rows.length <= 10) { w.style.maxHeight = ''; return; }
+    w.style.maxHeight = (rows[10].offsetTop + 2) + 'px';
+  });
+}
+function tntFitInit() {
+  if (window.__tntFitObs || !window.MutationObserver) return; const root = document.getElementById('tntBody'); if (!root) return;
+  window.__tntFitObs = new MutationObserver(() => { if (window.__tntFitRaf) return; window.__tntFitRaf = requestAnimationFrame(() => { window.__tntFitRaf = 0; tntFitTables(); }); });
+  window.__tntFitObs.observe(root, { childList: true, subtree: true });
+}
 function tntRender() {
   if (!TNT.data) return;
+  tntFitInit();
   tntRenderControls();
   const per = tntBuildPer(); TNT.cols = tntBuildCols(per);
   const F = TNT.f, scopeLab = !(F.tinh || F.am || F.bc) ? 'Toàn vùng TNT' : [F.tinh && 'Tỉnh ' + F.tinh, F.am && 'AM ' + F.am, F.bc && 'Bưu cục ' + F.bc].filter(Boolean).join(' › ');
