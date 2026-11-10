@@ -8259,7 +8259,12 @@ function tntOprHtml() {
   h += oh(4, '4. Lấy hàng TTS theo khách (OPR) <span>· mỗi dòng 1 shop · ô = đơn LTC' + (day ? '' : ' (TB 1 ngày)') + ', số nhỏ = % OPR (đỏ khi thấp hơn vùng ≥ 10%) · nền đỏ: OPR < 50% · nền xanh: OPR ≥ 95% · bấm tên shop xem theo khung giờ tạo</span>');
   const cf = TNT.oprCust || (TNT.oprCust = { h: -1, q: '', sort: 'n', more: 30, open: {} });
   h += '<div class="tnt-fbar">' + [[-1, 'Tất cả giờ tạo']].concat(hOrd.map((x) => [x, hLab(x)])).map(([x, l]) => '<button class="' + (cf.h === x ? 'on' : '') + '" onclick="TNT.oprCust.h=' + x + ';TNT.oprCust.more=30;tntOprCustRender()">' + esc(l) + '</button>').join('') +
-    '<input class="tnt-oq" placeholder="Tìm khách / BC" value="' + esc(cf.q) + '" oninput="TNT.oprCust.q=this.value;TNT.oprCust.more=30;clearTimeout(window.__tntOq);window.__tntOq=setTimeout(tntOprCustRender,250)">' +
+    (() => { const amOf = (w) => { const e = S.kho[w][1]; return (e >= 0 ? D.ents[e][1] : S.kho[w][2]) || ''; };
+      const ams = Array.from(new Set(S.kho.map((k, w) => kOk[w] ? amOf(w) : '').filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+      const bcs = S.kho.map((k, w) => w).filter((w) => kOk[w] && (!cf.am || amOf(w) === cf.am)).map((w) => S.kho[w][0]).sort((a, b) => a.localeCompare(b, 'vi'));
+      return '<label class="tnt-osort">AM <select onchange="TNT.oprCust.am=this.value;TNT.oprCust.bc=\'\';TNT.oprCust.more=30;tntRenderOpr()"><option value="">Tất cả AM (' + ams.length + ')</option>' + ams.map((a) => '<option' + (cf.am === a ? ' selected' : '') + '>' + esc(a) + '</option>').join('') + '</select></label>' +
+        '<label class="tnt-osort">Bưu cục <select onchange="TNT.oprCust.bc=this.value;TNT.oprCust.more=30;tntOprCustRender()"><option value="">Tất cả BC (' + bcs.length + ')</option>' + bcs.map((b) => '<option' + (cf.bc === b ? ' selected' : '') + '>' + esc(b) + '</option>').join('') + '</select></label>'; })() +
+    '<input class="tnt-oq" placeholder="Tìm khách / BC / AM" value="' + esc(cf.q) + '" oninput="TNT.oprCust.q=this.value;TNT.oprCust.more=30;clearTimeout(window.__tntOq);window.__tntOq=setTimeout(tntOprCustRender,250)">' +
     '<label class="tnt-osort">Sắp theo <select onchange="TNT.oprCust.sort=this.value;TNT.oprCust.more=30;tntOprCustRender()">' + [['n', 'Đơn lấy TC nhiều trước'], ['l', 'Lấy trễ nhiều trước'], ['p', '% OPR thấp trước (≥ 20 đơn)']].map(([k, l]) => '<option value="' + k + '"' + (cf.sort === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label></div>';
   h += '<div id="tntOprCust">' + tntOprCustHtml() + '</div></div>';
   return h;
@@ -8275,10 +8280,11 @@ function tntOprCustHtml() {
   const days = new Float64Array(nC); const seen = new Uint8Array(nD);
   const nrm = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
   const q = nrm(cf.q).trim();
+  const amOf = (w) => { const e = S.kho[w][1]; return (e >= 0 ? D.ents[e][1] : S.kho[w][2]) || ''; };
   const shops = {}, vN = new Float64Array(nC), vO = new Float64Array(nC);
   for (let i = 0; i < S.d.length; i++) {
     const d = S.d[i], j = ci[d]; if (j < 0) continue; if (!seen[d]) { seen[d] = 1; days[j]++; }
-    if (!kOk[S.w[i]] || (cf.h >= 0 && S.h[i] !== cf.h)) continue;
+    if (!kOk[S.w[i]] || (cf.h >= 0 && S.h[i] !== cf.h) || (cf.am && amOf(S.w[i]) !== cf.am) || (cf.bc && S.kho[S.w[i]][0] !== cf.bc)) continue;
     vN[j] += S.n[i]; vO[j] += S.o[i];
     const sh = shops[S.s[i]] || (shops[S.s[i]] = { s: S.s[i], N: new Float64Array(nC), O: new Float64Array(nC), H: {}, w: {}, n: 0, o: 0 });
     sh.N[j] += S.n[i]; sh.O[j] += S.o[i]; sh.n += S.n[i]; sh.o += S.o[i]; sh.w[S.w[i]] = (sh.w[S.w[i]] || 0) + S.n[i];
@@ -8286,7 +8292,7 @@ function tntOprCustHtml() {
   }
   const kName = (w) => S.kho[w][0], mainKho = (sh) => +Object.keys(sh.w).sort((a, b) => sh.w[b] - sh.w[a])[0];
   let list = Object.keys(shops).map((k) => shops[k]).filter((sh) => sh.n > 0);
-  if (q) list = list.filter((sh) => nrm(S.shops[sh.s]).indexOf(q) >= 0 || Object.keys(sh.w).some((w) => nrm(kName(+w)).indexOf(q) >= 0));
+  if (q) list = list.filter((sh) => nrm(S.shops[sh.s]).indexOf(q) >= 0 || Object.keys(sh.w).some((w) => nrm(kName(+w)).indexOf(q) >= 0 || nrm(amOf(+w)).indexOf(q) >= 0));
   if (cf.sort === 'l') list.sort((a, b) => (b.n - b.o) - (a.n - a.o) || b.n - a.n);
   else if (cf.sort === 'p') list = list.filter((sh) => sh.n >= 20).sort((a, b) => a.o / a.n - b.o / b.n || b.n - a.n);
   else list.sort((a, b) => b.n - a.n);
@@ -8299,15 +8305,15 @@ function tntOprCustHtml() {
     return '<td class="tnt-oc' + bg + cn(cols[j]) + '">' + tntN(per) + '<small class="' + (vp !== null && p < vp - 0.1 ? 'tnt-red' : '') + '">' + tntP(p) + '</small></td>';
   };
   let h = '<div class="tnt-osum">' + tntN(list.length) + ' khách · <b>' + tntN(TN) + '</b> đơn LTC · OPR ' + (TN ? '<b class="' + (TO / TN >= 0.8 ? 'tnt-up2' : 'tnt-red') + '">' + tntP(TO / TN) + '</b>' : '—') + ' · trễ <b class="tnt-red">' + tntN(TN - TO) + '</b> đơn' + (worst && worst.n > worst.o ? ' · trễ nhiều nhất: <b>' + esc(S.shops[worst.s]) + '</b> (' + tntN(worst.n - worst.o) + ')' : '') + ' <i>(tổng các kỳ đang xem)</i></div>';
-  h += '<div class="tnt-tw tnt-ocw"><table class="tnt-ot tnt-oct"><thead><tr><th>#</th><th class="l">Khách (shop)</th><th class="l">Bưu cục</th>' + cols.map((c) => '<th class="' + cn(c) + '">' + esc(c.lab) + '<small>' + esc(c.sub) + '</small></th>').join('') + '</tr></thead><tbody>';
-  h += '<tr class="tnt-ovr"><td></td><td class="l"><b>Vùng (theo lọc)</b></td><td></td>' + cols.map((c, j) => cell(vN[j], vO[j], j)).join('') + '</tr>';
+  h += '<div class="tnt-tw tnt-ocw"><table class="tnt-ot tnt-oct"><thead><tr><th>#</th><th class="l">Khách (shop)</th><th class="l">AM</th><th class="l">Bưu cục</th>' + cols.map((c) => '<th class="' + cn(c) + '">' + esc(c.lab) + '<small>' + esc(c.sub) + '</small></th>').join('') + '</tr></thead><tbody>';
+  h += '<tr class="tnt-ovr"><td></td><td class="l"><b>Vùng (theo lọc)</b></td><td></td><td></td>' + cols.map((c, j) => cell(vN[j], vO[j], j)).join('') + '</tr>';
   list.slice(0, cf.more).forEach((sh, i) => {
     const op = !!(cf.open || {})[sh.s], w0 = mainKho(sh), nk = Object.keys(sh.w).length;
-    h += '<tr class="tnt-orow" onclick="tntOprCustOpen(' + sh.s + ')"><td>' + (i + 1) + '</td><td class="l"><b>' + esc(S.shops[sh.s]) + '</b> <span class="tnt-tg">' + (op ? '▾' : '›') + '</span><small>' + tntN(sh.n) + ' đơn · trễ <span class="tnt-red">' + tntN(sh.n - sh.o) + '</span> · OPR ' + tntP(sh.o / sh.n) + '</small></td><td class="l">' + esc(kName(w0)) + (nk > 1 ? ' <i>+' + (nk - 1) + ' kho</i>' : '') + '</td>' + cols.map((c, j) => cell(sh.N[j], sh.O[j], j)).join('') + '</tr>';
+    h += '<tr class="tnt-orow" onclick="tntOprCustOpen(' + sh.s + ')"><td>' + (i + 1) + '</td><td class="l"><b>' + esc(S.shops[sh.s]) + '</b> <span class="tnt-tg">' + (op ? '▾' : '›') + '</span><small>' + tntN(sh.n) + ' đơn · trễ <span class="tnt-red">' + tntN(sh.n - sh.o) + '</span> · OPR ' + tntP(sh.o / sh.n) + '</small></td><td class="l">' + esc(amOf(w0)) + '</td><td class="l">' + esc(kName(w0)) + (nk > 1 ? ' <i>+' + (nk - 1) + ' kho</i>' : '') + '</td>' + cols.map((c, j) => cell(sh.N[j], sh.O[j], j)).join('') + '</tr>';
     if (op) hOrd.forEach((x) => { const hh = sh.H[x]; if (!hh) return; let tn = 0, to = 0; for (let j = 0; j < nC; j++) { tn += hh.N[j]; to += hh.O[j]; }
-      h += '<tr class="tnt-osub"><td></td><td class="l">↳ ' + esc(hLab(x)) + '<small>' + tntN(tn) + ' đơn · trễ <span class="tnt-red">' + tntN(tn - to) + '</span></small></td><td></td>' + cols.map((c, j) => cell(hh.N[j], hh.O[j], j)).join('') + '</tr>'; });
+      h += '<tr class="tnt-osub"><td></td><td class="l">↳ ' + esc(hLab(x)) + '<small>' + tntN(tn) + ' đơn · trễ <span class="tnt-red">' + tntN(tn - to) + '</span></small></td><td></td><td></td>' + cols.map((c, j) => cell(hh.N[j], hh.O[j], j)).join('') + '</tr>'; });
   });
-  if (!list.length) h += '<tr><td colspan="' + (3 + nC) + '" class="l"><span class="tnt-dz2">Không có khách nào.</span></td></tr>';
+  if (!list.length) h += '<tr><td colspan="' + (4 + nC) + '" class="l"><span class="tnt-dz2">Không có khách nào.</span></td></tr>';
   h += '</tbody></table></div>';
   if (list.length > cf.more) h += '<button class="tnt-more" onclick="TNT.oprCust.more+=30;tntOprCustRender()">Hiện thêm 30 khách (còn ' + tntN(list.length - cf.more) + ')</button>';
   if (cf.more > 30) h += '<button class="tnt-more" onclick="TNT.oprCust.more=30;tntOprCustRender()">Thu gọn</button>';
