@@ -865,7 +865,9 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-tip .tnt-tipt{font-size:16px;font-weight:800;color:#fff}.tnt-tip .tnt-tips{color:#B8B3A8;font-size:12.5px;margin:2px 0 8px}
 .tnt-tip .tnt-tipb{background:#34322C;border-left:3px solid #E0A33B;border-radius:6px;padding:8px 12px;margin:6px 0 10px}.tnt-tip .tnt-tipb>b:first-child{color:#E0A33B;margin-right:6px}
 .tnt-tip .tnt-tiph{border-top:1px solid #3A3D44;padding-top:8px;color:#8EB6E8;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
-.tnt-tip ul{margin:4px 0 0 18px;padding:0}.tnt-tip li{margin:2px 0}
+.tnt-tip ul{margin:4px 0 0 18px;padding:0}.tnt-tip .tnt-tipb ul{margin:4px 0 0 16px}
+.tnt-ght td.tnt-ghm,.tnt-ght th.tnt-ghm{border-left:2px solid #2B2618;border-right:2px solid #2B2618}.tnt-ght th.tnt-ghm{background:#1F3F6E}
+.tnt-ght tr.tnt-ght1 td{background:#EEF3F9}.tnt-ght tr.tnt-ght2 td{background:#F7FAFD}.tnt-ght tr.tnt-ght3 td{background:#fff}.tnt-ght td small{display:block}.tnt-tip li{margin:2px 0}
 .tnt-tip .tnt-red,.tnt-tip .tnt-tg-bad{color:#FF7A6B}.tnt-tip .tnt-up2,.tnt-tip .tnt-tg-ok{color:#5FD08E}
 .tnt-tipcell{cursor:help}.tnt-tipi{color:#8EA3C0;font-size:12px}.tnt-tipcell:hover b{text-decoration:underline dotted}
 .tnt-more{margin:8px 6px 0 0;padding:5px 12px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-weight:700;font-size:12.5px;cursor:pointer}
@@ -1207,6 +1209,7 @@ td.dn-keycol{background:#FBF7EE}
       <div id="tntTbl"></div>
       <div id="tntOpr"></div>
       <div id="tntRet"></div>
+      <div id="tntGh"></div>
     </div>
   </div>
   <div id="vhNgay" class="vh-pane">
@@ -8567,6 +8570,277 @@ function tntTreeAll(open, m) {
   document.getElementById('tntTbl').innerHTML = tntTableHtml();
 }
 // Cột bảng (mới → cũ) + cột mốc so sánh — dùng chung cho Bảng số liệu và Phân tích OPR
+// ====== [TNT]-Report · IV Giao hàng — phân tích chỉ số / năng suất giao hàng ======
+// Nguồn: sheet GTCCA1 / GTCCA2 / GTCTon (Tất cả KH) và GTCTTSCA1 / GTCTTSCA2 / GTCTTSTon (TTS): v = Volume (cần giao), g = Đơn gán, k = Đơn GTC.
+// Mục IV có nút Tất cả / TTS riêng (TNT.gh.c), chạy theo bộ lọc phạm vi + khoảng ngày + Ngày/Tuần phía trên. Mốc so sánh BC = mức VÙNG TNT.
+const TNT_GH_P = [['ca1', 'Ca 1', '#8FAEDA', '#2F5E9E'], ['ca2', 'Ca 2', '#F0C58E', '#C0701E'], ['ton', 'Hàng tồn', '#BCA9D8', '#6B4FA0']];
+function tntGhSt() { return TNT.gh || (TNT.gh = { c: 'all', open: {}, bars: { ca1: 1, ca2: 1, ton: 1 }, lines: { tot: 1, ca1: 1, ca2: 1, ton: 1, gan: 0 }, t: {}, top: { m: 'tot' } }); }
+function tntGhData(c) {
+  const D = TNT.data; TNT.GH = TNT.GH || {}; if (TNT.GH[c] && TNT.GH[c].D === D) return TNT.GH[c];
+  const nD = D.dates.length, nE = D.ents.length, pre = c === 'tts' ? 'gtctts' : 'gtc', o = { D: D, miss: [] };
+  TNT_GH_P.forEach(([p, lab]) => {
+    const s = tntSheet(pre + p), v = new Float64Array(nE * nD), g = new Float64Array(nE * nD), k = new Float64Array(nE * nD);
+    if (!s) o.miss.push(lab); else for (let i = 0; i < s.d.length; i++) { const x = s.b[i] * nD + s.d[i]; v[x] += s.v[i]; g[x] += s.g[i]; k[x] += s.k[i]; }
+    o[p] = { v: v, g: g, k: k };
+  });
+  return (TNT.GH[c] = o);
+}
+function tntGhParts(m) { const S = tntGhSt(); if (m !== 'tot') return [m]; const a = TNT_GH_P.map((x) => x[0]).filter((p) => S.bars[p]); return a.length ? a : ['ca1', 'ca2', 'ton']; }
+function tntGhSum(G, es, idxs, parts) {
+  const nD = TNT.data.dates.length, o = { v: 0, g: 0, k: 0, n: idxs ? idxs.length : 0 };
+  if (idxs) parts.forEach((p) => { const A = G[p]; es.forEach((e) => { const b = e * nD; idxs.forEach((d) => { const x = b + d; o.v += A.v[x]; o.g += A.g[x]; o.k += A.k[x]; }); }); });
+  o.p = o.v ? o.k / o.v : null; o.ga = o.v ? o.g / o.v : null; o.kg = o.g ? o.k / o.g : null; return o;
+}
+function tntGhScope() { const D = TNT.data; return D.ents.map((e, i) => i).filter((i) => tntEntOk(D.ents[i])); }
+function tntGhAll() { return TNT.data.ents.map((e, i) => i); }
+function tntGhMN(m) { return m === 'tot' ? 'Tổng (ca đang chọn)' : m === 'ca1' ? 'Ca 1' : m === 'ca2' ? 'Ca 2' : 'Hàng tồn'; }
+function tntGhFd(d) { const x = TNT.data.dates[d]; return x ? x.slice(8, 10) + '/' + x.slice(5, 7) : ''; }
+function tntGhWd(d) { return TNT_WD[tntWd(TNT.data.dates[d])]; }
+// 7 ngày gần nhất có dữ liệu trong khoảng xem + 7 ngày trước + 14 ngày (cũ → mới)
+function tntGhW(G) {
+  const rg = tntRangeIdx(), all = tntGhAll(); let last = -1;
+  for (let j = rg.length - 1; j >= 0 && last < 0; j--) if (tntGhSum(G, all, [rg[j]], ['ca1', 'ca2', 'ton']).v > 0) last = rg[j];
+  if (last < 0) return null;
+  const w7 = [], p7 = [], d14 = []; for (let k = 0; k < 7; k++) { if (last - k >= 0) w7.push(last - k); if (last - 7 - k >= 0) p7.push(last - 7 - k); }
+  for (let k = 13; k >= 0; k--) if (last - k >= 0) d14.push(last - k);
+  return { last: last, w7: w7, p7: p7, d14: d14 };
+}
+function tntGhPc(p, ref, big) { if (p === null || p === undefined || !isFinite(p)) return '<span class="tnt-dz2">—</span>'; const c = ref === null || ref === undefined ? '' : p < ref - 0.02 ? 'tnt-red' : p > ref + 0.02 ? 'tnt-up2' : ''; return '<b class="' + (big ? 'tnt-tpp ' : '') + c + '">' + tntP(p) + '</b>'; }
+// chênh lệch % (trừ trực tiếp): mũi tên theo chiều số, màu theo tốt/xấu (good = 1: tăng là tốt)
+function tntGhD(d, good) { if (d === null || d === undefined || !isFinite(d)) return '<span class="tnt-dz2">—</span>'; const flat = Math.abs(d) < 0.0005, cls = flat ? 'tnt-dz2' : d * good > 0 ? 'tnt-up2' : 'tnt-red'; return '<b class="' + cls + '">' + (flat ? '■ ' : d > 0 ? '▲ +' : '▼ ') + tntP(d).replace('-', '−') + '</b>'; }
+function tntGhDn(d, good) { if (!isFinite(d)) return ''; const r = Math.round(d); if (!r) return '<span class="tnt-dz2">±0</span>'; return '<b class="' + (r * good > 0 ? 'tnt-up2' : 'tnt-red') + '">' + (r > 0 ? '▲ +' : '▼ −') + tntN(Math.abs(r)) + '</b>'; }
+// đường xu hướng % GTC (cũ → mới), dốc bình phương tối thiểu: tăng = xanh (tốt), giảm = đỏ
+function tntGhSlope(v) { v = v.filter((x) => x !== null && x !== undefined && isFinite(x)); const n = v.length; if (n < 2) return null; const xm = (n - 1) / 2, ym = v.reduce((a, b) => a + b, 0) / n; let nu = 0, de = 0; v.forEach((y, i) => { nu += (i - xm) * (y - ym); de += (i - xm) * (i - xm); }); return { per: nu / de, tot: nu / de * (n - 1), n: n }; }
+function tntGhSpark(v) {
+  const vv = v.filter((x) => x !== null && x !== undefined && isFinite(x)); const sl = tntGhSlope(vv); if (!sl) return '<span class="tnt-dz2">—</span>';
+  const ch = sl.tot, col = ch > 0.01 ? '#0A7A3E' : ch < -0.01 ? '#C62116' : '#9A8F74', mn = Math.min(...vv), mx = Math.max(...vv), W = 78, H = 22, n = vv.length;
+  const pts = vv.map((y, i) => (i * W / (n - 1)).toFixed(1) + ',' + (mx === mn ? H / 2 : H - 3 - (y - mn) / (mx - mn) * (H - 6)).toFixed(1)).join(' ');
+  return '<svg width="' + W + '" height="' + H + '" class="tnt-spk"><polyline points="' + pts + '" fill="none" stroke="' + col + '" stroke-width="2"/><circle cx="' + W + '" cy="' + pts.split(' ').pop().split(',')[1] + '" r="2.5" fill="' + col + '"/></svg><small style="color:' + col + '">' + (ch > 0.01 ? '▲ tăng ' : ch < -0.01 ? '▼ giảm ' : '■ đi ngang ') + (Math.abs(ch) >= 0.0005 ? (ch > 0 ? '+' : '') + tntP(ch).replace('-', '−') : '') + '</small>';
+}
+function tntGhK(v) { return v >= 1000 ? (v / 1000).toFixed(1).replace('.', ',') + 'k' : tntN(v); }
+// ---------- khung mục IV
+function tntGhHtml() {
+  const D = TNT.data; if (!D) return '';
+  const S = tntGhSt(), G = tntGhData(S.c), op = S.open;
+  const head = '<div class="tnt-h" style="margin-top:28px"><h2>IV · Giao hàng — phân tích chỉ số / năng suất giao hàng</h2><span>cần giao = Volume · % GTC = Đơn GTC ÷ cần giao · % Gán = Đơn gán ÷ cần giao</span></div>';
+  const oh = (n, inner) => { const sh = !op[n]; return '<div class="tnt-h3 tnt-osh" onclick="tntGhTog(' + n + ')"><span class="tnt-tg">' + (sh ? '▸' : '▾') + '</span>' + inner + '<button class="tnt-colb">' + (sh ? 'Mở rộng' : 'Thu gọn') + '</button></div>' + (sh ? '' : '<div class="tnt-osb">'); };
+  const cl = (n) => op[n] ? '</div>' : '';
+  let h = head + '<div class="tnt-fbar"><button class="' + (S.c === 'all' ? 'on' : '') + '" onclick="tntGhSetC(\'all\')">Tất cả KH</button><button class="' + (S.c === 'tts' ? 'on' : '') + '" onclick="tntGhSetC(\'tts\')">TikTok Shop (TTS)</button><em>chọn riêng cho mục IV · chạy theo phạm vi, khoảng ngày, Ngày/Tuần ở thanh lọc trên</em></div>';
+  if (G.miss.length) h += '<div class="tnt-warn">Chưa thấy sheet giao hàng ' + (S.c === 'tts' ? 'TTS ' : '') + 'cho: ' + G.miss.join(', ') + '.</div>';
+  h += tntGhInsightHtml(G);
+  h += oh(1, '1. Hàng cần giao theo ca & tỷ lệ GTC <span>· cột chồng = cần giao Ca 1 / Ca 2 / Tồn · đường = % GTC · rê chuột xem từng ' + (TNT.mode === 'day' ? 'ngày' : 'tuần') + ' · bấm chú thích để bật/tắt</span>');
+  if (op[1]) h += '<div id="tntGhChart">' + tntGhChartHtml() + '</div>'; h += cl(1);
+  [['ca1', 2, '2. Giao ca 1'], ['ca2', 3, '3. Giao ca 2'], ['ton', 4, '4. Giao hàng tồn']].forEach(([p, n, t]) => {
+    h += oh(n, t + ' <span>· nhận xét + bảng % GTC theo ' + (TNT.mode === 'day' ? 'ngày' : 'tuần') + ', Tỉnh → AM → Bưu cục, xu hướng</span>');
+    if (op[n]) h += tntGhPartHtml(p); h += cl(n);
+  });
+  h += oh(5, '5. Top 20 bưu cục giao tệ nhất <span>· 7 ngày gần nhất · xếp theo số đơn thiếu so mức vùng · rê chuột vào tên bưu cục xem nhận xét</span>');
+  if (op[5]) { const m = S.top.m; h += '<div class="tnt-fbar">' + [['tot', 'Tổng ca 1 + ca 2 + tồn'], ['ca1', 'Ca 1'], ['ca2', 'Ca 2'], ['ton', 'Hàng tồn']].map(([k, l]) => '<button class="' + (m === k ? 'on' : '') + '" onclick="tntGhSetTop(\'' + k + '\')">' + l + '</button>').join('') + '</div><div id="tntGhTop">' + tntGhTopHtml() + '</div>'; }
+  h += cl(5);
+  return h;
+}
+function tntGhRender() { const el = document.getElementById('tntGh'); if (el) el.innerHTML = tntGhHtml(); }
+function tntGhTog(n) { const S = tntGhSt(); S.open[n] = !S.open[n]; tntGhRender(); }
+function tntGhSetC(c) { const S = tntGhSt(); S.c = c; S.sel = undefined; tntGhRender(); }
+function tntGhSetTop(m) { tntGhSt().top.m = m; tntGhRender(); }
+// ---------- nhận xét nhanh (kỳ mốc của bảng số liệu)
+function tntGhInsightHtml(G) {
+  const { cols, day, WL, ai } = tntTblBase(), C = cols[ai]; if (!C) return '';
+  const es = tntGhScope(), all3 = ['ca1', 'ca2', 'ton'], pd = (x) => day ? x : x / (C.idx.length || 1), pdp = (x) => day ? x : x / ((C.prevIdx || []).length || 1);
+  const lab = day ? 'ngày ' + C.lab : 'tuần ' + C.lab + ' (' + C.sub + ')', vs = day ? 'hôm trước' : WL.toLowerCase();
+  const t = tntGhSum(G, es, C.idx, all3), tp = C.prevIdx ? tntGhSum(G, es, C.prevIdx, all3) : null;
+  const ins = ['<b>' + esc(lab) + '</b>: cần giao <b>' + tntN(pd(t.v)) + '</b> đơn' + (day ? '' : '/ngày') + ' · GTC ' + tntN(pd(t.k)) + ' · % GTC <b>' + tntP(t.p) + '</b> ' + (tp ? tntGhD(t.p - tp.p, 1) + ' so ' + esc(vs) : '') + ' · % Gán ' + tntP(t.ga) + (tp ? ' ' + tntGhD(t.ga - tp.ga, 1) : '') + ' · chưa giao ' + tntN(pd(t.v - t.k)) + (tp ? ' (' + tntGhDn(pd(t.v - t.k) - pdp(tp.v - tp.k), -1) + ')' : '') + '.'];
+  const ps = TNT_GH_P.map(([p, nm]) => { const o = tntGhSum(G, es, C.idx, [p]), b = C.prevIdx ? tntGhSum(G, es, C.prevIdx, [p]) : null; return { p: p, nm: nm, o: o, b: b, d: b && b.p !== null && o.p !== null ? o.p - b.p : null, sh: t.v ? o.v / t.v : 0 }; });
+  ins.push(ps.map((x) => esc(x.nm) + ' <b>' + tntP(x.o.p) + '</b> ' + (x.b ? tntGhD(x.d, 1) : '') + ' <i>(' + tntP(x.sh) + ' cần giao)</i>').join(' · ') + '.');
+  if (tp) {
+    // tách thay đổi % GTC tổng thành: do % GTC từng ca + do thay đổi tỷ trọng ca (cơ cấu)
+    const eff = ps.filter((x) => x.b && x.b.v).map((x) => ({ nm: x.nm, perf: (x.o.p - x.b.p) * (x.b.v / tp.v), mix: (x.sh - x.b.v / tp.v) * (x.o.p || 0) }));
+    const worst = eff.slice().sort((a, b) => a.perf - b.perf)[0], mix = eff.reduce((a, b) => a + b.mix, 0);
+    if (worst && Math.abs(t.p - tp.p) >= 0.001) ins.push('% GTC tổng ' + (t.p > tp.p ? 'tăng' : 'giảm') + ' ' + tntP(Math.abs(t.p - tp.p)) + ': ' + (worst.perf < -0.0005 ? 'kéo xuống nhiều nhất là <b>' + esc(worst.nm) + '</b> (' + tntP(worst.perf).replace('-', '−') + ')' : 'các ca đều không giảm') + (Math.abs(mix) >= 0.001 ? '; cơ cấu ca thay đổi ' + (mix > 0 ? 'giúp +' : 'làm ') + tntP(mix).replace('-', '−') : '') + '.');
+  }
+  // tỉnh kém nhất / tốt nhất ở kỳ mốc
+  const D = TNT.data, tm = {}; es.forEach((e) => { const k = D.ents[e][2] || '—'; (tm[k] = tm[k] || []).push(e); });
+  const tl = Object.keys(tm).map((k) => ({ k: k, o: tntGhSum(G, tm[k], C.idx, all3) })).filter((x) => x.o.v > 0).sort((a, b) => a.o.p - b.o.p);
+  if (tl.length > 1) ins.push('Tỉnh kém nhất <b class="tnt-red">' + esc(tl[0].k) + ' ' + tntP(tl[0].o.p) + '</b> (chưa giao ' + tntN(pd(tl[0].o.v - tl[0].o.k)) + (day ? '' : '/ngày') + ') · tốt nhất <b class="tnt-up2">' + esc(tl[tl.length - 1].k) + ' ' + tntP(tl[tl.length - 1].o.p) + '</b>.');
+  return '<div class="tnt-insight"><b>Nhận xét nhanh</b><ul>' + ins.map((x) => '<li>' + x + '</li>').join('') + '</ul></div>';
+}
+// ---------- 1. biểu đồ hàng cần giao theo ca & % GTC
+const TNT_GH_L = [['tot', '% GTC tổng', '#1F1B14', 3.2], ['ca1', '% GTC ca 1', '#2F5E9E', 1.8], ['ca2', '% GTC ca 2', '#C0701E', 1.8], ['ton', '% GTC tồn', '#6B4FA0', 1.8], ['gan', '% Gán tổng', '#8A7F64', 1.6]];
+function tntGhChartHtml() {
+  const cols = TNT.cols || [], n = cols.length; if (!n) return '';
+  const S = tntGhSt(), G = tntGhData(S.c), es = tntGhScope(), day = TNT.mode === 'day', AP = tntGhParts('tot');
+  const V = cols.map((c) => { const o = { nd: c.idx.length || 1 }; TNT_GH_P.forEach(([p]) => { o[p] = tntGhSum(G, es, c.idx, [p]); }); o.tot = tntGhSum(G, es, c.idx, AP); return o; });
+  const pd = (x, o) => day ? x : x / o.nd, val = (k, o) => k === 'gan' ? o.tot.ga : o[k].p;
+  const sel = S.sel !== undefined && S.sel < n ? S.sel : n - 1;
+  const W = Math.max(760, n * 56), H = 330, L = 52, R = 46, T = 18, B = 46, pw = W - L - R, ph = H - T - B, x = (i) => L + pw * (i + 0.5) / n;
+  let mxv = 0; V.forEach((o) => { const t = AP.reduce((a, p) => a + pd(o[p].v, o), 0); if (t > mxv) mxv = t; }); mxv = tntNice(mxv * 1.08);
+  const yv = (v) => T + ph - ph * v / mxv, yp = (p) => T + ph - ph * p / 1.05;
+  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="tnt-retsvg" preserveAspectRatio="xMidYMid meet">';
+  for (let k = 0; k <= 4; k++) { const yy = T + ph - ph * k / 4; s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="#E7DEC8"/><text x="' + (L - 6) + '" y="' + (yy + 4) + '" text-anchor="end" class="tnt-rax">' + tntGhK(mxv * k / 4) + '</text><text x="' + (W - R + 6) + '" y="' + (yy + 4) + '" class="tnt-rax">' + tntP(1.05 * k / 4, 0) + '</text>'; }
+  s += '<rect x="' + (x(sel) - pw / n / 2) + '" y="' + T + '" width="' + (pw / n) + '" height="' + ph + '" fill="#DCE3E6" opacity=".75"/>';
+  const bw = Math.min(64, pw / n * 0.66), step = day && n > 10 ? 7 : 1, shw = (i) => (n - 1 - i) % step === 0;
+  V.forEach((o, i) => { let acc = 0; TNT_GH_P.forEach(([p, , bc]) => { if (!S.bars[p]) return; const v = pd(o[p].v, o); if (!v) return; const y1 = yv(acc + v), y0 = yv(acc); s += '<rect x="' + (x(i) - bw / 2) + '" y="' + y1 + '" width="' + bw + '" height="' + Math.max(0, y0 - y1) + '" fill="' + bc + '" opacity=".9"/>'; acc += v; });
+    if (acc && shw(i)) s += '<text x="' + x(i) + '" y="' + (T + ph - 7) + '" text-anchor="middle" class="tnt-rlab2" fill="#1F3F6E">' + tntGhK(acc) + '</text>'; });
+  const act = TNT_GH_L.filter(([k]) => S.lines[k]);
+  act.slice().reverse().forEach(([k, , col, sw]) => {
+    const pts = V.map((o, i) => { const p = val(k, o); return p === null ? null : [x(i), yp(p)]; }); let d = '';
+    pts.forEach((p) => { if (p) d += (d ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); });
+    s += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="' + sw + '"' + (k === 'gan' ? ' stroke-dasharray="6 4"' : '') + '/>';
+    const lab = k === 'tot' || act.length <= 2;
+    pts.forEach((p, i) => { if (!p) return; s += k === 'tot' ? '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="4" fill="#fff" stroke="#1F1B14" stroke-width="2"/>' : '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="2.6" fill="' + col + '"/>';
+      if (lab && shw(i)) s += '<text x="' + p[0] + '" y="' + (p[1] - 9) + '" text-anchor="middle" class="' + (k === 'tot' ? 'tnt-rlab' : 'tnt-rlab2') + '"' + (k === 'tot' ? '' : ' fill="' + col + '"') + '>' + tntP(val(k, V[i])) + '</text>'; });
+  });
+  cols.forEach((c, i) => { const cn = day && c.sub === 'CN'; s += '<text x="' + x(i) + '" y="' + (H - B + 16) + '" text-anchor="middle" class="tnt-rax' + (cn ? ' tnt-rcn' : '') + '">' + esc(day ? c.sub : c.lab) + '</text><text x="' + x(i) + '" y="' + (H - B + 30) + '" text-anchor="middle" class="tnt-rax2">' + esc(day ? c.lab : c.sub) + '</text>';
+    s += '<rect x="' + (x(i) - pw / n / 2) + '" y="' + T + '" width="' + (pw / n) + '" height="' + (ph + 30) + '" fill="transparent" onmouseenter="tntGhHover(' + i + ')"/>'; });
+  s += '</svg>';
+  // panel phải
+  const c = cols[sel], o = V[sel], ci = day ? c.wkIdx : c.prevIdx, b = ci ? { tot: tntGhSum(G, es, ci, AP) } : null, tv = o.tot.v;
+  let p = '<div class="tnt-rpt">' + (day ? esc(c.sub + ' ' + c.lab) : 'Tuần ' + esc(c.lab) + ' · ' + esc(c.sub) + ' (TB/ngày)') + '</div>';
+  p += '<div class="tnt-rpr"><span>Cần giao</span><b>' + tntN(pd(tv, o)) + '</b></div>';
+  TNT_GH_P.forEach(([q, nm, bc]) => { if (!S.bars[q]) return; p += '<div class="tnt-rpr"><span><i style="background:' + bc + '"></i>' + esc(nm) + '</span><b>' + tntN(pd(o[q].v, o)) + ' · ' + tntP(tv ? o[q].v / tv : null) + '</b></div>'; });
+  p += '<div class="tnt-rph"></div><div class="tnt-rpr"><span>% GTC tổng</span><b>' + tntP(o.tot.p) + '</b></div><div class="tnt-rpr"><span>GTC (đơn)</span><b>' + tntN(pd(o.tot.k, o)) + '</b></div>';
+  TNT_GH_P.forEach(([q, nm]) => { p += '<div class="tnt-rpr"><span>% GTC ' + esc(nm.toLowerCase()) + '</span><b>' + tntP(o[q].p) + '</b></div>'; });
+  p += '<div class="tnt-rpr"><span>% Gán tổng</span><b>' + tntP(o.tot.ga) + '</b></div><div class="tnt-rpr"><span>Chưa giao</span><b>' + tntN(pd(o.tot.v - o.tot.k, o)) + '</b></div>';
+  if (b && b.tot.v) { const lb = day ? 'cùng thứ TT' : 'tuần trước', dv = (tv / (o.nd) - b.tot.v / (ci.length || 1)) / (b.tot.v / (ci.length || 1));
+    p += '<div class="tnt-rph"></div><div class="tnt-rpr"><span>Cần giao so ' + lb + '</span><b class="' + (dv >= 0 ? 'tnt-up2' : 'tnt-red') + '">' + (dv >= 0 ? '▲ +' : '▼ ') + tntP(dv).replace('-', '−') + '</b></div><div class="tnt-rpr"><span>% GTC so ' + lb + '</span>' + tntGhD(o.tot.p - b.tot.p, 1) + '</div>'; }
+  const leg = TNT_GH_P.map(([q, nm, bc]) => '<span class="tnt-rleg' + (S.bars[q] ? '' : ' off') + '" onclick="tntGhBar(\'' + q + '\')"><i style="background:' + bc + ';height:10px"></i>Cần giao ' + esc(nm.toLowerCase()) + '</span>').join('') + '<span class="tnt-rleg nb">|</span>' +
+    TNT_GH_L.map(([k, nm, col]) => '<span class="tnt-rleg' + (S.lines[k] ? '' : ' off') + '" onclick="tntGhLine(\'' + k + '\')"><i style="background:' + col + (k === 'tot' ? ';height:4px' : '') + '"></i>' + esc(nm) + '</span>').join('');
+  return '<div class="tnt-rwrap"><div class="tnt-rchart" onmouseleave="tntGhHover(-1)">' + s + '<div class="tnt-rlegs">' + leg + '</div><div class="tnt-rmd">· bấm cột 1 ca = bật/tắt ca đó (tắt bớt ca thì % GTC tổng chỉ tính các ca còn bật) · đường: bấm để bật/tắt (≤ 2 đường thì hiện số %)</div></div><div class="tnt-rpanel">' + p + '</div></div>';
+}
+function tntGhHover(i) { const S = tntGhSt(), v = i < 0 ? undefined : i; if (S.sel === v) return; S.sel = v; const el = document.getElementById('tntGhChart'); if (el) el.innerHTML = tntGhChartHtml(); }
+function tntGhBar(q) { const S = tntGhSt(); S.bars[q] = S.bars[q] ? 0 : 1; if (!S.bars.ca1 && !S.bars.ca2 && !S.bars.ton) S.bars[q] = 1; tntGhRender(); }
+function tntGhLine(k) { const S = tntGhSt(); S.lines[k] = S.lines[k] ? 0 : 1; if (!TNT_GH_L.some(([x]) => S.lines[x])) S.lines[k] = 1; const el = document.getElementById('tntGhChart'); if (el) el.innerHTML = tntGhChartHtml(); }
+// ---------- 2–4. phân tích từng phần (ca 1 / ca 2 / tồn)
+function tntGhPartHtml(p) {
+  const S = tntGhSt(), G = tntGhData(S.c), { cols, day, WL, ai } = tntTblBase(), C = cols[ai]; if (!C) return '<div class="tnt-warn">Chưa có dữ liệu trong khoảng xem.</div>';
+  const D = TNT.data, es = tntGhScope(), nm = p === 'ca1' ? 'ca 1' : p === 'ca2' ? 'ca 2' : 'hàng tồn', pd = (x, idx) => day ? x : x / ((idx || C.idx).length || 1);
+  const lab = day ? 'ngày ' + C.lab : 'tuần ' + C.lab + ' (' + C.sub + ')', vs = day ? 'hôm trước' : WL.toLowerCase();
+  const r = tntGhSum(G, es, C.idx, [p]), rb = C.prevIdx ? tntGhSum(G, es, C.prevIdx, [p]) : null, tt = tntGhSum(G, es, C.idx, ['ca1', 'ca2', 'ton']);
+  const ins = [];
+  ins.push('<b>' + esc(lab) + '</b>: cần giao ' + nm + ' <b>' + tntN(pd(r.v)) + '</b>' + (day ? '' : '/ngày') + ' (' + tntP(tt.v ? r.v / tt.v : null) + ' tổng cần giao' + (rb && rb.v ? ', ' + tntGhDn(pd(r.v) - pd(rb.v, C.prevIdx), 1) + ' đơn so ' + esc(vs) : '') + ') · % GTC <b>' + tntP(r.p) + '</b> ' + (rb ? tntGhD(r.p - rb.p, 1) : '') + ' · chưa giao ' + tntN(pd(r.v - r.k)) + (rb ? ' (' + tntGhDn(pd(r.v - r.k) - pd(rb.v - rb.k, C.prevIdx), -1) + ')' : '') + '.');
+  ins.push('Gán ' + tntP(r.ga) + (rb ? ' ' + tntGhD(r.ga - rb.ga, 1) : '') + ' · giao thành công / đơn đã gán = <b>' + tntP(r.kg) + '</b>' + (rb ? ' ' + tntGhD(r.kg - rb.kg, 1) : '') + (r.ga !== null && r.ga < 0.9 ? ' → còn ' + tntN(pd(r.v - r.g)) + ' đơn' + (day ? '' : '/ngày') + ' chưa được gán' : '') + '.');
+  const tr = cols.slice().reverse().map((c) => tntGhSum(G, es, c.idx, [p]).p), sl = tntGhSlope(tr);
+  if (sl && sl.n >= 3) ins.push('Xu hướng ' + sl.n + ' ' + (day ? 'ngày' : 'tuần') + ': ' + (sl.tot > 0.01 ? '<b class="tnt-up2">tăng</b>' : sl.tot < -0.01 ? '<b class="tnt-red">giảm</b>' : 'đi ngang') + ' (' + (sl.per > 0 ? '+' : '') + tntP(sl.per, 2).replace('-', '−') + '/' + (day ? 'ngày' : 'tuần') + ', từ ' + tntP(tr.find((x) => x !== null)) + ' → ' + tntP(tr[tr.length - 1]) + ').');
+  const tm = {}; es.forEach((e) => { const k = D.ents[e][2] || '—'; (tm[k] = tm[k] || []).push(e); });
+  const tl = Object.keys(tm).map((k) => ({ k: k, o: tntGhSum(G, tm[k], C.idx, [p]) })).filter((x) => x.o.v > 0).sort((a, b) => a.o.p - b.o.p);
+  if (tl.length > 1) ins.push('Tỉnh kém nhất <b class="tnt-red">' + esc(tl[0].k) + ' ' + tntP(tl[0].o.p) + '</b> · tốt nhất <b class="tnt-up2">' + esc(tl[tl.length - 1].k) + ' ' + tntP(tl[tl.length - 1].o.p) + '</b>.');
+  const bl = es.map((e) => ({ e: e, o: tntGhSum(G, [e], C.idx, [p]), b: C.prevIdx ? tntGhSum(G, [e], C.prevIdx, [p]) : null })).filter((x) => pd(x.o.v) >= 10);
+  if (bl.length) {
+    const under = bl.filter((x) => x.o.p < r.p - 0.02), ug = bl.reduce((a, x) => a + (x.o.v - x.o.k), 0), top10 = bl.slice().sort((a, b) => (b.o.v - b.o.k) - (a.o.v - a.o.k)).slice(0, 10), t10 = top10.reduce((a, x) => a + (x.o.v - x.o.k), 0);
+    ins.push('<b>' + under.length + '/' + bl.length + '</b> bưu cục (≥ 10 đơn/ngày) thấp hơn mức ' + (es.length === D.ents.length ? 'vùng' : 'phạm vi') + ' quá 2% · 10 BC nhiều đơn chưa giao nhất chiếm <b>' + tntP(ug ? t10 / ug : null) + '</b> đơn chưa giao ' + nm + ' (' + top10.slice(0, 3).map((x) => esc(D.ents[x.e][0]) + ' ' + tntN(pd(x.o.v - x.o.k))).join(', ') + '…).');
+    const dn = bl.filter((x) => x.b && x.b.p !== null && pd(x.b.v, C.prevIdx) >= 10).map((x) => ({ e: x.e, d: x.o.p - x.b.p, p: x.o.p })).sort((a, b) => a.d - b.d).filter((x) => x.d < -0.02).slice(0, 3);
+    if (dn.length) ins.push('Giảm mạnh nhất so ' + esc(vs) + ': ' + dn.map((x) => '<b>' + esc(D.ents[x.e][0]) + '</b> ' + tntP(x.p) + ' (' + tntGhD(x.d, 1) + ')').join(' · ') + '.');
+  }
+  const st = S.t[p] || (S.t[p] = { lv: 'tree', sort: 'miss', more: 20, open: {} });
+  let h = '<div class="tnt-insight"><b>Nhận xét ' + nm + '</b><ul>' + ins.map((x) => '<li>' + x + '</li>').join('') + '</ul></div>';
+  h += '<div class="tnt-fbar">' + [['tree', 'Tỉnh → AM → Bưu cục'], ['am', 'Theo AM'], ['bc', 'Theo bưu cục']].map(([k, l]) => '<button class="' + (st.lv === k ? 'on' : '') + '" onclick="tntGhTblSet(\'' + p + '\',\'lv\',\'' + k + '\')">' + l + '</button>').join('') +
+    '<label class="tnt-osort">Sắp theo <select onchange="tntGhTblSet(\'' + p + '\',\'sort\',this.value)">' + [['miss', 'Chưa giao nhiều nhất'], ['p', '% GTC thấp nhất (≥ 10 đơn/ngày)'], ['d', 'Giảm mạnh nhất so kỳ trước']].map(([k, l]) => '<option value="' + k + '"' + (st.sort === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label></div>';
+  h += '<div id="tntGhT_' + p + '">' + tntGhTblHtml(p) + '</div>';
+  return h;
+}
+function tntGhTblSet(p, k, v) { const st = tntGhSt().t[p]; st[k] = v; if (k !== 'more') st.more = 20; const el = document.getElementById('tntGhT_' + p); if (el) el.innerHTML = tntGhTblHtml(p); if (k === 'lv') tntGhRender(); }
+function tntGhTreeTog(p, key) { const st = tntGhSt().t[p]; st.open[key] = !st.open[key]; const el = document.getElementById('tntGhT_' + p); if (el) el.innerHTML = tntGhTblHtml(p); }
+function tntGhTblHtml(p) {
+  const S = tntGhSt(), G = tntGhData(S.c), { cols, day, WL, ai } = tntTblBase(), C = cols[ai]; if (!C) return '';
+  const D = TNT.data, es = tntGhScope(), st = S.t[p], parts = [p], pd = (x, idx) => day ? x : x / ((idx || C.idx).length || 1);
+  const RV = cols.map((c) => tntGhSum(G, es, c.idx, parts));
+  const TL = Array.from(new Set(D.ents.map((e) => e[2] || '—'))).sort(), AL = Array.from(new Set(D.ents.map((e) => e[1] || '—'))).sort();
+  const cn = (c) => day && c.sub === 'CN' ? ' tnt-cn' : '';
+  const info = (ents) => { const m = tntGhSum(G, ents, C.idx, parts), b = C.prevIdx ? tntGhSum(G, ents, C.prevIdx, parts) : null; return { m: m, b: b, miss: pd(m.v - m.k), d: b && b.p !== null && m.p !== null ? m.p - b.p : null }; };
+  const sortF = (a, b) => st.sort === 'p' ? ((pd(b.i.m.v) >= 10) - (pd(a.i.m.v) >= 10)) || ((a.i.m.p === null ? 9 : a.i.m.p) - (b.i.m.p === null ? 9 : b.i.m.p)) : st.sort === 'd' ? (a.i.d === null ? 9 : a.i.d) - (b.i.d === null ? 9 : b.i.d) : b.i.miss - a.i.miss;
+  const row = (name, sub, ents, cls, pad, click, tipE) => {
+    const i = info(ents), vals = [];
+    let r = '<tr class="' + cls + '"' + (click ? ' style="cursor:pointer" onclick="' + click + '"' : '') + '><td class="l" style="padding-left:' + (8 + pad) + 'px"' + (tipE !== undefined ? ' onmouseenter="tntGhTip(event,' + tipE + ',\'' + p + '\')" onmousemove="tntTipMove(event)" onmouseleave="tntTipHide()"' : '') + '><b>' + name + '</b>' + (tipE !== undefined ? ' <span class="tnt-tipi">ⓘ</span>' : '') + (sub ? '<small>' + sub + '</small>' : '') + '</td>';
+    cols.forEach((c, k) => { const o = k === ai ? i.m : tntGhSum(G, ents, c.idx, parts); vals.unshift(o.p);
+      r += '<td class="tnt-tpc' + cn(c) + (k === ai ? ' tnt-ghm' : '') + '">' + (o.v ? tntGhPc(o.p, cls.indexOf('tnt-ovr') >= 0 ? null : RV[k].p, true) + '<small>' + tntN(pd(o.k, c.idx)) + ' / ' + tntN(pd(o.v, c.idx)) + '</small>' + (k === ai && i.b ? '<small>' + tntGhD(i.d, 1) + '</small>' : '') : '<span class="tnt-dz2">·</span>') + '</td>'; });
+    return r + '<td><b>' + tntN(i.miss) + '</b>' + (i.b ? '<small>' + tntGhDn(i.miss - pd(i.b.v - i.b.k, C.prevIdx), -1) + '</small>' : '') + '</td><td>' + tntGhSpark(vals) + '</td></tr>';
+  };
+  let h = '<div class="tnt-osum">Ô = <b>% GTC ' + (p === 'ton' ? 'hàng tồn' : p.replace('ca', 'ca ')) + '</b> · dưới: GTC / cần giao' + (day ? '' : ' (TB/ngày)') + ' · đỏ/xanh = thấp/cao hơn mức ' + (es.length === D.ents.length ? 'vùng' : 'phạm vi') + ' cùng kỳ quá 2% · cột viền đậm = mốc so sánh (so ' + esc(day ? 'hôm trước' : WL.toLowerCase()) + ')</div>';
+  h += '<div class="tnt-tw"><table class="tnt-ot tnt-oct tnt-tpt tnt-ght"><thead><tr><th class="l">' + (st.lv === 'tree' ? 'Tỉnh → AM → Bưu cục' : st.lv === 'am' ? 'AM' : 'Bưu cục') + '</th>' + cols.map((c, k) => '<th class="' + cn(c) + (k === ai ? ' tnt-ghm' : '') + '">' + esc(day ? c.sub : c.lab) + '<small>' + esc(day ? c.lab : c.sub) + (k === ai ? ' · mốc' : '') + '</small></th>').join('') + '<th>Chưa giao<small>mốc' + (day ? '' : ' · /ngày') + '</small></th><th>Xu hướng<small>% GTC</small></th></tr></thead><tbody>';
+  h += row(es.length === D.ents.length ? 'Vùng TNT' : 'Phạm vi đang lọc', '', es, 'tnt-ovr', 0, '');
+  if (st.lv === 'tree') {
+    const tm = {}; es.forEach((e) => { const k = D.ents[e][2] || '—'; (tm[k] = tm[k] || []).push(e); });
+    Object.keys(tm).map((k) => ({ k: k, es: tm[k], i: info(tm[k]) })).sort(sortF).forEach((T) => {
+      const tk = 't' + TL.indexOf(T.k), to = st.open[tk];
+      h += row((to ? '▾ ' : '▸ ') + esc(T.k), T.es.length + ' BC', T.es, 'tnt-ght1', 0, 'tntGhTreeTog(\'' + p + '\',\'' + tk + '\')');
+      if (!to) return;
+      const am = {}; T.es.forEach((e) => { const k = D.ents[e][1] || '—'; (am[k] = am[k] || []).push(e); });
+      Object.keys(am).map((k) => ({ k: k, es: am[k], i: info(am[k]) })).sort(sortF).forEach((A) => {
+        const ak = tk + 'a' + AL.indexOf(A.k), ao = st.open[ak];
+        h += row((ao ? '▾ ' : '▸ ') + esc(A.k), A.es.length + ' BC', A.es, 'tnt-ght2', 18, 'tntGhTreeTog(\'' + p + '\',\'' + ak + '\')');
+        if (ao) A.es.map((e) => ({ e: e, i: info([e]) })).filter((x) => x.i.m.v || (x.i.b && x.i.b.v)).sort(sortF).forEach((B) => { h += row(esc(D.ents[B.e][0]), '', [B.e], 'tnt-ght3', 38, '', B.e); });
+      });
+    });
+  } else {
+    let list;
+    if (st.lv === 'am') { const am = {}; es.forEach((e) => { const k = D.ents[e][1] || '—'; (am[k] = am[k] || []).push(e); }); list = Object.keys(am).map((k) => ({ k: k, es: am[k], i: info(am[k]) })); }
+    else list = es.map((e) => ({ e: e, es: [e], i: info([e]) })).filter((x) => x.i.m.v || (x.i.b && x.i.b.v));
+    list.sort(sortF);
+    list.slice(0, st.more).forEach((x) => { h += x.e !== undefined ? row(esc(D.ents[x.e][0]), esc((D.ents[x.e][2] || '') + ' · ' + (D.ents[x.e][1] || '')), [x.e], '', 0, '', x.e) : row(esc(x.k), esc(D.ents[x.es[0]][2] || '') + ' · ' + x.es.length + ' BC', x.es, '', 0, ''); });
+    if (list.length > st.more) h += '<tr><td class="l" colspan="' + (cols.length + 3) + '"><button class="tnt-colb" onclick="tntGhTblSet(\'' + p + '\',\'more\',' + (st.more + 20) + ')">Hiện thêm 20 (còn ' + (list.length - st.more) + ')</button></td></tr>';
+  }
+  return h + '</tbody></table></div>' + (st.lv !== 'am' ? '<div class="tnt-rmd">ⓘ Rê chuột vào tên bưu cục để xem nhận xét chi tiết.</div>' : '');
+}
+// ---------- 5. top 20 bưu cục giao tệ nhất (7 ngày gần nhất, đơn thiếu so mức vùng)
+function tntGhTopHtml() {
+  const S = tntGhSt(), G = tntGhData(S.c), W = tntGhW(G); if (!W) return '<div class="tnt-warn">Khoảng ngày đang xem chưa có dữ liệu giao hàng.</div>';
+  const D = TNT.data, m = S.top.m, parts = tntGhParts(m), all = tntGhAll(), es = tntGhScope(), n7 = W.w7.length;
+  const V = tntGhSum(G, all, W.w7, parts), VP = {}; TNT_GH_P.forEach(([q]) => { VP[q] = tntGhSum(G, all, W.w7, [q]); });
+  const rows = es.map((e) => { const c = tntGhSum(G, [e], W.w7, parts), b = tntGhSum(G, [e], W.p7, parts); return { e: e, c: c, b: b, miss: (V.p * c.v - c.k) / n7 }; }).filter((r) => r.c.v > 0 && r.miss > 0.5).sort((a, b) => b.miss - a.miss);
+  const top = rows.slice(0, 20), totMiss = rows.reduce((a, r) => a + r.miss, 0), tMiss = top.reduce((a, r) => a + r.miss, 0);
+  const dayP = {}; W.d14.forEach((d) => { dayP[d] = tntGhSum(G, all, [d], parts).p; });
+  const below = (e) => W.w7.filter((d) => { const o = tntGhSum(G, [e], [d], parts); return o.v && o.p < dayP[d] - 0.005; }).length;
+  const fr = W.w7[n7 - 1], to = W.last;
+  let h = '<div class="tnt-osum"><b>' + esc(tntGhMN(m)) + '</b> · ' + (S.c === 'tts' ? 'TTS' : 'Tất cả KH') + ' · 7 ngày ' + tntGhFd(fr) + ' → ' + tntGhFd(to) + ' · mức vùng TNT % GTC <b>' + tntP(V.p) + '</b> · đơn thiếu = (% GTC vùng × cần giao − GTC) / ngày · top 20 thiếu <b>' + tntN(tMiss) + '</b> đơn/ngày = ' + tntP(totMiss ? tMiss / totMiss : null) + ' phần thiếu của ' + rows.length + ' BC dưới mức vùng</div>';
+  h += '<div class="tnt-tw"><table class="tnt-ot tnt-oct tnt-tpt"><thead><tr><th>#</th><th class="l">Bưu cục</th><th>Cần giao<small>TB/ngày</small></th><th>% GTC<small>7 ngày</small></th><th>So 7 ngày trước<small>' + (W.p7.length ? tntGhFd(W.p7[W.p7.length - 1]) + ' → ' + tntGhFd(W.p7[0]) : '') + '</small></th><th>% Gán</th><th>GTC / gán</th>' + (m === 'tot' ? TNT_GH_P.map(([q, nm]) => '<th>% GTC ' + esc(nm.toLowerCase()) + '<small>vùng ' + tntP(VP[q].p) + '</small></th>').join('') : '') + '<th>Đơn thiếu<small>so vùng / ngày</small></th><th>Ngày dưới vùng</th><th>Xu hướng<small>% GTC 14 ngày</small></th></tr></thead><tbody>';
+  const line = (r, i) => { const E = D.ents[r.e], c = r.c;
+    return '<tr><td>' + (i + 1) + '</td><td class="l tnt-tipcell" onmouseenter="tntGhTip(event,' + r.e + ',\'' + m + '\')" onmousemove="tntTipMove(event)" onmouseleave="tntTipHide()"><b>' + esc(E[0]) + '</b> <span class="tnt-tipi">ⓘ</span><small>' + esc(E[2] || '') + ' · ' + esc(E[1] || '') + '</small></td><td>' + tntN(c.v / n7) + '</td><td>' + tntGhPc(c.p, V.p, true) + '<small>' + tntN(c.k / n7) + ' GTC</small></td><td>' + (r.b.v ? tntGhD(c.p - r.b.p, 1) + '<small>' + tntP(r.b.p) + '</small>' : '<span class="tnt-dz2">—</span>') + '</td><td>' + tntGhPc(c.ga, V.ga) + '</td><td>' + tntGhPc(c.kg, V.kg) + '</td>' +
+      (m === 'tot' ? TNT_GH_P.map(([q]) => { const o = tntGhSum(G, [r.e], W.w7, [q]); return '<td>' + (o.v ? tntGhPc(o.p, VP[q].p) + '<small>' + tntN(o.v / n7) + ' đơn</small>' : '<span class="tnt-dz2">—</span>') + '</td>'; }).join('') : '') +
+      '<td><b class="tnt-red">' + tntN(r.miss) + '</b></td><td>' + below(r.e) + '/' + n7 + '</td><td>' + tntGhSpark(W.d14.map((d) => tntGhSum(G, [r.e], [d], parts).p)) + '</td></tr>'; };
+  top.forEach((r, i) => { h += line(r, i); });
+  const tt = tntGhSum(G, top.map((r) => r.e), W.w7, parts);
+  h += '<tr class="tnt-ovr"><td></td><td class="l"><b>Tổng top 20</b></td><td>' + tntN(tt.v / n7) + '</td><td>' + tntGhPc(tt.p, null, true) + '</td><td></td><td>' + tntP(tt.ga) + '</td><td>' + tntP(tt.kg) + '</td>' + (m === 'tot' ? TNT_GH_P.map(() => '<td></td>').join('') : '') + '<td><b>' + tntN(tMiss) + '</b></td><td></td><td></td></tr>';
+  h += '<tr class="tnt-ovr"><td></td><td class="l"><b>Vùng TNT</b></td><td>' + tntN(V.v / n7) + '</td><td>' + tntGhPc(V.p, null, true) + '</td><td>' + tntGhD(V.p - tntGhSum(G, all, W.p7, parts).p, 1) + '</td><td>' + tntP(V.ga) + '</td><td>' + tntP(V.kg) + '</td>' + (m === 'tot' ? TNT_GH_P.map(([q]) => '<td>' + tntP(VP[q].p) + '</td>').join('') : '') + '<td></td><td></td><td>' + tntGhSpark(W.d14.map((d) => dayP[d])) + '</td></tr></tbody></table></div>';
+  if (!top.length) h += '<div class="tnt-warn">Không có bưu cục nào thấp hơn mức vùng trong phạm vi đang lọc.</div>';
+  return h + '<div class="tnt-rmd">ⓘ Rê chuột vào tên bưu cục để xem nhận xét đầy đủ (nguyên nhân, ca kéo xuống, gán, xu hướng).</div>';
+}
+// ---------- popup nhận xét 1 bưu cục (7 ngày gần nhất so mức vùng)
+function tntGhTip(ev, e, m) {
+  const S = tntGhSt(), G = tntGhData(S.c), W = tntGhW(G); if (!W) return;
+  const D = TNT.data, E = D.ents[e], parts = tntGhParts(m), all = tntGhAll(), n7 = W.w7.length, w7 = W.w7, p7 = W.p7;
+  const c = tntGhSum(G, [e], w7, parts), b = tntGhSum(G, [e], p7, parts), V = tntGhSum(G, all, w7, parts);
+  if (!c.v) return;
+  const below = c.p < V.p - 0.005, worse = b.p !== null && c.p < b.p - 0.003, better = b.p !== null && c.p > b.p + 0.003;
+  const lv = !below ? '🟢' : worse ? '🔴' : '🟠', lvT = !below ? 'Bằng / cao hơn mức vùng' : worse ? 'Dưới mức vùng & đang xấu đi' : better ? 'Dưới mức vùng nhưng đang cải thiện' : 'Dưới mức vùng, đi ngang';
+  const why = [], miss = (V.p * c.v - c.k) / n7;
+  if (below) why.push('Thấp hơn vùng <b class="tnt-red">' + tntP(V.p - c.p) + '</b> (' + tntP(c.p) + ' vs ' + tntP(V.p) + ') → thiếu ~<b>' + tntN(miss) + '</b> đơn GTC/ngày.');
+  if (parts.length > 1) {
+    const br = parts.map((q) => { const o = tntGhSum(G, [e], w7, [q]), vq = tntGhSum(G, all, w7, [q]); return { q: q, nm: TNT_GH_P.find((x) => x[0] === q)[1], o: o, vq: vq, ms: (vq.p * o.v - o.k) / n7, sh: c.v ? o.v / c.v : 0, vsh: V.v ? vq.v / V.v : 0 }; });
+    const mp = br.filter((x) => x.ms > 0.5).sort((a, b) => b.ms - a.ms), sm = mp.reduce((a, x) => a + x.ms, 0);
+    if (mp.length) why.push('Kéo xuống chủ yếu ở <b>' + esc(mp[0].nm) + '</b>: % GTC ' + tntP(mp[0].o.p) + ' vs vùng ' + tntP(mp[0].vq.p) + ' → thiếu ~' + tntN(mp[0].ms) + ' đơn/ngày (' + tntP(sm ? mp[0].ms / sm : null, 0) + ' phần thiếu của các ca)' + (mp[1] ? '; tiếp theo ' + esc(mp[1].nm) + ' ' + tntP(mp[1].o.p) + ' (vùng ' + tntP(mp[1].vq.p) + ', ~' + tntN(mp[1].ms) + ' đơn/ngày)' : '') + '.');
+    const mx = br.filter((x) => x.q !== 'ca1' && x.sh > x.vsh + 0.05).sort((a, b) => (b.sh - b.vsh) - (a.sh - a.vsh))[0];
+    if (mx) why.push('Cơ cấu bất lợi: tỷ trọng ' + esc(mx.nm.toLowerCase()) + ' ' + tntP(mx.sh) + ' (vùng ' + tntP(mx.vsh) + ') — phần này vốn có % GTC thấp nên kéo % tổng xuống.');
+  }
+  if (c.ga !== null && V.ga !== null && c.ga < V.ga - 0.03) why.push('Gán thấp: % gán ' + tntP(c.ga) + ' vs vùng ' + tntP(V.ga) + ' → ~' + tntN((c.v - c.g) / n7) + ' đơn/ngày chưa được gán cho NV giao.');
+  else if (c.kg !== null && V.kg !== null && c.kg < V.kg - 0.03) why.push('Đã gán ' + tntP(c.ga) + ' nhưng giao thành công chỉ ' + tntP(c.kg) + ' đơn đã gán (vùng ' + tntP(V.kg) + ') → NV nhận đơn nhưng giao không hết.');
+  if (b.v && b.k) { const dv = (c.v - b.v) / b.v, dk = (c.k - b.k) / b.k; if (Math.abs(dv) >= 0.05 || Math.abs(dk) >= 0.05) why.push('Cần giao ' + (dv >= 0 ? 'tăng ' : 'giảm ') + tntP(Math.abs(dv)) + ' (' + tntN(b.v / (p7.length || 1)) + ' → ' + tntN(c.v / n7) + '/ngày), GTC ' + (dk >= 0 ? 'tăng ' : 'giảm ') + tntP(Math.abs(dk)) + (dv > dk + 0.03 ? ' → sản lượng tăng nhanh hơn năng lực giao' : dk > dv + 0.03 ? ' → năng lực giao tăng nhanh hơn sản lượng' : '') + '.'); }
+  if (!why.length) why.push('% GTC 7 ngày ' + tntP(c.p) + ' (vùng ' + tntP(V.p) + ').');
+  const days = w7.map((d) => ({ d: d, o: tntGhSum(G, [e], [d], parts), v: tntGhSum(G, all, [d], parts) })).filter((x) => x.o.v);
+  const nB = days.filter((x) => x.o.p < x.v.p - 0.005).length; let streak = 0; for (const x of days) { if (x.o.p < x.v.p - 0.005) streak++; else break; }
+  const wd = days.slice().sort((a, b) => a.o.p - b.o.p)[0], sl = tntGhSlope(W.d14.map((d) => tntGhSum(G, [e], [d], parts).p));
+  const dl = tntGhSum(G, [e], [W.last], parts), dlp = tntGhSum(G, [e], [W.last - 1], parts);
+  const sib = D.ents.map((x, i) => i).filter((i) => D.ents[i][1] === E[1]).map((i) => ({ i: i, o: tntGhSum(G, [i], w7, parts) })).filter((x) => x.o.v).sort((a, b) => a.o.p - b.o.p), rk = sib.findIndex((x) => x.i === e);
+  const det = ['% GTC 7 ngày ' + tntGhPc(c.p, V.p) + ' vs vùng ' + tntP(V.p) + (b.p !== null ? ' · 7 ngày trước ' + tntP(b.p) + ' (' + tntGhD(c.p - b.p, 1) + ')' : ''),
+    nB + '/' + days.length + ' ngày dưới mức vùng' + (streak >= 2 ? ' · đang dưới <b class="tnt-red">' + streak + ' ngày liên tiếp</b>' : ''),
+    wd ? 'ngày tệ nhất ' + tntGhWd(wd.d) + ' ' + tntGhFd(wd.d) + ': <b>' + tntP(wd.o.p) + '</b> (' + tntN(wd.o.k) + '/' + tntN(wd.o.v) + ' đơn, vùng ' + tntP(wd.v.p) + ')' : '',
+    'TB/ngày: cần giao ' + tntN(c.v / n7) + ' · gán ' + tntN(c.g / n7) + ' (' + tntP(c.ga) + ') · GTC ' + tntN(c.k / n7) + ' · chưa giao ' + tntN((c.v - c.k) / n7),
+    sl ? 'xu hướng 14 ngày: ' + (sl.tot > 0.01 ? '<b class="tnt-up2">tăng ' : sl.tot < -0.01 ? '<b class="tnt-red">giảm ' : '<b>đi ngang ') + tntP(Math.abs(sl.tot)) + '</b>' : '',
+    dl.v ? 'ngày ' + tntGhFd(W.last) + ': ' + tntP(dl.p) + (dlp.v ? ' (' + tntGhD(dl.p - dlp.p, 1) + ' so hôm trước)' : '') : '',
+    rk >= 0 && sib.length > 1 ? 'xếp thứ ' + (rk + 1) + '/' + sib.length + ' BC của AM ' + esc(E[1] || '—') + ' (1 = kém nhất)' : ''].filter(Boolean);
+  const t = '<div class="tnt-tipt">' + lv + ' ' + esc(E[0]) + '</div><div class="tnt-tips">' + esc(E[2] || '') + ' · ' + esc(E[1] || '') + ' · ' + esc(tntGhMN(m)) + ' · ' + (S.c === 'tts' ? 'TTS' : 'Tất cả KH') + ' · 7 ngày ' + tntGhFd(w7[n7 - 1]) + ' → ' + tntGhFd(W.last) + ' — <b class="' + (!below ? 'tnt-tg-ok' : 'tnt-tg-bad') + '">' + lvT + '</b></div><div class="tnt-tipb"><b>Nguyên nhân</b><ul>' + why.map((x) => '<li>' + x + '</li>').join('') + '</ul></div><div class="tnt-tiph">Chi tiết 7 ngày</div><ul>' + det.map((x) => '<li>' + x + '</li>').join('') + '</ul>';
+  let el = document.getElementById('tntTip'); if (!el) { el = document.createElement('div'); el.id = 'tntTip'; el.className = 'tnt-tip'; document.body.appendChild(el); }
+  el.innerHTML = t; el.style.display = 'block'; tntTipMove(ev);
+}
 function tntTblBase() {
   const cols = TNT.cols.slice().reverse(), day = TNT.mode === 'day';
   // Tuần: 'full' = mốc là tuần mới nhất ĐỦ 7 ngày, so cả tuần trước; 'same' = mốc là tuần mới nhất (chưa đủ cũng được), so CÙNG KỲ (cùng các thứ) tuần trước
@@ -8720,6 +8994,7 @@ function tntRender() {
   document.getElementById('tntTbl').innerHTML = tntTableHtml();
   { const ob = document.getElementById('tntOpr'); if (ob) ob.innerHTML = tntOprHtml(); }
   { const rb = document.getElementById('tntRet'); if (rb) rb.innerHTML = tntRetHtml(); }
+  tntGhRender();
   if (!TNT.BL && !TNT.blErr && typeof tntLoadBacklog === 'function') tntLoadBacklog();
   const cmpBox = document.getElementById('tntCmp'); if (cmpBox) { cmpBox.style.display = TNT.mode === 'week' ? '' : 'none'; cmpBox.innerHTML = [['full', 'So sánh tuần'], ['same', 'So sánh cùng kỳ tuần']].map(([k, l]) => '<label><input type="radio" name="tntCmp"' + (TNT.cmp === k ? ' checked' : '') + ' onchange="tntSetCmp(\'' + k + '\')">' + l + '</label>').join(''); }
   document.getElementById('tntTblSub').textContent = TNT.mode === 'week' ? (TNT.cmp === 'same' ? '· số đơn = trung bình 1 ngày · cột mốc = tuần mới nhất (chưa đủ tuần cũng lấy), so với CÙNG CÁC THỨ của tuần trước — trừ trực tiếp' : '· số đơn = trung bình 1 ngày của tuần · cột mốc = tuần mới nhất đã đủ 7 ngày, so với cả tuần trước — trừ trực tiếp') : '· cột mốc N-1 so với N-2 (hôm trước) và N-8 (cùng thứ tuần trước) — trừ trực tiếp; ▲ xanh = tốt hơn, ▼ đỏ = tệ hơn';
@@ -8730,9 +9005,9 @@ function tntDownloadHtml() {
   const skip = { loadTntReport: 1, tntDownloadHtml: 1, tntLoadBacklog: 1 };
   const fns = Object.keys(window).filter((k) => /^tnt/.test(k) && typeof window[k] === 'function' && !skip[k]).map((k) => window[k].toString()).join('\n');
   const cvt = (o) => { const r = {}; Object.keys(o).forEach((k) => { r[k] = Array.from(o[k]); }); return r; };
-  const st = Object.assign({}, TNT, { data: null, cols: [], loading: false, EP: null, RET: null, BL: TNT.BL ? { all: cvt(TNT.BL.all), tts: cvt(TNT.BL.tts), mask: Array.from(TNT.BL.mask), lgAll: TNT.BL.lgAll ? cvt(TNT.BL.lgAll) : null, lgTts: TNT.BL.lgTts ? cvt(TNT.BL.lgTts) : null } : null, blLoading: false, blErr: TNT.BL ? '' : 'không có trong file tải' });
+  const st = Object.assign({}, TNT, { data: null, cols: [], loading: false, EP: null, RET: null, GH: null, BL: TNT.BL ? { all: cvt(TNT.BL.all), tts: cvt(TNT.BL.tts), mask: Array.from(TNT.BL.mask), lgAll: TNT.BL.lgAll ? cvt(TNT.BL.lgAll) : null, lgTts: TNT.BL.lgTts ? cvt(TNT.BL.lgTts) : null } : null, blLoading: false, blErr: TNT.BL ? '' : 'không có trong file tải' });
   const D = TNT.data.dates, last = D[D.length - 1];
-  const js = 'var TNT=' + JSON.stringify(st) + ';TNT.data=' + JSON.stringify(TNT.data) + ';\nvar TNT_PARTS=' + JSON.stringify(TNT_PARTS) + ',TNT_LINES=' + JSON.stringify(TNT_LINES) + ',TNT_WD=' + JSON.stringify(TNT_WD) + ',TNT_LV=' + JSON.stringify(TNT_LV) + ',TNT_BLK=' + JSON.stringify(TNT_BLK) + ',TNT_LGK=' + JSON.stringify(TNT_LGK) + ',TNT_FD_TG=' + JSON.stringify(TNT_FD_TG) + ',TNT_RET_G=' + JSON.stringify(TNT_RET_G) + ',TNT_TBL=' + (function ser(x) { return typeof x === 'function' ? x.toString() : Array.isArray(x) ? '[' + x.map(ser).join(',') + ']' : JSON.stringify(x); })(TNT_TBL) + ';\n' +
+  const js = 'var TNT=' + JSON.stringify(st) + ';TNT.data=' + JSON.stringify(TNT.data) + ';\nvar TNT_PARTS=' + JSON.stringify(TNT_PARTS) + ',TNT_LINES=' + JSON.stringify(TNT_LINES) + ',TNT_WD=' + JSON.stringify(TNT_WD) + ',TNT_LV=' + JSON.stringify(TNT_LV) + ',TNT_BLK=' + JSON.stringify(TNT_BLK) + ',TNT_LGK=' + JSON.stringify(TNT_LGK) + ',TNT_FD_TG=' + JSON.stringify(TNT_FD_TG) + ',TNT_RET_G=' + JSON.stringify(TNT_RET_G) + ',TNT_GH_P=' + JSON.stringify(TNT_GH_P) + ',TNT_GH_L=' + JSON.stringify(TNT_GH_L) + ',TNT_TBL=' + (function ser(x) { return typeof x === 'function' ? x.toString() : Array.isArray(x) ? '[' + x.map(ser).join(',') + ']' : JSON.stringify(x); })(TNT_TBL) + ';\n' +
     esc.toString() + '\n' + fns + '\ntntRender();window.addEventListener("resize",function(){clearTimeout(window.__r);window.__r=setTimeout(tntRender,200)});';
   const body = document.getElementById('tntBody').cloneNode(true); body.style.display = '';
   ['tntCtl', 'tntKpis', 'tntLegend', 'tntChartBox', 'tntPanel', 'tntMiss', 'tntTbl'].forEach((id) => { const el = body.querySelector('#' + id); if (el) el.innerHTML = ''; });
