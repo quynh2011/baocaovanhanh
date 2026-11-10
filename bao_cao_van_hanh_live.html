@@ -861,6 +861,13 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-tpt td.l small{display:block;font-size:11px;color:#9A8F74;font-weight:500}.tnt-spk{display:block;margin-left:auto}.tnt-tpt td small[style]{display:block;text-align:right;font-size:11px;font-weight:700}
 .tnt-rmk{display:grid;gap:8px}.tnt-rmh{background:#FFF8E6;border:1px solid #E8D6A6;border-radius:8px;padding:8px 12px;font-size:13.5px}
 .tnt-rmi{background:#FFFDF6;border:1px solid #E7DEC8;border-radius:8px;padding:8px 12px;font-size:13px;line-height:1.55}.tnt-rmt i{font-style:normal;color:#9A8F74;font-size:12px}.tnt-rmw{margin-top:2px}.tnt-rmd{color:#5C5240;font-size:12.5px;margin-top:2px}.tnt-rmi .tnt-up2,.tnt-rmh .tnt-up2{color:#0A7A3E;font-weight:800}.tnt-rmi .tnt-red,.tnt-rmh .tnt-red{color:#C62116}
+.tnt-tip{position:fixed;z-index:9999;display:none;max-width:560px;background:#1F2228;color:#E8E6E1;border-radius:12px;padding:14px 18px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-size:13.5px;line-height:1.55;pointer-events:none}
+.tnt-tip .tnt-tipt{font-size:16px;font-weight:800;color:#fff}.tnt-tip .tnt-tips{color:#B8B3A8;font-size:12.5px;margin:2px 0 8px}
+.tnt-tip .tnt-tipb{background:#34322C;border-left:3px solid #E0A33B;border-radius:6px;padding:8px 12px;margin:6px 0 10px}.tnt-tip .tnt-tipb>b:first-child{color:#E0A33B;margin-right:6px}
+.tnt-tip .tnt-tiph{border-top:1px solid #3A3D44;padding-top:8px;color:#8EB6E8;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.tnt-tip ul{margin:4px 0 0 18px;padding:0}.tnt-tip li{margin:2px 0}
+.tnt-tip .tnt-red,.tnt-tip .tnt-tg-bad{color:#FF7A6B}.tnt-tip .tnt-up2,.tnt-tip .tnt-tg-ok{color:#5FD08E}
+.tnt-tipcell{cursor:help}.tnt-tipi{color:#8EA3C0;font-size:12px}.tnt-tipcell:hover b{text-decoration:underline dotted}
 .tnt-more{margin:8px 6px 0 0;padding:5px 12px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-weight:700;font-size:12.5px;cursor:pointer}
 .tnt-h3 .tnt-cmpsel{display:inline-flex;gap:6px;margin-left:12px;vertical-align:middle}
 .tnt-cmpsel label{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-size:12.5px;font-weight:700;color:#2B2618;cursor:pointer}
@@ -8512,14 +8519,14 @@ function tntRetTopHtml() {
   const cn = (d) => wd(d) === 'CN' ? ' tnt-cn' : '';
   let h = '<div class="tnt-osum">Nhóm <b>' + esc(G[1]) + '</b> · top 10 BC nhiều đơn trả nhất 7 ngày ' + fd(w7[w7.length - 1]) + ' → ' + fd(last) + ' · ' + (tg !== null ? 'KPI ' + (G[5] ? '≤ ' : '< ') + tntP(tg, 1) : 'chưa có KPI → so FD bình quân phạm vi ' + tntP(vAll.p)) + ' · ô = <b>% FD</b> · dưới: <b>đơn trả</b> | đơn hoàn tất (GTC + trả)</div>';
   h += '<div class="tnt-tw"><table class="tnt-ot tnt-oct tnt-tpt"><thead><tr><th>#</th><th class="l">Bưu cục</th>' + d8.map((d) => '<th class="' + cn(d) + '">' + wd(d) + '<small>' + fd(d) + '</small></th>').join('') + '<th class="tnt-tp7">7 ngày<small>' + fd(w7[w7.length - 1]) + ' → ' + fd(last) + '</small></th><th>Xu hướng<small>% FD 7 ngày</small></th></tr></thead><tbody>';
-  top.forEach((r, i) => { const E = D.ents[r.e]; h += '<tr><td>' + (i + 1) + '</td><td class="l"><b>' + esc(E[0]) + '</b><small>' + esc(E[2] || '') + ' · ' + esc(E[1] || '') + '</small></td>' + d8.map((d) => cell(sum([r.e], [d]), cn(d))).join('') + cell(r.s, ' tnt-tp7') + '<td>' + spark([r.e]) + '</td></tr>'; });
+  top.forEach((r, i) => { const E = D.ents[r.e]; h += '<tr><td>' + (i + 1) + '</td><td class="l tnt-tipcell" onmouseenter="tntTipShow(event,' + i + ')" onmousemove="tntTipMove(event)" onmouseleave="tntTipHide()"><b>' + esc(E[0]) + '</b> <span class="tnt-tipi">ⓘ</span><small>' + esc(E[2] || '') + ' · ' + esc(E[1] || '') + '</small></td>' + d8.map((d) => cell(sum([r.e], [d]), cn(d))).join('') + cell(r.s, ' tnt-tp7') + '<td>' + spark([r.e]) + '</td></tr>'; });
   const tes = top.map((r) => r.e);
   h += '<tr class="tnt-ovr"><td></td><td class="l"><b>Tổng top 10</b></td>' + d8.map((d) => cell(sum(tes, [d]), cn(d))).join('') + cell(sum(tes, w7), ' tnt-tp7') + '<td>' + spark(tes) + '</td></tr>';
   h += '<tr class="tnt-ovr"><td></td><td class="l"><b>' + (ents.length === D.ents.length ? 'Vùng TNT' : 'Phạm vi đang lọc') + '</b></td>' + d8.map((d) => cell(sum(ents, [d]), cn(d))).join('') + cell(vAll, ' tnt-tp7') + '<td>' + spark(ents) + '</td></tr></tbody></table></div>';
   // nhận xét từng BC
   const fP = (x) => (x > 0 ? '+' : '') + (x * 100).toFixed(1).replace('.', ',') + '%', fPd = (x) => (x > 0 ? '+' : '') + (x * 100).toFixed(2).replace('.', ',') + '%';
   const vp = sum(ents, p7), tt = sum(tes, w7);
-  let rm = '<div class="tnt-rmk"><div class="tnt-rmh"><b>' + (ents.length === D.ents.length ? 'Vùng TNT' : 'Phạm vi') + '</b>: FD 7 ngày ' + pc(vAll.p) + (vp.p !== null ? ' (7 ngày trước ' + tntP(vp.p) + ', ' + '<b class="' + (vAll.p - vp.p > 0 ? 'tnt-red' : 'tnt-up2') + '">' + (vAll.p - vp.p > 0 ? '▲ ' : '▼ ') + fPd(vAll.p - vp.p) + '</b>)' : '') + ' · ' + tntN(vAll.t) + ' đơn trả / ' + tntN(vAll.n) + ' hoàn tất · top 10 chiếm <b>' + tntP(vAll.t ? tt.t / vAll.t : null) + '</b> đơn trả.</div>';
+  const tips = []; let rm = '<div class="tnt-rmk"><div class="tnt-rmh"><b>' + (ents.length === D.ents.length ? 'Vùng TNT' : 'Phạm vi') + '</b>: FD 7 ngày ' + pc(vAll.p) + (vp.p !== null ? ' (7 ngày trước ' + tntP(vp.p) + ', ' + '<b class="' + (vAll.p - vp.p > 0 ? 'tnt-red' : 'tnt-up2') + '">' + (vAll.p - vp.p > 0 ? '▲ ' : '▼ ') + fPd(vAll.p - vp.p) + '</b>)' : '') + ' · ' + tntN(vAll.t) + ' đơn trả / ' + tntN(vAll.n) + ' hoàn tất · top 10 chiếm <b>' + tntP(vAll.t ? tt.t / vAll.t : null) + '</b> đơn trả.</div>';
   top.forEach((r, i) => {
     const E = D.ents[r.e], c = r.s, b = sum([r.e], p7), over = isOver(c.p), worse = b.p !== null && c.p !== null && c.p > b.p + 0.0005;
     const lv = !over ? '🟢' : worse ? '🔴' : '🟠', lvT = !over ? 'Đạt ' + (tg !== null ? 'KPI' : 'mốc') : worse ? 'Vượt ' + (tg !== null ? 'KPI' : 'mốc') + ' & xấu đi' : 'Vượt ' + (tg !== null ? 'KPI' : 'mốc') + ' nhưng cải thiện / đi ngang';
@@ -8537,11 +8544,17 @@ function tntRetTopHtml() {
       pk ? 'vol trả cao nhất ' + wd(pk.d) + ' ' + fd(pk.d) + ': <b>' + tntN(pk.o.t) + '</b> đơn (FD ' + tntP(pk.o.p) + ')' : '',
       'TB ' + tntN(c.t / (days.length || 1)) + ' trả / ' + tntN(c.n / (days.length || 1)) + ' hoàn tất mỗi ngày',
       dl.n ? 'ngày ' + fd(last) + ': ' + tntP(dl.p) + (dlp.n ? ' (' + (dl.p - dlp.p > 0 ? '<b class="tnt-red">▲ ' : '<b class="tnt-up2">▼ ') + fPd(dl.p - dlp.p) + '</b> so hôm trước)' : '') : ''].filter(Boolean);
-    rm += '<div class="tnt-rmi"><div class="tnt-rmt">' + lv + ' <b>' + (i + 1) + '. ' + esc(E[0]) + '</b> <i>' + esc(E[2] || '') + ' · ' + esc(E[1] || '') + '</i> — <span class="' + (!over ? 'tnt-up2' : 'tnt-red') + '">' + lvT + '</span></div><div class="tnt-rmw">' + why + '</div><div class="tnt-rmd">' + det.join(' · ') + '</div></div>';
+    tips[i] = '<div class="tnt-tipt">' + lv + ' ' + (i + 1) + '. ' + esc(E[0]) + '</div><div class="tnt-tips">' + esc(E[2] || '') + ' · ' + esc(E[1] || '') + ' — <b class="' + (!over ? 'tnt-tg-ok' : 'tnt-tg-bad') + '">' + lvT + '</b></div><div class="tnt-tipb"><b>Nguyên nhân</b> ' + why + '</div><div class="tnt-tiph">Chi tiết 7 ngày</div><ul>' + det.map((x) => '<li>' + x + '</li>').join('') + '</ul>';
   });
-  h += '<div class="tnt-h3" style="margin-top:14px">Nhận xét từng bưu cục</div>' + rm + '</div>';
+  window.__tntTips = tips;
+  h += '<div class="tnt-rmk" style="margin-top:8px">' + rm.replace('<div class="tnt-rmk">', '') + '<div class="tnt-rmd">ⓘ Rê chuột vào tên bưu cục để xem nhận xét chi tiết.</div></div>';
   return h;
 }
+function tntTipShow(ev, i) { let el = document.getElementById('tntTip'); if (!el) { el = document.createElement('div'); el.id = 'tntTip'; el.className = 'tnt-tip'; document.body.appendChild(el); }
+  const t = (window.__tntTips || [])[i]; if (!t) return; el.innerHTML = t; el.style.display = 'block'; tntTipMove(ev); }
+function tntTipMove(ev) { const el = document.getElementById('tntTip'); if (!el || el.style.display !== 'block') return; const w = el.offsetWidth, hh = el.offsetHeight; let x = ev.clientX + 18, y = ev.clientY + 14;
+  if (x + w > window.innerWidth - 8) x = ev.clientX - w - 18; if (y + hh > window.innerHeight - 8) y = Math.max(8, window.innerHeight - hh - 8); el.style.left = x + 'px'; el.style.top = y + 'px'; }
+function tntTipHide() { const el = document.getElementById('tntTip'); if (el) el.style.display = 'none'; }
 function tntRetBcOpen(e) { const cf = TNT.retBc; cf.open = cf.open || {}; cf.open[e] = !cf.open[e]; tntRetBcRender(); }
 function tntOprTog(n) { TNT.oprOpen = TNT.oprOpen || {}; TNT.oprOpen[n] = !TNT.oprOpen[n]; tntRenderOpr(); }
 function tntRenderOpr() { const ob = document.getElementById('tntOpr'); if (ob) ob.innerHTML = tntOprHtml(); }
