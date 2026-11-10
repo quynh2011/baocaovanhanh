@@ -855,6 +855,11 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-rbars{display:inline-flex;align-items:flex-end;gap:1px;height:24px}.tnt-rbars i{display:inline-block;width:5px;border-radius:1px}
 .tnt-rday{overflow-x:auto}.tnt-rday table{border-collapse:collapse;font-size:12px}.tnt-rday th,.tnt-rday td{padding:4px 7px;text-align:right;border-bottom:1px solid #EDE4CF;white-space:nowrap}.tnt-rday th{background:#F3ECDA;color:#5C5240;font-weight:700}.tnt-rday th small{display:block;font-weight:500}.tnt-rday th.tnt-cn{color:#fff}.tnt-rday .l{text-align:left}
 @media (max-width:900px){.tnt-rwrap{grid-template-columns:1fr}}
+.tnt-tpt td.tnt-tpc{text-align:right;min-width:78px}.tnt-tpt td.tnt-tpc .tnt-tpp{font-size:14px}.tnt-tpt td.tnt-tpc small{display:block;font-size:11px;color:#8A8068;white-space:nowrap}
+.tnt-tpt td.tnt-tp7,.tnt-tpt th.tnt-tp7{background:#F6EEDB;border-left:2px solid #2B2618;border-right:2px solid #2B2618}.tnt-tpt th.tnt-tp7{background:#1E3F6E}
+.tnt-tpt td.l small{display:block;font-size:11px;color:#9A8F74;font-weight:500}.tnt-spk{display:block;margin-left:auto}.tnt-tpt td small[style]{display:block;text-align:right;font-size:11px;font-weight:700}
+.tnt-rmk{display:grid;gap:8px}.tnt-rmh{background:#FFF8E6;border:1px solid #E8D6A6;border-radius:8px;padding:8px 12px;font-size:13.5px}
+.tnt-rmi{background:#FFFDF6;border:1px solid #E7DEC8;border-radius:8px;padding:8px 12px;font-size:13px;line-height:1.55}.tnt-rmt i{font-style:normal;color:#9A8F74;font-size:12px}.tnt-rmw{margin-top:2px}.tnt-rmd{color:#5C5240;font-size:12.5px;margin-top:2px}.tnt-rmi .tnt-up2,.tnt-rmh .tnt-up2{color:#0A7A3E;font-weight:800}.tnt-rmi .tnt-red,.tnt-rmh .tnt-red{color:#C62116}
 .tnt-more{margin:8px 6px 0 0;padding:5px 12px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-weight:700;font-size:12.5px;cursor:pointer}
 .tnt-h3 .tnt-cmpsel{display:inline-flex;gap:6px;margin-left:12px;vertical-align:middle}
 .tnt-cmpsel label{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-size:12.5px;font-weight:700;color:#2B2618;cursor:pointer}
@@ -8401,6 +8406,10 @@ function tntRetHtml() {
     '<input class="tnt-oq" placeholder="Tìm bưu cục / AM / tỉnh" value="' + esc(cf.q) + '" oninput="TNT.retBc.q=this.value;TNT.retBc.more=20;clearTimeout(window.__tntRq);window.__tntRq=setTimeout(tntRetBcRender,250)">' +
     '<label class="tnt-osort">Sắp theo <select onchange="TNT.retBc.sort=this.value;TNT.retBc.more=20;tntRetBcRender()">' + [['over', 'Trả vượt mốc nhiều nhất'], ['t', 'Đơn trả nhiều nhất'], ['p', '% FD cao nhất (≥ 50 đơn)'], ['d', 'FD tăng nhiều nhất so 7 ngày trước']].map(([k, l]) => '<option value="' + k + '"' + (cf.sort === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label></div>';
   h += '<div id="tntRetBc">' + tntRetBcHtml() + '</div></div>';
+  h += oh(3, '3. Theo dõi top 10 bưu cục vol trả cao <span>· 8 ngày gần nhất + 7 ngày + xu hướng · ô = % FD, dưới: đơn trả | đơn hoàn tất · kèm nhận xét từng bưu cục</span>');
+  const tc = TNT.retTop || (TNT.retTop = { g: 'T' });
+  h += '<div class="tnt-fbar">' + [['A', '% FD ALL'], ['T', '% FD TTS COD'], ['S', '% FD SME COD'], ['P', '% FD SPE']].map(([g, nm]) => '<button class="' + (tc.g === g ? 'on' : '') + '" onclick="TNT.retTop.g=\'' + g + '\';tntRetTopRender()">' + nm + '</button>').join('') + '</div>';
+  h += '<div id="tntRetTop">' + tntRetTopHtml() + '</div></div>';
   return h;
 }
 function tntRetTog(n) { TNT.retOpen = TNT.retOpen || {}; TNT.retOpen[n] = !TNT.retOpen[n]; tntRenderRet(); }
@@ -8477,6 +8486,59 @@ function tntRetBcHtml() {
   h += '</tbody></table></div>';
   if (list.length > cf.more) h += '<button class="tnt-more" onclick="TNT.retBc.more+=20;tntRetBcRender()">Hiện thêm 20 BC (còn ' + (list.length - cf.more) + ')</button>';
   if (cf.more > 20) h += '<button class="tnt-more" onclick="TNT.retBc.more=20;tntRetBcRender()">Thu gọn</button>';
+  return h;
+}
+// ---- 3. Theo dõi top 10 BC vol trả cao (1 bảng gộp: ô = % FD to + trả | hoàn tất; cột 7 ngày; xu hướng) + nhận xét từng BC
+function tntRetTopRender() { const el = document.getElementById('tntRetTop'); if (!el) return; el.innerHTML = tntRetTopHtml();
+  const b = el.parentElement && el.parentElement.querySelector('.tnt-fbar'); if (b) b.querySelectorAll('button').forEach((x) => { const m = (x.getAttribute('onclick') || '').match(/g='(\w)'/); if (m) x.classList.toggle('on', m[1] === TNT.retTop.g); }); }
+function tntRetTopHtml() {
+  const D = TNT.data, R = tntRetBuild(), cf = TNT.retTop || (TNT.retTop = { g: 'T' }), g = cf.g, A = R.G[g], nD = D.dates.length, G = TNT_RET_G.find((x) => x[0] === g);
+  const rg = tntRangeIdx(); let last = -1;
+  for (let j = rg.length - 1; j >= 0 && last < 0; j--) { const d = rg[j]; for (let e = 0; e < D.ents.length; e++) if (A.tt[e * nD + d]) { last = d; break; } }
+  if (last < 0) return '<div class="tnt-warn">Khoảng ngày đang xem chưa có dữ liệu trả hàng của nhóm này.</div>';
+  const d8 = [], w7 = [], p7 = []; for (let k = 0; k < 8; k++) if (last - k >= 0) d8.push(last - k); for (let k = 0; k < 7; k++) { if (last - k >= 0) w7.push(last - k); if (last - 7 - k >= 0) p7.push(last - 7 - k); }
+  const fd = (d) => { const x = D.dates[d]; return x ? x.slice(8, 10) + '/' + x.slice(5, 7) : ''; }, wd = (d) => ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][new Date(D.dates[d] + 'T00:00:00').getDay()];
+  const ents = D.ents.map((e, i) => i).filter((i) => tntEntOk(D.ents[i]));
+  const sum = (es, ds) => { let t = 0, n = 0; es.forEach((e) => ds.forEach((d) => { t += A.tr[e * nD + d]; n += A.tt[e * nD + d]; })); return { t: t, n: n, p: n ? t / n : null }; };
+  const top = ents.map((e) => ({ e: e, s: sum([e], w7) })).filter((r) => r.s.t > 0).sort((a, b) => b.s.t - a.s.t).slice(0, 10);
+  const tg = G[4], vAll = sum(ents, w7), mk = tg !== null ? tg : vAll.p, isOver = (p) => p !== null && (tg !== null ? (G[5] ? p > tg : p >= tg) : p > mk);
+  const pc = (p) => p === null ? '<span class="tnt-dz2">—</span>' : '<b class="tnt-tpp ' + (tg === null && mk === null ? '' : isOver(p) ? 'tnt-red' : 'tnt-up2') + '">' + tntP(p) + '</b>';
+  const cell = (o, cls) => '<td class="tnt-tpc' + (cls || '') + '">' + (o.n ? pc(o.p) + '<small><span class="tnt-red">' + tntN(o.t) + '</span> | ' + tntN(o.n) + '</small>' : '<span class="tnt-dz2">·</span>') + '</td>';
+  const spark = (es) => { const v = w7.slice().reverse().map((d) => sum(es, [d]).p).filter((x) => x !== null); if (v.length < 2) return ''; const mn = Math.min(...v), mx = Math.max(...v), W = 74, H = 22;
+    const n = v.length, xm = (n - 1) / 2, ym = v.reduce((a, b) => a + b, 0) / n; let num = 0, den = 0; v.forEach((y, i) => { num += (i - xm) * (y - ym); den += (i - xm) * (i - xm); }); const rel = ym ? (num / den) * (n - 1) / ym : 0;
+    const col = rel > 0.05 ? '#C62116' : rel < -0.05 ? '#0A7A3E' : '#9A8F74', pts = v.map((y, i) => (i * W / (n - 1)).toFixed(1) + ',' + (mx === mn ? H / 2 : H - 3 - (y - mn) / (mx - mn) * (H - 6)).toFixed(1)).join(' ');
+    return '<svg width="' + W + '" height="' + H + '" class="tnt-spk"><polyline points="' + pts + '" fill="none" stroke="' + col + '" stroke-width="2"/><circle cx="' + W + '" cy="' + pts.split(' ').pop().split(',')[1] + '" r="2.5" fill="' + col + '"/></svg><small style="color:' + col + '">' + (rel > 0.05 ? '▲ tăng' : rel < -0.05 ? '▼ giảm' : '■ đi ngang') + '</small>'; };
+  const cn = (d) => wd(d) === 'CN' ? ' tnt-cn' : '';
+  let h = '<div class="tnt-osum">Nhóm <b>' + esc(G[1]) + '</b> · top 10 BC nhiều đơn trả nhất 7 ngày ' + fd(w7[w7.length - 1]) + ' → ' + fd(last) + ' · ' + (tg !== null ? 'KPI ' + (G[5] ? '≤ ' : '< ') + tntP(tg, 1) : 'chưa có KPI → so FD bình quân phạm vi ' + tntP(vAll.p)) + ' · ô = <b>% FD</b> · dưới: <span class="tnt-red">đơn trả</span> | đơn hoàn tất (GTC + trả)</div>';
+  h += '<div class="tnt-tw"><table class="tnt-ot tnt-oct tnt-tpt"><thead><tr><th>#</th><th class="l">Bưu cục</th>' + d8.map((d) => '<th class="' + cn(d) + '">' + wd(d) + '<small>' + fd(d) + '</small></th>').join('') + '<th class="tnt-tp7">7 ngày<small>' + fd(w7[w7.length - 1]) + ' → ' + fd(last) + '</small></th><th>Xu hướng<small>% FD 7 ngày</small></th></tr></thead><tbody>';
+  top.forEach((r, i) => { const E = D.ents[r.e]; h += '<tr><td>' + (i + 1) + '</td><td class="l"><b>' + esc(E[0]) + '</b><small>' + esc(E[2] || '') + ' · ' + esc(E[1] || '') + '</small></td>' + d8.map((d) => cell(sum([r.e], [d]), cn(d))).join('') + cell(r.s, ' tnt-tp7') + '<td>' + spark([r.e]) + '</td></tr>'; });
+  const tes = top.map((r) => r.e);
+  h += '<tr class="tnt-ovr"><td></td><td class="l"><b>Tổng top 10</b></td>' + d8.map((d) => cell(sum(tes, [d]), cn(d))).join('') + cell(sum(tes, w7), ' tnt-tp7') + '<td>' + spark(tes) + '</td></tr>';
+  h += '<tr class="tnt-ovr"><td></td><td class="l"><b>' + (ents.length === D.ents.length ? 'Vùng TNT' : 'Phạm vi đang lọc') + '</b></td>' + d8.map((d) => cell(sum(ents, [d]), cn(d))).join('') + cell(vAll, ' tnt-tp7') + '<td>' + spark(ents) + '</td></tr></tbody></table></div>';
+  // nhận xét từng BC
+  const fP = (x) => (x > 0 ? '+' : '') + (x * 100).toFixed(1).replace('.', ',') + '%', fPd = (x) => (x > 0 ? '+' : '') + (x * 100).toFixed(2).replace('.', ',') + '%';
+  const vp = sum(ents, p7), tt = sum(tes, w7);
+  let rm = '<div class="tnt-rmk"><div class="tnt-rmh"><b>' + (ents.length === D.ents.length ? 'Vùng TNT' : 'Phạm vi') + '</b>: FD 7 ngày ' + pc(vAll.p) + (vp.p !== null ? ' (7 ngày trước ' + tntP(vp.p) + ', ' + '<b class="' + (vAll.p - vp.p > 0 ? 'tnt-red' : 'tnt-up2') + '">' + (vAll.p - vp.p > 0 ? '▲ ' : '▼ ') + fPd(vAll.p - vp.p) + '</b>)' : '') + ' · ' + tntN(vAll.t) + ' đơn trả / ' + tntN(vAll.n) + ' hoàn tất · top 10 chiếm <b>' + tntP(vAll.t ? tt.t / vAll.t : null) + '</b> đơn trả.</div>';
+  top.forEach((r, i) => {
+    const E = D.ents[r.e], c = r.s, b = sum([r.e], p7), over = isOver(c.p), worse = b.p !== null && c.p !== null && c.p > b.p + 0.0005;
+    const lv = !over ? '🟢' : worse ? '🔴' : '🟠', lvT = !over ? 'Đạt ' + (tg !== null ? 'KPI' : 'mốc') : worse ? 'Vượt ' + (tg !== null ? 'KPI' : 'mốc') + ' & xấu đi' : 'Vượt ' + (tg !== null ? 'KPI' : 'mốc') + ' nhưng cải thiện / đi ngang';
+    let why = '';
+    if (b.n && b.t && c.p !== null && b.p !== null) {
+      const dT = (c.t - b.t) / b.t, dN = (c.n - b.n) / b.n;
+      why = 'Vol trả ' + (dT >= 0 ? 'tăng ' : 'giảm ') + fP(Math.abs(dT)).replace('+', '') + ' (' + tntN(b.t) + ' → ' + tntN(c.t) + '), đơn hoàn tất ' + (dN >= 0 ? 'tăng ' : 'giảm ') + fP(Math.abs(dN)).replace('+', '') + ' (' + tntN(b.n) + ' → ' + tntN(c.n) + ')';
+      why += c.p > b.p + 0.0005 ? (dT > dN ? ' → vol trả tăng nhanh hơn đơn hoàn tất' : ' → đơn hoàn tất giảm mạnh hơn vol trả') + ', FD lên ' + tntP(c.p) + ' (' + fPd(c.p - b.p) + ')' : c.p < b.p - 0.0005 ? ' → FD xuống ' + tntP(c.p) + ' (' + fPd(c.p - b.p) + ')' : ' → FD đi ngang ' + tntP(c.p);
+    } else why = 'FD 7 ngày ' + tntP(c.p) + ' (7 ngày trước chưa có số).';
+    const days = w7.map((d) => ({ d: d, o: sum([r.e], [d]) })).filter((x) => x.o.n);
+    const nOver = days.filter((x) => isOver(x.o.p)).length; let streak = 0; for (const x of days) { if (isOver(x.o.p)) streak++; else break; }
+    const pk = days.slice().sort((a, b) => b.o.t - a.o.t)[0], dl = sum([r.e], [last]), dlp = sum([r.e], [last - 1]);
+    const det = ['FD 7 ngày ' + pc(c.p) + ' vs ' + (tg !== null ? 'KPI ' + tntP(tg, 1) : 'mốc ' + tntP(mk)) + (b.p !== null ? ' · 7 ngày trước ' + tntP(b.p) : ''),
+      nOver + '/' + days.length + ' ngày vượt' + (streak >= 2 ? ' · đang vượt <b class="tnt-red">' + streak + ' ngày liên tiếp</b>' : ''),
+      pk ? 'vol trả cao nhất ' + wd(pk.d) + ' ' + fd(pk.d) + ': <b>' + tntN(pk.o.t) + '</b> đơn (FD ' + tntP(pk.o.p) + ')' : '',
+      'TB ' + tntN(c.t / (days.length || 1)) + ' trả / ' + tntN(c.n / (days.length || 1)) + ' hoàn tất mỗi ngày',
+      dl.n ? 'ngày ' + fd(last) + ': ' + tntP(dl.p) + (dlp.n ? ' (' + (dl.p - dlp.p > 0 ? '<b class="tnt-red">▲ ' : '<b class="tnt-up2">▼ ') + fPd(dl.p - dlp.p) + '</b> so hôm trước)' : '') : ''].filter(Boolean);
+    rm += '<div class="tnt-rmi"><div class="tnt-rmt">' + lv + ' <b>' + (i + 1) + '. ' + esc(E[0]) + '</b> <i>' + esc(E[2] || '') + ' · ' + esc(E[1] || '') + '</i> — <span class="' + (!over ? 'tnt-up2' : 'tnt-red') + '">' + lvT + '</span></div><div class="tnt-rmw">' + why + '</div><div class="tnt-rmd">' + det.join(' · ') + '</div></div>';
+  });
+  h += '<div class="tnt-h3" style="margin-top:14px">Nhận xét từng bưu cục</div>' + rm + '</div>';
   return h;
 }
 function tntRetBcOpen(e) { const cf = TNT.retBc; cf.open = cf.open || {}; cf.open[e] = !cf.open[e]; tntRetBcRender(); }
