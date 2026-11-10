@@ -818,8 +818,14 @@ async function handleGetTntReport(body) {
     const rows = (valueRanges[i] && valueRanges[i].values) || [];
     const H = (rows[0] || []).map(tntNorm);
     const find = (re, last) => { let k = -1; H.forEach((h, j) => { if (re.test(h) && (last || k < 0)) k = j; }); return k; };
-    const c = { bc: find(/^chi tiet/), am: find(/^cap quan ly/, true), tinh: find(/^tinh$/), v: find(/^volume/), g: find(/^don gan/), k: find(/^don gtc/), day: find(/^chuan ngay/), time: find(/^time|^thoi gian|^ngay$/) };
-    const out = { name: name, cols: c, d: [], b: [], v: [], g: [], k: [] };
+    // Sheet GTC (Volume/Đơn gán/Đơn GTC) và sheet ODR TTS (GTC = cột D, Đơn đúng OT = cột F, Chuẩn AM) dùng chung khung:
+    // v = mẫu số (Volume hoặc GTC), k = tử số (Đơn GTC hoặc Đơn đúng OT), g = Đơn gán (không có thì 0)
+    const pick = (...a) => { for (const k of a) if (k >= 0) return k; return -1; };
+    const c = { bc: find(/^chi tiet/), am: pick(find(/^cap quan ly/, true), find(/^chuan am/), find(/^quan ly/)), tinh: find(/^tinh$/),
+      v: pick(find(/^volume/), find(/^gtc$/)), g: find(/^don gan/), k: pick(find(/^don gtc/), find(/^don dung ot/), find(/^don dung ontime/)),
+      day: find(/^chuan ngay/), time: find(/^time|^thoi gian|^ngay$/) };
+    const isMain = find(/^volume/) >= 0;
+    const out = { name: name, cols: c, main: isMain, d: [], b: [], v: [], g: [], k: [] };
     if (c.bc < 0 || c.v < 0) { out.error = 'thieu_cot'; return out; }
     for (let r = 1; r < rows.length; r++) {
       const row = rows[r]; const bc = String(row[c.bc] === undefined ? '' : row[c.bc]).trim();
@@ -835,6 +841,18 @@ async function handleGetTntReport(body) {
     }
     return out;
   });
+  // Khoảng ngày lấy theo các sheet GTC chính (có cột Volume); sheet phụ (ODR…) có ngày ngoài khoảng đó thì bỏ
+  const mainDays = {}; parsed.forEach((p) => { if (p.main) p.d.forEach((d) => { mainDays[d] = 1; }); });
+  const md = Object.keys(mainDays).sort();
+  if (md.length) {
+    const lo = md[0], hi = md[md.length - 1];
+    parsed.forEach((p) => {
+      if (p.main) return;
+      const keep = p.d.map((d) => d >= lo && d <= hi);
+      ['d', 'b', 'v', 'g', 'k'].forEach((f) => { p[f] = p[f].filter((x, i) => keep[i]); });
+    });
+    Object.keys(dateSet).forEach((d) => { if (d < lo || d > hi) delete dateSet[d]; });
+  }
   const dates = Object.keys(dateSet).sort(); const di = {}; dates.forEach((d, i) => { di[d] = i; });
   parsed.forEach((p) => { p.d = p.d.map((d) => di[d]); });
   return { ok: true, sheets: parsed, ents: ents, dates: dates, thoiGian: new Date().toISOString() };
