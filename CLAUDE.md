@@ -165,3 +165,4 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 - 2026-11-10: [TNT]-Report Bảng số liệu — dòng 3 mục lớn GIAO / TRẢ / LẤY HÀNG có nút chữ "▾ Mở rộng" / "▴ Thu gọn" ngay sau tên mục (`.tnt-secbtn`) để người xem biết bấm mở.
 - 2026-11-10: [TNT]-Report III mục 2 BC trả hàng nhiều nhất — Sắp theo mặc định "Đơn trả nhiều nhất" (`TNT.retBc.sort = 't'`).
 - 2026-11-10: [TNT]-Report — nút "Mở rộng / Thu gọn" của 3 mục lớn trong Bảng số liệu chuyển ra CUỐI dòng (bên phải, `float:right` + sticky right) cho đồng bộ với các mục II/III.
+- 2026-11-10: [TNT]-Report — đổi tiêu đề phần I thành "I · Tổng quan" (bỏ chữ giao hàng).
