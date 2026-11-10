@@ -829,6 +829,22 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-osh .tnt-tg{color:#2F5E9E;font-size:12px;width:12px}
 .tnt-colb{margin-left:auto;padding:3px 10px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-weight:700;font-size:12px;cursor:pointer;color:#2B2618}
 .tnt-osh:hover .tnt-colb{background:#2B2618;color:#fff}
+.tnt-oq{padding:5px 10px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-size:13px;min-width:220px;margin-left:8px}
+.tnt-osort{font-size:12.5px;color:#7A6E52;display:inline-flex;align-items:center;gap:6px;margin-left:6px}
+.tnt-osort select{padding:5px 8px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-size:13px;font-weight:600}
+.tnt-osum{font-size:13px;color:#5C5240;margin:4px 0 8px}.tnt-osum i{font-style:normal;color:#9A8F74;font-size:12px}
+.tnt-ocw{max-height:720px;overflow:auto}
+.tnt-oct thead th{position:sticky;top:0;z-index:2}
+.tnt-oct th.tnt-cn{background:#C8611F}
+.tnt-oct thead th small{display:block;font-weight:600;opacity:.85;font-size:10.5px}
+.tnt-oct td.tnt-oc{text-align:right;font-variant-numeric:tabular-nums;min-width:62px}
+.tnt-oct td.tnt-oc small{display:block;font-size:11px;color:#8A8068}
+.tnt-oct td.tnt-oc small.tnt-red{color:#C62116}
+.tnt-oct td.tnt-ocb{background:#FBE3DC}.tnt-oct td.tnt-ocg{background:#E6F0E4}
+.tnt-oct tr.tnt-orow{cursor:pointer}.tnt-oct tr.tnt-orow td.l small{display:block;font-size:11px;color:#9A8F74;font-weight:500}
+.tnt-oct tr.tnt-ovr td{background:#F3ECDA;font-weight:700}
+.tnt-oct tr.tnt-osub td{background:#FBF7EC;font-size:12px}
+.tnt-oct tr.tnt-osub td.l{padding-left:22px}
 .tnt-more{margin:8px 6px 0 0;padding:5px 12px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-weight:700;font-size:12.5px;cursor:pointer}
 .tnt-h3 .tnt-cmpsel{display:inline-flex;gap:6px;margin-left:12px;vertical-align:middle}
 .tnt-cmpsel label{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border:1px solid #D8CDB0;border-radius:6px;background:#FFFDF6;font-size:12.5px;font-weight:700;color:#2B2618;cursor:pointer}
@@ -8239,8 +8255,69 @@ function tntOprHtml() {
       return '<tr><td>' + (i + 1) + '</td><td class="l">' + esc(kTinh(k.w) || '') + '</td><td class="l">' + esc(kAm(k.w) || '') + '</td><td class="l"><b>' + esc(kName(k.w)) + '</b></td><td>' + tntN(k.n) + '</td><td><b class="tnt-red">' + tntN(k.n - k.o) + '</b></td><td>' + tntOprCell(k.o / k.n) + '</td><td class="l tnt-shs">' +
         sh.map((x) => { const q = k.shops[x]; const op = q.n ? 1 - q.l / q.n : null; return '<div><b>' + esc(S.shops[x]) + '</b> <span class="tnt-red">' + tntN(q.l) + '</span>/' + tntN(q.n) + ' đơn · <span class="' + (op >= 0.8 ? 'tnt-up2' : 'tnt-dn2') + '">OPR ' + tntP(op) + '</span>' + (day ? '' : ' <i>· TB ' + '<span class="tnt-red">' + tntN(q.l / nDay) + '</span>/' + tntN(q.n / nDay) + ' đơn/ngày</i>') + '</div>'; }).join('') + '</td><td>' + tntP(pct(k.n - k.o, late)) + '</td></tr>'; }).join('') + '</tbody></table></div>';
   h += '</div>';
+  // 4. Lấy hàng TTS theo khách (giống mục 17 [S]-Report) — toàn bộ từ sheet "OPR theo ca tạo"
+  h += oh(4, '4. Lấy hàng TTS theo khách (OPR) <span>· mỗi dòng 1 shop · ô = đơn LTC' + (day ? '' : ' (TB 1 ngày)') + ', số nhỏ = % OPR (đỏ khi thấp hơn vùng ≥ 10%) · nền đỏ: OPR < 50% · nền xanh: OPR ≥ 95% · bấm tên shop xem theo khung giờ tạo</span>');
+  const cf = TNT.oprCust || (TNT.oprCust = { h: -1, q: '', sort: 'n', more: 30, open: {} });
+  h += '<div class="tnt-fbar">' + [[-1, 'Tất cả giờ tạo']].concat(hOrd.map((x) => [x, hLab(x)])).map(([x, l]) => '<button class="' + (cf.h === x ? 'on' : '') + '" onclick="TNT.oprCust.h=' + x + ';TNT.oprCust.more=30;tntOprCustRender()">' + esc(l) + '</button>').join('') +
+    '<input class="tnt-oq" placeholder="Tìm khách / BC" value="' + esc(cf.q) + '" oninput="TNT.oprCust.q=this.value;TNT.oprCust.more=30;clearTimeout(window.__tntOq);window.__tntOq=setTimeout(tntOprCustRender,250)">' +
+    '<label class="tnt-osort">Sắp theo <select onchange="TNT.oprCust.sort=this.value;TNT.oprCust.more=30;tntOprCustRender()">' + [['n', 'Đơn lấy TC nhiều trước'], ['l', 'Lấy trễ nhiều trước'], ['p', '% OPR thấp trước (≥ 20 đơn)']].map(([k, l]) => '<option value="' + k + '"' + (cf.sort === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></label></div>';
+  h += '<div id="tntOprCust">' + tntOprCustHtml() + '</div></div>';
   return h;
 }
+// Bảng shop × ngày/tuần: ô = đơn LTC (TB/ngày khi xem tuần) + % OPR; lọc khung giờ tạo, tìm shop/BC, sắp xếp (mặc định đơn LTC nhiều trước)
+function tntOprCustHtml() {
+  const D = TNT.data, S = (D.sheets || []).find((x) => x.kind === 'oprca'); if (!S) return '';
+  const { cols, day } = tntTblBase(), nD = D.dates.length, nC = cols.length, all = !(TNT.f.tinh || TNT.f.am || TNT.f.bc);
+  const cf = TNT.oprCust || { h: -1, q: '', sort: 'n', more: 30, open: {} };
+  const kOk = S.kho.map((k) => k[1] >= 0 ? tntEntOk(D.ents[k[1]]) : all);
+  const nH = S.khung.length, hOrd = S.khung.map((x, i) => i).sort((a, b) => S.khung[a].localeCompare(S.khung[b], 'vi')), hLab = (i) => S.khung[i].replace(/^\d+\.\s*/, '');
+  const ci = new Int16Array(nD).fill(-1); cols.forEach((c, j) => (c.idx || []).forEach((d) => { ci[d] = j; }));
+  const days = new Float64Array(nC); const seen = new Uint8Array(nD);
+  const nrm = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  const q = nrm(cf.q).trim();
+  const shops = {}, vN = new Float64Array(nC), vO = new Float64Array(nC);
+  for (let i = 0; i < S.d.length; i++) {
+    const d = S.d[i], j = ci[d]; if (j < 0) continue; if (!seen[d]) { seen[d] = 1; days[j]++; }
+    if (!kOk[S.w[i]] || (cf.h >= 0 && S.h[i] !== cf.h)) continue;
+    vN[j] += S.n[i]; vO[j] += S.o[i];
+    const sh = shops[S.s[i]] || (shops[S.s[i]] = { s: S.s[i], N: new Float64Array(nC), O: new Float64Array(nC), H: {}, w: {}, n: 0, o: 0 });
+    sh.N[j] += S.n[i]; sh.O[j] += S.o[i]; sh.n += S.n[i]; sh.o += S.o[i]; sh.w[S.w[i]] = (sh.w[S.w[i]] || 0) + S.n[i];
+    const hh = sh.H[S.h[i]] || (sh.H[S.h[i]] = { N: new Float64Array(nC), O: new Float64Array(nC) }); hh.N[j] += S.n[i]; hh.O[j] += S.o[i];
+  }
+  const kName = (w) => S.kho[w][0], mainKho = (sh) => +Object.keys(sh.w).sort((a, b) => sh.w[b] - sh.w[a])[0];
+  let list = Object.keys(shops).map((k) => shops[k]).filter((sh) => sh.n > 0);
+  if (q) list = list.filter((sh) => nrm(S.shops[sh.s]).indexOf(q) >= 0 || Object.keys(sh.w).some((w) => nrm(kName(+w)).indexOf(q) >= 0));
+  if (cf.sort === 'l') list.sort((a, b) => (b.n - b.o) - (a.n - a.o) || b.n - a.n);
+  else if (cf.sort === 'p') list = list.filter((sh) => sh.n >= 20).sort((a, b) => a.o / a.n - b.o / b.n || b.n - a.n);
+  else list.sort((a, b) => b.n - a.n);
+  const TN = list.reduce((a, x) => a + x.n, 0), TO = list.reduce((a, x) => a + x.o, 0), worst = list.slice().sort((a, b) => (b.n - b.o) - (a.n - a.o))[0];
+  const cn = (c) => day && c.sub === 'CN' ? ' tnt-cn' : '';
+  const cell = (n, o, j, isSub) => {
+    if (!n) return '<td class="tnt-oc' + cn(cols[j]) + '"><span class="tnt-dz2">·</span></td>';
+    const p = o / n, vp = vN[j] ? vO[j] / vN[j] : null, bg = p < 0.5 ? ' tnt-ocb' : p >= 0.95 ? ' tnt-ocg' : '';
+    const per = !day && days[j] ? n / days[j] : n;
+    return '<td class="tnt-oc' + bg + cn(cols[j]) + '">' + tntN(per) + '<small class="' + (vp !== null && p < vp - 0.1 ? 'tnt-red' : '') + '">' + tntP(p) + '</small></td>';
+  };
+  let h = '<div class="tnt-osum">' + tntN(list.length) + ' khách · <b>' + tntN(TN) + '</b> đơn LTC · OPR ' + (TN ? '<b class="' + (TO / TN >= 0.8 ? 'tnt-up2' : 'tnt-red') + '">' + tntP(TO / TN) + '</b>' : '—') + ' · trễ <b class="tnt-red">' + tntN(TN - TO) + '</b> đơn' + (worst && worst.n > worst.o ? ' · trễ nhiều nhất: <b>' + esc(S.shops[worst.s]) + '</b> (' + tntN(worst.n - worst.o) + ')' : '') + ' <i>(tổng các kỳ đang xem)</i></div>';
+  h += '<div class="tnt-tw tnt-ocw"><table class="tnt-ot tnt-oct"><thead><tr><th>#</th><th class="l">Khách (shop)</th><th class="l">Bưu cục</th>' + cols.map((c) => '<th class="' + cn(c) + '">' + esc(c.lab) + '<small>' + esc(c.sub) + '</small></th>').join('') + '</tr></thead><tbody>';
+  h += '<tr class="tnt-ovr"><td></td><td class="l"><b>Vùng (theo lọc)</b></td><td></td>' + cols.map((c, j) => cell(vN[j], vO[j], j)).join('') + '</tr>';
+  list.slice(0, cf.more).forEach((sh, i) => {
+    const op = !!(cf.open || {})[sh.s], w0 = mainKho(sh), nk = Object.keys(sh.w).length;
+    h += '<tr class="tnt-orow" onclick="tntOprCustOpen(' + sh.s + ')"><td>' + (i + 1) + '</td><td class="l"><b>' + esc(S.shops[sh.s]) + '</b> <span class="tnt-tg">' + (op ? '▾' : '›') + '</span><small>' + tntN(sh.n) + ' đơn · trễ <span class="tnt-red">' + tntN(sh.n - sh.o) + '</span> · OPR ' + tntP(sh.o / sh.n) + '</small></td><td class="l">' + esc(kName(w0)) + (nk > 1 ? ' <i>+' + (nk - 1) + ' kho</i>' : '') + '</td>' + cols.map((c, j) => cell(sh.N[j], sh.O[j], j)).join('') + '</tr>';
+    if (op) hOrd.forEach((x) => { const hh = sh.H[x]; if (!hh) return; let tn = 0, to = 0; for (let j = 0; j < nC; j++) { tn += hh.N[j]; to += hh.O[j]; }
+      h += '<tr class="tnt-osub"><td></td><td class="l">↳ ' + esc(hLab(x)) + '<small>' + tntN(tn) + ' đơn · trễ <span class="tnt-red">' + tntN(tn - to) + '</span></small></td><td></td>' + cols.map((c, j) => cell(hh.N[j], hh.O[j], j)).join('') + '</tr>'; });
+  });
+  if (!list.length) h += '<tr><td colspan="' + (3 + nC) + '" class="l"><span class="tnt-dz2">Không có khách nào.</span></td></tr>';
+  h += '</tbody></table></div>';
+  if (list.length > cf.more) h += '<button class="tnt-more" onclick="TNT.oprCust.more+=30;tntOprCustRender()">Hiện thêm 30 khách (còn ' + tntN(list.length - cf.more) + ')</button>';
+  if (cf.more > 30) h += '<button class="tnt-more" onclick="TNT.oprCust.more=30;tntOprCustRender()">Thu gọn</button>';
+  return h;
+}
+function tntOprCustOpen(s) { const cf = TNT.oprCust; cf.open = cf.open || {}; cf.open[s] = !cf.open[s]; tntOprCustRender(); }
+function tntOprCustRender() { const el = document.getElementById('tntOprCust'); if (!el) return; el.innerHTML = tntOprCustHtml();
+  // cập nhật trạng thái nút khung giờ mà không vẽ lại ô tìm kiếm (giữ con trỏ khi gõ)
+  const b = el.parentElement && el.parentElement.querySelector('.tnt-fbar');
+  if (b) { const btns = b.querySelectorAll('button'); btns.forEach((x) => { const m = (x.getAttribute('onclick') || '').match(/h=(-?\d+)/); if (m) x.classList.toggle('on', +m[1] === TNT.oprCust.h); }); } }
 function tntOprTog(n) { TNT.oprOpen = TNT.oprOpen || {}; TNT.oprOpen[n] = !TNT.oprOpen[n]; tntRenderOpr(); }
 function tntRenderOpr() { const ob = document.getElementById('tntOpr'); if (ob) ob.innerHTML = tntOprHtml(); }
 function tntSecToggle(sc) { TNT.secOpen = TNT.secOpen || {}; TNT.secOpen[sc] = !TNT.secOpen[sc]; document.getElementById('tntTbl').innerHTML = tntTableHtml(); }
