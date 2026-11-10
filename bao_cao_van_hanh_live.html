@@ -7904,6 +7904,20 @@ function tntBuildCols(per) {
       if (wi > 0) { s.prev = tntSum(per, all[keys[wi - 1]]); s.prevLab = 'tuần ' + keys[wi - 1]; }
       cols.push(s);
     });
+    // CÙNG KỲ TUẦN: mọi tuần chỉ lấy đúng các THỨ đã có của tuần mới nhất (vd tuần mới nhất có T2–T3 → mọi tuần cũ cũng chỉ T2–T3).
+    // Áp vào TNT.cols nên biểu đồ, bảng, nhận xét đều dùng chung số cùng kỳ.
+    if (TNT.cmp === 'same' && cols.length) {
+      const W = new Set(cols[cols.length - 1].idx.map((d) => tntWd(D[d]))), cut = (ids) => ids.filter((d) => W.has(tntWd(D[d])));
+      if (W.size < 7) {
+        const out = [];
+        cols.forEach((c) => { const ids = cut(c.idx); if (!ids.length) return; const ki = keys.indexOf(c.key), pk = ki > 0 ? keys[ki - 1] : null, pids = pk ? cut(all[pk]) : [];
+          const o = tntSum(per, ids); o.key = c.key; o.lab = c.lab.replace('*', '') + '*'; o.sub = tntDm(D[ids[0]]) + '–' + tntDm(D[ids[ids.length - 1]]);
+          o.title = 'Tuần ' + c.key + ' cùng kỳ (' + o.sub + ', ' + ids.length + ' ngày: ' + Array.from(W).sort().map((x) => TNT_WD[x]).join(', ') + ')';
+          o.idx = ids; o.wkIdx = null; o.prevIdx = pids.length ? pids : null; o.prev = pids.length ? tntSum(per, pids) : null; o.prevLab = pk ? 'tuần ' + pk + ' cùng kỳ' : ''; o.prevKey = pk || ''; o.same = 1;
+          out.push(o); });
+        cols.length = 0; out.forEach((c) => cols.push(c));
+      }
+    }
   }
   return cols;
 }
@@ -7994,11 +8008,13 @@ function tntHover(i, pin) {
   const p = document.getElementById('tntPanel'); if (p) p.innerHTML = tntPanelHtml(i);
 }
 function tntKpiHtml(per) {
-  const idx = tntRangeIdx(), n = idx.length, lo = idx[0];
-  const prevIdx = []; for (let i = lo - n; i < lo; i++) if (i >= 0) prevIdx.push(i);
-  const a = tntSum(per, idx), b = prevIdx.length === n ? tntSum(per, prevIdx) : null;
+  const SC = TNT.mode === 'week' && TNT.cols && TNT.cols.length && TNT.cols[0].same; // cùng kỳ tuần: chỉ tính các ngày cùng kỳ, so cùng các thứ tuần trước
+  let idx = tntRangeIdx(), prevIdx = [];
+  if (SC) { idx = [].concat(...TNT.cols.map((c) => c.idx)).sort((x, y) => x - y); prevIdx = [].concat(...TNT.cols.map((c) => c.prevIdx || [])).sort((x, y) => x - y); }
+  else { const lo = idx[0], m = idx.length; for (let i = lo - m; i < lo; i++) if (i >= 0) prevIdx.push(i); }
+  const n = idx.length, a = tntSum(per, idx), b = prevIdx.length === n ? tntSum(per, prevIdx) : null;
   const card = (k, v, d, clr) => '<div class="tnt-kpi"><div class="tnt-k"' + (clr ? ' style="color:' + clr + '"' : '') + '>' + k + '</div><div class="tnt-kv"' + (clr ? ' style="color:' + clr + '"' : '') + '>' + v + '</div><div class="tnt-kd">' + d + '</div></div>';
-  const sub = b ? ' <span class="tnt-k2">so ' + n + ' ngày trước</span>' : '';
+  const sub = b ? ' <span class="tnt-k2">' + (SC ? 'so cùng kỳ tuần trước' : 'so ' + n + ' ngày trước') + '</span>' : '';
   return card('Cần giao TB/ngày', tntN(a.v / n), (b ? tntDelta(a.v / n, b.v / n, false, 0) : '') + sub) +
     card('Năng suất TB/ngày', tntN(a.k / n), (b ? tntDelta(a.k / n, b.k / n, false, 1) : '') + sub, '#14915F') +
     card('% GTC cả kỳ', tntP(a.gtc), (b ? tntDelta(a.gtc, b.gtc, true, 1) : '') + sub, '#F26522') +
@@ -8468,7 +8484,8 @@ function tntRetBcHtml() {
   const rg = tntRangeIdx(); let last = -1;
   for (let j = rg.length - 1; j >= 0 && last < 0; j--) { const d = rg[j]; for (let e = 0; e < D.ents.length; e++) if (A.tt[e * nD + d]) { last = d; break; } }
   if (last < 0) return '<div class="tnt-warn">Khoảng ngày đang xem chưa có dữ liệu trả hàng của nhóm này.</div>';
-  const w7 = [], p7 = [], d21 = []; for (let k = 0; k < 7; k++) { if (last - k >= 0) w7.push(last - k); if (last - 7 - k >= 0) p7.push(last - 7 - k); } for (let k = 0; k < 21; k++) if (last - k >= 0) d21.push(last - k);
+  let w7 = [], p7 = [], d21 = []; for (let k = 0; k < 7; k++) { if (last - k >= 0) w7.push(last - k); if (last - 7 - k >= 0) p7.push(last - 7 - k); }
+  { const SW = tntSameWin(); if (SW && SW.w.length) { w7 = SW.w; p7 = SW.p; last = SW.last; } } for (let k = 0; k < 21; k++) if (last - k >= 0) d21.push(last - k);
   const nrm = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase(), q = nrm(cf.q).trim();
   const ents = D.ents.map((e, i) => i).filter((i) => tntEntOk(D.ents[i]));
   const sum = (e, ds) => { let t = 0, n = 0; ds.forEach((d) => { t += A.tr[e * nD + d]; n += A.tt[e * nD + d]; }); return [t, n]; };
@@ -8508,7 +8525,8 @@ function tntRetTopHtml() {
   const rg = tntRangeIdx(); let last = -1;
   for (let j = rg.length - 1; j >= 0 && last < 0; j--) { const d = rg[j]; for (let e = 0; e < D.ents.length; e++) if (A.tt[e * nD + d]) { last = d; break; } }
   if (last < 0) return '<div class="tnt-warn">Khoảng ngày đang xem chưa có dữ liệu trả hàng của nhóm này.</div>';
-  const d8 = [], w7 = [], p7 = []; for (let k = 0; k < 8; k++) if (last - k >= 0) d8.push(last - k); for (let k = 0; k < 7; k++) { if (last - k >= 0) w7.push(last - k); if (last - 7 - k >= 0) p7.push(last - 7 - k); }
+  let d8 = [], w7 = [], p7 = []; for (let k = 0; k < 8; k++) if (last - k >= 0) d8.push(last - k); for (let k = 0; k < 7; k++) { if (last - k >= 0) w7.push(last - k); if (last - 7 - k >= 0) p7.push(last - 7 - k); }
+  { const SW = tntSameWin(); if (SW && SW.w.length) { w7 = SW.w; p7 = SW.p; last = SW.last; d8 = []; for (let k = 0; k < 8; k++) if (last - k >= 0) d8.push(last - k); } }
   const fd = (d) => { const x = D.dates[d]; return x ? x.slice(8, 10) + '/' + x.slice(5, 7) : ''; }, wd = (d) => ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][new Date(D.dates[d] + 'T00:00:00').getDay()];
   const ents = D.ents.map((e, i) => i).filter((i) => tntEntOk(D.ents[i]));
   const sum = (es, ds) => { let t = 0, n = 0; es.forEach((e) => ds.forEach((d) => { t += A.tr[e * nD + d]; n += A.tt[e * nD + d]; })); return { t: t, n: n, p: n ? t / n : null }; };
@@ -8594,11 +8612,15 @@ function tntGhAll() { return TNT.data.ents.map((e, i) => i); }
 function tntGhMN(m) { return m === 'tot' ? 'Tổng (ca đang chọn)' : m === 'ca1' ? 'Ca 1' : m === 'ca2' ? 'Ca 2' : 'Hàng tồn'; }
 function tntGhFd(d) { const x = TNT.data.dates[d]; return x ? x.slice(8, 10) + '/' + x.slice(5, 7) : ''; }
 function tntGhWd(d) { return TNT_WD[tntWd(TNT.data.dates[d])]; }
+// Cửa sổ ngày cho các bảng "7 ngày": khi xem Tuần + So sánh cùng kỳ tuần → kỳ = các ngày cùng kỳ của tuần mới nhất, kỳ trước = cùng các thứ tuần trước
+function tntSameWin() { if (TNT.mode !== 'week' || TNT.cmp !== 'same' || !TNT.cols || !TNT.cols.length) return null; const c = TNT.cols[TNT.cols.length - 1]; if (!c.same) return null;
+  const w = c.idx.slice().sort((a, b) => b - a), p = (c.prevIdx || []).slice().sort((a, b) => b - a); return { w: w, p: p, last: w[0] }; }
 // 7 ngày gần nhất có dữ liệu trong khoảng xem + 7 ngày trước + 14 ngày (cũ → mới)
 function tntGhW(G) {
   const rg = tntRangeIdx(), all = tntGhAll(); let last = -1;
   for (let j = rg.length - 1; j >= 0 && last < 0; j--) if (tntGhSum(G, all, [rg[j]], ['ca1', 'ca2', 'ton']).v > 0) last = rg[j];
   if (last < 0) return null;
+  const SW = tntSameWin(); if (SW && SW.w.length) { const d14 = SW.w.concat(SW.p).sort((a, b) => a - b); return { last: SW.last, w7: SW.w, p7: SW.p, d14: d14, same: 1 }; }
   const w7 = [], p7 = [], d14 = []; for (let k = 0; k < 7; k++) { if (last - k >= 0) w7.push(last - k); if (last - 7 - k >= 0) p7.push(last - 7 - k); }
   for (let k = 13; k >= 0; k--) if (last - k >= 0) d14.push(last - k);
   return { last: last, w7: w7, p7: p7, d14: d14 };
@@ -8871,15 +8893,6 @@ function tntTblBase() {
   const cols = TNT.cols.slice().reverse(), day = TNT.mode === 'day';
   // Tuần: 'full' = mốc là tuần mới nhất ĐỦ 7 ngày, so cả tuần trước; 'same' = mốc là tuần mới nhất (chưa đủ cũng được), so CÙNG KỲ (cùng các thứ) tuần trước
   const same = !day && TNT.cmp === 'same';
-  if (same && cols.length && TNT.per) {
-    // CÙNG KỲ: mọi tuần chỉ lấy đúng các THỨ đã có của tuần mới nhất (vd tuần mới nhất có T2–T3 → mọi tuần cũ cũng chỉ tính T2–T3)
-    const D = TNT.data.dates, W = new Set(cols[0].idx.map((d) => tntWd(D[d])));
-    const fl = cols.map((c) => c.idx.filter((d) => W.has(tntWd(D[d]))));
-    const nc = cols.map((c, k) => { const ids = fl[k]; if (!ids.length) return null; const o = tntSum(TNT.per, ids);
-      return Object.assign(o, { key: c.key, lab: c.lab.replace('*', '') + (W.size < 7 ? '*' : ''), sub: tntDm(D[ids[0]]) + '–' + tntDm(D[ids[ids.length - 1]]), title: c.title, idx: ids, wkIdx: null }); });
-    const out = nc.filter(Boolean); out.forEach((c, k) => { const p = out[k + 1]; c.prev = p || null; c.prevIdx = p ? p.idx : null; });
-    cols.length = 0; out.forEach((c) => cols.push(c));
-  }
   const WL = same ? (cols.length > 1 ? cols[1].lab.replace('*', '') + ' cùng kỳ' : 'Cùng kỳ') : 'Tuần trước';
   let ai = 0; if (!day && !same) { const f = cols.findIndex((c) => c.n >= 7); if (f >= 0) ai = f; }
   return { cols: cols, day: day, same: same, WL: WL, ai: ai };
