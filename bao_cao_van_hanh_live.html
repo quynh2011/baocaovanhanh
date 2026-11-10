@@ -8129,7 +8129,7 @@ function tntTableHtml() {
   };
   h += '<tr class="tnt-sec"><td colspan="' + ncol + '"><span>Giao hàng</span></td></tr>';
   TNT_TBL.forEach(([k, title, pre, fv, fp, ftp, subs]) => {
-    const note = k === 'b' ? (TNT.BL ? ' <i class="tnt-trn">snapshot 01:00 · nguồn [S]-Report</i>' : TNT.blErr ? ' <i class="tnt-trn">— chưa lấy được dữ liệu: ' + esc(TNT.blErr) + '</i>' : ' <i class="tnt-trn">— đang tải dữ liệu từ [S]-Report…</i>') : '';
+    const note = k === 'b' ? (TNT.BL ? '' : TNT.blErr ? ' <i class="tnt-trn">— chưa lấy được dữ liệu: ' + esc(TNT.blErr) + '</i>' : ' <i class="tnt-trn">— đang tải dữ liệu từ [S]-Report…</i>') : '';
     h += '<tr class="tnt-g" onclick="tntTblToggle(\'' + k + '\')"><td><span class="tnt-tg">' + (shut[k] ? '▸' : '▾') + '</span>' + title + note + '</td>' +
       cols.map((c, i) => { const p = ftp ? ftp(c) : null; return '<td' + (i === ai ? ' class="tnt-ancc' + (day && c.sub === 'CN' ? ' tnt-cn' : '') + '"' : cn(c)) + '>' + (k === 'o' ? tntOdrCell(p, v(c, tot[k](c))) : k === 'b' && !c.p.bl.has ? '<span class="tnt-dz2">—</span>' : v(c, tot[k](c)) + (p !== null && p !== undefined ? '<small>' + tntP(p) + '</small>' : '')) + dline(i, c, tot[k], ftp, DIR[k], k === 'b') + '</td>'; }).join('') + '</tr>';
     if (shut[k]) return;
