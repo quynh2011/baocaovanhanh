@@ -8069,11 +8069,12 @@ function tntTableHtml() {
     if (dir && pa !== null && pb !== null && isFinite(pa) && isFinite(pb)) {
       const d = pa - pb, flat = Math.abs(d) < 0.0005, good = d * dir > 0;
       const cls = flat ? 'tnt-dz2' : good ? 'tnt-up2' : 'tnt-dn2';
-      return '<span class="tnt-cmpr"><b>' + lab + '</b><span class="' + cls + '">' + (flat ? '■ 0,0%' : (good ? '▲ ' : '▼ ') + fmtP(d)) + '</span><em>' + fmtN(dn) + '</em></span>';
+      // mũi tên theo CHIỀU số (tăng ▲ / giảm ▼), màu theo TỐT/XẤU (xanh / đỏ)
+      return '<span class="tnt-cmpr"><b>' + lab + '</b><span class="' + cls + '">' + (flat ? '■ 0,0%' : (d > 0 ? '▲ ' : '▼ ') + fmtP(d)) + '</span><em>' + fmtN(dn) + '</em></span>';
     }
     // so số đơn: Cần giao (dir ≥ 0) nhiều hơn = xanh ▲; Backlog (dir < 0) ít hơn = xanh ▲, nhiều hơn = đỏ ▼
     const gd = dir < 0 ? dn < 0 : dn > 0;
-    return '<span class="tnt-cmpr"><b>' + lab + '</b><span class="' + (dn === 0 ? 'tnt-dz2' : gd ? 'tnt-up2' : 'tnt-dn2') + '">' + (dn === 0 ? '■ 0' : (gd ? '▲ ' : '▼ ') + fmtN(dn)) + '</span></span>';
+    return '<span class="tnt-cmpr"><b>' + lab + '</b><span class="' + (dn === 0 ? 'tnt-dz2' : gd ? 'tnt-up2' : 'tnt-dn2') + '">' + (dn === 0 ? '■ 0' : (dn > 0 ? '▲ ' : '▼ ') + fmtN(dn)) + '</span></span>';
   };
   const dline = (i, c, fNum, fPct, dir, bl) => {
     if (i !== ai) return '';
