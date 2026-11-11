@@ -8994,9 +8994,9 @@ function tntHlHtml() {
     const vb = good ? (up ? ['tăng', 'cải thiện', 'nhích lên', 'đi lên'] : ['giảm', 'hạ xuống', 'lùi về', 'thu hẹp']) : (up ? ['tăng', 'đội lên', 'nhích lên', 'leo lên'] : ['giảm', 'tụt', 'sụt', 'đi xuống']);
     return pick(vb, i) + ' ' + (m[7] ? tntP(Math.abs(d)) : tntGhD(d, m[5])); };
   // 1 dòng = phần VÙNG (số vùng kỳ trước → kỳ mốc, target, xu hướng vùng) + dòng phụ AM/BC kém nhất kèm số CỦA CHÍNH nơi đó kỳ trước → kỳ mốc
-  const entTxt = (m, w, tag) => { const cur = m[3](w.o); const ps = CMP.map((c) => { const o = tntSumEnts(w.es, c.idx); return m[4](o) > 0 ? m[3](o) : null; });
-    if (CMP.length === 1) { const p = ps[0]; return tag + ' <b>' + esc(w.k) + '</b>: ' + (p !== null && isFinite(p) ? prevS(0) + ' ' + tntHlFmt(m, p) + ' → ' : '') + curS + ' <b>' + tntHlFmt(m, cur) + '</b>' + (p !== null && isFinite(p) ? ' (' + dFmt(m, cur, p) + ')' : ' (kỳ trước chưa có số)'); }
-    return tag + ' <b>' + esc(w.k) + '</b>: N-1 <b>' + tntHlFmt(m, cur) + '</b> (' + ps.map((p, k) => p !== null && isFinite(p) ? 'so ' + CMP[k].lab + ' ' + tntHlFmt(m, p) + ' ' + dFmt(m, cur, p) : 'so ' + CMP[k].lab + ' —').join(' · ') + ')'; };
+  const entTxt = (m, w, tag0) => { const cur = m[3](w.o); const am0 = tag0 === 'BC' ? (D.ents[w.es[0]][1] || '') : ''; const tag = tag0; const nm = esc(w.k) + (am0 && am0 !== '—' ? '</b> <span style="color:#7A6E55">(AM ' + esc(am0) + ')</span><b>' : ''); const ps = CMP.map((c) => { const o = tntSumEnts(w.es, c.idx); return m[4](o) > 0 ? m[3](o) : null; });
+    if (CMP.length === 1) { const p = ps[0]; return tag + ' <b>' + nm + '</b>: ' + (p !== null && isFinite(p) ? prevS(0) + ' ' + tntHlFmt(m, p) + ' → ' : '') + curS + ' <b>' + tntHlFmt(m, cur) + '</b>' + (p !== null && isFinite(p) ? ' (' + dFmt(m, cur, p) + ')' : ' (kỳ trước chưa có số)'); }
+    return tag + ' <b>' + nm + '</b>: N-1 <b>' + tntHlFmt(m, cur) + '</b> (' + ps.map((p, k) => p !== null && isFinite(p) ? 'so ' + CMP[k].lab + ' ' + tntHlFmt(m, p) + ' ' + dFmt(m, cur, p) : 'so ' + CMP[k].lab + ' —').join(' · ') + ')'; };
   const line = (r, i) => { const m = r.m, wa = worst(AMS, m), wb = worst(BCS, m); // AM tệ nhất vùng + BC tệ nhất vùng (độc lập)
     let ch;
     if (CMP.length === 1) { const x = r.ds[0]; ch = prevS(0) + ' ' + tntHlFmt(m, x.p) + ' → ' + curS + ' <b>' + tntHlFmt(m, r.cur) + '</b> (' + chg(m, x.d, i) + ')'; }
