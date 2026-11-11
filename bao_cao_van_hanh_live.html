@@ -874,7 +874,7 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-hln{font-size:12px;font-weight:700;color:#3A3426;min-height:30px;display:flex;align-items:center;justify-content:center}.tnt-hlv{font:800 20px/1.2 'JetBrains Mono',monospace;color:#1F1B14}.tnt-hlt{font-size:11px;color:#8A7F64}.tnt-hld{font-size:11px;margin-top:2px}
 .tnt-hlbox{border-radius:10px;padding:10px 16px;margin:10px 0;border-left:5px solid}.tnt-hlhi{background:#EEF8F1;border-color:#2E8B57}.tnt-hllo{background:#FCEFED;border-color:#C62116}
 .tnt-hlbh{font-weight:800;font-size:14px;margin-bottom:6px}.tnt-hlbh span{font-weight:500;color:#8A7F64;font-size:12px;margin-left:6px}.tnt-hlbox ul{margin:0;padding-left:18px}.tnt-hlbox li{margin:4px 0;line-height:1.5}
-.tnt-hlk{font-size:11px;color:#8A7F64;border:1px solid #D9CDB0;border-radius:8px;padding:0 5px}
+.tnt-hlrg{font-size:11px;font-weight:800;color:#fff;background:#3E5878;border-radius:6px;padding:0 5px;margin-right:2px}.tnt-hlws{font-size:12.5px;color:#4A4332;margin:1px 0 4px 6px}.tnt-hlk{font-size:11px;color:#8A7F64;border:1px solid #D9CDB0;border-radius:8px;padding:0 5px}
 .tnt-ght td.tnt-ghm,.tnt-ght th.tnt-ghm{border-left:2px solid #2B2618;border-right:2px solid #2B2618}.tnt-ght th.tnt-ghm{background:#1F3F6E}
 .tnt-ght tr.tnt-ght1 td{background:#EEF3F9}.tnt-ght tr.tnt-ght2 td{background:#F7FAFD}.tnt-ght tr.tnt-ght3 td{background:#fff}.tnt-ght td small{display:block}.tnt-ght tr.tnt-ghsm td{color:#9A8F74}.tnt-ght tr.tnt-ghsm td b{color:#9A8F74!important}.tnt-ghfew{font-style:normal;color:#B0623A;font-weight:700}.tnt-ghmore{display:inline-flex;gap:8px;align-items:center}.tnt-ghmore .tnt-colb{margin-left:0}.tnt-ghmore i{font-style:normal;color:#9A8F74;font-size:12px}.tnt-tip li{margin:2px 0}
 .tnt-tip .tnt-red,.tnt-tip .tnt-tg-bad{color:#FF7A6B}.tnt-tip .tnt-up2,.tnt-tip .tnt-tg-ok{color:#5FD08E}
@@ -8949,12 +8949,16 @@ function tntHlHtml() {
   const { cols, day, WL, ai } = tntTblBase(), C = cols[ai]; if (!C || !C.prev) return '';
   const fdd = (i) => { const x = D.dates[i]; return x ? TNT_WD[tntWd(x)] + ' ' + x.slice(8, 10) + '/' + x.slice(5, 7) : ''; };
   // Kỳ so: Ngày → N-1 so N-2 (hôm trước) VÀ N-1 so N-8 (cùng thứ tuần trước); Tuần → so tuần trước / cùng kỳ tuần trước
-  const CMP = [{ lab: day ? 'N-2' : (WL === 'Tuần trước' ? 'tuần trước' : WL), full: day ? 'N-2 (' + fdd(C.prevIdx[0]) + ')' : (WL === 'Tuần trước' ? 'tuần trước' : WL) + ' (' + tntRg(C.prevIdx) + ')', o: C.prev }];
-  if (day && C.wkIdx && C.wkIdx.length) CMP.push({ lab: 'N-8', full: 'N-8 (' + fdd(C.wkIdx[0]) + ', cùng thứ tuần trước)', o: tntSum(TNT.per, C.wkIdx) });
+  const CMP = [{ lab: day ? 'N-2' : (WL === 'Tuần trước' ? 'tuần trước' : WL), full: day ? 'N-2 (' + fdd(C.prevIdx[0]) + ')' : (WL === 'Tuần trước' ? 'tuần trước' : WL) + ' (' + tntRg(C.prevIdx) + ')', o: C.prev, idx: C.prevIdx }];
+  if (day && C.wkIdx && C.wkIdx.length) CMP.push({ lab: 'N-8', full: 'N-8 (' + fdd(C.wkIdx[0]) + ', cùng thứ tuần trước)', o: tntSum(TNT.per, C.wkIdx), idx: C.wkIdx });
   const curLab = day ? 'N-1 (' + fdd(C.idx[0]) + ')' : C.lab + ' (' + tntRg(C.idx) + ')';
   const es = D.ents.map((e, i) => i).filter((i) => tntEntOk(D.ents[i])), whole = es.length === D.ents.length;
   const amM = {}; es.forEach((e) => { const k = D.ents[e][1] || '—'; (amM[k] = amM[k] || []).push(e); });
-  const AMS = Object.keys(amM).map((k) => ({ k: k, o: tntSumEnts(amM[k], C.idx) })), BCS = es.map((e) => ({ k: D.ents[e][0], o: tntSumEnts([e], C.idx) }));
+  const AMS = Object.keys(amM).map((k) => ({ k: k, es: amM[k], o: tntSumEnts(amM[k], C.idx) })), BCS = es.map((e) => ({ k: D.ents[e][0], es: [e], o: tntSumEnts([e], C.idx) }));
+  // nhãn ngắn kỳ mốc / kỳ so: Tuần → T45 / T44 (cùng kỳ: T44*); Ngày → N-1 / N-2, N-8
+  const wkS = (lab) => { const m2 = /(\d{4})\/(\d+)/.exec(lab || ''); return m2 ? 'T' + (+m2[2]) : ''; };
+  const curS = day ? 'N-1' : C.lab.replace('*', ''), prevS = (k) => day ? CMP[k].lab : (wkS(C.prevLab) || 'tuần trước') + (C.same ? '*' : '');
+  const dFmt = (m, cur, p) => m[7] ? (p ? ((cur - p) / p >= 0 ? '▲ +' : '▼ −') + tntP(Math.abs((cur - p) / p)) : '') : tntGhD(cur - p, m[5]);
   const worst = (list, m) => { const L = list.filter((r) => m[3](r.o) !== null && m[4](r.o) > 0 && (m[0].indexOf('fd') === 0 || m[4](r.o) >= (m[7] ? 1 : 10) * (C.idx.length || 1))); if (L.length < 2) return null;
     const sm = tntGhSmallSet(L, (r) => m[4](r.o)); return L.filter((r, i) => !sm[i]).sort((a, b) => (m[3](a.o) - m[3](b.o)) * m[5])[0] || null; };
   // xu hướng các kỳ gần (tối đa 4 kỳ kết thúc ở mốc) — luôn kèm số từng kỳ, vd "tốt lên 2 tuần liền: T43 44,1% → T44 45,0% → T45 46,8%"
@@ -8989,15 +8993,19 @@ function tntHlHtml() {
   const chg = (m, d, i) => { const up = d > 0, good = d * m[5] > 0;
     const vb = good ? (up ? ['tăng', 'cải thiện', 'nhích lên', 'đi lên'] : ['giảm', 'hạ xuống', 'lùi về', 'thu hẹp']) : (up ? ['tăng', 'đội lên', 'nhích lên', 'leo lên'] : ['giảm', 'tụt', 'sụt', 'đi xuống']);
     return pick(vb, i) + ' ' + (m[7] ? tntP(Math.abs(d)) : tntGhD(d, m[5])); };
+  // 1 dòng = phần VÙNG (số vùng kỳ trước → kỳ mốc, target, xu hướng vùng) + dòng phụ AM/BC kém nhất kèm số CỦA CHÍNH nơi đó kỳ trước → kỳ mốc
+  const entTxt = (m, w, tag) => { const cur = m[3](w.o); const ps = CMP.map((c) => { const o = tntSumEnts(w.es, c.idx); return m[4](o) > 0 ? m[3](o) : null; });
+    if (CMP.length === 1) { const p = ps[0]; return tag + ' <b>' + esc(w.k) + '</b>: ' + (p !== null && isFinite(p) ? prevS(0) + ' ' + tntHlFmt(m, p) + ' → ' : '') + curS + ' <b>' + tntHlFmt(m, cur) + '</b>' + (p !== null && isFinite(p) ? ' (' + dFmt(m, cur, p) + ')' : ' (kỳ trước chưa có số)'); }
+    return tag + ' <b>' + esc(w.k) + '</b>: N-1 <b>' + tntHlFmt(m, cur) + '</b> (' + ps.map((p, k) => p !== null && isFinite(p) ? 'so ' + CMP[k].lab + ' ' + tntHlFmt(m, p) + ' ' + dFmt(m, cur, p) : 'so ' + CMP[k].lab + ' —').join(' · ') + ')'; };
   const line = (r, i) => { const m = r.m, wa = worst(AMS, m), wb = worst(BCS, m);
     let ch;
-    if (CMP.length === 1) { const x = r.ds[0]; ch = m[7] ? chg(m, x.d, i) + ' (' + tntN(x.p) + ' → ' + tntN(r.cur) + ' đơn)' : pick(['từ ', 'đi từ ', ''], i) + tntP(x.p) + ' → <b>' + tntP(r.cur) + '</b> (' + chg(m, x.d, i) + ')'; }
-    else ch = '<b>' + tntHlFmt(m, r.cur) + '</b>: ' + r.ds.map((x, k) => x && x.d !== null ? 'so ' + CMP[k].lab + ' ' + tntHlFmt(m, x.p) + ' ' + (m[7] ? (x.d >= 0 ? '▲ +' : '▼ −') + tntP(Math.abs(x.d)) : tntGhD(x.d, m[5])) : 'so ' + CMP[k].lab + ' —').join(' · ') + (r.mixed ? ' <i>(2 mốc ngược chiều)</i>' : '');
-    const tg = gapTxt(m, r.cur, i);
-    const lbl = m[5] > 0 ? pick(['thấp nhất', 'yếu nhất', 'cần kèm', 'kéo xuống nhiều nhất'], i) : pick(['cao nhất', 'nặng nhất', 'cần kèm', 'đẩy lên nhiều nhất'], i);
-    const ws = (wa ? 'AM <b>' + esc(wa.k) + '</b> ' + tntHlFmt(m, m[3](wa.o)) : '') + (wb ? (wa ? ', ' : '') + 'BC <b>' + esc(wb.k) + '</b> ' + tntHlFmt(m, m[3](wb.o)) : '');
-    const tr = trend(m);
-    return '<li><b>' + esc(m[1]) + '</b> <span class="tnt-hlk">' + m[2] + '</span> ' + ch + (tg ? ' · ' + tg : '') + (ws ? ' · ' + lbl + ': ' + ws : '') + (tr ? ' · <i>' + tr + '</i>' : '') + '</li>'; };
+    if (CMP.length === 1) { const x = r.ds[0]; ch = prevS(0) + ' ' + tntHlFmt(m, x.p) + ' → ' + curS + ' <b>' + tntHlFmt(m, r.cur) + '</b> (' + chg(m, x.d, i) + ')'; }
+    else ch = 'N-1 <b>' + tntHlFmt(m, r.cur) + '</b>: ' + r.ds.map((x, k) => x && x.d !== null ? 'so ' + CMP[k].lab + ' ' + tntHlFmt(m, x.p) + ' ' + dFmt(m, r.cur, x.p) : 'so ' + CMP[k].lab + ' —').join(' · ') + (r.mixed ? ' <i>(2 mốc ngược chiều)</i>' : '');
+    const tg = gapTxt(m, r.cur, i), tr = trend(m);
+    const lbl = m[5] > 0 ? pick(['Thấp nhất', 'Yếu nhất', 'Cần kèm', 'Kéo xuống nhiều nhất'], i) : pick(['Cao nhất', 'Nặng nhất', 'Cần kèm', 'Đẩy lên nhiều nhất'], i);
+    const ws = [wa ? entTxt(m, wa, 'AM') : '', wb ? entTxt(m, wb, 'BC') : ''].filter(Boolean).join(' · ');
+    return '<li><b>' + esc(m[1]) + '</b> <span class="tnt-hlk">' + m[2] + '</span> <span class="tnt-hlrg">' + (whole ? 'Vùng' : 'Phạm vi') + '</span> ' + ch + (tg ? ' · ' + tg : '') + (tr ? ' · <i>xu hướng ' + (whole ? 'vùng' : 'phạm vi') + ' ' + tr + '</i>' : '') +
+      (ws ? '<div class="tnt-hlws">↳ ' + lbl + ' ở kỳ mốc — ' + ws + '</div>' : '') + '</li>'; };
   const hi = rows.filter((r) => r.side > 0).sort((a, b) => b.score - a.score), lo = rows.filter((r) => r.side < 0).sort((a, b) => b.score - a.score);
   const sub = esc(curLab) + ' so ' + CMP.map((c) => esc(c.full)).join(' và ');
   h += '<div class="tnt-hlbox tnt-hlhi"><div class="tnt-hlbh">🟢 Điểm sáng (' + hi.length + ') <span>' + sub + '</span></div>' + (hi.length ? '<ul>' + hi.map(line).join('') + '</ul>' : '<i class="tnt-dz2">Không có chỉ số nào tốt lên.</i>') + '</div>';
