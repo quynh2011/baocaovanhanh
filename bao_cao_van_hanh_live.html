@@ -739,6 +739,20 @@ td.dn-keycol{background:#FBF7EE}
 </style>
 <style id="tntCss">
 /* ---- [TNT]-Report ---- */
+#tntSide .tnt-sdtab{position:fixed;right:0;z-index:2000;writing-mode:vertical-rl;border:0;border-radius:10px 0 0 10px;padding:16px 9px;font-weight:800;font-size:14px;color:#fff;cursor:pointer;box-shadow:-2px 2px 8px rgba(0,0,0,.18)}
+#tntSide .tnt-sdtoc{top:200px;background:#2F5E9E}#tntSide .tnt-sddef{top:330px;background:#E2672E}
+#tntSide .tnt-sdpan{position:fixed;top:12px;bottom:12px;right:44px;width:min(380px,88vw);z-index:2001;background:#FBF7EA;border:1px solid #E2D7BD;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.22);overflow:auto;padding:0 16px 16px;display:none}
+#tntSide .tnt-sdpan.on{display:block}
+.tnt-sdhd{position:sticky;top:0;background:#FBF7EA;display:flex;justify-content:space-between;align-items:center;padding:14px 0 10px;border-bottom:1px solid #E2D7BD;margin-bottom:6px;font-size:17px}
+.tnt-sdhd button{border:0;background:none;font-size:22px;cursor:pointer;color:#6B624C}
+.tnt-tocg{font-weight:800;font-size:13px;letter-spacing:.5px;color:#6B5E3F;text-transform:uppercase;margin:14px 0 4px}
+.tnt-toci{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:14.5px;line-height:1.35;border:1.5px solid transparent}
+.tnt-toci:hover{background:#F1E9D2}.tnt-toci.on{background:#FFF3DC;border-color:#8DB4E2}
+.tnt-toci i{font-style:normal;flex:none;min-width:22px;text-align:center;background:#F6DCCB;color:#D2541E;font-weight:800;font-size:12px;border-radius:9px;padding:1px 5px;margin-top:1px}
+.tnt-defi{padding:10px 0;border-bottom:1px solid #EAE0C6;font-size:13.5px;line-height:1.5;color:#3F3826}
+.tnt-defi b{font-size:14.5px;color:#2B2618}.tnt-defi code{display:inline-block;margin-left:6px;background:#F8E3D3;color:#C4501D;border-radius:6px;padding:1px 7px;font-size:12px;font-family:ui-monospace,Menlo,monospace;font-weight:700}
+.tnt-defg{font-weight:800;font-size:13px;letter-spacing:.5px;color:#6B5E3F;text-transform:uppercase;margin:16px 0 0}
+@media (max-width:700px){#tntSide .tnt-sdtab{font-size:12px;padding:12px 6px}#tntSide .tnt-sdpan{right:36px}}
 #vhTnt{max-width:none;width:100%;margin:0;padding:0 clamp(16px,4vw,90px) 16px;box-sizing:border-box}
 @media (max-width:900px){#vhTnt{padding:0 10px 16px}}
 .tnt-wrap{background:#F4EDDB;border:1px solid #E2D7BD;border-radius:12px;padding:14px 16px 18px;color:#2B2618}
@@ -873,7 +887,7 @@ td.dn-keycol{background:#FBF7EE}
 .tnt-hlc{border-radius:10px;padding:8px 6px;text-align:center;border:1px solid}.tnt-hlc0{background:#ECF8F1;border-color:#BFE3CD}.tnt-hlc1{background:#FFF8E1;border-color:#F0DC9C}.tnt-hlc2{background:#FDEDEB;border-color:#F2C2BC}
 .tnt-hln{font-size:12px;font-weight:700;color:#3A3426;min-height:30px;display:flex;align-items:center;justify-content:center}.tnt-hlv{font:800 20px/1.2 'JetBrains Mono',monospace;color:#1F1B14}.tnt-hlt{font-size:11px;color:#8A7F64}.tnt-hld{font-size:11px;margin-top:2px}
 .tnt-hlbox{border-radius:10px;padding:10px 16px;margin:10px 0;border-left:5px solid}.tnt-hlhi{background:#EEF8F1;border-color:#2E8B57}.tnt-hllo{background:#FCEFED;border-color:#C62116}
-.tnt-hlbh{font-weight:800;font-size:14px;margin-bottom:6px}.tnt-hlbh span{font-weight:500;color:#8A7F64;font-size:12px;margin-left:6px}.tnt-hlbox ul{margin:0;padding-left:18px}.tnt-hlbox li{margin:4px 0;line-height:1.5}
+.tnt-hlbh{font-weight:800;font-size:14px;margin-bottom:6px}.tnt-hlclk{cursor:pointer;display:flex;align-items:center;gap:4px;flex-wrap:wrap}.tnt-hlclk .tnt-colb{margin-left:auto}.tnt-hlchips{display:flex;flex-wrap:wrap;gap:6px}.tnt-hlchips span{background:rgba(255,255,255,.7);border:1px solid #E2D7BD;border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:600;color:#4A4332}.tnt-hlbh span{font-weight:500;color:#8A7F64;font-size:12px;margin-left:6px}.tnt-hlbox ul{margin:0;padding-left:18px}.tnt-hlbox li{margin:4px 0;line-height:1.5}
 .tnt-hlrg{font-size:11px;font-weight:800;color:#fff;background:#3E5878;border-radius:6px;padding:0 5px;margin-right:2px}.tnt-hlws{font-size:12.5px;color:#4A4332;margin:1px 0 2px 6px}.tnt-hlws2{margin-left:34px;margin-bottom:5px}#tntHl .tnt-up2{color:#0A7A3E;font-weight:800}.tnt-hlk{font-size:11px;color:#8A7F64;border:1px solid #D9CDB0;border-radius:8px;padding:0 5px}
 .tnt-ght td.tnt-ghm,.tnt-ght th.tnt-ghm{border-left:2px solid #2B2618;border-right:2px solid #2B2618}.tnt-ght th.tnt-ghm{background:#1F3F6E}
 .tnt-ght tr.tnt-ght1 td{background:#EEF3F9}.tnt-ght tr.tnt-ght2 td{background:#F7FAFD}.tnt-ght tr.tnt-ght3 td{background:#fff}.tnt-ght td small{display:block}.tnt-ght tr.tnt-ghsm td{color:#9A8F74}.tnt-ght tr.tnt-ghsm td b{color:#9A8F74!important}.tnt-ghfew{font-style:normal;color:#B0623A;font-weight:700}.tnt-ghmore{display:inline-flex;gap:8px;align-items:center}.tnt-ghmore .tnt-colb{margin-left:0}.tnt-ghmore i{font-style:normal;color:#9A8F74;font-size:12px}.tnt-tip li{margin:2px 0}
@@ -1205,6 +1219,9 @@ td.dn-keycol{background:#FBF7EE}
     <div id="tntErr"></div>
     <div class="tnt-wrap" id="tntBody" style="display:none">
       <div id="tntCtl"></div>
+      <div id="tntSide"><button class="tnt-sdtab tnt-sdtoc" onclick="tntSideOpen('toc')">Mục lục</button><button class="tnt-sdtab tnt-sddef" onclick="tntSideOpen('def')">Định nghĩa &amp; target</button>
+        <div class="tnt-sdpan" id="tntSdToc"><div class="tnt-sdhd"><b>Mục lục</b><button onclick="tntSideOpen('')">×</button></div><div id="tntTocList"></div></div>
+        <div class="tnt-sdpan" id="tntSdDef"><div class="tnt-sdhd"><b>Định nghĩa &amp; target</b><button onclick="tntSideOpen('')">×</button></div><div id="tntDefList"></div></div></div>
       <div class="tnt-h"><h2>I · Tổng quan</h2><span id="tntScopeLab"></span></div>
       <div class="tnt-h3">Tổng hợp nhanh — chỉ số đạt target · điểm sáng · điểm cần cải thiện</div>
       <div id="tntHl"></div>
@@ -8939,6 +8956,7 @@ function tntHlM() { return [
   ['pr', '% Rớt luân chuyển TTS', 'Lấy', (o) => o.p.lgA.k ? o.p.lgA.x / o.p.lgA.k : null, (o) => o.p.lgA.k, -1, 0.02, 0, 1],
   ['lgb', 'Backlog luân chuyển', 'Lấy', (o) => o.p.lgb && o.p.lgb.has ? o.p.lgb.T / (o.n || 1) : null, (o) => o.p.lgb && o.p.lgb.has ? o.p.lgb.T : 0, -1, null, 1]
 ]; }
+function tntHlTog(k) { TNT.hlOpen = TNT.hlOpen || {}; TNT.hlOpen[k] = !TNT.hlOpen[k]; tntHlRender(); }
 function tntHlFmt(m, x) { return x === null || x === undefined || !isFinite(x) ? '—' : m[7] ? tntN(x) : tntP(x); }
 function tntHlTg(m) { if (m[6] === null || m[6] === undefined) return ''; return (m[5] > 0 ? '≥ ' : m[8] ? '≤ ' : '< ') + tntP(m[6]); }
 // 0 = đạt, 1 = gần đạt (cách target ≤ 2%, trừ thẳng), 2 = chưa đạt
@@ -9008,8 +9026,12 @@ function tntHlHtml() {
       ws + '</li>'; };
   const hi = rows.filter((r) => r.side > 0).sort((a, b) => b.score - a.score), lo = rows.filter((r) => r.side < 0).sort((a, b) => b.score - a.score);
   const sub = esc(curLab) + ' so ' + CMP.map((c) => esc(c.full)).join(' và ');
-  h += '<div class="tnt-hlbox tnt-hlhi"><div class="tnt-hlbh">🟢 Điểm sáng (' + hi.length + ') <span>' + sub + '</span></div>' + (hi.length ? '<ul>' + hi.map(line).join('') + '</ul>' : '<i class="tnt-dz2">Không có chỉ số nào tốt lên.</i>') + '</div>';
-  h += '<div class="tnt-hlbox tnt-hllo"><div class="tnt-hlbh">🔴 Điểm cần cải thiện (' + lo.length + ') <span>' + sub + '</span></div>' + (lo.length ? '<ul>' + lo.map(line).join('') + '</ul>' : '<i class="tnt-dz2">Không có chỉ số nào xấu đi.</i>') + '</div>';
+  const HO = TNT.hlOpen || (TNT.hlOpen = {}); // mặc định THU GỌN, bấm mở phần nào xem phần đó
+  const box = (k, cls, ttl, arr, none) => { const op = !!HO[k];
+    return '<div class="tnt-hlbox ' + cls + '"><div class="tnt-hlbh tnt-hlclk" onclick="tntHlTog(\'' + k + '\')"><span class="tnt-tg">' + (op ? '▾' : '▸') + '</span>' + ttl + ' (' + arr.length + ') <span>' + sub + '</span><button class="tnt-colb">' + (op ? 'Thu gọn' : 'Mở rộng') + '</button></div>' +
+      (!arr.length ? '<i class="tnt-dz2">' + none + '</i>' : op ? '<ul>' + arr.map(line).join('') + '</ul>' : '<div class="tnt-hlchips">' + arr.map((r) => '<span>' + esc(r.m[1]) + '</span>').join('') + '</div>') + '</div>'; };
+  h += box('hi', 'tnt-hlhi', '🟢 Điểm sáng', hi, 'Không có chỉ số nào tốt lên.');
+  h += box('lo', 'tnt-hllo', '🔴 Điểm cần cải thiện', lo, 'Không có chỉ số nào xấu đi.');
   const flat = rows.filter((r) => !r.side && r.ds.some((x) => x)).map((r) => r.m[1]);
   if (flat.length) h += '<div class="tnt-rmd">Không đổi: ' + flat.map(esc).join(', ') + '.</div>';
   return '<div class="tnt-osum">Kỳ mốc <b>' + esc(curLab) + '</b> so <b>' + CMP.map((c) => esc(c.full)).join('</b> và <b>') + '</b>' + (CMP.length > 1 ? ' — tốt lên ở cả 2 mốc (hoặc 1 mốc, mốc kia đứng yên) là điểm sáng; 2 mốc ngược chiều thì theo mốc thay đổi lớn hơn' : '') + ' · ' + (whole ? 'Vùng TNT' : 'phạm vi đang lọc') + ' · giao hàng: ' + (TNT.cust === 'tts' ? 'TTS' : 'Tất cả KH') + ' · bỏ qua AM/BC ít hàng</div>' + h;
@@ -9164,6 +9186,53 @@ function tntFitTables() {
     w.style.maxHeight = (rows[10].offsetTop + 2) + 'px';
   });
 }
+// ====== [TNT]-Report · Mục lục chạy theo báo cáo + Định nghĩa & target (tab dọc bên phải) ======
+function tntSideOpen(k) { TNT.side = TNT.side === k ? '' : k; ['toc', 'def'].forEach((x) => { const p = document.getElementById(x === 'toc' ? 'tntSdToc' : 'tntSdDef'); if (p) p.classList.toggle('on', TNT.side === x); });
+  if (TNT.side === 'toc') { tntTocBuild(); tntTocSpy(); } if (TNT.side === 'def') { const d = document.getElementById('tntDefList'); if (d && !d.innerHTML) d.innerHTML = tntDefHtml(); } }
+function tntTocHeads() { const b = document.getElementById('tntBody'); return b ? Array.from(b.querySelectorAll('.tnt-h h2, .tnt-h3')).filter((e) => e.offsetParent !== null) : []; }
+function tntTocTitle(e) { const c = e.cloneNode(true); c.querySelectorAll('span,button').forEach((x) => x.remove()); return (c.textContent || '').replace(/\s+/g, ' ').replace(/[—–-]\s*$/, '').replace(/\s—\s[^—]*\d[^—]*$/, '').trim().replace(/^\d+\.\s*/, ''); }
+function tntTocBuild() { const box = document.getElementById('tntTocList'); if (!box) return; let n = 0, h = '';
+  tntTocHeads().forEach((e, i) => { e.setAttribute('data-toc', i); if (e.tagName === 'H2') h += '<div class="tnt-tocg">' + esc(e.textContent.trim()) + '</div>'; else h += '<div class="tnt-toci" data-ti="' + i + '" onclick="tntTocGo(' + i + ')"><i>' + (++n) + '</i><span>' + esc(tntTocTitle(e)) + '</span></div>'; });
+  box.innerHTML = h; TNT.__tocN = tntTocHeads().length; }
+function tntTocGo(i) { let e = tntTocHeads()[i]; if (!e) return;
+  if (e.classList.contains('tnt-osh')) { const t = e.querySelector('.tnt-tg'); if (t && t.textContent === '▸') { e.click(); e = tntTocHeads()[i] || e; tntTocBuild(); } }
+  const ctl = document.getElementById('tntCtl'), off = (ctl ? ctl.offsetHeight : 0) + 16;
+  window.scrollTo({ top: e.getBoundingClientRect().top + window.scrollY - off, behavior: 'smooth' }); }
+function tntTocSpy() { const box = document.getElementById('tntTocList'); if (!box || TNT.side !== 'toc') return; const hs = tntTocHeads(); if (hs.length !== TNT.__tocN) { tntTocBuild(); }
+  const ctl = document.getElementById('tntCtl'), off = (ctl ? ctl.offsetHeight : 0) + 40; let cur = -1;
+  hs.forEach((e, i) => { if (e.tagName !== 'H2' && e.getBoundingClientRect().top <= off) cur = i; });
+  if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) hs.forEach((e, i) => { if (e.tagName !== 'H2' && e.getBoundingClientRect().top < window.innerHeight * 0.6) cur = i; }); // cuối trang
+  if (cur < 0) { const f = hs.findIndex((e) => e.tagName !== 'H2'); cur = f; }
+  box.querySelectorAll('.tnt-toci').forEach((x) => { const on = +x.getAttribute('data-ti') === cur; x.classList.toggle('on', on); if (on && x.scrollIntoViewIfNeeded) x.scrollIntoViewIfNeeded(false); }); }
+function tntTocInit() { if (window.__tntTocOn) return; window.__tntTocOn = 1; let q = 0; window.addEventListener('scroll', () => { if (q) return; q = 1; requestAnimationFrame(() => { q = 0; tntTocSpy(); }); }, { passive: true }); }
+function tntDefHtml() { const M = tntHlM(), tg = (id) => { const m = M.find((x) => x[0] === id); return m && m[6] !== null ? tntHlTg(m) : 'chưa có target'; };
+  const G = [['Giao hàng', [
+    ['Cần giao (Volume)', 'Ca 1 + Ca 2 + Tồn', 'Số đơn bưu cục phải giao trong ngày. Xem tuần: số đơn = trung bình 1 ngày.'],
+    ['Ca 1 / Ca 2 / Hàng tồn', '', 'Ca 1, ca 2 = hàng mới về bưu cục theo ca trong ngày; Hàng tồn = đơn tồn từ hôm trước chuyển sang.'],
+    ['% GTC', 'Đơn GTC ÷ Cần giao', 'Tỷ lệ giao thành công trên hàng cần giao. Target ' + tg('gtc') + '. % GTC từng ca = GTC ca ÷ cần giao ca đó.'],
+    ['% Gán giao', 'Đơn gán ÷ Cần giao', 'Phần hàng cần giao đã gán cho nhân viên đi giao. Target ' + tg('gan') + '.'],
+    ['Chưa giao (tồn cuối ngày)', 'Cần giao − GTC', 'Số đơn còn lại cuối ngày; % = chưa giao ÷ cần giao (thấp là tốt).'],
+    ['% ODR TTS', 'Đơn đúng OT ÷ GTC TTS', 'Tỷ lệ giao đúng hạn đơn TikTok Shop. Target ' + tg('odr') + ' (xanh > 96%, đen 94–96%, đỏ < 94%).'],
+    ['Backlog giao hàng', 'snapshot 01:00', 'Số đơn đang nằm ở bưu cục giao lúc 01:00 (nguồn [S]-Report), chia tuổi tồn 0–24h … ≥ 120h. Xem tuần = số chụp ngày cuối tuần. Giảm là tốt.']]],
+  ['Trả hàng', [
+    ['% FD (tỷ lệ trả)', 'Đơn trả ÷ (GTC + Đơn trả)', 'Gộp nhiều ngày / bưu cục = Σ trả ÷ Σ tổng đơn. Target: Tất cả KH ' + tg('fdA') + ' · TTS COD ' + tg('fdT') + ' · SME COD ' + tg('fdS') + ' · Shopee ' + tg('fdP') + '.'],
+    ['Đơn trả', '= r × GTC ÷ (1 − r)', 'Ước từ tỷ lệ trả r của sheet FD và số đơn GTC của sheet GTC theo ngày.'],
+    ['Trả vượt mốc', 'Đơn trả − Mốc × Tổng đơn', 'Mốc = target của nhóm KH; nhóm chưa có target (Shopee) dùng FD bình quân của phạm vi đang xem. Ra số đơn bưu cục trả vượt.']]],
+  ['Lấy hàng (TikTok Shop)', [
+    ['% OPR TTS', 'Đơn lấy đúng OT ÷ Đơn LTC', 'Tỷ lệ lấy hàng đúng hạn. Target ' + tg('opr') + '. Phân tích theo khung giờ tạo đơn, shop, kho lấy.'],
+    ['% Gán lấy TTS', 'Đơn gán ÷ Đơn cần lấy', 'Phần đơn cần lấy đã gán cho nhân viên.'],
+    ['% LTC TTS', 'Đơn LTC ÷ Đơn cần lấy', 'Tỷ lệ lấy hàng thành công.'],
+    ['% Rớt luân chuyển TTS', 'Đơn rớt LC ÷ Đơn LTC', 'Đơn lấy xong nhưng không lên chuyến luân chuyển. Target ' + tg('pr') + '.'],
+    ['Backlog luân chuyển', 'snapshot 01:00', 'Đơn chờ luân chuyển lúc 01:00 (nguồn [S]-Report), chia tuổi 0–24h … ≥ 120h. Giảm là tốt.']]],
+  ['Cách so sánh & đánh giá', [
+    ['Kỳ mốc — xem Ngày', 'N-1 so N-2 & N-8', 'N-1 = ngày mới nhất, so hôm trước (N-2) và cùng thứ tuần trước (N-8).'],
+    ['Kỳ mốc — So sánh tuần', 'tuần đủ 7 ngày', 'Tuần mới nhất đã đủ 7 ngày so cả tuần liền trước.'],
+    ['So sánh cùng kỳ tuần', 'cùng các thứ', 'Tuần mới nhất (chưa đủ cũng lấy) so ĐÚNG các thứ đó của tuần trước; áp cho toàn bộ báo cáo, các tuần cũ cũng tính lại theo các thứ đó (nhãn có *).'],
+    ['Chênh lệch / xu hướng', 'mốc − kỳ liền trước', 'Trừ trực tiếp (vd T45 − T44), % trừ %, đơn trừ đơn. Bảng 7 ngày: 7 ngày gần − 7 ngày trước.'],
+    ['Mũi tên & màu', '▲ ▼', 'Mũi tên theo chiều số (tăng ▲, giảm ▼); màu theo tốt / xấu: xanh = tốt, đỏ = xấu.'],
+    ['Đạt / Gần đạt / Chưa đạt', 'cách target ≤ 2%', 'Gần đạt = chưa tới target nhưng cách ≤ 2% (trừ thẳng).'],
+    ['Ít hàng — không xét', '< 20% TB cùng cấp', 'Tỉnh / AM / bưu cục có sản lượng dưới 20% trung bình cùng cấp coi như không có hàng phần đó, không xếp kém / tốt.']]]];
+  return G.map(([g, L]) => '<div class="tnt-defg">' + g + '</div>' + L.map(([n, c, d]) => '<div class="tnt-defi"><b>' + n + '</b>' + (c ? '<code>' + esc(c) + '</code>' : '') + '<div>' + d + '</div></div>').join('')).join(''); }
 function tntFitInit() {
   if (window.__tntFitObs || !window.MutationObserver) return; const root = document.getElementById('tntBody'); if (!root) return;
   window.__tntFitObs = new MutationObserver(() => { if (window.__tntFitRaf) return; window.__tntFitRaf = requestAnimationFrame(() => { window.__tntFitRaf = 0; tntFitTables(); }); });
@@ -9188,6 +9257,7 @@ function tntRender() {
   { const rb = document.getElementById('tntRet'); if (rb) rb.innerHTML = tntRetHtml(); }
   tntGhRender();
   tntHlRender();
+  tntTocInit(); if (TNT.side) { tntSideOpen(TNT.side); tntSideOpen(TNT.side); }
   if (!TNT.BL && !TNT.blErr && typeof tntLoadBacklog === 'function') tntLoadBacklog();
   const cmpBox = document.getElementById('tntCmp'); if (cmpBox) { cmpBox.style.display = TNT.mode === 'week' ? '' : 'none'; cmpBox.innerHTML = [['full', 'So sánh tuần'], ['same', 'So sánh cùng kỳ tuần']].map(([k, l]) => '<label><input type="radio" name="tntCmp"' + (TNT.cmp === k ? ' checked' : '') + ' onchange="tntSetCmp(\'' + k + '\')">' + l + '</label>').join(''); }
   document.getElementById('tntTblSub').textContent = TNT.mode === 'week' ? (TNT.cmp === 'same' ? '· số đơn = trung bình 1 ngày · cột mốc = tuần mới nhất (chưa đủ tuần cũng lấy), so với CÙNG CÁC THỨ của tuần trước — trừ trực tiếp' : '· số đơn = trung bình 1 ngày của tuần · cột mốc = tuần mới nhất đã đủ 7 ngày, so với cả tuần trước — trừ trực tiếp') : '· cột mốc N-1 so với N-2 (hôm trước) và N-8 (cùng thứ tuần trước) — trừ trực tiếp; ▲ xanh = tốt hơn, ▼ đỏ = tệ hơn';
