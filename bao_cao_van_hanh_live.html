@@ -8997,13 +8997,13 @@ function tntHlHtml() {
   const entTxt = (m, w, tag) => { const cur = m[3](w.o); const ps = CMP.map((c) => { const o = tntSumEnts(w.es, c.idx); return m[4](o) > 0 ? m[3](o) : null; });
     if (CMP.length === 1) { const p = ps[0]; return tag + ' <b>' + esc(w.k) + '</b>: ' + (p !== null && isFinite(p) ? prevS(0) + ' ' + tntHlFmt(m, p) + ' → ' : '') + curS + ' <b>' + tntHlFmt(m, cur) + '</b>' + (p !== null && isFinite(p) ? ' (' + dFmt(m, cur, p) + ')' : ' (kỳ trước chưa có số)'); }
     return tag + ' <b>' + esc(w.k) + '</b>: N-1 <b>' + tntHlFmt(m, cur) + '</b> (' + ps.map((p, k) => p !== null && isFinite(p) ? 'so ' + CMP[k].lab + ' ' + tntHlFmt(m, p) + ' ' + dFmt(m, cur, p) : 'so ' + CMP[k].lab + ' —').join(' · ') + ')'; };
-  const line = (r, i) => { const m = r.m, wa = worst(AMS, m), wb = wa ? worst(BCS.filter((b) => (D.ents[b.es[0]][1] || '—') === wa.k), m) : worst(BCS, m); // BC tệ nhất THUỘC AM tệ nhất
+  const line = (r, i) => { const m = r.m, wa = worst(AMS, m), wb = worst(BCS, m); // AM tệ nhất vùng + BC tệ nhất vùng (độc lập)
     let ch;
     if (CMP.length === 1) { const x = r.ds[0]; ch = prevS(0) + ' ' + tntHlFmt(m, x.p) + ' → ' + curS + ' <b>' + tntHlFmt(m, r.cur) + '</b> (' + chg(m, x.d, i) + ')'; }
     else ch = 'N-1 <b>' + tntHlFmt(m, r.cur) + '</b>: ' + r.ds.map((x, k) => x && x.d !== null ? 'so ' + CMP[k].lab + ' ' + tntHlFmt(m, x.p) + ' ' + dFmt(m, r.cur, x.p) : 'so ' + CMP[k].lab + ' —').join(' · ') + (r.mixed ? ' <i>(2 mốc ngược chiều)</i>' : '');
     const tg = gapTxt(m, r.cur, i), tr = trend(m);
     const lbl = m[5] > 0 ? pick(['Thấp nhất', 'Yếu nhất', 'Cần kèm', 'Kéo xuống nhiều nhất'], i) : pick(['Cao nhất', 'Nặng nhất', 'Cần kèm', 'Đẩy lên nhiều nhất'], i);
-    const ws = (wa ? '<div class="tnt-hlws">↳ ' + lbl + ' ở kỳ mốc — ' + entTxt(m, wa, 'AM') + '</div>' : '') + (wb ? '<div class="tnt-hlws' + (wa ? ' tnt-hlws2' : '') + '">↳ ' + (wa ? 'BC tệ nhất của AM này — ' : lbl + ' ở kỳ mốc — ') + entTxt(m, wb, 'BC') + '</div>' : '');
+    const ws = (wa ? '<div class="tnt-hlws">↳ ' + lbl + ' ở kỳ mốc — ' + entTxt(m, wa, 'AM') + '</div>' : '') + (wb ? '<div class="tnt-hlws">↳ ' + lbl + ' ở kỳ mốc — ' + entTxt(m, wb, 'BC') + '</div>' : '');
     return '<li><b>' + esc(m[1]) + '</b> <span class="tnt-hlk">' + m[2] + '</span> <span class="tnt-hlrg">' + (whole ? 'Vùng' : 'Phạm vi') + '</span> ' + ch + (tg ? ' · ' + tg : '') + (tr ? ' · <i>xu hướng ' + (whole ? 'vùng' : 'phạm vi') + ' ' + tr + '</i>' : '') +
       ws + '</li>'; };
   const hi = rows.filter((r) => r.side > 0).sort((a, b) => b.score - a.score), lo = rows.filter((r) => r.side < 0).sort((a, b) => b.score - a.score);
