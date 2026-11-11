@@ -8941,9 +8941,9 @@ function tntHlM() { return [
 ]; }
 function tntHlFmt(m, x) { return x === null || x === undefined || !isFinite(x) ? '—' : m[7] ? tntN(x) : tntP(x); }
 function tntHlTg(m) { if (m[6] === null || m[6] === undefined) return ''; return (m[5] > 0 ? '≥ ' : m[8] ? '≤ ' : '< ') + tntP(m[6]); }
-// 0 = đạt, 1 = gần đạt (≥ 90% mục tiêu; chỉ số thấp-là-tốt: ≤ target × 1,1), 2 = chưa đạt
+// 0 = đạt, 1 = gần đạt (cách target ≤ 2%, trừ thẳng), 2 = chưa đạt
 function tntHlLv(m, x) { const t = m[6]; if (t === null || x === null || !isFinite(x)) return -1;
-  if (m[5] > 0) return x >= t ? 0 : x >= t * 0.9 ? 1 : 2; const ok = m[8] ? x <= t + 1e-9 : x < t; return ok ? 0 : x <= t * 1.1 ? 1 : 2; }
+  if (m[5] > 0) return x >= t ? 0 : x >= t - 0.02 - 1e-9 ? 1 : 2; const ok = m[8] ? x <= t + 1e-9 : x < t; return ok ? 0 : x <= t + 0.02 + 1e-9 ? 1 : 2; }
 function tntHlHtml() {
   const D = TNT.data; if (!D || !TNT.cols || !TNT.cols.length || !TNT.EP) return '';
   const { cols, day, WL, ai } = tntTblBase(), C = cols[ai]; if (!C || !C.prev) return '';
@@ -8979,7 +8979,7 @@ function tntHlHtml() {
   const card = (r) => '<div class="tnt-hlc tnt-hlc' + r.lv + '"><div class="tnt-hln">' + esc(r.m[1].replace(/^% /, '')) + '</div><div class="tnt-hlv">' + tntHlFmt(r.m, r.cur) + '</div><div class="tnt-hlt">' + tntHlTg(r.m) + '</div>' +
     r.ds.map((x, i) => x && x.d !== null && !r.m[7] ? '<div class="tnt-hld">' + (CMP.length > 1 ? CMP[i].lab + ' ' : '') + tntGhD(x.d, r.m[5]) + '</div>' : '').join('') + '</div>';
   const grp = (lv, ic, nm, cls) => { const L = rows.filter((r) => r.lv === lv); return '<div class="tnt-hlg ' + cls + '"><div class="tnt-hlgh">' + ic + ' ' + nm + ' (' + L.length + ')</div><div class="tnt-hlcs">' + (L.length ? L.map(card).join('') : '<i class="tnt-dz2">Không có</i>') + '</div></div>'; };
-  let h = '<div class="tnt-hlgrid">' + grp(0, '🟢', 'Đạt target', 'g0') + grp(1, '🟡', 'Gần đạt (≥ 90% mục tiêu)', 'g1') + grp(2, '🔴', 'Chưa đạt', 'g2') + '</div>';
+  let h = '<div class="tnt-hlgrid">' + grp(0, '🟢', 'Đạt target', 'g0') + grp(1, '🟡', 'Gần đạt (cách target ≤ 2%)', 'g1') + grp(2, '🔴', 'Chưa đạt', 'g2') + '</div>';
   // câu chữ đổi luân phiên để đỡ lặp
   const pick = (arr, i) => arr[i % arr.length];
   const gapTxt = (m, x, i) => { const t = m[6]; if (t === null || t === undefined) return ''; const lv = tntHlLv(m, x), g0 = Math.abs(x - t), gP = (v) => tntP(v, v < 0.001 ? 2 : 1), g = g0;
