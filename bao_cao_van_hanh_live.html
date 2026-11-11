@@ -8024,11 +8024,11 @@ function tntKpiHtml(per) {
   const SC = TNT.mode === 'week' && TNT.cols && TNT.cols.length && TNT.cols[0].same; // cùng kỳ tuần: chỉ tính các ngày cùng kỳ, so cùng các thứ tuần trước
   let idx = tntRangeIdx(), prevIdx = [];
   if (SC) { idx = [].concat(...TNT.cols.map((c) => c.idx)).sort((x, y) => x - y); prevIdx = [].concat(...TNT.cols.map((c) => c.prevIdx || [])).sort((x, y) => x - y); }
-  else { const lo = idx[0], m = idx.length; for (let i = lo - m; i < lo; i++) if (i >= 0) prevIdx.push(i); }
+  else { idx = idx.slice(-15); const lo = idx[0], m = idx.length; for (let i = lo - m; i < lo; i++) if (i >= 0) prevIdx.push(i); } // 15 ngày gần nhất của khoảng xem, so 15 ngày liền trước
   const n = idx.length, a = tntSum(per, idx), b = prevIdx.length === n ? tntSum(per, prevIdx) : null;
   const card = (k, v, d, clr) => '<div class="tnt-kpi"><div class="tnt-k"' + (clr ? ' style="color:' + clr + '"' : '') + '>' + k + '</div><div class="tnt-kv"' + (clr ? ' style="color:' + clr + '"' : '') + '>' + v + '</div><div class="tnt-kd">' + d + '</div></div>';
   const sub = b ? ' <span class="tnt-k2">so ' + tntRg(prevIdx) + '</span>' : '';
-  const head = '<div class="tnt-kphead">Kỳ đang xem: <b>' + tntRg(idx) + '</b>' + (SC ? ' — chỉ các ngày cùng kỳ' : '') + ' · ' + (b ? 'so với kỳ trước: <b>' + tntRg(prevIdx) + '</b>' + (SC ? ' (cùng các thứ tuần trước)' : ' (cùng số ngày, liền trước)') : '<i>chưa có đủ dữ liệu kỳ trước (' + n + ' ngày liền trước) để so sánh</i>') + '</div>';
+  const head = '<div class="tnt-kphead">Kỳ đang xem: <b>' + tntRg(idx) + '</b>' + (SC ? ' — chỉ các ngày cùng kỳ' : '') + ' · ' + (b ? 'so với kỳ trước: <b>' + tntRg(prevIdx) + '</b>' + (SC ? ' (cùng các thứ tuần trước)' : ' (' + n + ' ngày liền trước)') : '<i>chưa có đủ dữ liệu ' + n + ' ngày liền trước để so sánh</i>') + '</div>';
   return head + card('Cần giao TB/ngày', tntN(a.v / n), (b ? tntDelta(a.v / n, b.v / n, false, 0) : '') + sub) +
     card('Năng suất TB/ngày', tntN(a.k / n), (b ? tntDelta(a.k / n, b.k / n, false, 1) : '') + sub, '#14915F') +
     card('% GTC cả kỳ', tntP(a.gtc), (b ? tntDelta(a.gtc, b.gtc, true, 1) : '') + sub, '#F26522') +
@@ -8957,11 +8957,16 @@ function tntHlHtml() {
   const AMS = Object.keys(amM).map((k) => ({ k: k, o: tntSumEnts(amM[k], C.idx) })), BCS = es.map((e) => ({ k: D.ents[e][0], o: tntSumEnts([e], C.idx) }));
   const worst = (list, m) => { const L = list.filter((r) => m[3](r.o) !== null && m[4](r.o) > 0 && (m[0].indexOf('fd') === 0 || m[4](r.o) >= (m[7] ? 1 : 10) * (C.idx.length || 1))); if (L.length < 2) return null;
     const sm = tntGhSmallSet(L, (r) => m[4](r.o)); return L.filter((r, i) => !sm[i]).sort((a, b) => (m[3](a.o) - m[3](b.o)) * m[5])[0] || null; };
-  const trend = (m) => { const v = []; for (let j = Math.min(cols.length - 1, ai + 3); j >= ai; j--) v.push(m[3](cols[j])); const ok = v.filter((x) => x !== null && isFinite(x)); if (ok.length < 3) return '';
-    const sg = []; for (let i = 1; i < ok.length; i++) { const d = (ok[i] - ok[i - 1]) * m[5]; sg.push(d > 1e-6 ? 1 : d < -1e-6 ? -1 : 0); }
+  // xu hướng các kỳ gần (tối đa 4 kỳ kết thúc ở mốc) — luôn kèm số từng kỳ, vd "tốt lên 2 tuần liền: T43 44,1% → T44 45,0% → T45 46,8%"
+  const trend = (m) => { const v = []; for (let j = Math.min(cols.length - 1, ai + 3); j >= ai; j--) { const x = m[3](cols[j]); if (x !== null && isFinite(x)) v.push({ l: day ? cols[j].lab : cols[j].lab.replace('*', '') + (cols[j].lab.indexOf('*') >= 0 ? '*' : ''), x: x }); }
+    if (v.length < 3) return '';
+    const sg = []; for (let i = 1; i < v.length; i++) { const d = (v[i].x - v[i - 1].x) * m[5]; sg.push(d > 1e-6 ? 1 : d < -1e-6 ? -1 : 0); }
     const last = sg[sg.length - 1]; let st = 0; for (let i = sg.length - 1; i >= 0 && sg[i] === last; i--) st++; const u = day ? 'ngày' : 'tuần';
-    if (!last) return 'đứng yên ' + u + ' gần nhất'; if (st === sg.length) return (last > 0 ? 'đi lên đều ' : 'đi xuống đều ') + ok.length + ' ' + u;
-    if (st >= 2) return (last > 0 ? 'tốt lên ' : 'xấu đi ') + st + ' ' + u + ' liền'; return last > 0 ? 'vừa hồi lại sau 1 ' + u + ' giảm' : 'vừa quay đầu sau 1 ' + u + ' tốt'; };
+    const seq = (k) => v.slice(-k).map((p) => p.l + ' ' + tntHlFmt(m, p.x)).join(' → ');
+    if (!last) return 'đứng yên: ' + seq(2);
+    if (st === sg.length) return (last > 0 ? 'đi lên đều ' : 'đi xuống đều ') + v.length + ' ' + u + ': ' + seq(v.length);
+    if (st >= 2) return (last > 0 ? 'tốt lên ' : 'xấu đi ') + st + ' ' + u + ' liền: ' + seq(st + 1);
+    return (last > 0 ? 'hồi lại sau 1 ' + u + ' giảm: ' : 'quay đầu sau 1 ' + u + ' tốt: ') + seq(3); };
   const TH = (m) => m[7] ? 0.01 : 0.0005;
   const rows = tntHlM().map((m) => { const cur = m[3](C); if (cur === null || !isFinite(cur)) return null;
     const ds = CMP.map((c) => { const p = m[3](c.o); if (p === null || !isFinite(p)) return null; return { p: p, d: m[7] ? (p ? (cur - p) / p : null) : cur - p }; });
