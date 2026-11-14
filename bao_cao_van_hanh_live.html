@@ -2499,6 +2499,8 @@ function enterApp(user){
   document.getElementById('userMenuConfigItem').style.display = isAdmin ? '' : 'none';
   applyDataProtection(user, perms);
   applyModuleVisibilityToDom();
+  // mở web (F5) → Vận hành vào thẳng [TNT]-Report (nếu người dùng có quyền xem mục này)
+  if (!window.__vhDefaultTab) { window.__vhDefaultTab = 1; try { if (typeof modVisible !== 'function' || modVisible('vh_tnt')) switchVanHanhTab('tnt'); } catch (e) {} }
   main().catch(e => { document.getElementById('loadingNote').style.display='none'; showError('Lỗi tổng thể: '+e.message); });
   startPresenceTracking();
 }
