@@ -738,6 +738,9 @@ td.dn-keycol{background:#FBF7EE}
 #vhSReport .sr-bar{margin:4px 4px 8px}
 </style>
 <style id="tntCss">
+.tnt-foot{margin:28px 0 8px;padding-top:12px;border-top:1px solid #E3DCCF;text-align:center;font-size:12px;color:#8A8172;font-family:var(--mono,monospace)}
+.tnt-by{font-weight:600}
+
 /* ---- [TNT]-Report ---- */
 .tnt-ccw{color:#C62116;font-weight:800;cursor:pointer;text-decoration:underline;background:#FFF4CC;border:1px solid #F2C94C;border-radius:6px;padding:1px 8px;font-family:inherit}.tnt-ccw:hover{background:#FFE89A}.tnt-cco{color:#1877F2;font-weight:800;font-family:inherit}
 .tnt-ccpop{position:fixed;inset:0;background:rgba(30,25,15,.45);z-index:3000;display:flex;align-items:flex-start;justify-content:center;padding:60px 16px;overflow:auto}
@@ -1224,7 +1227,7 @@ td.dn-keycol{background:#FBF7EE}
   <!-- ================= [TNT]-REPORT — sheet mã 200 trở đi (Giao hàng ca 1 / ca 2 / tồn) ================= -->
   <div id="vhTnt" class="vh-pane">
     <div class="sr-bar">
-      <div><b class="sr-title">[TNT]-Report <span class="rh-tag">Live</span></b><div class="sr-meta" id="tntMeta">Đang kiểm tra dữ liệu…</div></div>
+      <div><b class="sr-title">[TNT]-Report <span class="rh-tag">Live</span></b><div class="sr-meta tnt-by">Modify by - Pham Van Quynh - TNT Live Report</div><div class="sr-meta" id="tntMeta">Đang kiểm tra dữ liệu…</div></div>
       <div class="sr-actions"><button class="refresh-btn" onclick="loadTntReport(true)">↻ Tải lại</button><button class="export-btn" onclick="tntDownloadHtml()" title="Tải báo cáo về máy, mở offline vẫn chọn/rê chuột được">⬇ Tải file HTML</button></div>
     </div>
     <div id="tntLoading" class="load-progress" style="display:none"><span>Đang tải [TNT]-Report…</span><span class="load-progress-track"><span class="load-progress-fill" id="tntLoadingFill"></span></span><span class="load-progress-pct" id="tntLoadingPct">0%</span></div>
@@ -1252,6 +1255,7 @@ td.dn-keycol{background:#FBF7EE}
       <div id="tntRet"></div>
       <div id="tntGh"></div>
       <div id="tntCap"></div>
+      <div class="tnt-foot">Modify by - Pham Van Quynh - TNT Live Report</div>
     </div>
   </div>
   <div id="vhNgay" class="vh-pane">
@@ -9596,7 +9600,7 @@ function tntDownloadHtml() {
   ['tntCtl', 'tntKpis', 'tntLegend', 'tntChartBox', 'tntPanel', 'tntMiss', 'tntTbl'].forEach((id) => { const el = body.querySelector('#' + id); if (el) el.innerHTML = ''; });
   const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>[TNT]-Report ' + tntDmy(last) + '</title>' +
     '<style>body{margin:0;padding:16px;background:#EFE7D3;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#2B2618}.tnt-top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #F26522;padding-bottom:8px;margin-bottom:10px}.tnt-top b{font-size:20px}.tnt-top div{font-size:12px;color:#7A6E52}table{border-collapse:collapse}</style>' +
-    document.getElementById('tntCss').outerHTML + '</head><body><div class="tnt-top"><b>[TNT]-Report</b><div>' + document.getElementById('tntMeta').innerHTML + '</div></div>' +
+    document.getElementById('tntCss').outerHTML + '</head><body><div class="tnt-top"><b>[TNT]-Report</b><div><div><b>Modify by - Pham Van Quynh - TNT Live Report</b></div>' + document.getElementById('tntMeta').innerHTML + '</div></div>' +
     body.outerHTML + '<script>' + js.replace(/<\/script/gi, '<\\/script') + '<\/script></body></html>';
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' })); a.download = 'TNT-Report-' + last + '.html';
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
