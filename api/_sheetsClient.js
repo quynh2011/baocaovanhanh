@@ -813,11 +813,16 @@ async function handleGetTntReport(body) {
   const titles = (await getSheetTitles(SHEET_ID)).filter((t) => TNT_SHEET_RE.test(t)).sort();
   if (!titles.length) return { ok: true, sheets: [], ents: [], dates: [] };
   const valueRanges = await batchGetValues(SHEET_ID, titles, { valueRenderOption: 'UNFORMATTED_VALUE' });
+  // Sheet Capacity (200_2_Capacity_*: Ngay / Thang / Tuan / Tinh / Buucuc) — bảng tự do, trả NGUYÊN dòng (số thô + chữ đã định dạng)
+  const capNames = titles.filter((t) => /capacity/i.test(t));
+  const capF = capNames.length ? await batchGetValues(SHEET_ID, capNames, { valueRenderOption: 'FORMATTED_VALUE' }) : [];
   const ents = [], entIdx = {}, dateSet = {};
   const caTao = []; // sheet "OPR theo ca tạo" (mỗi dòng = ngày × khung giờ tạo × kho lấy × shop) — xử lý sau khi có danh mục BC
   const parsed = [];
   titles.forEach((name, i) => {
     const rows = (valueRanges[i] && valueRanges[i].values) || [];
+    const ci = capNames.indexOf(name);
+    if (ci >= 0) { parsed.push({ name: name, kind: 'cap', main: false, rows: rows, rowsF: (capF[ci] && capF[ci].values) || [] }); return; }
     const H = (rows[0] || []).map(tntNorm);
     const find = (re, last) => { let k = -1; H.forEach((h, j) => { if (re.test(h) && (last || k < 0)) k = j; }); return k; };
     if (find(/^khung_?gio_?tao/) >= 0 && find(/^sellername|^shop/) >= 0) { caTao.push({ name: name, rows: rows, find: find }); return; }
@@ -886,14 +891,14 @@ async function handleGetTntReport(body) {
   if (md.length) {
     const lo = md[0], hi = md[md.length - 1];
     parsed.forEach((p) => {
-      if (p.main) return;
+      if (p.main || !p.d) return;
       const keep = p.d.map((d) => d >= lo && d <= hi);
       ['d', 'b', 'v', 'g', 'k', 'x', 'w', 'h', 's', 'n', 'o'].forEach((f) => { if (p[f]) p[f] = p[f].filter((x, i) => keep[i]); });
     });
     Object.keys(dateSet).forEach((d) => { if (d < lo || d > hi) delete dateSet[d]; });
   }
   const dates = Object.keys(dateSet).sort(); const di = {}; dates.forEach((d, i) => { di[d] = i; });
-  parsed.forEach((p) => { p.d = p.d.map((d) => di[d]); });
+  parsed.forEach((p) => { if (p.d) p.d = p.d.map((d) => di[d]); });
   return { ok: true, sheets: parsed, ents: ents, dates: dates, thoiGian: new Date().toISOString() };
 }
 
