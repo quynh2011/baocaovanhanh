@@ -262,3 +262,4 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 - 2026-11-14: Cảnh báo cơ cấu — nhãn khi đủ đổi thành "Cơ cấu vận hành đã xác thực" (tick xanh), chủ dự án muốn chữ sang trọng hơn "Cơ cấu đủ bưu cục".
 - 2026-11-14: Đổi mọi chữ "DBB" trên giao diện thành "TNT" (chân trang "Modify by - Pham Van Quynh - TNT Live Report", nút tròn nổi, tiêu đề Kinh doanh/Kế hoạch KD/BCKQKD/Event, "Vùng Đông Bắc — DBB" → "Vùng TNT", "Toàn Vùng TNT", nhãn ảnh "GHN TNT", trang Lấp đầy + Đối soát vận tải). Tên class/id kỹ thuật `dbb-*` giữ nguyên. Từ nay báo cáo dùng tên vùng TNT.
 - 2026-11-14: Tab Vận hành › Tháng (placeholder) — bỏ dòng chữ nhỏ "Đang chờ tạo cấu trúc 13 tab…", chỉ còn icon + "Báo cáo theo Tháng — sắp ra mắt".
+- 2026-11-14: Cảnh báo cơ cấu — nhãn khi đủ rút gọn còn "Đã xác thực" (tick xanh).
