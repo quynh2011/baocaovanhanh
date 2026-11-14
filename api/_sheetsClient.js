@@ -905,11 +905,14 @@ async function handleGetTntReport(body) {
     const cc = await getValues(SHEET_ID, "'999_Cocau'!A1:Z3000", { valueRenderOption: 'FORMATTED_VALUE' });
     const H = (cc[0] || []).map(tntNorm); let cb = H.findIndex((h) => /^buu cuc moi/.test(h)); if (cb < 0) cb = H.findIndex((h) => /^buu cuc|^chi tiet/.test(h));
     if (cb >= 0) {
-      const have = {}; cc.slice(1).forEach((r) => { const v = tntNorm(r[cb]); if (v) have[v] = 1; });
+      const have = {}, ct = H.findIndex((h) => /^tinh$/.test(h)), code2tinh = {}, codeOf = (nm) => { const m = /^\(([^)]+)\)/.exec(String(nm || '').trim()); return m ? m[1].toUpperCase() : ''; };
+      cc.slice(1).forEach((r) => { const v = tntNorm(r[cb]); if (v) have[v] = 1; const c = codeOf(r[cb]); if (c && ct >= 0 && r[ct] && !code2tinh[c]) code2tinh[c] = String(r[ct]).trim(); });
+      // tỉnh của BC thiếu: lấy theo mã tỉnh trong tên BC "(THN) …" khớp với cơ cấu (cột Tỉnh của sheet GTC có thể ghi sai)
+      const tinhOf = (nm, fb) => code2tinh[codeOf(nm)] || fb;
       const tot = parsed.find((p) => /gtctotal$/i.test(String(p.name).replace(/[^a-z0-9]/gi, '')) && p.b);
       const src = tot || parsed.find((p) => p.main && p.b);
       const miss = {};
-      if (src) src.b.forEach((e, i) => { const nm = ents[e][0]; if (have[tntNorm(nm)]) return; const o = miss[e] = miss[e] || { bc: nm, am: ents[e][1] || '', tinh: ents[e][2] || '', first: src.d[i], last: src.d[i], days: {}, vol: 0 };
+      if (src) src.b.forEach((e, i) => { const nm = ents[e][0]; if (have[tntNorm(nm)]) return; const o = miss[e] = miss[e] || { bc: nm, am: ents[e][1] || '', tinh: tinhOf(nm, ents[e][2] && ents[e][2] !== ents[e][1] ? ents[e][2] : ''), first: src.d[i], last: src.d[i], days: {}, vol: 0 };
         o.first = Math.min(o.first, src.d[i]); o.last = Math.max(o.last, src.d[i]); o.days[src.d[i]] = 1; o.vol += src.v[i] || 0; });
       cocau = { sheet: '999_Cocau', n: cc.length - 1, src: src ? src.name : '', miss: Object.keys(miss).map((k) => { const o = miss[k], nd = Object.keys(o.days).length; return { bc: o.bc, am: o.am, tinh: o.tinh, first: dates[o.first], last: dates[o.last], nd: nd, avg: nd ? Math.round(o.vol / nd) : 0 }; }).sort((a, b) => (b.first || '').localeCompare(a.first || '')) };
     }
