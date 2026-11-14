@@ -1,7 +1,18 @@
 # CLAUDE.md — Ghi chú bàn giao dự án "Báo Cáo Vận Hành GHN (DBB)"
 
 > File này để BẤT KỲ tài khoản Claude nào mở repo cũng nắm được ngay dự án và làm tiếp.
-> **Quy tắc:** mỗi lần sửa code xong, cập nhật mục "Nhật ký thay đổi" ở cuối file (ngày, việc gì, file nào).
+
+## ⚠️ 0. QUY TẮC BẮT BUỘC (chủ dự án yêu cầu — KHÔNG được bỏ qua)
+1. **ĐỌC HẾT FILE NÀY trước khi làm bất cứ việc gì** (đặc biệt mục 0, 5c, 8, 9 và Nhật ký mục 7).
+2. **MỌI VIỆC đã làm đều PHẢI ghi vào file này** — mỗi lần sửa code / thêm tính năng / đổi quy tắc / chủ dự án chốt yêu cầu mới:
+   - thêm 1 dòng vào mục **7. Nhật ký thay đổi** (ngày, việc gì, hàm/biến/file nào, quy tắc chủ dự án vừa chốt);
+   - nếu là QUY TẮC trình bày/phân tích chủ dự án vừa chốt → ghi thêm vào **mục 8**;
+   - nếu thay đổi cấu trúc (sheet mới, mục báo cáo mới, hàm chính mới) → cập nhật **mục 5 / 5c**.
+   Việc này là **công việc bắt buộc**, làm CÙNG commit với code (không để "làm sau"). Nhắc lại cho mọi tài khoản Claude khác: không ghi = coi như chưa làm xong.
+3. Tự commit + push `main` sau mỗi thay đổi (Vercel tự deploy), rồi KIỂM TRA bản live đã lên (mục 9). Commit message tiếng Việt KHÔNG dấu, ngắn, theo lịch sử.
+4. Trả lời chủ dự án bằng tiếng Việt, xưng "tao/mày" theo cách anh ấy dùng, NGẮN GỌN, nói kết quả + cách xem; không kể lể từng bước.
+5. Hỏi trước khi tự ý viết lại / đổi cách làm khác với điều chủ dự án yêu cầu (workaround, đổi logic khác ý). Yêu cầu rõ ràng thì làm luôn.
+6. KHÔNG hiện tên sheet / mã sheet / tên cột kỹ thuật trên giao diện báo cáo (chủ dự án coi là thiếu chuyên nghiệp) — chỉ dùng tên nghiệp vụ tiếng Việt.
 
 ## 1. Thông tin chung
 - Chủ dự án: Phạm Văn Quỳnh (quynhpv1@ghn.vn) — Vùng DBB (Đông Bắc), GHN.
@@ -78,6 +89,30 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 - Test nhanh không cần đăng nhập: chạy `python3 -m http.server` ở thư mục repo + Playwright chặn `/api/gas` trả fixture `{ok:true,sheets:[{name,rows}]}` (rows = mảng 2 chiều chuỗi đã định dạng, giống Sheets API FORMATTED_VALUE), set localStorage `ghn_report_session_v1`.
 - Xuất HTML: `EXPORT_PANE_META.vhNgay`, snapshot nhúng `dayRaw`, `hydrateFromSnapshot` dựng lại `window.DAY.M`.
 
+### 5c. [TNT]-Report — bản đồ code (pane `#vhTnt`, mọi hàm tiền tố `tnt`, state toàn cục `TNT`)
+**Mặc định khi mở web/F5: vào thẳng tab [TNT]-Report** (`enterApp` → `switchVanHanhTab('tnt')`).
+- **Nguồn**: backend `handleGetTntReport` đọc MỌI sheet mã `2xx_` (UNFORMATTED). Dò cột theo TÊN (`tntNorm`). Các loại sheet:
+  - GTC theo ca: `200_1_GTCCA1/CA2/Ton`, TTS: `…GTCTTSCA1/CA2/TTSTon` (sheet "chính" = có cột Volume + tên chứa GTC → quyết định khoảng ngày; `GTCTOTAL` không dùng để vẽ).
+  - `200_1_ODRTTS`, `200_1_OPRTTS`, `200_1_LTCTTS` (tách `#moi/#ton` theo cột Ca), `200_1_OPR theo ca tạo` (`kind:'oprca'`).
+  - FD: `200_1_FD_ALL_Ngay`, `_FD_Ngay_TTSCOD/SMECOD/SPE` + `200_1_GTC_Ngay_ALL/TTSCOD/SMECOD/SPE` (đơn GTC để ra đơn trả).
+  - Capacity: tên chứa "capacity" (`200_2_Capacity_Ngay/_Thang/_Tuan/_Tỉnh/_Buucuc`) → trả NGUYÊN dòng `{kind:'cap', rows, rowsF}`.
+  - Cơ cấu `999_Cocau` (không thuộc 2xx, đọc riêng) → `res.cocau.miss` = BC có trong GTCTOTAL mà chưa có trong cơ cấu.
+  - BC đã đóng: danh sách `TNT_BC_DONG` (backend). AM rác "Loại" bị bỏ.
+  - Backlog giao / luân chuyển KHÔNG có sheet: lấy từ dữ liệu file [S]-Report (`tntLoadBacklog`, snapshot 01:00).
+- **Thanh lọc trên cùng** (`tntRenderControls`, dính khi cuộn): Phạm vi Tỉnh → AM → BC (`TNT.f`), Khách hàng Tất cả/TTS (`TNT.cust`), Ngày/Tuần (`TNT.mode`, mặc định TUẦN 5 tuần), khoảng ngày, nút "So sánh tuần / So sánh cùng kỳ tuần" (`TNT.cmp`, chỉ khi xem Tuần, áp TOÀN báo cáo qua `tntBuildCols`).
+- **Lõi dữ liệu**: `tntBuildPer` (per = tổng theo ngày, `TNT.EP` = BC × ngày) → `tntBuildCols` (cột ngày/tuần, `idx/prevIdx/wkIdx`) → `tntTblBase()` (cột mới → cũ, kỳ mốc `ai`) — mọi bảng/nhận xét dùng chung. Cộng theo BC: `tntSumEnts`.
+- **Bố cục** (`tntRender` vẽ lại tất cả):
+  - Đầu trang: dòng meta + cảnh báo cơ cấu (`tntCocauBadge`/`tntCocauPop`: tam giác vàng chấm than đỏ nếu thiếu BC, tick xanh kiểu Facebook nếu đủ).
+  - **I · Tổng quan**: Tổng hợp nhanh `#tntHl` (`tntHlHtml`: thẻ Đạt/Gần đạt/Chưa đạt, Điểm sáng/Cần cải thiện thu gọn, nút Đầy đủ/Rút gọn + Copy; chỉ số ở `tntHlM()`), thẻ KPI (15 ngày gần vs 15 ngày trước), 1. Biểu đồ tổng quan (`tntChartSvg`), 2. Bảng số liệu (`tntTableHtml`, accordion GIAO/TRẢ/LẤY HÀNG, cây Tỉnh→AM→BC).
+  - **II · Lấy hàng OPR TTS** `#tntOpr` (`tntOprHtml`, khung giờ tạo, shop, kho, theo khách).
+  - **III · Trả hàng FD** `#tntRet` (`tntRetHtml`: biểu đồ FD, BC trả nhiều nhất, top 10 + popup nhận xét).
+  - **IV · Giao hàng** `#tntGh` (`tntGhHtml`: biểu đồ ca, phân tích tổng/ca1/ca2/tồn, top 20 + popup BC/AM/tỉnh).
+  - **V · Trend Capacity** `#tntCap` (`tntCapHtml`: 7 ngày, 30 ngày, tuần/tháng, theo tỉnh, capacity BC).
+  - Tab dọc phải: Mục lục chạy theo báo cáo (`tntTocBuild/Spy/Go`) + Định nghĩa & target (`tntDefHtml`).
+- **Target** (một chỗ duy nhất `tntHlM()` + `TNT_FD_TG`): % GTC tổng ≥ 65%, % Gán giao ≥ 95%, % ODR TTS ≥ 96%, % OPR TTS ≥ 80%, % Rớt LC TTS ≤ 2%, FD Tất cả < 6,5%, FD TTS COD ≤ 5%, FD SME COD < 7%, FD Shopee chưa target.
+- **Tải file HTML** (`tntDownloadHtml`): gom MỌI hàm `window.tnt*` + `TNT.data` → hằng số mới phải nằm TRONG hàm (vd `tntHlM()`), nếu không file tải sẽ lỗi.
+- **Mọi bảng** `.tnt-tw` tự giới hạn 10 dòng + cuộn + tiêu đề dính (`tntFitTables`, MutationObserver).
+
 ### Action frontend gọi nhưng CHƯA port (rơi xuống Apps Script → lỗi)
 `getOpsAnalysis`, `getKDAnalysis` (nhận xét AI Vận hành/KD — lỗi im lặng, web giữ nhận xét rule-based), toàn bộ Lịch làm việc ở trên.
 
@@ -87,6 +122,29 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 - Số kiểu VN "1.234,5" → `ldVnNum`/`parseVNNum`; regex trong chuỗi template phải giữ đúng backslash (đã từng lỗi, xem commit 01c47ed).
 - "Xuất file HTML" (`exportStaticHtml`) đóng gói pane đang xem + snapshot dữ liệu (`window.__STATIC_SNAPSHOT__`) + nguyên script → file mở offline. Biến store mới nào cần chạy trong file xuất thì phải thêm vào snapshot + `hydrateFromSnapshot`.
 - Sửa xong: kiểm tra cú pháp JS (`node --check` cho file api; trích script HTML ra kiểm tra), commit message ngắn tiếng Việt không dấu như lịch sử, push `main`.
+
+## 8. QUY TẮC TRÌNH BÀY & PHÂN TÍCH CHỦ DỰ ÁN ĐÃ CHỐT (áp cho mọi báo cáo mới)
+- **Mũi tên theo CHIỀU số** (tăng ▲ / giảm ▼), **màu theo TỐT/XẤU** (xanh lá đậm = tốt, đỏ = xấu). Vd FD tăng = ▲ đỏ; Backlog giảm = ▼ xanh.
+- **% là số chính**, số đơn ở dòng nhỏ bên dưới. Chênh lệch % = TRỪ TRỰC TIẾP (vd 65,3% → 65,0% = −0,3%), ghi "%" chứ không ghi "điểm".
+- **Xu hướng = kỳ mốc − kỳ LIỀN TRƯỚC** (T45 − T44; ngày = N-1 − N-2). KHÔNG dùng bình phương tối thiểu, KHÔNG so cột cũ nhất. Bảng cửa sổ 7 ngày: 7 ngày gần − 7 ngày trước.
+- **Xem Ngày**: N-1 (ngày mới nhất) so với CẢ N-2 (hôm trước) và N-8 (cùng thứ tuần trước). Ngày khác chỉ so hôm trước (trừ biểu đồ 30 ngày capacity: mọi ngày 2 cột).
+- **Xem Tuần**: so tuần mới nhất ĐỦ 7 ngày với tuần trước; "cùng kỳ tuần" = chỉ các thứ đã có, áp cho TOÀN báo cáo (biểu đồ, bảng, nhận xét).
+- **Tuần/tháng**: so kỳ trước (T10/2026) VÀ cùng kỳ năm (T11/2025), ghi đủ năm. Kỳ chưa đủ ghi "dữ liệu N ngày" / "tháng đang chạy", có dấu *.
+- **Nhận xét LUÔN KÈM SỐ** (vd "tốt lên 2 tuần liền: T43 43,9% → T44 45,0% → T45 46,8%"), không câu chung chung. Viết rõ mạch: phần Vùng riêng, AM/BC riêng (số CỦA CHÍNH AM/BC đó), BC ghi kèm "(AM …)". Đổi từ ngữ luân phiên tránh lặp. Ngày viết rõ "Thứ 4 ngày 11/11 → …".
+- **Gần đạt** = cách target ≤ 2% (trừ thẳng). **Ít hàng** (< 20% TB cùng cấp) → không xét tốt/kém, ghi rõ "coi như không có hàng".
+- **Mặc định THU GỌN** mọi mục con; mở 1 mục lớn thì mục khác ẩn (accordion). Có nút "Mở rộng/Thu gọn" cuối dòng. Mọi bảng tối đa 10 dòng hiển thị + cuộn + tiêu đề dính.
+- **Popup** khi rê chuột: có hàng tiêu đề + kẻ cột; rê chuột vào cột biểu đồ thì đổ bóng cột đó; đường line cong mềm.
+- Tên nhóm khách in hoa ngắn: SHOPEE, SHOPEE BULKY, TTS NHỎ, SME (không chữ "Tạo"). Danh sách dài thì liệt kê tới ~10 mục, link "xem bảng mục N" bấm được (gạch chân xanh).
+- Bản "Rút gọn" (copy gửi báo cáo): ngắn, chỉ tiêu đề + kỳ + Điểm sáng + Cần cải thiện, in đậm + màu, gộp các % FD 1 dòng.
+- KHÔNG hiện tên sheet trên giao diện. Biểu đồ thiết kế theo ảnh mẫu chủ dự án gửi (cột chồng, số ghi trên cột/đường).
+
+## 9. QUY TRÌNH LÀM VIỆC / TEST / DEPLOY
+1. Sửa `bao_cao_van_hanh_live.html` (frontend) và/hoặc `api/_sheetsClient.js` (backend). Sửa file HTML lớn bằng python replace có `assert s.count(old)==1`.
+2. Kiểm cú pháp: `node --check api/_sheetsClient.js`; frontend: trích `<script id="mainScript">` ra file rồi `node --check`.
+3. Test giao diện không cần đăng nhập: `python3 -m http.server 8765` ở thư mục repo + Playwright: set localStorage `ghn_report_session_v1` = `{token:'x',exp:Date.now()+3600e3,email:'a@ghn.vn',name:'T',role:'Admin',permissions:{},moduleAccess:{}}`, chặn `**/api/gas` trả fixture (action `getTntReport` → JSON giống output backend), `switchVanHanhTab('tnt')`, chụp màn hình bằng `p.screenshot` rồi XEM ảnh trước khi báo xong. Không có quyền đọc Google Sheet thật từ môi trường Claude → fixture dựng từ ảnh/số chủ dự án gửi; luôn nói rõ "chưa thử với sheet thật" khi đúng như vậy.
+4. Ghi Nhật ký (mục 7) + mục 8/5c nếu cần → `git add -A && git commit` (message không dấu) → `git push origin main`.
+5. Kiểm bản live: `curl -s https://baocaovanhanh.vercel.app/ | grep -q "<tên hàm mới>"` (lặp tới khi có, ~1–2 phút). Nếu Vercel không build → đẩy 1 commit rỗng "Kich hoat lai deploy Vercel".
+6. Báo chủ dự án: đã lên web, Ctrl+F5 / Cmd+Shift+R để thấy.
 
 ## 7. Nhật ký thay đổi
 - 2026-08-13 → 08-22 (tài khoản trước): port backend sang Sheets API, Lấp đầy `61_LapDayNew`, RPLD `62_RPlapday`, Đối soát vận tải. Commit cuối: `619549b` (gộp bộ lọc kho RPLD, đổi màu biểu đồ).
@@ -200,3 +258,4 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 - 2026-11-14: [TNT]-Report — cảnh báo BC MỚI chưa có trong sheet cơ cấu `999_Cocau`: backend `handleGetTntReport` đọc thêm 999_Cocau (cột "Bưu Cục mới", so tên không dấu) và so với các BC có dữ liệu ở `200_1_GTCTOTAL` → `res.cocau` {sheet, n, src, miss:[{bc, am, tinh, first, last, nd, avg}]}. Dòng thông tin đầu trang (`tntCocauBadge`): có BC thiếu → nhãn tam giác vàng chấm than đỏ "N bưu cục chưa có trong cơ cấu — bấm xem" → popup (`tntCocauPop`, `#tntCcPop`) bảng BC / AM / Tỉnh / có dữ liệu từ–đến / số ngày / cần giao TB; không thiếu → tick xanh kiểu Facebook "Cơ cấu đủ bưu cục".
 - 2026-11-14: Cảnh báo cơ cấu — bỏ mọi tên sheet trong nhãn/popup (chỉ ghi "danh sách cơ cấu"), cột AM bỏ chữ "theo sheet GTC".
 - 2026-11-14: Cảnh báo cơ cấu — FIX cột Tỉnh (trước lấy cột Tỉnh của sheet GTC bị trùng tên AM): nay lấy theo mã tỉnh trong tên BC "(THN) …" khớp với cột Tỉnh của các BC cùng mã trong sheet cơ cấu.
+- 2026-11-14: Viết lại phần đầu CLAUDE.md: thêm mục 0 QUY TẮC BẮT BUỘC (đọc hết file, MỌI việc phải ghi vào file này cùng commit), mục 5c bản đồ code [TNT]-Report, mục 8 quy tắc trình bày/phân tích chủ dự án đã chốt, mục 9 quy trình test/deploy.
