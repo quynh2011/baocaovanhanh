@@ -9459,17 +9459,25 @@ function tntCapPc(p) { return p === null || p === undefined ? '' : p > 1.5 ? 'tn
 function tntCapScopeOk(r) { const F = TNT.f; if (!(F.tinh || F.am || F.bc)) return true; if (r.ent) return tntEntOk(r.ent); if (F.bc) return r.bc === F.bc; if (F.am) return tntCapN(r.am) === tntCapN(F.am); return tntCapN(r.tinh) === tntCapN(F.tinh); }
 function tntCapGroups(B) { const m = {}; B.rows.forEach((r) => { if (!r.g) return; m[r.g] = (m[r.g] || 0) + 1; }); return Object.keys(m).sort().map((k) => [k, m[k]]); }
 function tntCapBcHtml() { const B = tntCapBc(); if (!B) return '<div class="tnt-warn">Chưa có dữ liệu sheet Capacity_Buucuc.</div>'; const S = tntCapSt().bc;
-  const inS = B.rows.filter(tntCapScopeOk), grs = {}; inS.forEach((r) => { if (r.g) grs[r.g] = (grs[r.g] || 0) + 1; });
+  const inS = tntCapViewRows(B), grs = {}; inS.forEach((r) => { if (r.g) grs[r.g] = (grs[r.g] || 0) + 1; });
   let h = '<div class="tnt-fbar"><span class="tnt-fl">Xem theo</span>' + [['bc', 'Bưu cục'], ['am', 'AM'], ['tinh', 'Tỉnh']].map(([k, l]) => '<button class="' + (S.view === k ? 'on' : '') + '" onclick="tntCapSet(\'view\',\'' + k + '\')">' + l + '</button>').join('') +
     '<span class="tnt-fl" style="margin-left:12px">Sắp theo</span><select onchange="tntCapSet(\'sort\',this.value)">' + [['pct', '% Vol N-1 / cap cao → thấp'], ['over', 'Vượt cap nhiều đơn nhất'], ['tt', 'Tỷ trọng vol cao → thấp'], ['cap', 'Cap lớn → nhỏ']].map(([k, l]) => '<option value="' + k + '"' + (S.sort === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>' +
     '<input class="tnt-capq" placeholder="Tìm bưu cục / AM / tỉnh…" value="' + esc(S.q) + '" oninput="tntCapSetQ(this.value)"></div>';
   h += '<div class="tnt-fbar tnt-capchips"><button class="' + (!S.g ? 'on' : '') + '" onclick="tntCapSet(\'g\',\'\')">Tất cả (' + inS.length + ')</button>' + Object.keys(grs).sort().map((g) => '<button class="' + (S.g === g ? 'on' : '') + ' ' + tntCapPc(/khong/.test(tntCapN(g)) ? 1 : /> ?150/.test(g) ? 1.6 : /^2\./.test(g) ? 1.05 : /^3\./.test(g) ? 1.15 : 1.3) + '" onclick="tntCapSet(\'g\',\'' + esc(g).replace(/'/g, '\\\'') + '\')">' + esc(g.replace(/^\d+\.\s*/, '')) + ' (' + grs[g] + ')</button>').join('') + '</div>';
   return h + '<div id="tntCapBcTbl">' + tntCapBcTblHtml(B) + '</div>'; }
-function tntCapBcTblHtml(B) { B = B || tntCapBc(); if (!B) return ''; const S = tntCapSt().bc, q = tntCapN(S.q);
-  let L = B.rows.filter(tntCapScopeOk); if (S.view === 'bc' && S.g) L = L.filter((r) => r.g === S.g);
+// nhóm vượt cap theo % (dò khoảng từ chính tên nhóm của sheet: "Không vượt cap", "Vượt từ 100%-110%", "Vượt > 150%")
+function tntCapGrpOf(p, groups) { if (p === null || p === undefined) return ''; const x = p * 100;
+  for (const g of groups) { const n = tntCapN(g); if (/khong/.test(n) && x <= 100) return g; const m = /(\d+)\s*%?\s*-\s*(\d+)/.exec(n); if (m && x > +m[1] && x <= +m[2]) return g; const m2 = /> ?=?\s*(\d+)/.exec(n); if (m2 && x > +m2[1]) return g; }
+  if (x <= 100) return '1. Không vượt cap'; if (x > 150) return '7. Vượt > 150%'; const lo = Math.floor((x - 100.0001) / 10) * 10 + 100; return ((lo - 100) / 10 + 2) + '. Vượt từ ' + lo + '%-' + (lo + 10) + '%'; }
+// danh sách theo cách xem (BC / AM / Tỉnh), CHƯA lọc nhóm & tìm; AM/Tỉnh = cộng cap & volume, nhóm vượt tính theo % của chính AM/Tỉnh đó
+function tntCapViewRows(B) { const S = tntCapSt().bc; let L = B.rows.filter(tntCapScopeOk);
   if (S.view !== 'bc') { const m = {}; L.forEach((r) => { const k = S.view === 'am' ? r.am || '—' : r.tinh || '—'; const o = m[k] = m[k] || { bc: k, am: S.view === 'am' ? k : '', tinh: S.view === 'am' ? r.tinh : k, cap: 0, vols: B.dcol.map(() => 0), tt: 0, n: 0, nOver: 0 };
       o.cap += r.cap || 0; r.vols.forEach((v, i) => { o.vols[i] += v || 0; }); o.tt += r.tt || 0; o.n++; if (r.pct > 1) o.nOver++; });
-    L = Object.keys(m).map((k) => { const o = m[k]; o.last = o.vols.length ? o.vols[o.vols.length - 1] : null; o.pct = o.cap ? o.last / o.cap : null; return o; }); }
+    const groups = tntCapGroups(B).map((x) => x[0]);
+    L = Object.keys(m).map((k) => { const o = m[k]; o.last = o.vols.length ? o.vols[o.vols.length - 1] : null; o.pct = o.cap ? o.last / o.cap : null; o.g = tntCapGrpOf(o.pct, groups); return o; }); }
+  return L; }
+function tntCapBcTblHtml(B) { B = B || tntCapBc(); if (!B) return ''; const S = tntCapSt().bc, q = tntCapN(S.q);
+  let L = tntCapViewRows(B); if (S.g) L = L.filter((r) => r.g === S.g);
   if (q) L = L.filter((r) => tntCapN(r.bc + ' ' + r.am + ' ' + r.tinh).indexOf(q) >= 0);
   const key = { pct: (r) => r.pct === null ? -1 : r.pct, over: (r) => (r.last || 0) - (r.cap || 0), tt: (r) => r.tt || 0, cap: (r) => r.cap || 0 }[S.sort] || ((r) => r.pct);
   L.sort((a, b) => key(b) - key(a));
