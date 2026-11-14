@@ -259,3 +259,4 @@ Trình duyệt ──POST /api/gas {action, token,...}──> Vercel function ap
 - 2026-11-14: Cảnh báo cơ cấu — bỏ mọi tên sheet trong nhãn/popup (chỉ ghi "danh sách cơ cấu"), cột AM bỏ chữ "theo sheet GTC".
 - 2026-11-14: Cảnh báo cơ cấu — FIX cột Tỉnh (trước lấy cột Tỉnh của sheet GTC bị trùng tên AM): nay lấy theo mã tỉnh trong tên BC "(THN) …" khớp với cột Tỉnh của các BC cùng mã trong sheet cơ cấu.
 - 2026-11-14: Viết lại phần đầu CLAUDE.md: thêm mục 0 QUY TẮC BẮT BUỘC (đọc hết file, MỌI việc phải ghi vào file này cùng commit), mục 5c bản đồ code [TNT]-Report, mục 8 quy tắc trình bày/phân tích chủ dự án đã chốt, mục 9 quy trình test/deploy.
+- 2026-11-14: Cảnh báo cơ cấu — nhãn khi đủ đổi thành "Cơ cấu vận hành đã xác thực" (tick xanh), chủ dự án muốn chữ sang trọng hơn "Cơ cấu đủ bưu cục".
