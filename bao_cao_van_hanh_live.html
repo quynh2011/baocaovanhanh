@@ -268,7 +268,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .module-table td.mod-label{font-weight:600}
 .module-table td.mod-label.cap-tab{padding-left:24px;font-weight:500}
 .module-table td.mod-label.cap-subtab{padding-left:42px;font-weight:400;color:var(--muted)}
-/* thanh xem trước nằm GÓC DƯỚI TRÁI (không che các nút Ngày/Tuần/... ở đầu trang, không đè nút DBB góc phải) */
+/* thanh xem trước nằm GÓC DƯỚI TRÁI (không che các nút Ngày/Tuần/... ở đầu trang, không đè nút TNT góc phải) */
 .preview-banner{position:fixed;left:16px;bottom:16px;max-width:calc(100vw - 120px);z-index:9999;background:#B8390E;color:#fff;font-family:var(--mono);
   font-size:12.5px;padding:9px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
 .preview-banner button{font-family:var(--mono);font-size:11.5px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);
@@ -407,7 +407,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
   .user-menu-btn span.umb-name{display:none}
 }
 
-/* ================= NÚT TRÒN NỔI DBB + MENU ĐIỀU HƯỚNG CÁC MỤC ================= */
+/* ================= NÚT TRÒN NỔI TNT + MENU ĐIỀU HƯỚNG CÁC MỤC ================= */
 .dbb-fab-wrap{position:fixed;right:24px;bottom:24px;z-index:3000;display:flex;flex-direction:column;align-items:flex-end;gap:12px;pointer-events:none} /* khung bọc (cao bằng cả menu ẩn) không được chặn bấm vào nội dung phía dưới */
 .dbb-fab{pointer-events:auto}
 .dbb-sub-menu{display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin-bottom:2px;
@@ -438,7 +438,7 @@ td.bad{background:var(--red-cell);color:#C04A1A;font-weight:600}
 .vh-subtab-btn.active{background:var(--ghn-blue);color:#fff;border-color:var(--ghn-blue)}
 .vh-pane{display:none}
 .vh-pane.active{display:block}
-/* nút chọn Sản lượng/Doanh thu trong mỗi khối Kinh doanh — dùng màu cam (đồng bộ với accent của mục DBB) để
+/* nút chọn Sản lượng/Doanh thu trong mỗi khối Kinh doanh — dùng màu cam (đồng bộ với accent của mục TNT) để
    phân biệt trực quan với tab xanh của Vận hành ở trên */
 .kd-metric-toggle{display:inline-flex;border:1px solid var(--border-strong);border-radius:8px;overflow:hidden}
 .kd-metric-btn{font-family:var(--f);font-size:11.5px;font-weight:600;padding:6px 13px;border:none;
@@ -1184,7 +1184,7 @@ td.dn-keycol{background:#FBF7EE}
     <a href="javascript:void(0)" class="toc-top" onclick="tldGoTo('sec0')">Ve dau trang</a>
   </nav>
 
-<!-- ================= NÚT TRÒN NỔI DBB ================= -->
+<!-- ================= NÚT TRÒN NỔI TNT ================= -->
 <div class="dbb-fab-wrap">
   <div class="dbb-sub-menu" id="dbbSubMenu">
     <button class="dbb-sub-btn active" id="navBtn-sectionVanHanh" onclick="switchSection('sectionVanHanh')">📊 Vận hành</button>
@@ -1198,7 +1198,7 @@ td.dn-keycol{background:#FBF7EE}
         <button class="dbb-sub-btn" id="navBtn-sectionTyLeLapDay" onclick="switchSection('sectionTyLeLapDay')">🚛 Tỷ lệ lấp đầy</button>
     <button class="dbb-sub-btn" id="navBtn-doiSoatVanTai" onclick="switchSection('sectionDoiSoatVanTai')">🚚 Đối soát vận tải</button>
   </div>
-  <button class="dbb-fab" id="dbbFab" onclick="toggleDbbMenu()"><span>DBB</span></button>
+  <button class="dbb-fab" id="dbbFab" onclick="toggleDbbMenu()"><span>TNT</span></button>
 </div>
 
 <!-- ================= SECTION: VẬN HÀNH (Ngày / Tuần / Tháng) ================= -->
@@ -1263,7 +1263,7 @@ td.dn-keycol{background:#FBF7EE}
       <h1>Báo Cáo Vận Hành Ngày <span class="rh-tag">Live</span></h1>
       <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px" id="dnSubtitle">Đang tải…</div>
     </div>
-    <div class="meta">Modify by - Pham Van Quynh - DBB Live Report<br>Cập nhật lúc: <span id="dnUpdatedAt">—</span><br><button class="refresh-btn" onclick="loadVanHanhNgay(true)">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
+    <div class="meta">Modify by - Pham Van Quynh - TNT Live Report<br>Cập nhật lúc: <span id="dnUpdatedAt">—</span><br><button class="refresh-btn" onclick="loadVanHanhNgay(true)">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
   </div>
   <div id="dnErr"></div>
   <div id="dnLoading" class="load-progress" style="display:none">
@@ -1278,7 +1278,7 @@ td.dn-keycol{background:#FBF7EE}
       <div class="leg"><span class="leg-dot" style="background:#FDE2E1"></span>Kém hơn mức Vùng / chưa đạt target</div>
       <div class="leg">N-1 = ngày gần nhất có dữ liệu, N-2 = ngày trước đó</div>
     </div>
-    <div>Modify by - Pham Van Quynh - DBB Live Report</div>
+    <div>Modify by - Pham Van Quynh - TNT Live Report</div>
   </div>
 </div>
   </div>
@@ -1307,7 +1307,7 @@ td.dn-keycol{background:#FBF7EE}
       <h1>Báo Cáo Vận Hành Tuần <span class="rh-tag" id="weekTag">Live</span></h1>
       <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px" id="subtitleLine">12 chỉ số vận hành</div>
     </div>
-    <div class="meta">Modify by - Pham Van Quynh - DBB Live Report<br>Cập nhật lúc: <span id="updatedAt">—</span><br><button class="refresh-btn" onclick="location.reload()">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
+    <div class="meta">Modify by - Pham Van Quynh - TNT Live Report<br>Cập nhật lúc: <span id="updatedAt">—</span><br><button class="refresh-btn" onclick="location.reload()">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
   </div>
 
   <div id="vhAdminCfg"></div>
@@ -1348,7 +1348,7 @@ td.dn-keycol{background:#FBF7EE}
       <div class="leg"><span class="leg-dot" style="background:var(--red-cell)"></span>Chưa đạt target</div>
       <div class="leg">▲/▼ = xu hướng so kỳ trước (xanh = cải thiện, đỏ = xấu đi)</div>
     </div>
-    <div>Modify by - Pham Van Quynh - DBB Live Report</div>
+    <div>Modify by - Pham Van Quynh - TNT Live Report</div>
   </div>
 </div>
   </div><!-- /#vhTuan -->
@@ -1362,7 +1362,7 @@ td.dn-keycol{background:#FBF7EE}
   </div>
 </div><!-- /#sectionVanHanh -->
 
-<!-- ================= SECTION: KINH DOANH (DBB) (Ngày / Tuần / Tháng) ================= -->
+<!-- ================= SECTION: KINH DOANH (TNT) (Ngày / Tuần / Tháng) ================= -->
 <div id="sectionKinhDoanh" class="app-section">
   <div class="vh-subtabs">
     <button class="vh-subtab-btn" id="kdTabBtn-ngay" onclick="switchKDTab('ngay')">Ngày</button>
@@ -1393,10 +1393,10 @@ td.dn-keycol{background:#FBF7EE}
 </div>
 <div class="page" style="padding-top:28px">
   <div class="report-header" id="kdtop" style="border-bottom-color:var(--ghn-blue)">
-    <div><h1>Kinh Doanh <span class="rh-tag">DBB</span></h1>
-      <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Sản lượng &amp; Doanh thu LTC — Vùng DBB, theo Tuần &amp; theo Tháng</div>
+    <div><h1>Kinh Doanh <span class="rh-tag">TNT</span></h1>
+      <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Sản lượng &amp; Doanh thu LTC — Vùng TNT, theo Tuần &amp; theo Tháng</div>
     </div>
-    <div class="meta">Modify by - Pham Van Quynh - DBB Live Report<br>Cập nhật lúc: <span id="kdUpdatedAt">—</span><br><button class="refresh-btn" onclick="location.reload()">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
+    <div class="meta">Modify by - Pham Van Quynh - TNT Live Report<br>Cập nhật lúc: <span id="kdUpdatedAt">—</span><br><button class="refresh-btn" onclick="location.reload()">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
   </div>
   <div id="kdErrBanner"></div>
   <div id="kdLoadingNote" class="load-progress">
@@ -1421,7 +1421,7 @@ td.dn-keycol{background:#FBF7EE}
       <div class="leg"><span class="leg-dot" style="background:var(--red-cell)"></span>Chưa đạt target</div>
       <div class="leg">▲/▼ = xu hướng so kỳ trước (xanh = cải thiện, đỏ = xấu đi)</div>
     </div>
-    <div>Modify by - Pham Van Quynh - DBB Live Report</div>
+    <div>Modify by - Pham Van Quynh - TNT Live Report</div>
   </div>
 </div>
   </div><!-- /#kdTuan -->
@@ -1448,7 +1448,7 @@ td.dn-keycol{background:#FBF7EE}
 </div>
     <div class="page" style="padding-top:28px">
       <div class="report-header" style="border-bottom-color:var(--ghn-blue)">
-        <div><h1>Kế Hoạch Kinh Doanh <span class="rh-tag">DBB</span></h1>
+        <div><h1>Kế Hoạch Kinh Doanh <span class="rh-tag">TNT</span></h1>
           <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Lập kế hoạch tiếp cận khách hàng mới, theo dõi kết quả &amp; tiến độ triển khai</div>
         </div>
         <div class="meta"><button class="refresh-btn" onclick="khLoaded=false;loadKeHoachKinhDoanh()">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
@@ -1540,7 +1540,7 @@ td.dn-keycol{background:#FBF7EE}
 </div>
     <div class="page" style="padding-top:28px">
       <div class="report-header" style="border-bottom-color:var(--ghn-blue)">
-        <div><h1>Báo Cáo Kết Quả Kinh Doanh <span class="rh-tag">DBB</span></h1>
+        <div><h1>Báo Cáo Kết Quả Kinh Doanh <span class="rh-tag">TNT</span></h1>
           <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px">Giải trình kết quả theo Tuần — nhiều AM cùng nộp, AI gộp thành 1 báo cáo Vùng</div>
         </div>
         <div class="meta"><button class="refresh-btn" onclick="bkLoaded=false;loadBCKQKD()">↻ Làm mới dữ liệu</button><button class="export-btn" onclick="exportStaticHtml()">⬇ Xuất file HTML</button></div>
@@ -1678,10 +1678,10 @@ td.dn-keycol{background:#FBF7EE}
     <div class="page">
       <div class="report-header" id="evtop">
         <div>
-          <h1>Kế Hoạch Vận Hành Event <span class="rh-tag" id="evHeadTag">DBB</span></h1>
+          <h1>Kế Hoạch Vận Hành Event <span class="rh-tag" id="evHeadTag">TNT</span></h1>
           <div style="font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:4px" id="evSubtitle">Đang tải…</div>
         </div>
-        <div class="meta">Vùng Đông Bắc — DBB<br>Cập nhật lúc: <span id="evUpdatedAt">—</span></div>
+        <div class="meta">Vùng TNT<br>Cập nhật lúc: <span id="evUpdatedAt">—</span></div>
       </div>
       <div id="evReportBody"></div>
     </div>
@@ -4116,14 +4116,14 @@ function buildSummaryBanner(data){
     '<div id="opsOverviewWrap">' + opsAssembleOverviewHtml(data, OPS_AI_STORE.overview) + '</div>';
 }
 
-// ================= KINH DOANH (DBB) — biểu đồ sản lượng LTC =================
+// ================= KINH DOANH (TNT) — biểu đồ sản lượng LTC =================
 // Đọc từ 3 tab riêng (chưa tồn tại cho tới khi user tạo + backend Code.gs được cập nhật để trả về) —
 // nếu chưa có, hiển thị "Chưa có dữ liệu" gọn gàng thay vì lỗi, không ảnh hưởng phần Vận hành.
 const KD_TABS = [
-  { key: '21_KD_HangNangNhe', title: 'LTC — Vùng DBB — Hàng nặng & nhẹ' },
-  { key: '22_KD_HangNang', title: 'LTC — Vùng DBB — Hàng nặng' },
-  { key: '23_KD_HangNhe', title: 'LTC — Vùng DBB — Hàng nhẹ' },
-  { key: '24_KD_BanMoi', title: 'LTC — Vùng DBB — Bán mới' }
+  { key: '21_KD_HangNangNhe', title: 'LTC — Vùng TNT — Hàng nặng & nhẹ' },
+  { key: '22_KD_HangNang', title: 'LTC — Vùng TNT — Hàng nặng' },
+  { key: '23_KD_HangNhe', title: 'LTC — Vùng TNT — Hàng nhẹ' },
+  { key: '24_KD_BanMoi', title: 'LTC — Vùng TNT — Bán mới' }
 ];
 let kdLoaded = false;
 
@@ -4699,7 +4699,7 @@ async function loadKinhDoanh(){
     safeRun('banMoiAM', () => {
       const amTable = res.tables ? res.tables['24_KD_BanMoiAM'] : null;
       const banMoiParsed = amTable ? parseKDBanMoi(amTable) : null;
-      out += '<div id="kd-banMoiAM">' + renderBanMoiAMBlock(banMoiParsed, 'LTC — Vùng DBB — Bán mới theo AM/Khách hàng', 'banMoiAM') + '</div>';
+      out += '<div id="kd-banMoiAM">' + renderBanMoiAMBlock(banMoiParsed, 'LTC — Vùng TNT — Bán mới theo AM/Khách hàng', 'banMoiAM') + '</div>';
     });
     document.getElementById('kdBody').innerHTML = out;
     const kdUa = document.getElementById('kdUpdatedAt'); if (kdUa) kdUa.textContent = new Date().toLocaleString('vi-VN');
@@ -4978,7 +4978,7 @@ function khReadImageDataUrl(inputId){
   });
 }
 
-// Đóng dấu ngày giờ + nhãn "GHN DBB" lên góc dưới-phải ảnh checkin/sản phẩm trước khi upload (giống tính năng
+// Đóng dấu ngày giờ + nhãn "GHN TNT" lên góc dưới-phải ảnh checkin/sản phẩm trước khi upload (giống tính năng
 // watermark của công cụ CRM gốc) — xử lý hoàn toàn ở client bằng Canvas, không cần thư viện ngoài.
 function khWatermarkFile(file){
   return new Promise((resolve, reject) => {
@@ -4993,7 +4993,7 @@ function khWatermarkFile(file){
           canvas.width = img.width; canvas.height = img.height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
-          const label = 'GHN DBB • ' + new Date().toLocaleString('vi-VN');
+          const label = 'GHN TNT • ' + new Date().toLocaleString('vi-VN');
           const fontSize = Math.max(14, Math.round(img.width / 40));
           ctx.font = fontSize + 'px sans-serif';
           const padding = Math.round(fontSize * 0.6);
@@ -5399,7 +5399,7 @@ function khRenderBarChart(containerId, data, total){
   el.innerHTML = '<div class="kh-toolbar-title" style="margin-bottom:10px">Số kế hoạch lập theo tuần — tổng '+total+' kế hoạch trong phạm vi lọc</div>' + svg;
 }
 
-// ================= ĐIỀU HƯỚNG CÁC SECTION (nút tròn nổi DBB) =================
+// ================= ĐIỀU HƯỚNG CÁC SECTION (nút tròn nổi TNT) =================
 function toggleDbbMenu(){
   document.getElementById('dbbSubMenu').classList.toggle('open');
   document.getElementById('dbbFab').classList.toggle('open');
@@ -10290,7 +10290,7 @@ function evParseFCWide(table, opt){
   });
   return { days, rows };
 }
-// ---------- parser tab KTC: header trải 3 dòng + dòng chia nhóm "▸ DBB" + số có dấu phẩy ----------
+// ---------- parser tab KTC: header trải 3 dòng + dòng chia nhóm "▸ TNT" + số có dấu phẩy ----------
 // Dòng 1 = thứ trong tuần (bị lấy làm table.cols), dòng 2 = NGÀY, dòng 3 = "Source" + cờ ✅ACT/📊FC.
 // Tự tìm dòng ngày ngay trong bảng (dòng cho ra nhiều ngày hợp lệ nhất) rồi lấy đúng vị trí cột từ đó;
 // chỉ khi không tìm được mới rơi về phương án dự phòng mượn dải ngày tab Lấy theo vị trí từ cột C.
@@ -10597,7 +10597,7 @@ function evRenderReport(){
   const upd = document.getElementById('evUpdatedAt');
   if (upd) upd.textContent = new Date().toLocaleString('vi-VN');
   const tag = document.getElementById('evHeadTag');
-  if (tag) { const p = evCurPeriod(); tag.textContent = p ? p.label : 'DBB'; }
+  if (tag) { const p = evCurPeriod(); tag.textContent = p ? p.label : 'TNT'; }
 
   let out = evBackendWarnHtml();
   if (window.EV.backendReady !== false) out += evEditNote(); // ghi chú quyền nhập: chỉ hiện 1 lần cho cả trang
@@ -10724,7 +10724,7 @@ function evTongquanInner(C){
 
   // đường sản lượng Lấy + Giao theo ngày (tái dùng biểu đồ tương tác sẵn có)
   html += '<div class="block-header"><span class="bh-num">0.2</span> Đường sản lượng theo ngày (Lấy vs Giao)</div>';
-  const grp = { label:'Toàn Vùng DBB', rows: [
+  const grp = { label:'Toàn Vùng TNT', rows: [
     evPseudoRec('Sản lượng Lấy', C.aLay.totals),
     evPseudoRec('Sản lượng Giao', C.aGiao.totals)
   ]};
@@ -10778,7 +10778,7 @@ function evVolumeInner(kind, C){
   const a = kind === 'lay' ? C.aLay : C.aGiao;
   const baseIdxs = evBaseIdxs(a.days);
   let html = '<div class="block-header"><span class="bh-num">'+num+'.1</span> '+title+' — tổng quan theo ngày</div>';
-  html += evDayTable([{ label:'Toàn Vùng DBB', byDay:a.totals }], a, true);
+  html += evDayTable([{ label:'Toàn Vùng TNT', byDay:a.totals }], a, true);
   html += '<div class="ev-hint">Cột nền xám = ngày thực tế đã chạy (dùng làm nền so sánh) · cột đỏ = ngày đỉnh.</div>';
 
   html += '<div class="block-header"><span class="bh-num">'+num+'.2</span> '+title+' theo Sàn/Loại hàng</div>';
