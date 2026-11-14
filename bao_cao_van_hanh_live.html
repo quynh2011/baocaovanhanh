@@ -9346,7 +9346,7 @@ function tntCapDayChartHtml(dd, id, dense) {
   window.__tntCapTips = window.__tntCapTips || {}; const tips = window.__tntCapTips[id] = [];
   for (let i = 0; i < n; i++) { const wd = TNT_WD[tntCapWd(dd.iso[i])] + ' ' + dd.lab[i], last = i === n - 1;
     // N-1 (ngày mới nhất) so cùng thứ tuần trước (N-8); các ngày khác so hôm trước
-    if (dense) { const j1 = i - 1, j7 = i - 7, row2 = (nm, arr, b) => [b ? '<b>' + nm + '</b>' : nm, b ? '<b>' + tntCapI(arr[i]) + '</b>' : tntCapI(arr[i]), j1 >= 0 ? tntCapPd(arr[i], arr[j1]) : '<span class="tnt-dz2">—</span>', j7 >= 0 ? tntCapPd(arr[i], arr[j7]) : '<span class="tnt-dz2">—</span>'];
+    if (dense || last) { const j1 = i - 1, j7 = i - 7, row2 = (nm, arr, b) => [b ? '<b>' + nm + '</b>' : nm, b ? '<b>' + tntCapI(arr[i]) + '</b>' : tntCapI(arr[i]), j1 >= 0 ? tntCapPd(arr[i], arr[j1]) : '<span class="tnt-dz2">—</span>', j7 >= 0 ? tntCapPd(arr[i], arr[j7]) : '<span class="tnt-dz2">—</span>'];
       tips.push(tntCapTipTbl(wd + (last ? ' <small>(N-1)</small>' : ''), ['Chỉ số', 'Số đơn', 'So hôm trước' + (j1 >= 0 ? ' (' + dd.lab[j1] + ')' : ''), 'So cùng kỳ tuần trước' + (j7 >= 0 ? ' (' + TNT_WD[tntCapWd(dd.iso[j7])] + ' ' + dd.lab[j7] + ')' : '')],
         [row2('Volume tạo', dd.tao, 1), row2('Volume hàng mới', dd.moi, 1)].concat(dd.seg.slice().reverse().map((sg) => row2('<i style="background:' + sg.color + '"></i>' + esc(tntCapSegName(sg.name)), sg.v)))));
       s += '<rect class="tnt-caphit" x="' + (pl + cw * i) + '" y="' + (pt - 30) + '" width="' + cw + '" height="' + (Hh - pt - pb + 30) + '" rx="6" data-i="' + i + '"/>'; continue; }
@@ -9519,7 +9519,7 @@ function tntCapHtml() {
   const oh = (n, inner) => { const sh = !op[n]; return '<div class="tnt-h3 tnt-osh" onclick="tntCapTog(' + n + ')"><span class="tnt-tg">' + (sh ? '▸' : '▾') + '</span>' + inner + '<button class="tnt-colb">' + (sh ? 'Mở rộng' : 'Thu gọn') + '</button></div>' + (sh ? '' : '<div class="tnt-osb">'); }, cl = (n) => op[n] ? '</div>' : '';
   let h = '<div class="tnt-h" style="margin-top:28px"><h2>V · Phân tích trend Capacity</h2><span>volume tạo · volume hàng mới (ca 1 + ca 2) · volume theo tỉnh · % volume tạo so cap bưu cục — số liệu toàn vùng (riêng bảng bưu cục chạy theo phạm vi lọc)</span></div>';
   h += tntCapInsightHtml();
-  h += oh(1, '1. Volume tạo — TNT trend 7 ngày <span>· cột chồng = đơn tạo theo nhóm khách hàng · đường xanh dương nét đứt = volume tạo · đường xanh lá = volume hàng mới · rê chuột xem từng ngày (N-1 so cùng kỳ tuần trước, ngày khác so hôm trước)</span>');
+  h += oh(1, '1. Volume tạo — TNT trend 7 ngày <span>· cột chồng = đơn tạo theo nhóm khách hàng · đường xanh dương nét đứt = volume tạo · đường xanh lá = volume hàng mới · rê chuột xem từng ngày (N-1 so hôm trước + cùng kỳ tuần trước, ngày khác so hôm trước)</span>');
   if (op[1]) h += tntCapDayChartHtml(tntCapDaily('ngay'), 'd7', false); h += cl(1);
   h += oh(2, '2. Volume tạo — TNT trend 30 ngày <span>· ghi số 3 ngày gần nhất + cứ cách 3 ngày · CN tô cam · rê chuột xem từng ngày (so hôm trước + so cùng kỳ tuần trước)</span>');
   if (op[2]) h += tntCapDayChartHtml(tntCapDaily('thang'), 'd30', true); h += cl(2);
