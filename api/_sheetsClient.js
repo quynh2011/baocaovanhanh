@@ -899,7 +899,22 @@ async function handleGetTntReport(body) {
   }
   const dates = Object.keys(dateSet).sort(); const di = {}; dates.forEach((d, i) => { di[d] = i; });
   parsed.forEach((p) => { if (p.d) p.d = p.d.map((d) => di[d]); });
-  return { ok: true, sheets: parsed, ents: ents, dates: dates, thoiGian: new Date().toISOString() };
+  // Bưu cục có dữ liệu trong 200_1_GTCTOTAL nhưng CHƯA có trong sheet cơ cấu 999_Cocau (BC mới mở chưa cập nhật)
+  let cocau = null;
+  try {
+    const cc = await getValues(SHEET_ID, "'999_Cocau'!A1:Z3000", { valueRenderOption: 'FORMATTED_VALUE' });
+    const H = (cc[0] || []).map(tntNorm); let cb = H.findIndex((h) => /^buu cuc moi/.test(h)); if (cb < 0) cb = H.findIndex((h) => /^buu cuc|^chi tiet/.test(h));
+    if (cb >= 0) {
+      const have = {}; cc.slice(1).forEach((r) => { const v = tntNorm(r[cb]); if (v) have[v] = 1; });
+      const tot = parsed.find((p) => /gtctotal$/i.test(String(p.name).replace(/[^a-z0-9]/gi, '')) && p.b);
+      const src = tot || parsed.find((p) => p.main && p.b);
+      const miss = {};
+      if (src) src.b.forEach((e, i) => { const nm = ents[e][0]; if (have[tntNorm(nm)]) return; const o = miss[e] = miss[e] || { bc: nm, am: ents[e][1] || '', tinh: ents[e][2] || '', first: src.d[i], last: src.d[i], days: {}, vol: 0 };
+        o.first = Math.min(o.first, src.d[i]); o.last = Math.max(o.last, src.d[i]); o.days[src.d[i]] = 1; o.vol += src.v[i] || 0; });
+      cocau = { sheet: '999_Cocau', n: cc.length - 1, src: src ? src.name : '', miss: Object.keys(miss).map((k) => { const o = miss[k], nd = Object.keys(o.days).length; return { bc: o.bc, am: o.am, tinh: o.tinh, first: dates[o.first], last: dates[o.last], nd: nd, avg: nd ? Math.round(o.vol / nd) : 0 }; }).sort((a, b) => (b.first || '').localeCompare(a.first || '')) };
+    }
+  } catch (e) { cocau = { error: String(e && e.message || e) }; }
+  return { ok: true, sheets: parsed, ents: ents, dates: dates, cocau: cocau, thoiGian: new Date().toISOString() };
 }
 
 // ====== [S]-REPORT — "Siêu báo cáo" (2026-11-04) ======
