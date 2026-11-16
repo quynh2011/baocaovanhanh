@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.32
+// @version      1.7.33
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -15,6 +15,9 @@
 // ==/UserScript==
 //
 // ========================= CHANGELOG (BẢN TEST — CHƯA PUSH GIT) =========================
+// v1.7.33 — KIỂM TRA CƠ CẤU: so cơ cấu bưu cục (sheet tự cập nhật tay) với cơ cấu HỆ THỐNG (bảng GTC tổng, AM ngày mới nhất)
+//   → nhãn cạnh ô lọc: tick xanh "Đã xác thực" hoặc tam giác vàng "N thay đổi cơ cấu — bấm xem" (BC mới chưa có trong cơ cấu,
+//   BC đổi AM). Thêm ô TÌM NHANH gõ tên tỉnh / AM / mã AM / bưu cục.
 // v1.7.32 — LỚP TỈNH / AM / BƯU CỤC (trước chỉ có trên web báo cáo) đưa vào chính modul: chọn Tỉnh / AM / Bưu cục → bản đồ
 //   làm nổi khu vực quản lý (xã/phường do các BC đó giao), mờ phần còn lại, viền cam cả khu vực + viền từng BC, bảng BC.
 //   AM / Tỉnh lấy theo CƠ CẤU BƯU CỤC của web báo cáo (action qhCocau: Mã BC = hub_code, AM ghi "ID - Họ tên").
@@ -6076,6 +6079,15 @@
             table.qh-sum td { padding: 4px 6px; border-bottom: 1px solid #f1f3f5; }
             table.qh-sum td:nth-child(n+2), table.qh-sum th:nth-child(n+2) { text-align: right; }
             .qh-bc-link { color: #1c7ed6; text-decoration: underline; }
+            .qh-search { width: 210px; padding: 5px 8px; border-radius: 6px; border: 1px solid #ced4da; font-size: 12px; }
+            .qh-search:focus { outline: none; border-color: #e8590c; box-shadow: 0 0 0 2px rgba(232,89,12,.15); }
+            .qh-cc-badge { font-size: 12px; white-space: nowrap; }
+            .qh-cc-ok { color: #1c7ed6; font-weight: 700; cursor: pointer; }
+            .qh-cc-warn { color: #c92a2a; font-weight: 700; cursor: pointer; text-decoration: underline; }
+            #qh-cc-pop { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 2147483600; display: flex; align-items: center; justify-content: center; }
+            #qh-cc-pop .box { background: #fff; border-radius: 10px; width: min(860px, 94vw); max-height: 84vh; overflow: auto; padding: 16px 18px; box-shadow: 0 10px 40px rgba(0,0,0,.3); font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
+            #qh-cc-pop h4 { margin: 14px 0 6px; font-size: 13px; color: #212529; }
+            #qh-cc-pop .sub { font-size: 12px; color: #6c757d; }
             #ghn-tuyen-giao-root {
                 position: fixed; box-sizing: border-box;
                 background: #ffffff; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
@@ -6445,6 +6457,9 @@
                 <label class="qh-lab">AM: <select id="qh-am"><option value="">Tất cả AM</option></select></label>
                 <label class="qh-lab">Bưu cục: <select id="qh-bc"><option value="">Tất cả bưu cục</option></select></label>
                 <button id="qh-clear" class="qh-clear" title="Bỏ lọc Tỉnh / AM / Bưu cục">✕</button>
+                <input id="qh-search" class="qh-search" list="qh-search-dl" placeholder="🔍 Tìm tỉnh, AM, bưu cục…" autocomplete="off">
+                <datalist id="qh-search-dl"></datalist>
+                <span id="qh-cc-badge" class="qh-cc-badge"></span>
                 <span class="ghn-tg-controls-sep"></span>
                 <label style="font-size:12px; color:#495057;">Xem theo:
                     <select id="ghn-tg-mode-select">
@@ -7613,7 +7628,7 @@
         root.id = 'ghn-tuyen-giao-root';
         root.innerHTML = `
             <div id="ghn-tuyen-giao-titlebar">
-                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.32, chưa gộp vào Báo cáo GTC)</span></span>
+                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.33, chưa gộp vào Báo cáo GTC)</span></span>
                 <span class="ghn-tg-titlebar-btns">
                     <button id="ghn-tg-admin-open-btn" class="ghn-tg-titlebar-btn" title="Quản trị phân quyền" style="display:none;">🔐</button>
                     <button id="ghn-tg-minimize-btn" class="ghn-tg-titlebar-btn" title="Thu nhỏ">➖</button>
@@ -7751,7 +7766,7 @@
     function qhCocauFetch_() {
         return new Promise(resolve => {
             const body = JSON.stringify({ action: 'qhCocau' });
-            const done = (txt) => { try { const j = JSON.parse(txt); resolve(j && j.ok ? j.rows || [] : null); } catch (e) { resolve(null); } };
+            const done = (txt) => { try { const j = JSON.parse(txt); resolve(j && j.ok ? j : null); } catch (e) { resolve(null); } };
             try {
                 if (typeof GM_xmlhttpRequest === 'function') {
                     GM_xmlhttpRequest({ method: 'POST', url: QH_WEB_API_URL, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, data: body,
@@ -7766,8 +7781,11 @@
     function qhLoadCocau_() {
         if (state.qhCocauLoading || state.qhCocau) return;
         state.qhCocauLoading = true;
-        qhCocauFetch_().then(rows => {
+        qhCocauFetch_().then(res => {
             state.qhCocauLoading = false;
+            const rows = res && res.rows;
+            state.qhCocauCheck = res && res.kiemTra && !res.kiemTra.loi ? res.kiemTra : null;
+            qhCcBadge_();
             if (!Array.isArray(rows) || !rows.length) { console.warn('[Tuyến Giao] Không đọc được cơ cấu bưu cục — dùng AM theo nhân sự.'); return; }
             state.qhCocau = rows;
             if (state.dataLoaded) { qhBuildOrg_(); if (qhSelectedHubs_()) qhApply_(false); }
@@ -7813,6 +7831,66 @@
         state.qhHubShape = state.qhHubShape || {};
         qhFillSelects_();
     }
+
+    // v1.7.33 — nhãn kiểm tra cơ cấu (giống [TNT]-Report) + popup chi tiết
+    function qhCcBadge_() {
+        const el = document.getElementById('qh-cc-badge');
+        const K = state.qhCocauCheck;
+        if (!el) return;
+        if (!K) { el.innerHTML = ''; return; }
+        const n = (K.thieu || []).length + (K.lechAm || []).length;
+        const tick = '<svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px"><path fill="#1877F2" d="M12 1.5l2.3 1.7 2.8-.3 1.1 2.6 2.6 1.1-.3 2.8 1.7 2.3-1.7 2.3.3 2.8-2.6 1.1-1.1 2.6-2.8-.3L12 22.5l-2.3-1.7-2.8.3-1.1-2.6-2.6-1.1.3-2.8L1.8 12l1.7-2.3-.3-2.8 2.6-1.1 1.1-2.6 2.8.3z"/><path fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M7.5 12.3l3 3 6-6.3"/></svg>';
+        const warn = '<svg width="17" height="17" viewBox="0 0 24 24" style="vertical-align:-3px"><path fill="#FFC21A" stroke="#E0A000" stroke-width="1" d="M12 2.5L1.8 20.5h20.4z"/><rect x="11" y="8.5" width="2" height="7" rx="1" fill="#D32F2F"/><circle cx="12" cy="17.6" r="1.25" fill="#D32F2F"/></svg>';
+        el.innerHTML = n ? `<span class="qh-cc-warn" title="Bấm xem chi tiết">${warn} ${n} thay đổi cơ cấu — bấm xem</span>`
+            : `<span class="qh-cc-ok" title="Cơ cấu bưu cục khớp hệ thống: ${K.soHt} bưu cục, đúng AM">${tick} Đã xác thực</span>`;
+        el.firstChild.addEventListener('click', qhCcPop_);
+    }
+    function qhCcPop_() {
+        const K = state.qhCocauCheck; if (!K) return;
+        let el = document.getElementById('qh-cc-pop');
+        if (!el) { el = document.createElement('div'); el.id = 'qh-cc-pop'; el.addEventListener('click', e => { if (e.target === el) el.remove(); }); document.body.appendChild(el); }
+        const tb = (heads, rows) => rows.length ? `<table class="qh-sum"><thead><tr><th>#</th>${heads.map(h => `<th style="text-align:left">${h}</th>`).join('')}</tr></thead><tbody>${rows.map((r, i) => `<tr><td>${i + 1}</td>${r.map(c => `<td style="text-align:left">${escapeHtml_(c || '—')}</td>`).join('')}</tr>`).join('')}</tbody></table>` : '<div class="sub">Không có.</div>';
+        const n = (K.thieu || []).length + (K.lechAm || []).length;
+        el.innerHTML = `<div class="box"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:15px">Kiểm tra cơ cấu bưu cục so với hệ thống</b><button class="qh-clear" id="qh-cc-x">✕</button></div>
+            <div class="sub">Hệ thống: <b>${K.soHt}</b> bưu cục có sản lượng giao · Cơ cấu: <b>${K.soCc}</b> dòng. ${n ? `<b style="color:#c92a2a">${n} điểm cần cập nhật cơ cấu.</b>` : '<b style="color:#2b8a3e">Khớp hoàn toàn.</b>'} Bản đồ vẫn chạy theo cơ cấu.</div>
+            <h4>1. Bưu cục mới — có trong hệ thống, CHƯA có trong cơ cấu (${(K.thieu || []).length})</h4>${tb(['Bưu cục', 'AM theo hệ thống'], (K.thieu || []).map(r => [r.bc, r.amHt]))}
+            <h4>2. Bưu cục đổi AM — AM trong cơ cấu khác hệ thống (${(K.lechAm || []).length})</h4>${tb(['Bưu cục', 'AM trong cơ cấu', 'AM theo hệ thống (ngày mới nhất)'], (K.lechAm || []).map(r => [r.bc, r.amCc, r.amHt]))}
+            <details style="margin-top:12px"><summary class="sub" style="cursor:pointer">Có trong cơ cấu nhưng không có sản lượng giao trong hệ thống — kho chuyển tiếp, điểm giao, bưu cục đã đóng (${(K.du || []).length})</summary>${tb(['Bưu cục / kho', 'AM trong cơ cấu'], (K.du || []).map(r => [r.bc, r.amCc]))}</details></div>`;
+        document.getElementById('qh-cc-x').addEventListener('click', () => el.remove());
+    }
+    // v1.7.33 — ô tìm nhanh tỉnh / AM / bưu cục
+    function qhSearchFill_() {
+        const dl = document.getElementById('qh-search-dl'); if (!dl) return;
+        const org = state.qhOrg || {};
+        const items = [];
+        Array.from(new Set(Object.values(org).map(o => o.tinh))).sort((a, b) => a.localeCompare(b, 'vi')).forEach(t => items.push('Tỉnh: ' + t));
+        Array.from(new Set(Object.values(org).map(o => o.am))).sort((a, b) => a.localeCompare(b, 'vi')).forEach(a => items.push('AM: ' + a));
+        Object.keys(org).sort((a, b) => org[a].name.localeCompare(org[b].name, 'vi')).forEach(c => items.push('Bưu cục: ' + org[c].name));
+        dl.innerHTML = items.map(x => `<option value="${escapeHtml_(x)}">`).join('');
+    }
+    function qhSearchGo_(q) {
+        const org = state.qhOrg || {}; q = String(q || '').trim(); if (!q) return false;
+        const m = /^(Tỉnh|AM|Bưu cục):\s*(.+)$/.exec(q);
+        const codes = Object.keys(org);
+        const pickBc = c => { state.qhBc = c; state.qhTinh = org[c].tinh; state.qhAm = org[c].am; };
+        if (m) {
+            if (m[1] === 'Tỉnh') { state.qhTinh = m[2]; state.qhAm = ''; state.qhBc = ''; }
+            else if (m[1] === 'AM') { state.qhAm = m[2]; state.qhBc = ''; const ts = Array.from(new Set(codes.filter(c => org[c].am === m[2]).map(c => org[c].tinh))); state.qhTinh = ts.length === 1 ? ts[0] : ''; }
+            else { const c = codes.find(x => org[x].name === m[2]); if (!c) return false; pickBc(c); }
+        } else {
+            const n = normalizeVn_(q);
+            const bc = codes.find(c => normalizeVn_(org[c].name).includes(n) || c === q);
+            const am = Array.from(new Set(codes.map(c => org[c].am))).find(a => normalizeVn_(a).includes(n));
+            const tinh = Array.from(new Set(codes.map(c => org[c].tinh))).find(t => normalizeVn_(t).includes(n));
+            if (am) { state.qhAm = am; state.qhBc = ''; const ts = Array.from(new Set(codes.filter(c => org[c].am === am).map(c => org[c].tinh))); state.qhTinh = ts.length === 1 ? ts[0] : ''; }
+            else if (tinh) { state.qhTinh = tinh; state.qhAm = ''; state.qhBc = ''; }
+            else if (bc) pickBc(bc);
+            else return false;
+        }
+        clearSelection_(); qhFillSelects_(); qhApply_(true);
+        return true;
+    }
+
     // gọi sau mỗi lần tải dữ liệu bản đồ xong (cả Tampermonkey và web)
     function qhOrgAfterLoad_() {
         state.qhHubShape = {};
@@ -7838,6 +7916,7 @@
         const inA = inT.filter(c => !state.qhAm || org[c].am === state.qhAm).sort((a, b) => org[a].name.localeCompare(org[b].name, 'vi'));
         if (state.qhBc && !inA.includes(state.qhBc)) state.qhBc = '';
         bSel.innerHTML = qhOpt_('', 'Tất cả bưu cục', state.qhBc || '') + inA.map(c => qhOpt_(c, org[c].name, state.qhBc)).join('');
+        qhSearchFill_();
     }
     function qhSelectedHubs_() {
         const org = state.qhOrg || {};
@@ -7953,6 +8032,12 @@
             if (state.qhBc) { const o = state.qhOrg[state.qhBc]; if (o) { state.qhTinh = o.tinh; state.qhAm = o.am; } }
             clearSelection_(); qhFillSelects_(); qhApply_(true);
         });
+        const sIn = document.getElementById('qh-search');
+        if (sIn) {
+            sIn.addEventListener('change', () => { if (qhSearchGo_(sIn.value)) sIn.value = ''; });
+            sIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (qhSearchGo_(sIn.value)) sIn.value = ''; else sIn.style.borderColor = '#c92a2a'; } else sIn.style.borderColor = ''; });
+        }
+        qhCcBadge_();
         const clr = document.getElementById('qh-clear');
         if (clr) clr.addEventListener('click', () => { state.qhTinh = ''; state.qhAm = ''; state.qhBc = ''; clearSelection_(); qhFillSelects_(); qhApply_(false); fitToData_(); });
     }
