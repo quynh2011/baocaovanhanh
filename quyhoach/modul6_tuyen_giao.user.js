@@ -1,17 +1,22 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.28
+// @version      1.7.29
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
 // @grant        GM_xmlhttpRequest
+// @grant        GM_cookie
 // @connect      www.quyhoachbuucuc.info
+// @connect      baocaovanhanh.vercel.app
 // @require      https://cdn.jsdelivr.net/npm/maplibre-gl@5.3.0/dist/maplibre-gl.js
 // @require      https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js
 // ==/UserScript==
 //
 // ========================= CHANGELOG (BẢN TEST — CHƯA PUSH GIT) =========================
+// v1.7.29 — WEB BÁO CÁO TỰ ĐỒNG BỘ: mỗi lần tải trực tiếp thành công, gửi phiên đăng nhập quyhoachbuucuc.info
+//   (cookie, đọc bằng GM_cookie) lên máy chủ web báo cáo (action qhSaveSid, tối đa 1 lần/2 giờ) để máy chủ tự tải
+//   + gộp vùng + ghi Drive giống hệt bản này, kể cả khi không ai mở Tampermonkey. Máy chủ chỉ lưu khi phiên tải được dữ liệu thật.
 // v1.7.28 — NHIỀU VÙNG: trước đây mỗi lần tự đồng bộ (mở modul) GHI ĐÈ toàn bộ backup Drive bằng đúng vùng tài khoản
 //   đang xem trên quyhoachbuucuc.info → vùng khác (vd TNT) bị xoá. Nay tải trực tiếp xong thì đọc thêm backup Drive,
 //   GỘP theo vùng (regionMergeData_: vùng vừa tải trực tiếp thay mới, các vùng khác trong backup giữ nguyên) rồi mới
@@ -1915,6 +1920,51 @@
         } catch (e) { console.warn('[Tuyến Giao] Không đọc được backup Drive để gộp vùng:', e); return null; }
     }
 
+    // v1.7.29 — gửi phiên đăng nhập quyhoachbuucuc.info lên máy chủ web báo cáo để web tự đồng bộ (xem changelog)
+    const QH_WEB_API = 'https://baocaovanhanh.vercel.app/api/gas';
+    function readQuyhoachCookie_() {
+        return new Promise(resolve => {
+            try {
+                if (typeof GM_cookie !== 'undefined' && GM_cookie && typeof GM_cookie.list === 'function') {
+                    GM_cookie.list({ url: QUYHOACH_BASE + '/' }, (cookies, err) => {
+                        if (err || !Array.isArray(cookies) || !cookies.length) { resolve({ cookie: '', why: err ? String(err) : 'khong_co_cookie' }); return; }
+                        resolve({ cookie: cookies.map(c => c.name + '=' + c.value).join('; '), why: '' });
+                    });
+                    return;
+                }
+            } catch (e) { resolve({ cookie: '', why: String(e && e.message || e) }); return; }
+            resolve({ cookie: '', why: 'tampermonkey_khong_ho_tro_GM_cookie' });
+        });
+    }
+    async function pushQuyhoachSessionToWeb_() {
+        try {
+            const KEY = 'ghn_tg_qh_sid_push';
+            const last = Number(localStorage.getItem(KEY) || 0);
+            if (Date.now() - last < 2 * 3600 * 1000) return;
+            const ck = await readQuyhoachCookie_();
+            if (!ck.cookie) {
+                console.warn('[Tuyến Giao] Không đọc được phiên quyhoachbuucuc để gửi web báo cáo:', ck.why);
+                state.qhWebSidStatus = '⚠️ chưa gửi được phiên cho web (' + ck.why + ')';
+                setTimeout(() => { const el = document.getElementById('ghn-tg-status-text'); if (el) el.textContent += ' · ' + state.qhWebSidStatus; }, 4000);
+                return;
+            }
+            const by = state.currentUser ? (state.currentUser.fullname || '') + ' (' + state.currentUser.ssoId + ')' : '';
+            GM_xmlhttpRequest({
+                method: 'POST', url: QH_WEB_API, headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                data: JSON.stringify({ action: 'qhSaveSid', cookie: ck.cookie, by }),
+                onload: r => {
+                    let j = null; try { j = JSON.parse(r.responseText); } catch (e) { /* */ }
+                    if (j && j.ok) { localStorage.setItem(KEY, String(Date.now())); state.qhWebSidStatus = '✅ đã gửi phiên cho web báo cáo tự đồng bộ'; }
+                    else state.qhWebSidStatus = '⚠️ web báo cáo chưa nhận phiên (' + ((j && (j.error + (j.detail ? ':' + j.detail : ''))) || ('HTTP ' + r.status)) + ')';
+                    console.log('[Tuyến Giao] Gửi phiên quyhoach cho web báo cáo:', j || r.status);
+                    const el = document.getElementById('ghn-tg-status-text');
+                    if (el && state.qhWebSidStatus) el.textContent += ' · ' + state.qhWebSidStatus;
+                },
+                onerror: () => { state.qhWebSidStatus = '⚠️ không gọi được web báo cáo'; }
+            });
+        } catch (e) { console.warn('[Tuyến Giao] pushQuyhoachSessionToWeb_ lỗi:', e); }
+    }
+
     // Thử tải TRỰC TIẾP cả 6 nguồn từ quyhoachbuucuc.info. Thành công thì gán thẳng
     // vào state (không cần qua GAS trước), đồng thời BẮN NGẦM 1 bản backup lên
     // GAS_TUYEN_GIAO.gs (không chờ, không chặn UI).
@@ -1936,6 +1986,7 @@
         if (!wardsOld || !Array.isArray(wardsOld.features)) {
             throw new Error('wards.geojson (ranh giới cũ) tải về không hợp lệ.');
         }
+        pushQuyhoachSessionToWeb_(); // v1.7.29 — không chờ
         // v1.7.28 — gộp với backup Drive để KHÔNG mất các vùng khác (xem regionMergeData_)
         onProgress && onProgress('🔎 Đang gộp với dữ liệu các vùng khác đã lưu...');
         const backupAll = await fetchBackupData_();
@@ -7520,7 +7571,7 @@
         root.id = 'ghn-tuyen-giao-root';
         root.innerHTML = `
             <div id="ghn-tuyen-giao-titlebar">
-                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.28, chưa gộp vào Báo cáo GTC)</span></span>
+                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.29, chưa gộp vào Báo cáo GTC)</span></span>
                 <span class="ghn-tg-titlebar-btns">
                     <button id="ghn-tg-admin-open-btn" class="ghn-tg-titlebar-btn" title="Quản trị phân quyền" style="display:none;">🔐</button>
                     <button id="ghn-tg-minimize-btn" class="ghn-tg-titlebar-btn" title="Thu nhỏ">➖</button>

@@ -78,3 +78,12 @@ rep("    function init_() {", addon + "\n    function init_() {")
 open(os.path.join(D, 'qh_web.js'), 'w', encoding='utf-8').write(
     '// TỰ SINH bởi quyhoach/build.py từ modul6_tuyen_giao.user.js + qh_addon.js — KHÔNG sửa tay.\n' + s + '\n')
 print('ok', len(s))
+
+# Máy chủ web (api/_qhSync.js) dùng CHÍNH hàm gộp vùng của userscript → sinh api/_qhMerge.js (không sửa tay)
+_m0 = src.index('    function regionMergeData_(')
+_m1 = src.index('    // v1.7.28 — đọc toàn bộ backup')
+open(os.path.join(D, '..', 'api', '_qhMerge.js'), 'w', encoding='utf-8').write(
+    "// TỰ SINH bởi quyhoach/build.py từ quyhoach/modul6_tuyen_giao.user.js — KHÔNG sửa tay.\n"
+    "// Hàm gộp dữ liệu bản đồ theo vùng, dùng chung giữa Tampermonkey, web và máy chủ web.\n"
+    + src[_m0:_m1] + "module.exports = { regionMergeData_ };\n")
+print('api/_qhMerge.js ok')

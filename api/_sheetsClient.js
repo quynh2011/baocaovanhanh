@@ -2545,5 +2545,6 @@ module.exports = {
   handleGetDailyReport,
   handleGetTntReport,
   handleGetSReport,
-  handleSaveVHWeekConfig
+  handleSaveVHWeekConfig,
+  requireActiveUser
 };

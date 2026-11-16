@@ -48,6 +48,7 @@
 
 const sheetsClient = require('./_sheetsClient.js');
 const reconClient = require('./_reconClient.js');
+const qhSync = require('./_qhSync.js');
 
 // Các action đã port sang gọi thẳng Sheets API — xử lý tại đây, KHÔNG rơi xvống Apps Script.
 const LOCAL_ACTIONS = {
@@ -107,7 +108,10 @@ const LOCAL_ACTIONS = {
   getTntReport: sheetsClient.handleGetTntReport,
   // [S]-Report — Siêu báo cáo (2026-11-04)
   getSReport: sheetsClient.handleGetSReport,
-  saveVHWeekConfig: sheetsClient.handleSaveVHWeekConfig
+  saveVHWeekConfig: sheetsClient.handleSaveVHWeekConfig,
+  // [TNT] - Quy hoạch: máy chủ tự đồng bộ bản đồ từ quyhoachbuucuc.info (2026-11-16)
+  qhSaveSid: qhSync.handleQhSaveSid,
+  qhAutoSync: qhSync.handleQhAutoSync
 };
 
 // ================= NHÁNH CŨ: proxy sang Apps Script (giữ nguyên, dùng cho action chưa port) =================

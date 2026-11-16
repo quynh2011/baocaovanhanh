@@ -22,7 +22,7 @@
                 state.wardsOldRaw = m.wardsOld; state.wardsNewRaw = m.wardsNew; state.hubs = m.hubs; state.wards = m.wards;
                 state.wardCentroids = m.centroids; state.rezone = m.rezone;
                 // Drive chưa có vùng này → ghi bản đã gộp lên Drive 1 lần (Tampermonkey v1.7.28 sẽ giữ lại khi tự đồng bộ)
-                if (m.hubs.length > nHub0) qhSeedDrive_(r, m);
+                if (m.hubs.length > nHub0) { onProgress && onProgress('Đang lưu bản đồ vùng ' + r.toUpperCase() + ' lên dữ liệu chung...'); await qhSeedDrive_(r, m); }
             } catch (e) { console.warn('[Quy hoạch] Không ghép được dữ liệu vùng ' + r, e); }
         }
     }
@@ -206,8 +206,50 @@
         const clr = document.getElementById('qh-clear');
         if (clr) clr.addEventListener('click', () => { state.qhTinh = ''; state.qhAm = ''; state.qhBc = ''; clearSelection_(); qhFillSelects_(); qhApply_(false); fitToData_(); });
     }
+    // Web tự đồng bộ bản đồ từ quyhoachbuucuc.info: máy chủ web dùng phiên đăng nhập quy hoạch do Tampermonkey gửi lên,
+    // tải + gộp theo vùng + ghi Drive (giống Tampermonkey). Dữ liệu Drive cũ hơn 3 giờ mới chạy; xong thì tự tải lại bản đồ.
+    let qhAutoSyncStarted = false;
+    function qhSyncNote_(t) {
+        let el = document.getElementById('qh-sync-note');
+        if (!el) {
+            const st = document.getElementById('ghn-tg-map-status'); if (!st) return;
+            el = document.createElement('span'); el.id = 'qh-sync-note';
+            el.style.cssText = 'margin-left:8px;color:#5c5f66;font-size:12px;';
+            st.appendChild(el);
+        }
+        el.textContent = t;
+    }
+    async function qhAutoSync_() {
+        if (qhAutoSyncStarted) return;
+        qhAutoSyncStarted = true;
+        const ss = qhSession_();
+        if (!ss.token) return;
+        const admin = ss.role === 'Admin';
+        const at = iso => { try { return new Date(iso).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }); } catch (e) { return iso; } };
+        qhSyncNote_('· đang kiểm tra bản đồ mới…');
+        try {
+            const r = await fetch('/api/gas', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'qhAutoSync', token: ss.token }) });
+            const j = await r.json();
+            if (j && j.ok && j.synced) {
+                qhSyncNote_('· 🔄 vừa tự cập nhật bản đồ mới (' + at(j.dongBoLuc) + ')');
+                const reload = () => { const btn = document.getElementById('ghn-tg-reload-btn'); if (btn) btn.click(); };
+                if (state.map && state.map.getSource('wards') && state.map.isStyleLoaded()) reload();
+                else if (state.map) state.map.once('idle', reload);
+            } else if (j && j.ok) {
+                qhSyncNote_(j.dongBoLuc ? '· bản đồ tự cập nhật lúc ' + at(j.dongBoLuc) : '');
+            } else {
+                const why = { chua_co_cookie: 'cần mở Tampermonkey Modul 6 trên nhanh.ghn.vn 1 lần để web nhận phiên đăng nhập quy hoạch',
+                    cookie_het_han: 'phiên đăng nhập quy hoạch đã hết hạn — đăng nhập lại quyhoachbuucuc.info rồi mở Tampermonkey Modul 6 1 lần',
+                    loi_tai: 'không tải được từ quy hoạch bưu cục, sẽ thử lại sau', loi_ghi_drive: 'không ghi được dữ liệu, sẽ thử lại sau' }[j && j.error] || 'sẽ thử lại sau';
+                qhSyncNote_(admin ? '· ⚠️ chưa tự cập nhật được: ' + why : (j && j.dongBoLuc ? '· bản đồ tự cập nhật lúc ' + at(j.dongBoLuc) : ''));
+            }
+        } catch (e) { qhSyncNote_(''); }
+    }
+
     function qhAfterLoad_() {
         state.qhHubShape = {};
+        qhAutoSync_();
         qhBuildOrg_();
         const go = () => qhApply_(!!qhSelectedHubs_());
         if (state.map && state.map.getLayer('wards-fill')) go();

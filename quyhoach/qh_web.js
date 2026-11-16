@@ -214,6 +214,51 @@
         } catch (e) { console.warn('[Tuyến Giao] Không đọc được backup Drive để gộp vùng:', e); return null; }
     }
 
+    // v1.7.29 — gửi phiên đăng nhập quyhoachbuucuc.info lên máy chủ web báo cáo để web tự đồng bộ (xem changelog)
+    const QH_WEB_API = 'https://baocaovanhanh.vercel.app/api/gas';
+    function readQuyhoachCookie_() {
+        return new Promise(resolve => {
+            try {
+                if (typeof GM_cookie !== 'undefined' && GM_cookie && typeof GM_cookie.list === 'function') {
+                    GM_cookie.list({ url: QUYHOACH_BASE + '/' }, (cookies, err) => {
+                        if (err || !Array.isArray(cookies) || !cookies.length) { resolve({ cookie: '', why: err ? String(err) : 'khong_co_cookie' }); return; }
+                        resolve({ cookie: cookies.map(c => c.name + '=' + c.value).join('; '), why: '' });
+                    });
+                    return;
+                }
+            } catch (e) { resolve({ cookie: '', why: String(e && e.message || e) }); return; }
+            resolve({ cookie: '', why: 'tampermonkey_khong_ho_tro_GM_cookie' });
+        });
+    }
+    async function pushQuyhoachSessionToWeb_() {
+        try {
+            const KEY = 'ghn_tg_qh_sid_push';
+            const last = Number(localStorage.getItem(KEY) || 0);
+            if (Date.now() - last < 2 * 3600 * 1000) return;
+            const ck = await readQuyhoachCookie_();
+            if (!ck.cookie) {
+                console.warn('[Tuyến Giao] Không đọc được phiên quyhoachbuucuc để gửi web báo cáo:', ck.why);
+                state.qhWebSidStatus = '⚠️ chưa gửi được phiên cho web (' + ck.why + ')';
+                setTimeout(() => { const el = document.getElementById('ghn-tg-status-text'); if (el) el.textContent += ' · ' + state.qhWebSidStatus; }, 4000);
+                return;
+            }
+            const by = state.currentUser ? (state.currentUser.fullname || '') + ' (' + state.currentUser.ssoId + ')' : '';
+            GM_xmlhttpRequest({
+                method: 'POST', url: QH_WEB_API, headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                data: JSON.stringify({ action: 'qhSaveSid', cookie: ck.cookie, by }),
+                onload: r => {
+                    let j = null; try { j = JSON.parse(r.responseText); } catch (e) { /* */ }
+                    if (j && j.ok) { localStorage.setItem(KEY, String(Date.now())); state.qhWebSidStatus = '✅ đã gửi phiên cho web báo cáo tự đồng bộ'; }
+                    else state.qhWebSidStatus = '⚠️ web báo cáo chưa nhận phiên (' + ((j && (j.error + (j.detail ? ':' + j.detail : ''))) || ('HTTP ' + r.status)) + ')';
+                    console.log('[Tuyến Giao] Gửi phiên quyhoach cho web báo cáo:', j || r.status);
+                    const el = document.getElementById('ghn-tg-status-text');
+                    if (el && state.qhWebSidStatus) el.textContent += ' · ' + state.qhWebSidStatus;
+                },
+                onerror: () => { state.qhWebSidStatus = '⚠️ không gọi được web báo cáo'; }
+            });
+        } catch (e) { console.warn('[Tuyến Giao] pushQuyhoachSessionToWeb_ lỗi:', e); }
+    }
+
     // Thử tải TRỰC TIẾP cả 6 nguồn từ quyhoachbuucuc.info. Thành công thì gán thẳng
     // vào state (không cần qua GAS trước), đồng thời BẮN NGẦM 1 bản backup lên
     // GAS_TUYEN_GIAO.gs (không chờ, không chặn UI).
@@ -235,6 +280,7 @@
         if (!wardsOld || !Array.isArray(wardsOld.features)) {
             throw new Error('wards.geojson (ranh giới cũ) tải về không hợp lệ.');
         }
+        pushQuyhoachSessionToWeb_(); // v1.7.29 — không chờ
         // v1.7.28 — gộp với backup Drive để KHÔNG mất các vùng khác (xem regionMergeData_)
         onProgress && onProgress('🔎 Đang gộp với dữ liệu các vùng khác đã lưu...');
         const backupAll = await fetchBackupData_();
@@ -5841,7 +5887,7 @@
         root.id = 'ghn-tuyen-giao-root';
         root.innerHTML = `
             <div id="ghn-tuyen-giao-titlebar">
-                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.28, chưa gộp vào Báo cáo GTC)</span></span>
+                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.29, chưa gộp vào Báo cáo GTC)</span></span>
                 <span class="ghn-tg-titlebar-btns">
                     <button id="ghn-tg-admin-open-btn" class="ghn-tg-titlebar-btn" title="Quản trị phân quyền" style="display:none;">🔐</button>
                     <button id="ghn-tg-minimize-btn" class="ghn-tg-titlebar-btn" title="Thu nhỏ">➖</button>
@@ -5994,7 +6040,7 @@
                 state.wardsOldRaw = m.wardsOld; state.wardsNewRaw = m.wardsNew; state.hubs = m.hubs; state.wards = m.wards;
                 state.wardCentroids = m.centroids; state.rezone = m.rezone;
                 // Drive chưa có vùng này → ghi bản đã gộp lên Drive 1 lần (Tampermonkey v1.7.28 sẽ giữ lại khi tự đồng bộ)
-                if (m.hubs.length > nHub0) qhSeedDrive_(r, m);
+                if (m.hubs.length > nHub0) { onProgress && onProgress('Đang lưu bản đồ vùng ' + r.toUpperCase() + ' lên dữ liệu chung...'); await qhSeedDrive_(r, m); }
             } catch (e) { console.warn('[Quy hoạch] Không ghép được dữ liệu vùng ' + r, e); }
         }
     }
@@ -6178,8 +6224,50 @@
         const clr = document.getElementById('qh-clear');
         if (clr) clr.addEventListener('click', () => { state.qhTinh = ''; state.qhAm = ''; state.qhBc = ''; clearSelection_(); qhFillSelects_(); qhApply_(false); fitToData_(); });
     }
+    // Web tự đồng bộ bản đồ từ quyhoachbuucuc.info: máy chủ web dùng phiên đăng nhập quy hoạch do Tampermonkey gửi lên,
+    // tải + gộp theo vùng + ghi Drive (giống Tampermonkey). Dữ liệu Drive cũ hơn 3 giờ mới chạy; xong thì tự tải lại bản đồ.
+    let qhAutoSyncStarted = false;
+    function qhSyncNote_(t) {
+        let el = document.getElementById('qh-sync-note');
+        if (!el) {
+            const st = document.getElementById('ghn-tg-map-status'); if (!st) return;
+            el = document.createElement('span'); el.id = 'qh-sync-note';
+            el.style.cssText = 'margin-left:8px;color:#5c5f66;font-size:12px;';
+            st.appendChild(el);
+        }
+        el.textContent = t;
+    }
+    async function qhAutoSync_() {
+        if (qhAutoSyncStarted) return;
+        qhAutoSyncStarted = true;
+        const ss = qhSession_();
+        if (!ss.token) return;
+        const admin = ss.role === 'Admin';
+        const at = iso => { try { return new Date(iso).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }); } catch (e) { return iso; } };
+        qhSyncNote_('· đang kiểm tra bản đồ mới…');
+        try {
+            const r = await fetch('/api/gas', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'qhAutoSync', token: ss.token }) });
+            const j = await r.json();
+            if (j && j.ok && j.synced) {
+                qhSyncNote_('· 🔄 vừa tự cập nhật bản đồ mới (' + at(j.dongBoLuc) + ')');
+                const reload = () => { const btn = document.getElementById('ghn-tg-reload-btn'); if (btn) btn.click(); };
+                if (state.map && state.map.getSource('wards') && state.map.isStyleLoaded()) reload();
+                else if (state.map) state.map.once('idle', reload);
+            } else if (j && j.ok) {
+                qhSyncNote_(j.dongBoLuc ? '· bản đồ tự cập nhật lúc ' + at(j.dongBoLuc) : '');
+            } else {
+                const why = { chua_co_cookie: 'cần mở Tampermonkey Modul 6 trên nhanh.ghn.vn 1 lần để web nhận phiên đăng nhập quy hoạch',
+                    cookie_het_han: 'phiên đăng nhập quy hoạch đã hết hạn — đăng nhập lại quyhoachbuucuc.info rồi mở Tampermonkey Modul 6 1 lần',
+                    loi_tai: 'không tải được từ quy hoạch bưu cục, sẽ thử lại sau', loi_ghi_drive: 'không ghi được dữ liệu, sẽ thử lại sau' }[j && j.error] || 'sẽ thử lại sau';
+                qhSyncNote_(admin ? '· ⚠️ chưa tự cập nhật được: ' + why : (j && j.dongBoLuc ? '· bản đồ tự cập nhật lúc ' + at(j.dongBoLuc) : ''));
+            }
+        } catch (e) { qhSyncNote_(''); }
+    }
+
     function qhAfterLoad_() {
         state.qhHubShape = {};
+        qhAutoSync_();
         qhBuildOrg_();
         const go = () => qhApply_(!!qhSelectedHubs_());
         if (state.map && state.map.getLayer('wards-fill')) go();
