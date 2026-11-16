@@ -4414,6 +4414,7 @@
             #qhd-panel .qhd-chip button { border: none; background: none; cursor: pointer; color: #868e96; }
             #qhd-panel .qhd-nh { display: flex; gap: 5px; align-items: center; margin: 4px 0; flex-wrap: wrap; }
             #qhd-panel .qhd-nh input { flex: 1; min-width: 110px; padding: 4px 6px; border: 1px solid #ced4da; border-radius: 6px; font-size: 12px; font-weight: 600; }
+            #qhd-panel .qhd-nh input.qhd-nham { flex: 1 1 100%; font-weight: 400; }
             #qhd-panel .qhd-dot { width: 10px; height: 10px; border-radius: 50%; border: 3px solid; }
             #qhd-panel .qhd-chg { display: flex; justify-content: space-between; gap: 6px; padding: 4px 0; border-bottom: 1px dashed #e9ecef; }
             #qhd-panel .qhd-kpi { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
@@ -6521,7 +6522,7 @@
         const c = qhd_().cur;
         Object.keys(c.ham).forEach(k => { if (!qhdNew_(k) && c.ham[k] === qhdAmBase_(k)) delete c.ham[k]; });
     }
-    function qhdNewHub_(name, codes) {
+    function qhdNewHub_(name, codes, amPick) {
         const c = qhd_().cur; if (!c) return null;
         let n = 1; while (c.nh.some(h => h.id === 'N' + n)) n++;
         const id = 'N' + n;
@@ -6529,7 +6530,7 @@
         codes.forEach(wc => { const w = qhdWard_(wc); if (w.cen) { const wt = Math.max(1, w.dv); sx += w.cen[0] * wt; sy += w.cen[1] * wt; sw += wt; } });
         const cnt = {};
         codes.forEach(wc => { const a = qhdAm_(qhdHub_(wc)); cnt[a] = (cnt[a] || 0) + qhdWard_(wc).dv + 1; });
-        const am = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || '';
+        const am = String(amPick || '').trim() || Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || '';
         qhdPush_();
         c.nh.push({ id, name: String(name || '').trim() || ('Bưu cục mới ' + n), lng: sw ? sx / sw : null, lat: sw ? sy / sw : null, am });
         codes.forEach(wc => { c.wm[wc] = id; });
@@ -6825,7 +6826,9 @@
                     <div class="qhd-selbox">${selArr.length ? `Đang chọn <b>${selArr.length}</b> xã/phường · giao <b>${qhdN_(sDv)}</b> · lấy <b>${qhdN_(sPv)}</b> đơn<div class="qhd-mut">Thuộc: ${escapeHtml_(fromHubs.slice(0, 6).join(', '))}${fromHubs.length > 6 ? ' …' : ''}</div><div class="qhd-mut">${escapeHtml_(selArr.slice(0, 10).map(wc => qhdWard_(wc).name).join(', '))}${selArr.length > 10 ? ' …' : ''}</div><button id="qhd-selclr" class="qhd-lnk">Bỏ chọn hết</button>` : '<span class="qhd-mut">Chưa chọn xã/phường nào.</span>'}</div></div>
                     <div class="qhd-sec"><div class="qhd-st">2. Gộp vùng đang chọn</div>
                     <div class="qhd-row"><input id="qhd-to" list="qhd-hubs-dl" placeholder="Bưu cục nhận (có sẵn hoặc bưu cục mới)…"><button id="qhd-move" class="qhd-b pri" ${selArr.length ? '' : 'disabled'}>Gộp vào bưu cục</button></div>
-                    <div class="qhd-row"><input id="qhd-newname" placeholder="Tên bưu cục mới, vd (THN) Phú Bình 3"><button id="qhd-mknew" class="qhd-b pri" ${selArr.length ? '' : 'disabled'}>Tạo bưu cục mới</button></div>
+                    <div class="qhd-row"><input id="qhd-newname" placeholder="Tên bưu cục mới, vd (THN) Phú Bình 3"></div>
+                    <div class="qhd-row"><input id="qhd-newam" list="qhd-am-dl" placeholder="AM quản lý bưu cục mới (chọn AM có sẵn hoặc gõ tên mới)…"><button id="qhd-mknew" class="qhd-b pri" ${selArr.length ? '' : 'disabled'}>Tạo bưu cục mới</button></div>
+                    <div class="qhd-mut">Để trống ô AM = tự lấy AM có nhiều đơn giao nhất trong vùng chọn.</div>
                     <div class="qhd-row"><button id="qhd-revert" class="qhd-b" ${selArr.some(wc => Object.prototype.hasOwnProperty.call(c.wm, wc)) ? '' : 'disabled'}>↩ Trả vùng chọn về bưu cục cũ</button></div></div>
                     <div class="qhd-sec"><div class="qhd-st">3. Gộp bưu cục cho 1 AM / quy hoạch mới</div>
                     <div class="qhd-row"><input id="qhd-amhub" list="qhd-hubs-dl" placeholder="Thêm bưu cục…"><button id="qhd-amhub-b" class="qhd-b">＋</button><button id="qhd-amflt" class="qhd-b" title="Thêm các bưu cục đang lọc trên thanh công cụ">＋ BC đang lọc</button></div>
@@ -6834,7 +6837,7 @@
                 if (c.nh.length) {
                     h += `<div class="qhd-sec"><div class="qhd-st">Bưu cục mới trong bản nháp</div>${c.nh.map(n => {
                         const nW = Object.values(c.wm).filter(k => k === n.id).length;
-                        return `<div class="qhd-nh"><span class="qhd-dot" style="border-color:${hubColor_(n.id)}"></span><input data-nhname="${escapeHtml_(n.id)}" value="${escapeHtml_(n.name)}"><span class="qhd-mut">${nW} xã · ${escapeHtml_(n.am || 'chưa gán AM')}</span><button class="qhd-b" data-place="${escapeHtml_(n.id)}" title="Bấm rồi bấm 1 điểm trên bản đồ để đặt vị trí bưu cục">${Q.place === n.id ? '👉 Bấm bản đồ…' : '📍 Vị trí'}</button><button class="qhd-x" data-delnh="${escapeHtml_(n.id)}" title="Xoá bưu cục mới (xã/phường về bưu cục cũ)">✕</button></div>`;
+                        return `<div class="qhd-nh"><span class="qhd-dot" style="border-color:${hubColor_(n.id)}"></span><input data-nhname="${escapeHtml_(n.id)}" value="${escapeHtml_(n.name)}" title="Tên bưu cục mới"><span class="qhd-mut">${nW} xã</span><input data-nham="${escapeHtml_(n.id)}" list="qhd-am-dl" value="${escapeHtml_(n.am || '')}" placeholder="AM…" title="AM quản lý — chọn hoặc gõ tên mới" class="qhd-nham"><button class="qhd-b" data-place="${escapeHtml_(n.id)}" title="Bấm rồi bấm 1 điểm trên bản đồ để đặt vị trí bưu cục">${Q.place === n.id ? '👉 Bấm bản đồ…' : '📍 Vị trí'}</button><button class="qhd-x" data-delnh="${escapeHtml_(n.id)}" title="Xoá bưu cục mới (xã/phường về bưu cục cũ)">✕</button></div>`;
                     }).join('')}</div>`;
                 }
                 h += `<div class="qhd-sec"><div class="qhd-st">Các thay đổi</div>${qhdChangesHtml_()}</div>`;
@@ -6875,7 +6878,7 @@
         on('qhd-addflt', 'click', () => { const ws = qhdFltWards_(); if (!ws.length) { Q.msg = 'Chưa lọc Tỉnh / AM / Bưu cục trên thanh công cụ.'; qhdPanel_(); return; } ws.forEach(wc => Q.sel.add(wc)); Q.msg = ''; qhdRefresh_(); });
         on('qhd-selclr', 'click', () => { Q.sel = new Set(); qhdRefresh_(); });
         on('qhd-move', 'click', () => { const k = addHub('qhd-to'); if (!k) return; qhdAssign_(Array.from(Q.sel), k); Q.sel = new Set(); Q.msg = ''; qhdRefresh_(); });
-        on('qhd-mknew', 'click', () => { const nm = ($('qhd-newname') || {}).value; const id = qhdNewHub_(nm, Array.from(Q.sel)); if (id) { Q.sel = new Set(); Q.msg = ''; qhdRefresh_(); } });
+        on('qhd-mknew', 'click', () => { const nm = ($('qhd-newname') || {}).value; const id = qhdNewHub_(nm, Array.from(Q.sel), ($('qhd-newam') || {}).value); if (id) { Q.sel = new Set(); Q.msg = ''; qhdRefresh_(); } });
         on('qhd-revert', 'click', () => { qhdRevert_(Array.from(Q.sel)); Q.sel = new Set(); qhdRefresh_(); });
         on('qhd-amhub-b', 'click', () => { const k = addHub('qhd-amhub'); if (!k) return; if (!Q.amChips.includes(k)) Q.amChips.push(k); qhdPanel_(); });
         on('qhd-amhub', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('qhd-amhub-b').click(); } });
@@ -6883,6 +6886,7 @@
         el.querySelectorAll('[data-unchip]').forEach(b => b.addEventListener('click', () => { Q.amChips = Q.amChips.filter(k => k !== b.dataset.unchip); qhdPanel_(); }));
         on('qhd-setam', 'click', () => { const am = ($('qhd-amname') || {}).value; if (!String(am || '').trim()) { $('qhd-amname').style.borderColor = '#c92a2a'; return; } qhdSetAm_(Q.amChips.slice(), am); Q.amChips = []; qhdRefresh_(); });
         el.querySelectorAll('[data-nhname]').forEach(inp => inp.addEventListener('change', () => { const n = qhdNew_(inp.dataset.nhname); if (n && inp.value.trim()) { qhdPush_(); n.name = inp.value.trim(); qhdRefresh_(); } }));
+        el.querySelectorAll('[data-nham]').forEach(inp => inp.addEventListener('change', () => { const n = qhdNew_(inp.dataset.nham); const v = inp.value.trim(); if (n && v && v !== n.am) { qhdPush_(); n.am = v; qhdRefresh_(); } }));
         el.querySelectorAll('[data-place]').forEach(b => b.addEventListener('click', () => { Q.place = Q.place === b.dataset.place ? null : b.dataset.place; qhdPanel_(); }));
         el.querySelectorAll('[data-delnh]').forEach(b => b.addEventListener('click', () => { if (confirm('Xoá bưu cục mới này? Các xã/phường của nó về lại bưu cục cũ.')) { qhdDelNew_(b.dataset.delnh); qhdRefresh_(); } }));
         el.querySelectorAll('[data-rv]').forEach(b => b.addEventListener('click', () => { qhdRevert_(b.dataset.rv.split(',')); qhdRefresh_(); }));
