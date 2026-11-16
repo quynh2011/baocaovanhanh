@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.43
+// @version      1.7.44
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -15,6 +15,7 @@
 // ==/UserScript==
 //
 // ========================= CHANGELOG (BẢN TEST — CHƯA PUSH GIT) =========================
+// v1.7.44 — Tên khu vực AM trên bản đồ: chữ đen, bỏ chữ "AM" (chỉ còn họ tên + số BC).
 // v1.7.43 — "Xem theo: AM": tô màu xã/phường theo AM quản lý (mỗi AM 1 màu), viền đậm + tên AM từng khu vực ("AM … · n BC"), bảng khu vực có chấm màu AM → chọn 1 tỉnh là thấy ngay khu vực của từng AM.
 // v1.7.42 — 3 ô lọc Tỉnh / AM / Bưu cục hiện NGAY khi mở (trước phải chờ tải xong dữ liệu mới có ô → chỉ thấy vạch trống + dấu ✕); nút ✕ ghi rõ "✕ Bỏ lọc".
 // v1.7.41 — Lọc Tỉnh / AM / Bưu cục CHỌN NHIỀU (kiểu [S]-Report): ô hiện "☑ Tất cả N …", bấm ra danh sách tick + ô tìm (không dấu), Chọn tất cả / Bỏ chọn tất cả / Áp dụng (n), "chỉ … này". state.qhTinh/qhAm/qhBc thành MẢNG (rỗng = tất cả).
@@ -8162,7 +8163,7 @@
             map.addSource('qh-am-pt', { type: 'geojson', data: empty });
             map.addLayer({ id: 'qh-am-casing', type: 'line', source: 'qh-am', paint: { 'line-color': '#ffffff', 'line-width': 5, 'line-opacity': 0.85 } }, 'qh-grp-casing');
             map.addLayer({ id: 'qh-am-line', type: 'line', source: 'qh-am', paint: { 'line-color': ['get', 'color'], 'line-width': 2.6 } }, 'qh-grp-casing');
-            map.addLayer({ id: 'qh-am-label', type: 'symbol', source: 'qh-am-pt', layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Bold'], 'text-size': ['interpolate', ['linear'], ['zoom'], 6, 10, 9, 13, 12, 15], 'text-allow-overlap': false, 'text-padding': 4, 'text-max-width': 14 }, paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#ffffff', 'text-halo-width': 2.2 } });
+            map.addLayer({ id: 'qh-am-label', type: 'symbol', source: 'qh-am-pt', layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Bold'], 'text-size': ['interpolate', ['linear'], ['zoom'], 6, 10, 9, 13, 12, 15], 'text-allow-overlap': false, 'text-padding': 4, 'text-max-width': 14 }, paint: { 'text-color': '#111111', 'text-halo-color': '#ffffff', 'text-halo-width': 2.2 } });
         }
         const on = state.currentMode === 'am';
         ['qh-am-casing', 'qh-am-line', 'qh-am-label'].forEach(id => map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'));
@@ -8180,7 +8181,7 @@
             let u = null; try { u = shapes.length > 1 ? unionFeatures_(shapes) : shapes[0]; } catch (e) { u = null; }
             const color = qhAmColor_(am), nm = am.replace(/^\s*\d+\s*-\s*/, '');
             (u ? [u] : shapes).forEach(f => polys.push({ type: 'Feature', geometry: f.geometry, properties: { color } }));
-            try { const big = u || shapes[0]; const pt = turf.pointOnFeature(big); pts.push({ type: 'Feature', geometry: pt.geometry, properties: { color, label: `AM ${nm}\n${by[am].length} BC` } }); } catch (e) { /* bỏ qua */ }
+            try { const big = u || shapes[0]; const pt = turf.pointOnFeature(big); pts.push({ type: 'Feature', geometry: pt.geometry, properties: { color, label: `${nm}\n${by[am].length} BC` } }); } catch (e) { /* bỏ qua */ }
         });
         map.getSource('qh-am').setData({ type: 'FeatureCollection', features: polys });
         map.getSource('qh-am-pt').setData({ type: 'FeatureCollection', features: pts });

@@ -6447,7 +6447,7 @@
             map.addSource('qh-am-pt', { type: 'geojson', data: empty });
             map.addLayer({ id: 'qh-am-casing', type: 'line', source: 'qh-am', paint: { 'line-color': '#ffffff', 'line-width': 5, 'line-opacity': 0.85 } }, 'qh-grp-casing');
             map.addLayer({ id: 'qh-am-line', type: 'line', source: 'qh-am', paint: { 'line-color': ['get', 'color'], 'line-width': 2.6 } }, 'qh-grp-casing');
-            map.addLayer({ id: 'qh-am-label', type: 'symbol', source: 'qh-am-pt', layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Bold'], 'text-size': ['interpolate', ['linear'], ['zoom'], 6, 10, 9, 13, 12, 15], 'text-allow-overlap': false, 'text-padding': 4, 'text-max-width': 14 }, paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#ffffff', 'text-halo-width': 2.2 } });
+            map.addLayer({ id: 'qh-am-label', type: 'symbol', source: 'qh-am-pt', layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Bold'], 'text-size': ['interpolate', ['linear'], ['zoom'], 6, 10, 9, 13, 12, 15], 'text-allow-overlap': false, 'text-padding': 4, 'text-max-width': 14 }, paint: { 'text-color': '#111111', 'text-halo-color': '#ffffff', 'text-halo-width': 2.2 } });
         }
         const on = state.currentMode === 'am';
         ['qh-am-casing', 'qh-am-line', 'qh-am-label'].forEach(id => map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'));
@@ -6465,7 +6465,7 @@
             let u = null; try { u = shapes.length > 1 ? unionFeatures_(shapes) : shapes[0]; } catch (e) { u = null; }
             const color = qhAmColor_(am), nm = am.replace(/^\s*\d+\s*-\s*/, '');
             (u ? [u] : shapes).forEach(f => polys.push({ type: 'Feature', geometry: f.geometry, properties: { color } }));
-            try { const big = u || shapes[0]; const pt = turf.pointOnFeature(big); pts.push({ type: 'Feature', geometry: pt.geometry, properties: { color, label: `AM ${nm}\n${by[am].length} BC` } }); } catch (e) { /* bỏ qua */ }
+            try { const big = u || shapes[0]; const pt = turf.pointOnFeature(big); pts.push({ type: 'Feature', geometry: pt.geometry, properties: { color, label: `${nm}\n${by[am].length} BC` } }); } catch (e) { /* bỏ qua */ }
         });
         map.getSource('qh-am').setData({ type: 'FeatureCollection', features: polys });
         map.getSource('qh-am-pt').setData({ type: 'FeatureCollection', features: pts });
