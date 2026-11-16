@@ -197,4 +197,102 @@ async function handleQhCocau(body) {
   return res;
 }
 
-module.exports = { handleQhSaveSid, handleQhAutoSync, handleQhCocau };
+// ====== BẢN NHÁP QUY HOẠCH (2026-11-16) — gộp xã/phường/bưu cục thành quy hoạch mới, lưu CHUNG ở sheet "QuyHoachNhap" ======
+// Ai cũng (đã đăng nhập) XEM được; chỉ Admin + Quản lý được tạo/sửa/xoá.
+//   - Web báo cáo: body.token = phiên web (vai trò Admin / Quản lý theo sheet Main).
+//   - Tampermonkey: body.ghnToken = token GHN đang đăng nhập nhanh.ghn.vn → máy chủ hỏi GHN /my-profile lấy ssoId
+//     → hỏi quyền Modul 6 (GAS getPermission: ADMIN / QUAN_LY / NHAN_VIEN). Token GHN chỉ dùng để xác thực, KHÔNG lưu.
+// Cột: A ID · B Tên · C Ghi chú · D Người tạo · E Mã người tạo · F Tạo lúc · G Sửa lúc · H Người sửa · I Xoá · J.. Dữ liệu (JSON, cắt 45.000 ký tự/ô)
+const QHD_SHEET = 'QuyHoachNhap';
+const QHD_HEAD = ['ID', 'Tên bản nháp', 'Ghi chú', 'Người tạo', 'Mã người tạo', 'Tạo lúc', 'Sửa lúc', 'Người sửa', 'Xoá', 'Dữ liệu'];
+const QHD_CHUNK = 45000;
+const qhdAuthCache = {};
+function qhdHash(t) { return require('crypto').createHash('sha256').update(String(t)).digest('hex'); }
+async function qhdAuth(body) {
+  body = body || {};
+  if (body.token) {
+    const a = await requireActiveUser(body.token);
+    if (a.error) return { error: a.error };
+    return { who: a.name || a.email, id: a.email, canEdit: a.role === 'Admin' || a.role === 'Quản lý', isAdmin: a.role === 'Admin' };
+  }
+  if (body.ghnToken) {
+    const k = qhdHash(body.ghnToken);
+    const c = qhdAuthCache[k];
+    if (c && Date.now() - c.t < 10 * 60 * 1000) return c.v;
+    const to = withTimeout(15000);
+    let prof;
+    try {
+      const r = await fetch('https://nhanh-api.ghn.vn/api/lastmile/user/my-profile', {
+        method: 'POST', signal: to.signal,
+        headers: { accept: 'application/json, text/plain, */*', authorization: 'Bearer ' + body.ghnToken, 'content-type': 'application/json', origin: 'https://nhanh.ghn.vn', referer: 'https://nhanh.ghn.vn/' },
+        body: '{}'
+      });
+      if (r.status === 401 || r.status === 403) return { error: 'ghn_token_het_han' };
+      const j = await r.json();
+      const u = j && j.data && j.data.userInfo;
+      if (!u || !u.ssoId) return { error: 'ghn_khong_xac_thuc' };
+      prof = { ssoId: String(u.ssoId).trim(), name: (u.profile && u.profile.fullname) || '' };
+    } catch (e) { return { error: 'ghn_loi_mang' }; } finally { to.done(); }
+    let perm = null;
+    try { perm = await gasGet('getPermission&ssoId=' + encodeURIComponent(prof.ssoId)); } catch (e) { perm = null; }
+    if (!perm || !perm.ok || !perm.found) return { error: 'khong_co_quyen' };
+    const role = String(perm.role || '').toUpperCase();
+    const v = { who: prof.name || prof.ssoId, id: 'GHN ' + prof.ssoId, canEdit: role === 'ADMIN' || role === 'QUAN_LY', isAdmin: role === 'ADMIN' };
+    qhdAuthCache[k] = { t: Date.now(), v };
+    return v;
+  }
+  return { error: 'session_expired' };
+}
+function qhdColA1(n) { let s = ''; n++; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+const qhdTxt = (s, n) => String(s == null ? '' : s).replace(/^[=+\-@]+/, '').slice(0, n || 200);
+async function qhdRead() {
+  await ensureSheetWithHeaders(SHEET_ID, QHD_SHEET, QHD_HEAD);
+  return (await getValues(SHEET_ID, "'" + QHD_SHEET + "'!A1:T2000", { valueRenderOption: 'FORMATTED_VALUE' })) || [];
+}
+function qhdRow(r) {
+  let data = null;
+  try { data = JSON.parse(r.slice(9).map((x) => (x == null ? '' : String(x).replace(/^~/, ''))).join('')); } catch (e) { data = null; }
+  return { id: String(r[0] || ''), ten: r[1] || '', ghiChu: r[2] || '', nguoiTao: r[3] || '', maNguoiTao: r[4] || '', taoLuc: r[5] || '', suaLuc: r[6] || '', nguoiSua: r[7] || '', data };
+}
+async function handleQhDraftList(body) {
+  const au = await qhdAuth(body);
+  if (au.error) return { ok: false, error: au.error };
+  const v = await qhdRead();
+  const drafts = v.slice(1).filter((r) => r && r[0] && String(r[8] || '') !== '1').map(qhdRow).filter((d) => d.data);
+  return { ok: true, drafts, canEdit: au.canEdit, isAdmin: au.isAdmin, who: au.who, me: au.id };
+}
+async function handleQhDraftSave(body) {
+  const au = await qhdAuth(body);
+  if (au.error) return { ok: false, error: au.error };
+  if (!au.canEdit) return { ok: false, error: 'khong_co_quyen_sua' };
+  const d = (body && body.draft) || {};
+  if (!d.data || typeof d.data !== 'object') return { ok: false, error: 'thieu_du_lieu' };
+  const json = JSON.stringify(d.data);
+  if (json.length > QHD_CHUNK * 10) return { ok: false, error: 'du_lieu_qua_lon' };
+  // mỗi ô có tiền tố "~" để Google Sheet không hiểu nhầm thành số / công thức
+  const chunks = []; for (let i = 0; i < json.length; i += QHD_CHUNK) chunks.push('~' + json.slice(i, i + QHD_CHUNK));
+  while (chunks.length < 10) chunks.push('');
+  const v = await qhdRead();
+  const now = new Date().toISOString();
+  let rowIdx = -1, cur = null;
+  if (d.id) { rowIdx = v.findIndex((r, i) => i > 0 && r && String(r[0]) === String(d.id)); if (rowIdx < 0) return { ok: false, error: 'khong_tim_thay_ban_nhap' }; cur = v[rowIdx]; }
+  if (cur && d.suaLuc && String(cur[6] || '') && String(cur[6]) !== String(d.suaLuc)) return { ok: false, error: 'ban_nhap_da_bi_sua', nguoiSua: cur[7] || '', suaLuc: cur[6] || '' };
+  const id = cur ? String(cur[0]) : 'QH' + Date.now().toString(36).toUpperCase();
+  const row = [id, qhdTxt(d.ten, 120) || 'Bản nháp', qhdTxt(d.ghiChu, 1000), cur ? cur[3] : au.who, cur ? cur[4] : au.id, cur ? cur[5] : now, now, au.who, ''].concat(chunks);
+  const r1 = rowIdx > 0 ? rowIdx + 1 : v.length + 1;
+  await putValues(SHEET_ID, "'" + QHD_SHEET + "'!A" + r1 + ':' + qhdColA1(row.length - 1) + r1, [row.map((x) => (x == null ? '' : String(x)))]);
+  return { ok: true, id, suaLuc: now };
+}
+async function handleQhDraftDelete(body) {
+  const au = await qhdAuth(body);
+  if (au.error) return { ok: false, error: au.error };
+  if (!au.canEdit) return { ok: false, error: 'khong_co_quyen_sua' };
+  const v = await qhdRead();
+  const idx = v.findIndex((r, i) => i > 0 && r && String(r[0]) === String(body && body.id));
+  if (idx < 0) return { ok: false, error: 'khong_tim_thay_ban_nhap' };
+  if (!au.isAdmin && String(v[idx][4] || '') !== au.id) return { ok: false, error: 'chi_nguoi_tao_hoac_admin_duoc_xoa' };
+  await putValues(SHEET_ID, "'" + QHD_SHEET + "'!G" + (idx + 1) + ':I' + (idx + 1), [[new Date().toISOString(), au.who, '1']]);
+  return { ok: true };
+}
+
+module.exports = { handleQhSaveSid, handleQhAutoSync, handleQhCocau, handleQhDraftList, handleQhDraftSave, handleQhDraftDelete };

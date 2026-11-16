@@ -1,7 +1,7 @@
 # Bàn giao: Bản đồ quy hoạch tuyến giao — "[TNT] - Quy hoạch" + Tampermonkey "Modul 6 - Tuyến Giao"
 
 > Đọc file này + `CLAUDE.md` (gốc repo, mục 0/5/7/8/9) TRƯỚC khi sửa bất cứ gì của phần bản đồ.
-> Cập nhật lần cuối: 16/11/2026 — userscript **v1.7.33**, bản web chống cache **`?v=13`**.
+> Cập nhật lần cuối: 16/11/2026 — userscript **v1.7.34**, bản web chống cache **`?v=14`**.
 > Mọi thay đổi phần bản đồ: ghi Nhật ký ở `CLAUDE.md` mục 7 **và** cập nhật file này (mục 10 trạng thái/kế hoạch) trong cùng commit.
 
 ---
@@ -51,10 +51,10 @@
 | `api/_qhMerge.js` | **TỰ SINH** — hàm `regionMergeData_` trích từ userscript cho máy chủ dùng. | **KHÔNG** |
 | `quyhoach_view.html` | Trang trong iframe: nạp maplibre-gl 5.3.0 + turf 6.5.0 + `qh_web.js?v=N`; CSS ép thanh công cụ 1 hàng, ẩn tab Đồng bộ. | CÓ |
 | `quyhoach/data/tnt_{wards_old,wards_new,hubs,wards,centroids,rezone}.json` | Dữ liệu vùng TNT (6 file tải từ quyhoachbuucuc.info, minify). | Thay khi có bản mới |
-| `api/_qhSync.js` | Backend: `handleQhSaveSid`, `handleQhAutoSync`, `handleQhCocau` + `qhCocauCheck`. | CÓ |
-| `api/gas.js` | Đăng ký `qhSaveSid`, `qhAutoSync`, `qhCocau` trong `LOCAL_ACTIONS`. | CÓ |
+| `api/_qhSync.js` | Backend: `handleQhSaveSid`, `handleQhAutoSync`, `handleQhCocau` + `qhCocauCheck`, bản nháp `handleQhDraftList/Save/Delete` + `qhdAuth`. | CÓ |
+| `api/gas.js` | Đăng ký `qhSaveSid`, `qhAutoSync`, `qhCocau`, `qhDraftList`, `qhDraftSave`, `qhDraftDelete` trong `LOCAL_ACTIONS`. | CÓ |
 | `bao_cao_van_hanh_live.html` | Tab Vận hành › [TNT] - Quy hoạch (module id `vh_quyhoach`): iframe `qhFrame` (`allow="fullscreen"`), `switchVanHanhTab` đặt `src=quyhoach_view.html?v=N`, `qhFitFrame()` cho khung cao khít đáy màn hình. | CÓ |
-| `quyhoach/tests/server_test.js`, `map_test.js` | Test backend (fetch giả) và test giao diện Playwright (GAS giả). Cần thư mục fixtures — xem mục 9. | CÓ |
+| `quyhoach/tests/server_test.js`, `map_test.js`, `draft_server_test.js` | Test backend tự đồng bộ (fetch giả), giao diện Playwright (GAS giả), backend bản nháp (không cần fixtures). | CÓ |
 
 ## 4. Nguồn dữ liệu
 ### 4a. Apps Script GAS_TUYEN_GIAO (backup Drive)
@@ -73,6 +73,7 @@
 |---|---|
 | `999_Cocau` | Cơ cấu bưu cục chủ dự án tự cập nhật tay. Cột dò theo TÊN: **Mã BC** (= `hub_code`), **Bưu Cục mới**, **ID AM**, **AM**, **Tỉnh** (còn Usertele, Lọc, Note). ~153 dòng, 11 tỉnh. |
 | `200_1_GTCTOTAL` | Cơ cấu THEO HỆ THỐNG: cột A "Cấp quản lý" (AM, có thể nhiều tên), cột B "Chi tiết" (BC), "Chuẩn ngày". Lấy AM ở ngày mới nhất. |
+| `QuyHoachNhap` | Bản nháp quy hoạch: A ID · B Tên · C Ghi chú · D Người tạo · E Mã người tạo (email web / "GHN ssoId") · F Tạo lúc · G Sửa lúc · H Người sửa · I Xoá (1 = đã xoá mềm) · J..S Dữ liệu JSON cắt 45.000 ký tự/ô, mỗi ô tiền tố `~`. Tự tạo nếu chưa có. |
 | `CauHinhQuyHoach` | Cột A khoá / B giá trị: `cookie` (KHÔNG BAO GIỜ trả về trình duyệt), `cookieLuc`, `cookieBoi`, `dongBoLuc`, `thuLuc`, `ketQua`. Tự tạo nếu chưa có. |
 
 ### 4d. Quy mô hiện tại (16/11/2026)
@@ -107,6 +108,17 @@ DBB 59 BC / 771 phường (Thái Nguyên, Hà Giang, Cao Bằng, Tuyên Quang, B
 - `qhWebCompact_`: thanh công cụ 1 hàng (thừa thì cuộn ngang, ẩn ô Vùng, ô chọn không nhãn), nút Lớp/Chú thích/Bỏ chọn/Tải lại chỉ còn biểu tượng (có tooltip), nút ⛶ toàn màn hình `#qh-fs-btn`, bảng thông tin phải 340/430px + nút thu nhỏ `#qh-info-min`. Trang cha `qhFitFrame()` cho iframe cao khít đáy màn hình.
 - Tab "Theo Nhân Viên": token GHN lấy bằng nút dấu trang "🔗 Kết nối báo cáo TNT" (`qhBookmarklet_`): bấm "🔗 Kết nối GHN" trên web → mở nhanh.ghn.vn → bấm dấu trang → token gửi về bằng `postMessage({type:'qhGhnToken'})` (chỉ nhận origin *.ghn.vn) hoặc mở web kèm `#qhGhnToken=…` → localStorage `qh_ghn_token` (chỉ trên máy người dùng). 401/403 → tự xoá + báo kết nối lại. Có nút "📋 Copy mã nút" để tạo dấu trang thủ công.
 - Vị trí đơn GHN (đã xác nhận bằng phản hồi API thật, v1.7.27): `senderContact/receiverContact` bị che; vị trí nằm ở `pickInfo` (đơn lấy) / `deliverInfo` (đơn giao) / `returnInfo` (đơn trả), có wardName/districtName/cityName/lat/lng, không có wardCode → khớp phường bằng GPS (`locFromItem_`, `vnLatLng_` tự đảo lat/lng).
+
+## 8b. Bản nháp quy hoạch (v1.7.34 — CHUNG Tampermonkey và web, hàm tiền tố `qhd`)
+- Mục đích (chủ dự án yêu cầu 16/11): tạo quy hoạch mới để xem thử, KHÔNG đụng dữ liệu thật: (1) gộp các bưu cục đang có cho 1 AM → quy hoạch mới; (2) gộp thêm xã/phường vào 1 bưu cục có sẵn; (3) gộp xã/phường của nhiều bưu cục thành 1 bưu cục mới.
+- Chủ dự án chốt: lưu CHUNG lên sheet (mọi người xem được) · Admin + Quản lý mới tạo/sửa · bảng so sánh có đủ số xã/phường + diện tích, giao/lấy, nhân sự/định biên, khoảng cách tới BC · chạy cả Tampermonkey và web.
+- Dữ liệu 1 bản nháp (`qhdToData_`): `{v:1, wh:{khoáBC:[mã xã...]}, nh:[{id:'N1', name, lat, lng, am}], ham:{khoáBC: 'AM mới'}}` — chỉ lưu phần GHI ĐÈ so với quy hoạch thật (xã/phường đổi BC, BC mới, BC đổi AM). Khoá BC = `hub_code` hoặc `N1, N2…` cho BC mới. Trong trình duyệt dùng dạng `cur.wm = {mã xã: khoáBC}`.
+- Giao diện: nút `#qhd-btn` "📝 Bản nháp" → panel trái `#qhd-panel` (`qhdPanel_`/`qhdWire_`): chọn bản đã lưu / ＋ Tạo mới / Lưu / Lưu thành bản mới / Hoàn tác (`qhdUndo_`, 40 bước) / Xoá. Tab "✏️ Thao tác": 1. chọn xã/phường (bấm bản đồ — `qhdMapClick_` chèn đầu `map.on('click')`; bấm chấm BC = chọn cả BC; thêm cả 1 BC; thêm vùng đang lọc Tỉnh/AM/BC), 2. gộp vào BC (`qhdAssign_`) / tạo BC mới (`qhdNewHub_`, vị trí = trọng tâm theo đơn giao, AM = AM chiếm nhiều đơn nhất; "📍 Vị trí" rồi bấm bản đồ để đặt lại) / trả về BC cũ, 3. gán BC cho AM có sẵn hoặc tên quy hoạch mới (`qhdSetAm_`); danh sách thay đổi, bấm ✕ để bỏ từng nhóm. Tab "📊 So sánh trước → sau" (`qhdCmpHtml_`): theo bưu cục và theo AM; ô = số sau (đậm) + "trước x ▲▼Δ" (khoảng cách/thiếu người tăng = đỏ, giảm = xanh; sản lượng trung tính).
+- Công thức (`qhdStats_`): giao/lấy = Σ dv/pv của xã/phường (số liệu quy hoạch); diện tích = turf.area; định biên cần = Σ đơn giao xã ÷ năng lực ổn định (`THRESHOLDS_` yellowMin: 70 xã / 90 phường), làm tròn lên; nhân sự hiện có = `hub.staff` (giữ nguyên, chưa tính điều chuyển người; BC mới = 0); khoảng cách = chim bay từ BC tới tâm xã/phường, TB theo trọng số đơn giao + xã xa nhất.
+- Bản đồ (lớp `qhd-*`, `qhdRender_`): tô xã/phường theo BC của bản nháp, viền đỏ đứt = xã/phường đổi BC, viền xanh đen = ranh giới BC bị ảnh hưởng, viền tím đứt = ranh giới AM bị ảnh hưởng, vàng = đang chọn, ★ = BC mới. Đóng panel là bản đồ về quy hoạch thật.
+- Backend (`api/_qhSync.js`): `qhDraftList` (ai đã đăng nhập cũng xem; trả `canEdit`), `qhDraftSave` (Admin/Quản lý; chặn ghi đè nếu `suaLuc` khác — người khác vừa sửa), `qhDraftDelete` (xoá mềm; chỉ người tạo hoặc Admin). Xác thực `qhdAuth`: web gửi `token` phiên (vai trò Admin / Quản lý ở sheet Main); Tampermonkey gửi `ghnToken` → máy chủ gọi GHN `/user/my-profile` lấy ssoId → GAS `getPermission` (ADMIN / QUAN_LY được sửa). Token GHN chỉ dùng xác thực, không lưu; cache 10 phút theo mã băm.
+- Trong Tampermonkey gọi `/api/gas` bằng `GM_xmlhttpRequest` (header đã có `@connect baocaovanhanh.vercel.app`).
+- Chưa làm (hỏi chủ dự án nếu cần): áp bản nháp thành quy hoạch thật, điều chuyển nhân sự theo bản nháp, xuất Excel bảng so sánh, so 2 bản nháp với nhau.
 
 ## 9. Quy trình sửa → build → test → deploy
 1. Sửa `modul6_tuyen_giao.user.js` (tăng `@version` + ghi changelog đầu file theo kiểu các bản trước) và/hoặc `qh_addon.js` / `build.py` / `api/_qhSync.js`.
@@ -145,4 +157,5 @@ DBB 59 BC / 771 phường (Thái Nguyên, Hà Giang, Cao Bằng, Tuyên Quang, B
 | 5 | Giao diện web gọn, bản đồ to, toàn màn hình | ✅ Xong (`?v=13`) |
 | 6 | Tự động lấy token GHN trên web cho tab Theo Nhân Viên (không cần bookmarklet) | ⏸ Chủ dự án hoãn ("để tý xử") |
 | 7 | (Tuỳ chọn) Giao diện gọn tương tự cho bản Tampermonkey | Chưa làm — hỏi chủ dự án trước |
+| 9 | Bản nháp quy hoạch (gộp xã/phường, BC, AM + so sánh trước → sau) | ✅ Xong v1.7.34 (test backend 12/12 + Playwright dữ liệu giả) — chưa thử sheet/GHN thật |
 | 8 | (Tuỳ chọn) Lịch chạy nền đồng bộ không cần người mở tab (Vercel cron gọi `qhAutoSync` với quyền hệ thống) | Chưa làm — hỏi trước |

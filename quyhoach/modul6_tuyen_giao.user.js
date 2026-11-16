@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.33
+// @version      1.7.34
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -15,6 +15,13 @@
 // ==/UserScript==
 //
 // ========================= CHANGELOG (BẢN TEST — CHƯA PUSH GIT) =========================
+// v1.7.34 — BẢN NHÁP QUY HOẠCH (nút "📝 Bản nháp" trên thanh công cụ, chạy cả Tampermonkey + web): thử gộp mà KHÔNG
+//     đụng quy hoạch thật — (1) gộp các bưu cục cho 1 AM / quy hoạch mới, (2) gộp thêm xã/phường vào 1 bưu cục có sẵn,
+//     (3) gộp xã/phường của nhiều bưu cục thành 1 bưu cục mới. Bấm bản đồ chọn xã/phường (bấm chấm BC = cả BC), tô màu theo
+//     bản nháp, viền đỏ đứt = xã/phường đổi BC, viền tím = ranh giới AM mới. Bảng so sánh trước → sau theo BC và AM: số xã/
+//     phường, diện tích, giao/lấy, nhân sự hiện có, định biên cần (đơn giao ÷ 70 xã / 90 phường), thiếu/thừa, khoảng cách tới
+//     BC. Lưu CHUNG lên sheet của web báo cáo (qhDraftList/qhDraftSave/qhDraftDelete) — ai cũng xem, Admin + Quản lý mới sửa
+//     (Tampermonkey xác thực bằng token GHN → quyền ADMIN/QUAN_LY của modul). Hàm tiền tố qhd*.
 // v1.7.33 — KIỂM TRA CƠ CẤU: so cơ cấu bưu cục (sheet tự cập nhật tay) với cơ cấu HỆ THỐNG (bảng GTC tổng, AM ngày mới nhất)
 //   → nhãn cạnh ô lọc: tick xanh "Đã xác thực" hoặc tam giác vàng "N thay đổi cơ cấu — bấm xem" (BC mới chưa có trong cơ cấu,
 //   BC đổi AM). Thêm ô TÌM NHANH gõ tên tỉnh / AM / mã AM / bưu cục.
@@ -4346,6 +4353,7 @@
             // nhân viên (v1.6.2) LUÔN gọi selectStaffTerritory_() để hiện đúng "Vùng giao
             // thực tế" của RIÊNG người đó (nếu checkbox đang bật) — xem applyStaffHullVisibility_.
             map.on('click', (e) => {
+                if (state.qhd && state.qhd.open && qhdMapClick_(e)) return; // v1.7.34 — đang sửa bản nháp quy hoạch
                 // v1.6.4 — KHÔNG còn dùng map.queryRenderedFeatures cho chấm/tên nhân viên
                 // (đã tự kiểm chứng trên trang thật: hay bị RỖNG dù bấm đúng pixel, xem giải
                 // thích chi tiết ở findStaffDotNearPoint_ phía trên) — thay bằng tính khoảng
@@ -6088,6 +6096,51 @@
             #qh-cc-pop .box { background: #fff; border-radius: 10px; width: min(860px, 94vw); max-height: 84vh; overflow: auto; padding: 16px 18px; box-shadow: 0 10px 40px rgba(0,0,0,.3); font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
             #qh-cc-pop h4 { margin: 14px 0 6px; font-size: 13px; color: #212529; }
             #qh-cc-pop .sub { font-size: 12px; color: #6c757d; }
+            .qhd-btn.on { background: #e8590c; color: #fff; border-color: #e8590c; }
+            #qhd-panel { position: absolute; top: 12px; left: 12px; width: 380px; max-width: calc(100% - 24px); max-height: calc(100% - 24px); overflow-y: auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 18px rgba(0,0,0,.25); padding: 12px 14px; z-index: 6; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 12px; color: #212529; box-sizing: border-box; }
+            #qhd-panel.wide { width: min(760px, calc(100% - 24px)); }
+            #qhd-panel .qhd-hd { display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 4px; }
+            #qhd-panel .qhd-row { display: flex; gap: 6px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
+            #qhd-panel .qhd-row > input, #qhd-panel .qhd-row > select { flex: 1; min-width: 120px; padding: 5px 7px; border: 1px solid #ced4da; border-radius: 6px; font-size: 12px; }
+            #qhd-panel textarea { width: 100%; box-sizing: border-box; padding: 5px 7px; border: 1px solid #ced4da; border-radius: 6px; font-size: 12px; font-family: inherit; resize: vertical; }
+            #qhd-panel .qhd-b { padding: 5px 9px; border-radius: 6px; border: 1px solid #ced4da; background: #fff; cursor: pointer; font-size: 12px; white-space: nowrap; }
+            #qhd-panel .qhd-b.pri { background: #1c7ed6; border-color: #1c7ed6; color: #fff; font-weight: 600; }
+            #qhd-panel .qhd-b.red { color: #c92a2a; }
+            #qhd-panel .qhd-b:disabled { opacity: .45; cursor: default; }
+            #qhd-panel .qhd-x { border: none; background: transparent; color: #868e96; cursor: pointer; font-size: 13px; padding: 2px 4px; }
+            #qhd-panel .qhd-x:hover { color: #c92a2a; }
+            #qhd-panel .qhd-lnk { border: none; background: none; color: #1c7ed6; text-decoration: underline; cursor: pointer; padding: 0; font-size: 12px; margin-top: 3px; }
+            #qhd-panel .qhd-mut, #qhd-panel .qhd-sm { color: #868e96; font-size: 11px; }
+            #qhd-panel .qhd-msg { background: #fff4e6; border: 1px solid #ffd8a8; border-radius: 6px; padding: 5px 8px; margin: 6px 0; }
+            #qhd-panel .qhd-dirty { color: #e8590c; font-weight: 700; font-size: 11px; white-space: nowrap; }
+            #qhd-panel .qhd-tabs { display: flex; gap: 4px; margin: 10px 0 4px; border-bottom: 1px solid #dee2e6; }
+            #qhd-panel .qhd-tabs button { border: none; background: none; padding: 6px 10px; cursor: pointer; font-size: 12px; color: #495057; border-bottom: 2px solid transparent; }
+            #qhd-panel .qhd-tabs button.on { color: #e8590c; border-bottom-color: #e8590c; font-weight: 700; }
+            #qhd-panel .qhd-sec { border: 1px solid #e9ecef; border-radius: 8px; padding: 8px 10px; margin: 8px 0; }
+            #qhd-panel .qhd-st { font-weight: 700; color: #343a40; margin-bottom: 4px; }
+            #qhd-panel .qhd-chk { display: flex; gap: 6px; align-items: flex-start; color: #495057; }
+            #qhd-panel .qhd-selbox { background: #fff9db; border-radius: 6px; padding: 6px 8px; margin-top: 4px; }
+            #qhd-panel .qhd-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
+            #qhd-panel .qhd-chip { background: #e7f5ff; border: 1px solid #a5d8ff; border-radius: 12px; padding: 2px 4px 2px 8px; }
+            #qhd-panel .qhd-chip button { border: none; background: none; cursor: pointer; color: #868e96; }
+            #qhd-panel .qhd-nh { display: flex; gap: 5px; align-items: center; margin: 4px 0; flex-wrap: wrap; }
+            #qhd-panel .qhd-nh input { flex: 1; min-width: 110px; padding: 4px 6px; border: 1px solid #ced4da; border-radius: 6px; font-size: 12px; font-weight: 600; }
+            #qhd-panel .qhd-dot { width: 10px; height: 10px; border-radius: 50%; border: 3px solid; }
+            #qhd-panel .qhd-chg { display: flex; justify-content: space-between; gap: 6px; padding: 4px 0; border-bottom: 1px dashed #e9ecef; }
+            #qhd-panel .qhd-kpi { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+            #qhd-panel .qhd-kpi span { background: #f1f3f5; border-radius: 6px; padding: 4px 8px; }
+            #qhd-panel h4 { margin: 12px 0 4px; font-size: 13px; }
+            #qhd-panel .qhd-tw { max-height: 330px; overflow: auto; border: 1px solid #e9ecef; border-radius: 6px; }
+            #qhd-panel table.qhd-t { border-collapse: collapse; width: 100%; font-size: 12px; }
+            #qhd-panel table.qhd-t th { position: sticky; top: 0; background: #f1f3f5; padding: 5px 6px; border-bottom: 1px solid #dee2e6; border-right: 1px solid #e9ecef; text-align: right; white-space: nowrap; z-index: 1; }
+            #qhd-panel table.qhd-t th:first-child { text-align: left; }
+            #qhd-panel table.qhd-t td { padding: 4px 6px; border-bottom: 1px solid #f1f3f5; border-right: 1px solid #f8f9fa; text-align: right; vertical-align: top; white-space: nowrap; }
+            #qhd-panel .qhd-good { color: #2b8a3e; font-weight: 700; }
+            #qhd-panel .qhd-bad { color: #c92a2a; font-weight: 700; }
+            #qhd-panel .qhd-neu { color: #495057; }
+            #qhd-panel .qhd-note { color: #868e96; font-size: 11px; margin-top: 8px; line-height: 1.5; }
+            #qhd-panel .qhd-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; color: #495057; font-size: 11px; }
+            #qhd-panel .qhd-legend i { display: inline-block; width: 14px; height: 4px; margin-right: 4px; vertical-align: middle; border-radius: 2px; }
             #ghn-tuyen-giao-root {
                 position: fixed; box-sizing: border-box;
                 background: #ffffff; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
@@ -6460,6 +6513,7 @@
                 <input id="qh-search" class="qh-search" list="qh-search-dl" placeholder="🔍 Tìm tỉnh, AM, bưu cục…" autocomplete="off">
                 <datalist id="qh-search-dl"></datalist>
                 <span id="qh-cc-badge" class="qh-cc-badge"></span>
+                <button id="qhd-btn" class="qh-clear qhd-btn" title="Bản nháp quy hoạch — thử gộp xã/phường, bưu cục, AM thành quy hoạch mới">📝 Bản nháp</button>
                 <span class="ghn-tg-controls-sep"></span>
                 <label style="font-size:12px; color:#495057;">Xem theo:
                     <select id="ghn-tg-mode-select">
@@ -7436,6 +7490,7 @@
             const summary = statusSummary_();
             setStatus_(summary.text, summary.dot);
             qhOrgAfterLoad_();
+            qhdAfterLoad_();
         } catch (err) {
             setStatus_(`❌ Lỗi: ${err.message || err}`, 'offline');
             console.error('[Tuyến Giao] Lỗi tải dữ liệu:', err);
@@ -8038,8 +8093,516 @@
             sIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (qhSearchGo_(sIn.value)) sIn.value = ''; else sIn.style.borderColor = '#c92a2a'; } else sIn.style.borderColor = ''; });
         }
         qhCcBadge_();
+        const qb = document.getElementById('qhd-btn');
+        if (qb) qb.addEventListener('click', qhdToggle_);
         const clr = document.getElementById('qh-clear');
         if (clr) clr.addEventListener('click', () => { state.qhTinh = ''; state.qhAm = ''; state.qhBc = ''; clearSelection_(); qhFillSelects_(); qhApply_(false); fitToData_(); });
+    }
+
+    // ==================== v1.7.34 — BẢN NHÁP QUY HOẠCH (gộp xã/phường, bưu cục, AM — dùng chung Tampermonkey + web) ====================
+    // Dữ liệu quy hoạch thật (Drive) KHÔNG bị đụng tới. Bản nháp = danh sách "ghi đè": xã/phường → bưu cục mới (wm),
+    // bưu cục mới tạo (nh), bưu cục → AM mới (ham). Lưu CHUNG ở sheet của web báo cáo (action qhDraftList/qhDraftSave/
+    // qhDraftDelete); ai cũng xem được, chỉ Admin + Quản lý được tạo/sửa (máy chủ kiểm tra). 3 kiểu thao tác:
+    //   (1) gộp các bưu cục đang có cho 1 AM / 1 quy hoạch mới  (2) gộp thêm xã/phường vào 1 bưu cục có sẵn
+    //   (3) gộp xã/phường của nhiều bưu cục thành 1 bưu cục mới. Bảng so sánh trước → sau: số xã/phường, diện tích,
+    //   sản lượng giao/lấy, nhân sự hiện có, định biên cần (đơn giao ÷ năng lực ổn định 70 xã / 90 phường), khoảng cách tới BC.
+    function qhd_() {
+        if (!state.qhd) state.qhd = { open: false, list: [], canEdit: false, isAdmin: false, who: '', me: '', loaded: false, cur: null, sel: new Set(), pick: true, place: null, tab: 'edit', undo: [], dirty: false, msg: '', amChips: [] };
+        return state.qhd;
+    }
+    function qhdPost_(body) {
+        return new Promise(resolve => {
+            const done = (txt) => { try { resolve(JSON.parse(txt)); } catch (e) { resolve({ ok: false, error: 'phan_hoi_loi' }); } };
+            try {
+                if (typeof qhSession_ === 'function') {
+                    body.token = (qhSession_() || {}).token || '';
+                } else {
+                    let t = state.ghnToken || null;
+                    try { if (!t) t = autoDetectGhnToken_(); } catch (e) { t = null; }
+                    body.ghnToken = t || '';
+                }
+                const data = JSON.stringify(body);
+                if (typeof qhSession_ !== 'function' && typeof GM_xmlhttpRequest === 'function') {
+                    GM_xmlhttpRequest({ method: 'POST', url: QH_WEB_API_URL, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, data,
+                        onload: r => done(r.responseText), onerror: () => resolve({ ok: false, error: 'loi_mang' }), ontimeout: () => resolve({ ok: false, error: 'het_gio' }), timeout: 45000 });
+                    return;
+                }
+                const url = /baocaovanhanh/.test(location.hostname) || location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? '/api/gas' : QH_WEB_API_URL;
+                fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: data }).then(r => r.text()).then(done).catch(() => resolve({ ok: false, error: 'loi_mang' }));
+            } catch (e) { resolve({ ok: false, error: String(e && e.message || e) }); }
+        });
+    }
+    const QHD_ERR_ = {
+        session_expired: 'Phiên đăng nhập web đã hết hạn — đăng nhập lại.', account_inactive: 'Tài khoản web chưa được kích hoạt.',
+        ghn_token_het_han: 'Phiên GHN đã hết hạn — tải lại trang nhanh.ghn.vn.', ghn_khong_xac_thuc: 'Không xác thực được tài khoản GHN.',
+        ghn_loi_mang: 'Không gọi được GHN để xác thực.', khong_co_quyen: 'Tài khoản chưa có quyền dùng Modul 6.',
+        khong_co_quyen_sua: 'Chỉ Admin và Quản lý được tạo / sửa bản nháp.', ban_nhap_da_bi_sua: 'Bản nháp vừa được người khác sửa — mở lại để xem bản mới nhất.',
+        chi_nguoi_tao_hoac_admin_duoc_xoa: 'Chỉ người tạo hoặc Admin được xoá bản nháp này.', khong_tim_thay_ban_nhap: 'Không tìm thấy bản nháp (có thể đã bị xoá).',
+        du_lieu_qua_lon: 'Bản nháp quá lớn.', loi_mang: 'Lỗi mạng — thử lại.', het_gio: 'Hết thời gian chờ — thử lại.'
+    };
+    function qhdErr_(r) { return QHD_ERR_[r && r.error] || ('Lỗi: ' + ((r && r.error) || 'không rõ')); }
+
+    // ---- dữ liệu nền ----
+    function qhdIdx_() {
+        if (state.qhdFeatSrc === state.wardsOldEnriched && state.qhdFeat) return;
+        state.qhdFeatSrc = state.wardsOldEnriched;
+        state.qhdFeat = {}; state.qhdWc = {}; state.qhdShape = {};
+        ((state.wardsOldEnriched && state.wardsOldEnriched.features) || []).forEach(f => { const c = String(f.properties.ward_code || ''); if (c && state.wardsByCode[c]) state.qhdFeat[c] = f; });
+    }
+    function qhdWard_(wc) {
+        qhdIdx_();
+        if (state.qhdWc[wc]) return state.qhdWc[wc];
+        const w = state.wardsByCode[wc] || {}, f = state.qhdFeat[wc];
+        let area = 0, cen = state.wardCentroids && state.wardCentroids[wc];
+        try { if (f) area = turf.area(f) / 1e6; } catch (e) { area = 0; }
+        if (!Array.isArray(cen)) { try { cen = f ? turf.centroid(f).geometry.coordinates : null; } catch (e) { cen = null; } }
+        const o = { wc, name: w.name || wc, province: w.province || '', district: w.district || '', dv: +w.dv || 0, pv: +w.pv || 0, dw: +w.dw || 0, pw: +w.pw || 0, area, cen, isP: /^Phường\s+/i.test(w.name || '') };
+        state.qhdWc[wc] = o;
+        return o;
+    }
+    function qhdBase_(wc) { const w = state.wardsByCode[wc]; return w ? String(w.delivery_hub || '') : ''; }
+    function qhdHub_(wc) { const c = qhd_().cur; return c && Object.prototype.hasOwnProperty.call(c.wm, wc) ? c.wm[wc] : qhdBase_(wc); }
+    function qhdNew_(k) { const c = qhd_().cur; return c ? c.nh.find(h => h.id === k) || null : null; }
+    function qhdName_(k) { const n = qhdNew_(k); if (n) return n.name; return (state.qhOrg && state.qhOrg[k] && state.qhOrg[k].name) || hubLabel_(k); }
+    function qhdAmBase_(k) { return (state.qhOrg && state.qhOrg[k] && state.qhOrg[k].am) || '(chưa rõ AM)'; }
+    function qhdAm_(k) { const c = qhd_().cur; if (c && c.ham[k]) return c.ham[k]; const n = qhdNew_(k); if (n) return n.am || '(chưa gán AM)'; return qhdAmBase_(k); }
+    function qhdPos_(k) { const n = qhdNew_(k); if (n) return typeof n.lat === 'number' ? [n.lng, n.lat] : null; const h = state.hubsByCode[k]; return h && typeof h.lat === 'number' ? [h.lng, h.lat] : null; }
+    function qhdKm_(a, b) {
+        if (!a || !b) return null;
+        const R = 6371, r = Math.PI / 180, dLat = (b[1] - a[1]) * r, dLng = (b[0] - a[0]) * r;
+        const x = Math.sin(dLat / 2) ** 2 + Math.cos(a[1] * r) * Math.cos(b[1] * r) * Math.sin(dLng / 2) ** 2;
+        return 2 * R * Math.asin(Math.sqrt(x));
+    }
+    function qhdAllWards_() { qhdIdx_(); return Object.keys(state.qhdFeat); }
+    function qhdHubKeys_() {
+        const c = qhd_().cur;
+        const ks = new Set((state.hubs || []).map(h => String(h.hub_code)));
+        if (c) c.nh.forEach(h => ks.add(h.id));
+        return Array.from(ks);
+    }
+    // thống kê theo bưu cục: hubOf(wc) → khoá BC, posOf(k) → [lng,lat]
+    function qhdStats_(hubOf, posOf) {
+        const S = {};
+        qhdAllWards_().forEach(wc => {
+            const k = hubOf(wc); if (!k) return;
+            const w = qhdWard_(wc);
+            const s = S[k] || (S[k] = { k, wards: [], nW: 0, area: 0, dv: 0, pv: 0, dw: 0, pw: 0, need: 0, dSum: 0, dW: 0, dMax: 0, dMaxName: '', dN: 0, dPlain: 0 });
+            s.wards.push(wc); s.nW++; s.area += w.area; s.dv += w.dv; s.pv += w.pv; s.dw += w.dw; s.pw += w.pw;
+            s.need += w.dv / (w.isP ? THRESHOLDS_.giaoPhuong.yellowMin : THRESHOLDS_.giaoXa.yellowMin);
+            const d = qhdKm_(posOf(k), w.cen);
+            if (d != null) { s.dSum += d * w.dv; s.dW += w.dv; s.dPlain += d; s.dN++; if (d > s.dMax) { s.dMax = d; s.dMaxName = w.name; } }
+        });
+        Object.values(S).forEach(s => {
+            s.dAvg = s.dW > 0 ? s.dSum / s.dW : (s.dN ? s.dPlain / s.dN : null);
+            const h = state.hubsByCode[s.k];
+            s.staff = h ? (+h.staff || 0) : 0;
+            s.needR = Math.ceil(s.need - 1e-9);
+        });
+        return S;
+    }
+    function qhdBasePos_(k) { const h = state.hubsByCode[k]; return h && typeof h.lat === 'number' ? [h.lng, h.lat] : null; }
+    function qhdAffected_() {
+        const c = qhd_().cur, hubs = new Set();
+        if (!c) return hubs;
+        Object.keys(c.wm).forEach(wc => { hubs.add(qhdBase_(wc)); hubs.add(c.wm[wc]); });
+        c.nh.forEach(h => hubs.add(h.id));
+        Object.keys(c.ham).forEach(k => hubs.add(k));
+        hubs.delete('');
+        return hubs;
+    }
+
+    // ---- thao tác ----
+    function qhdSnap_() { const c = qhd_().cur; return JSON.stringify({ wm: c.wm, nh: c.nh, ham: c.ham }); }
+    function qhdPush_() { const Q = qhd_(); Q.undo.push(qhdSnap_()); if (Q.undo.length > 40) Q.undo.shift(); Q.dirty = true; }
+    function qhdUndo_() { const Q = qhd_(); if (!Q.undo.length || !Q.cur) return; const o = JSON.parse(Q.undo.pop()); Q.cur.wm = o.wm; Q.cur.nh = o.nh; Q.cur.ham = o.ham; Q.dirty = true; qhdRefresh_(); }
+    function qhdAssign_(codes, k) {
+        const c = qhd_().cur; if (!c || !codes.length) return;
+        qhdPush_();
+        codes.forEach(wc => { if (qhdBase_(wc) === k) delete c.wm[wc]; else c.wm[wc] = k; });
+        qhdCleanNew_();
+    }
+    function qhdRevert_(codes) { const c = qhd_().cur; if (!c) return; qhdPush_(); codes.forEach(wc => { delete c.wm[wc]; }); qhdCleanNew_(); }
+    function qhdCleanNew_() {
+        // BC mới không còn xã/phường nào thì giữ lại (để người dùng tự xoá) — chỉ dọn AM ghi đè trùng AM gốc
+        const c = qhd_().cur;
+        Object.keys(c.ham).forEach(k => { if (!qhdNew_(k) && c.ham[k] === qhdAmBase_(k)) delete c.ham[k]; });
+    }
+    function qhdNewHub_(name, codes) {
+        const c = qhd_().cur; if (!c) return null;
+        let n = 1; while (c.nh.some(h => h.id === 'N' + n)) n++;
+        const id = 'N' + n;
+        let sx = 0, sy = 0, sw = 0;
+        codes.forEach(wc => { const w = qhdWard_(wc); if (w.cen) { const wt = Math.max(1, w.dv); sx += w.cen[0] * wt; sy += w.cen[1] * wt; sw += wt; } });
+        const cnt = {};
+        codes.forEach(wc => { const a = qhdAm_(qhdHub_(wc)); cnt[a] = (cnt[a] || 0) + qhdWard_(wc).dv + 1; });
+        const am = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || '';
+        qhdPush_();
+        c.nh.push({ id, name: String(name || '').trim() || ('Bưu cục mới ' + n), lng: sw ? sx / sw : null, lat: sw ? sy / sw : null, am });
+        codes.forEach(wc => { c.wm[wc] = id; });
+        return id;
+    }
+    function qhdDelNew_(id) {
+        const c = qhd_().cur; if (!c) return;
+        qhdPush_();
+        Object.keys(c.wm).forEach(wc => { if (c.wm[wc] === id) delete c.wm[wc]; });
+        c.nh = c.nh.filter(h => h.id !== id);
+        delete c.ham[id];
+    }
+    function qhdSetAm_(hubKeys, am) {
+        const c = qhd_().cur; am = String(am || '').trim(); if (!c || !am || !hubKeys.length) return;
+        qhdPush_();
+        hubKeys.forEach(k => { const n = qhdNew_(k); if (n) n.am = am; else if (am === qhdAmBase_(k)) delete c.ham[k]; else c.ham[k] = am; });
+    }
+
+    // ---- bản đồ ----
+    function qhdEnsureLayers_() {
+        const map = state.map;
+        if (!map || !map.getLayer('wards-fill')) return false;
+        const empty = { type: 'FeatureCollection', features: [] };
+        if (map.getSource('qhd-w')) return true;
+        ['qhd-w', 'qhd-sel', 'qhd-hb', 'qhd-am', 'qhd-np'].forEach(id => map.addSource(id, { type: 'geojson', data: empty }));
+        const top = map.getLayer('hubs-points') ? 'hubs-points' : undefined; // viền nháp nằm trên mọi lớp tô, dưới chấm bưu cục
+        map.addLayer({ id: 'qhd-fill', type: 'fill', source: 'qhd-w', paint: { 'fill-color': '#a0a0a0', 'fill-opacity': ['case', ['==', ['get', 'ch'], 1], 0.85, 0.6] } }, 'wards-line');
+        map.addLayer({ id: 'qhd-chg', type: 'line', source: 'qhd-w', filter: ['==', ['get', 'ch'], 1], paint: { 'line-color': '#c92a2a', 'line-width': 1.6, 'line-dasharray': [2, 1.5] } }, top);
+        map.addLayer({ id: 'qhd-sel-fill', type: 'fill', source: 'qhd-sel', paint: { 'fill-color': '#ffd43b', 'fill-opacity': 0.6 } }, top);
+        map.addLayer({ id: 'qhd-sel-line', type: 'line', source: 'qhd-sel', paint: { 'line-color': '#f08c00', 'line-width': 2.2 } }, top);
+        map.addLayer({ id: 'qhd-hb-casing', type: 'line', source: 'qhd-hb', paint: { 'line-color': '#ffffff', 'line-width': 5, 'line-opacity': 0.85 } }, top);
+        map.addLayer({ id: 'qhd-hb-line', type: 'line', source: 'qhd-hb', paint: { 'line-color': '#1f2a44', 'line-width': 2.6 } }, top);
+        map.addLayer({ id: 'qhd-am-line', type: 'line', source: 'qhd-am', paint: { 'line-color': '#7048e8', 'line-width': 3.4, 'line-dasharray': [3, 2] } }, top);
+        map.addLayer({ id: 'qhd-np-c', type: 'circle', source: 'qhd-np', paint: { 'circle-radius': 8, 'circle-color': '#ffffff', 'circle-stroke-width': 3, 'circle-stroke-color': ['get', 'col'] } });
+        map.addLayer({ id: 'qhd-np-t', type: 'symbol', source: 'qhd-np', layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Bold'], 'text-size': 12, 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-allow-overlap': true }, paint: { 'text-color': '#1f2a44', 'text-halo-color': '#fff', 'text-halo-width': 1.6 } });
+        return true;
+    }
+    function qhdVis_(on) {
+        const map = state.map; if (!map || !map.getLayer('qhd-fill')) return;
+        ['qhd-fill', 'qhd-chg', 'qhd-sel-fill', 'qhd-sel-line', 'qhd-hb-casing', 'qhd-hb-line', 'qhd-am-line', 'qhd-np-c', 'qhd-np-t'].forEach(id => map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'));
+    }
+    function qhdShape_(key, codes) {
+        state.qhdShape = state.qhdShape || {};
+        const sig = key + '|' + codes.slice().sort().join(',');
+        if (state.qhdShape[sig] !== undefined) return state.qhdShape[sig];
+        let u = null;
+        try { u = unionFeatures_(codes.map(wc => state.qhdFeat[wc]).filter(Boolean).map(f => ({ type: 'Feature', properties: {}, geometry: f.geometry }))); } catch (e) { u = null; }
+        state.qhdShape[sig] = u;
+        return u;
+    }
+    function qhdRender_() {
+        const Q = qhd_(), map = state.map;
+        if (!Q.cur || !Q.open) { qhdVis_(false); return; }
+        if (!qhdEnsureLayers_()) { if (map) map.once('idle', qhdRender_); return; }
+        qhdVis_(true);
+        qhdIdx_();
+        const keys = new Set();
+        const feats = qhdAllWards_().map(wc => {
+            const k = qhdHub_(wc); keys.add(k);
+            return { type: 'Feature', geometry: state.qhdFeat[wc].geometry, properties: { ward_code: wc, k, ch: Object.prototype.hasOwnProperty.call(Q.cur.wm, wc) ? 1 : 0 } };
+        });
+        const match = ['match', ['get', 'k']];
+        Array.from(keys).filter(Boolean).forEach(k => match.push(k, hubColor_(k)));
+        match.push('#a0a0a0');
+        map.setPaintProperty('qhd-fill', 'fill-color', match.length > 3 ? match : '#a0a0a0');
+        map.getSource('qhd-w').setData({ type: 'FeatureCollection', features: feats });
+        map.getSource('qhd-sel').setData({ type: 'FeatureCollection', features: Array.from(Q.sel).filter(wc => state.qhdFeat[wc]).map(wc => ({ type: 'Feature', geometry: state.qhdFeat[wc].geometry, properties: {} })) });
+        // viền BC bị ảnh hưởng + viền AM bị ảnh hưởng (theo bản nháp)
+        const aff = qhdAffected_();
+        const after = qhdStats_(qhdHub_, qhdPos_);
+        const hb = [];
+        aff.forEach(k => { const s = after[k]; if (!s) return; const u = qhdShape_(k, s.wards); if (u) hb.push(u); });
+        map.getSource('qhd-hb').setData({ type: 'FeatureCollection', features: hb });
+        const amSet = new Set(); aff.forEach(k => { amSet.add(qhdAm_(k)); amSet.add(qhdAmBase_(k)); });
+        const am = [];
+        amSet.forEach(a => {
+            const ws = []; Object.values(after).forEach(s => { if (qhdAm_(s.k) === a) ws.push(...s.wards); });
+            if (ws.length) { const u = qhdShape_('AM:' + a, ws); if (u) am.push(u); }
+        });
+        map.getSource('qhd-am').setData({ type: 'FeatureCollection', features: Q.cur.nh.length || Object.keys(Q.cur.ham).length ? am : [] });
+        map.getSource('qhd-np').setData({ type: 'FeatureCollection', features: Q.cur.nh.filter(h => typeof h.lat === 'number').map(h => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [h.lng, h.lat] }, properties: { name: '★ ' + h.name, col: hubColor_(h.id) } })) });
+    }
+    // gọi đầu map.on('click') — trả true nếu đã xử lý
+    function qhdMapClick_(e) {
+        const Q = state.qhd;
+        if (!Q || !Q.open || !Q.cur || !Q.canEdit) return false;
+        const map = state.map;
+        if (Q.place) {
+            const n = qhdNew_(Q.place);
+            if (n) { qhdPush_(); n.lng = e.lngLat.lng; n.lat = e.lngLat.lat; }
+            Q.place = null; qhdRefresh_();
+            return true;
+        }
+        if (!Q.pick) return false;
+        const hubHits = map.queryRenderedFeatures(e.point, { layers: ['hubs-points'] });
+        if (hubHits.length) {
+            const k = String(hubHits[0].properties.hub_code);
+            const ws = qhdAllWards_().filter(wc => qhdHub_(wc) === k);
+            const allIn = ws.length && ws.every(wc => Q.sel.has(wc));
+            ws.forEach(wc => { if (allIn) Q.sel.delete(wc); else Q.sel.add(wc); });
+            qhdRefresh_();
+            return true;
+        }
+        const hits = map.queryRenderedFeatures(e.point, { layers: ['wards-fill'] });
+        if (hits.length) {
+            const wc = String(hits[0].properties.ward_code);
+            if (Q.sel.has(wc)) Q.sel.delete(wc); else Q.sel.add(wc);
+            qhdRefresh_();
+            return true;
+        }
+        return false;
+    }
+
+    // ---- lưu / mở ----
+    function qhdFromData_(d) {
+        const wm = {};
+        Object.entries((d && d.wh) || {}).forEach(([k, arr]) => (arr || []).forEach(wc => { wm[String(wc)] = String(k); }));
+        return { wm, nh: Array.isArray(d && d.nh) ? d.nh : [], ham: (d && d.ham) || {} };
+    }
+    function qhdToData_(c) {
+        const wh = {};
+        Object.entries(c.wm).forEach(([wc, k]) => { (wh[k] = wh[k] || []).push(wc); });
+        return { v: 1, wh, nh: c.nh, ham: c.ham };
+    }
+    async function qhdLoadList_(keepId) {
+        const Q = qhd_();
+        Q.msg = 'Đang tải danh sách bản nháp…'; qhdPanel_();
+        const r = await qhdPost_({ action: 'qhDraftList' });
+        if (!r.ok) { Q.msg = qhdErr_(r); Q.loaded = true; qhdPanel_(); return; }
+        Q.list = r.drafts || []; Q.canEdit = !!r.canEdit; Q.isAdmin = !!r.isAdmin; Q.who = r.who || ''; Q.me = r.me || ''; Q.loaded = true; Q.msg = '';
+        if (keepId) { const d = Q.list.find(x => x.id === keepId); if (d && Q.cur) Q.cur.suaLuc = d.suaLuc; }
+        qhdPanel_();
+    }
+    function qhdOpenDraft_(id) {
+        const Q = qhd_();
+        if (Q.dirty && !confirm('Bản nháp đang mở có thay đổi chưa lưu. Bỏ thay đổi?')) { qhdPanel_(); return; }
+        const d = Q.list.find(x => x.id === id);
+        Q.sel = new Set(); Q.undo = []; Q.dirty = false; Q.place = null;
+        if (!d) { Q.cur = null; qhdRefresh_(); return; }
+        Q.cur = Object.assign({ id: d.id, ten: d.ten, ghiChu: d.ghiChu, suaLuc: d.suaLuc, nguoiTao: d.nguoiTao, maNguoiTao: d.maNguoiTao }, qhdFromData_(d.data));
+        Q.tab = Q.canEdit ? 'edit' : 'cmp';
+        qhdRefresh_();
+        qhdFit_();
+    }
+    function qhdNewDraft_() {
+        const Q = qhd_();
+        if (Q.dirty && !confirm('Bản nháp đang mở có thay đổi chưa lưu. Bỏ thay đổi?')) return;
+        Q.cur = { id: '', ten: 'Quy hoạch nháp ' + new Date().toLocaleDateString('vi-VN'), ghiChu: '', suaLuc: '', wm: {}, nh: [], ham: {} };
+        Q.sel = new Set(); Q.undo = []; Q.dirty = true; Q.tab = 'edit'; Q.pick = true;
+        qhdRefresh_();
+    }
+    async function qhdSave_(asNew) {
+        const Q = qhd_(); if (!Q.cur) return;
+        const tenEl = document.getElementById('qhd-ten'), gcEl = document.getElementById('qhd-gc');
+        if (tenEl) Q.cur.ten = tenEl.value; if (gcEl) Q.cur.ghiChu = gcEl.value;
+        Q.msg = 'Đang lưu…'; qhdPanel_();
+        const r = await qhdPost_({ action: 'qhDraftSave', draft: { id: asNew ? '' : Q.cur.id, ten: Q.cur.ten + (asNew && Q.cur.id ? ' (bản sao)' : ''), ghiChu: Q.cur.ghiChu, suaLuc: asNew ? '' : Q.cur.suaLuc, data: qhdToData_(Q.cur) } });
+        if (!r.ok) { Q.msg = qhdErr_(r) + (r.nguoiSua ? ' (' + r.nguoiSua + ')' : ''); qhdPanel_(); return; }
+        if (asNew && Q.cur.id) Q.cur.ten += ' (bản sao)';
+        Q.cur.id = r.id; Q.cur.suaLuc = r.suaLuc; Q.dirty = false;
+        await qhdLoadList_(r.id);
+        Q.msg = '✅ Đã lưu bản nháp — mọi người mở tab Bản nháp đều xem được.'; qhdPanel_();
+    }
+    async function qhdDelete_() {
+        const Q = qhd_(); if (!Q.cur || !Q.cur.id) { Q.cur = null; Q.dirty = false; qhdRefresh_(); return; }
+        if (!confirm('Xoá bản nháp "' + Q.cur.ten + '"? (Bản đồ thật không bị ảnh hưởng.)')) return;
+        const r = await qhdPost_({ action: 'qhDraftDelete', id: Q.cur.id });
+        if (!r.ok) { Q.msg = qhdErr_(r); qhdPanel_(); return; }
+        Q.cur = null; Q.dirty = false; Q.sel = new Set();
+        await qhdLoadList_();
+        qhdRefresh_();
+    }
+    function qhdFit_() {
+        const Q = qhd_(); if (!Q.cur || !state.map) return;
+        const codes = Object.keys(Q.cur.wm);
+        qhdAffected_().forEach(k => qhdAllWards_().forEach(wc => { if (qhdHub_(wc) === k) codes.push(wc); }));
+        const fs = codes.map(wc => state.qhdFeat[wc]).filter(Boolean);
+        if (!fs.length) return;
+        try { const bb = turf.bbox({ type: 'FeatureCollection', features: fs }); state.map.fitBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: 50, duration: 500 }); } catch (e) { /* bỏ qua */ }
+    }
+
+    // ---- giao diện ----
+    function qhdToggle_() {
+        const Q = qhd_();
+        Q.open = !Q.open;
+        if (Q.open && !Q.loaded) qhdLoadList_();
+        qhdRefresh_();
+    }
+    function qhdRefresh_() { qhdPanel_(); qhdRender_(); const b = document.getElementById('qhd-btn'); if (b) b.classList.toggle('on', qhd_().open); }
+    function qhdN_(n, d) { if (n == null || !isFinite(n)) return '—'; return (+n).toLocaleString('vi-VN', { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 }); }
+    function qhdHubOptions_() {
+        const keys = qhdHubKeys_().sort((a, b) => qhdName_(a).localeCompare(qhdName_(b), 'vi'));
+        return keys.map(k => `<option value="${escapeHtml_(qhdName_(k))}">`).join('');
+    }
+    function qhdKeyByName_(name) {
+        name = String(name || '').trim(); if (!name) return null;
+        const keys = qhdHubKeys_();
+        return keys.find(k => qhdName_(k) === name) || keys.find(k => normalizeVn_(qhdName_(k)) === normalizeVn_(name)) || keys.find(k => normalizeVn_(qhdName_(k)).includes(normalizeVn_(name))) || null;
+    }
+    function qhdAmList_() {
+        const s = new Set(Object.values(state.qhOrg || {}).map(o => o.am));
+        const c = qhd_().cur; if (c) { Object.values(c.ham).forEach(a => s.add(a)); c.nh.forEach(h => h.am && s.add(h.am)); }
+        return Array.from(s).sort((a, b) => a.localeCompare(b, 'vi'));
+    }
+    function qhdChangesHtml_() {
+        const c = qhd_().cur, grp = {};
+        Object.entries(c.wm).forEach(([wc, k]) => { const key = qhdBase_(wc) + '→' + k; (grp[key] = grp[key] || { from: qhdBase_(wc), to: k, codes: [] }).codes.push(wc); });
+        const rows = Object.values(grp).map(g => {
+            const dv = g.codes.reduce((s, wc) => s + qhdWard_(wc).dv, 0);
+            const names = g.codes.slice(0, 4).map(wc => qhdWard_(wc).name).join(', ') + (g.codes.length > 4 ? ` … +${g.codes.length - 4}` : '');
+            return `<div class="qhd-chg"><div><b>${g.codes.length} xã/phường</b> <span class="qhd-mut">(giao ${qhdN_(dv)} đơn)</span>: ${escapeHtml_(qhdName_(g.from))} → <b>${escapeHtml_(qhdName_(g.to))}</b><div class="qhd-mut">${escapeHtml_(names)}</div></div>${qhd_().canEdit ? `<button class="qhd-x" data-rv="${escapeHtml_(g.codes.join(','))}" title="Trả các xã/phường này về bưu cục cũ">✕</button>` : ''}</div>`;
+        });
+        Object.entries(c.ham).forEach(([k, a]) => rows.push(`<div class="qhd-chg"><div>Bưu cục <b>${escapeHtml_(qhdName_(k))}</b>: AM ${escapeHtml_(qhdAmBase_(k))} → <b>${escapeHtml_(a)}</b></div>${qhd_().canEdit ? `<button class="qhd-x" data-rham="${escapeHtml_(k)}" title="Trả về AM cũ">✕</button>` : ''}</div>`));
+        return rows.length ? rows.join('') : '<div class="qhd-mut">Chưa có thay đổi nào.</div>';
+    }
+    // ô "trước → sau": số sau đậm, dòng nhỏ "trước x (▲Δ)"; dir: 1 = tăng là tốt, -1 = tăng là xấu, 0 = trung tính
+    function qhdCell_(b, a, d, dir) {
+        const bb = b == null ? null : b, aa = a == null ? null : a;
+        if (bb == null && aa == null) return '<td>—</td>';
+        const diff = (aa || 0) - (bb || 0), eps = d ? 0.05 : 0.5;
+        let delta = '';
+        if (bb != null && aa != null && Math.abs(diff) >= eps) {
+            const up = diff > 0, good = dir === 0 ? null : (dir > 0 ? up : !up);
+            delta = ` <span class="${good == null ? 'qhd-neu' : good ? 'qhd-good' : 'qhd-bad'}">${up ? '▲' : '▼'}${qhdN_(Math.abs(diff), d)}</span>`;
+        }
+        return `<td><b>${qhdN_(aa, d)}</b><div class="qhd-sm">${bb == null ? 'mới' : 'trước ' + qhdN_(bb, d)}${delta}</div></td>`;
+    }
+    function qhdCmpHtml_() {
+        const Q = qhd_(), c = Q.cur;
+        const aff = Array.from(qhdAffected_());
+        if (!aff.length) return '<div class="qhd-mut">Chưa có thay đổi để so sánh. Chọn xã/phường rồi chuyển / tạo bưu cục mới ở tab Thao tác.</div>';
+        const B = qhdStats_(qhdBase_, qhdBasePos_), A = qhdStats_(qhdHub_, qhdPos_);
+        const nW = Object.keys(c.wm).length;
+        const dvMoved = Object.keys(c.wm).reduce((s, wc) => s + qhdWard_(wc).dv, 0);
+        let h = `<div class="qhd-kpi"><span><b>${nW}</b> xã/phường đổi bưu cục</span><span><b>${qhdN_(dvMoved)}</b> đơn giao chuyển đi</span><span><b>${aff.length}</b> bưu cục bị ảnh hưởng</span><span><b>${c.nh.length}</b> bưu cục mới</span></div>`;
+        const rows = aff.map(k => ({ k, b: B[k], a: A[k] })).sort((x, y) => ((y.a && y.a.dv) || 0) - ((x.a && x.a.dv) || 0));
+        h += `<h4>1. Theo bưu cục</h4><div class="qhd-tw"><table class="qhd-t"><thead><tr><th>Bưu cục</th><th>AM</th><th>Xã/phường</th><th>Diện tích (km²)</th><th>Giao (đơn)</th><th>Lấy (đơn)</th><th>Nhân sự hiện có</th><th>Định biên cần</th><th>Thiếu (+) / thừa (−)</th><th>KC TB tới BC (km)</th><th>Xã xa nhất (km)</th></tr></thead><tbody>`;
+        rows.forEach(r => {
+            const b = r.b || null, a = r.a || null, isNew = !!qhdNew_(r.k);
+            const amB = isNew ? '' : qhdAmBase_(r.k), amA = qhdAm_(r.k);
+            const staff = isNew ? 0 : ((b || a || {}).staff || 0);
+            const gapB = b ? b.needR - staff : null, gapA = a ? a.needR - staff : -staff;
+            h += `<tr><td style="text-align:left"><a href="#" class="qh-bc-link" data-zk="${escapeHtml_(r.k)}">${isNew ? '★ ' : ''}${escapeHtml_(qhdName_(r.k))}</a>${!a ? '<div class="qhd-sm qhd-bad">không còn xã/phường</div>' : ''}</td>
+                <td style="text-align:left">${amB && amB !== amA ? `<b>${escapeHtml_(amA)}</b><div class="qhd-sm">trước ${escapeHtml_(amB)}</div>` : escapeHtml_(amA)}</td>
+                ${qhdCell_(b ? b.nW : (isNew ? null : 0), a ? a.nW : 0, 0, 0)}${qhdCell_(b ? b.area : (isNew ? null : 0), a ? a.area : 0, 1, 0)}
+                ${qhdCell_(b ? b.dv : (isNew ? null : 0), a ? a.dv : 0, 0, 0)}${qhdCell_(b ? b.pv : (isNew ? null : 0), a ? a.pv : 0, 0, 0)}
+                <td>${isNew ? '<span class="qhd-sm">chưa có</span>' : qhdN_(staff)}</td>
+                ${qhdCell_(b ? b.needR : (isNew ? null : 0), a ? a.needR : 0, 0, 0)}${qhdCell_(gapB, gapA, 0, -1)}
+                ${qhdCell_(b ? b.dAvg : null, a ? a.dAvg : null, 1, -1)}
+                <td>${a && a.dMax ? `<b>${qhdN_(a.dMax, 1)}</b><div class="qhd-sm">${escapeHtml_(a.dMaxName)}${b && b.dMax ? ' · trước ' + qhdN_(b.dMax, 1) : ''}</div>` : '—'}</td></tr>`;
+        });
+        h += '</tbody></table></div>';
+        // theo AM
+        const amAgg = (S, amOf) => { const o = {}; Object.values(S).forEach(s => { const a = amOf(s.k); const x = o[a] || (o[a] = { nBc: 0, nW: 0, area: 0, dv: 0, pv: 0, staff: 0, need: 0 }); x.nBc++; x.nW += s.nW; x.area += s.area; x.dv += s.dv; x.pv += s.pv; x.staff += qhdNew_(s.k) ? 0 : s.staff; x.need += s.needR; }); return o; };
+        const amB = amAgg(B, qhdAmBase_), amA = amAgg(A, qhdAm_);
+        const ams = new Set(); aff.forEach(k => { if (!qhdNew_(k)) ams.add(qhdAmBase_(k)); ams.add(qhdAm_(k)); });
+        h += `<h4>2. Theo AM / quy hoạch</h4><div class="qhd-tw"><table class="qhd-t"><thead><tr><th>AM</th><th>Số bưu cục</th><th>Xã/phường</th><th>Diện tích (km²)</th><th>Giao (đơn)</th><th>Lấy (đơn)</th><th>Nhân sự hiện có</th><th>Định biên cần</th></tr></thead><tbody>`;
+        Array.from(ams).sort((x, y) => x.localeCompare(y, 'vi')).forEach(a => {
+            const b = amB[a] || null, x = amA[a] || null;
+            h += `<tr><td style="text-align:left">${escapeHtml_(a)}${!b ? ' <span class="qhd-sm qhd-good">mới</span>' : ''}</td>${qhdCell_(b ? b.nBc : null, x ? x.nBc : 0, 0, 0)}${qhdCell_(b ? b.nW : null, x ? x.nW : 0, 0, 0)}${qhdCell_(b ? b.area : null, x ? x.area : 0, 1, 0)}${qhdCell_(b ? b.dv : null, x ? x.dv : 0, 0, 0)}${qhdCell_(b ? b.pv : null, x ? x.pv : 0, 0, 0)}${qhdCell_(b ? b.staff : null, x ? x.staff : 0, 0, 0)}${qhdCell_(b ? b.need : null, x ? x.need : 0, 0, 0)}</tr>`;
+        });
+        h += '</tbody></table></div>';
+        h += `<div class="qhd-note">Số giao/lấy là sản lượng theo dữ liệu quy hoạch của từng xã/phường. Định biên cần = Σ đơn giao xã/phường ÷ năng lực ổn định 1 người (${THRESHOLDS_.giaoXa.yellowMin} đơn xã · ${THRESHOLDS_.giaoPhuong.yellowMin} đơn phường), làm tròn lên. Nhân sự hiện có giữ nguyên theo bưu cục cũ (chưa tính điều chuyển người). Khoảng cách = đường chim bay từ bưu cục tới tâm xã/phường; KC TB tính theo trọng số đơn giao. Bưu cục mới đặt ở trọng tâm sản lượng — bấm "📍 Vị trí" để đặt lại.</div>`;
+        return h;
+    }
+    function qhdPanel_() {
+        const wrap = document.getElementById('ghn-tg-map-wrap');
+        const Q = qhd_();
+        let el = document.getElementById('qhd-panel');
+        if (!Q.open) { if (el) el.remove(); return; }
+        if (!wrap) return;
+        if (!el) { el = document.createElement('div'); el.id = 'qhd-panel'; wrap.appendChild(el); }
+        const c = Q.cur, E = Q.canEdit;
+        const opts = Q.list.map(d => `<option value="${escapeHtml_(d.id)}"${c && c.id === d.id ? ' selected' : ''}>${escapeHtml_(d.ten)} · ${escapeHtml_(d.nguoiSua || d.nguoiTao)}</option>`).join('');
+        let h = `<div class="qhd-hd"><b>📝 Bản nháp quy hoạch</b><button class="qhd-x" id="qhd-close" title="Đóng — bản đồ trở về quy hoạch thật">✕</button></div>
+            <div class="qhd-mut" style="margin-bottom:6px">Thử gộp xã/phường, bưu cục, AM mà không đụng tới quy hoạch thật.${E ? '' : (Q.loaded ? ' <b>Bạn chỉ xem được</b> — Admin / Quản lý mới được tạo, sửa.' : '')}</div>
+            <div class="qhd-row"><select id="qhd-list"><option value="">${Q.list.length ? '— Chọn bản nháp đã lưu (' + Q.list.length + ') —' : '— Chưa có bản nháp đã lưu —'}</option>${opts}${c && !c.id ? '<option value="__new" selected>(bản nháp mới — chưa lưu)</option>' : ''}</select>${E ? '<button id="qhd-new" class="qhd-b">＋ Tạo mới</button>' : ''}</div>`;
+        if (Q.msg) h += `<div class="qhd-msg">${escapeHtml_(Q.msg)}</div>`;
+        if (c) {
+            h += `<div class="qhd-row"><input id="qhd-ten" value="${escapeHtml_(c.ten)}" placeholder="Tên bản nháp" ${E ? '' : 'readonly'}>${Q.dirty ? '<span class="qhd-dirty" title="Có thay đổi chưa lưu">● chưa lưu</span>' : ''}</div>
+                <textarea id="qhd-gc" rows="2" placeholder="Ghi chú / lý do quy hoạch…" ${E ? '' : 'readonly'}>${escapeHtml_(c.ghiChu || '')}</textarea>
+                ${c.nguoiTao ? `<div class="qhd-mut">Tạo bởi ${escapeHtml_(c.nguoiTao)}${c.suaLuc ? ' · sửa lúc ' + escapeHtml_(new Date(c.suaLuc).toLocaleString('vi-VN')) : ''}</div>` : ''}
+                ${E ? `<div class="qhd-row"><button id="qhd-save" class="qhd-b pri">💾 Lưu</button>${c.id ? '<button id="qhd-saveas" class="qhd-b">Lưu thành bản mới</button>' : ''}<button id="qhd-undo" class="qhd-b" ${Q.undo.length ? '' : 'disabled'}>↶ Hoàn tác</button><button id="qhd-del" class="qhd-b red">🗑 ${c.id ? 'Xoá' : 'Bỏ'}</button></div>` : ''}
+                <div class="qhd-tabs">${E ? `<button data-tab="edit" class="${Q.tab === 'edit' ? 'on' : ''}">✏️ Thao tác</button>` : ''}<button data-tab="cmp" class="${Q.tab === 'cmp' || !E ? 'on' : ''}">📊 So sánh trước → sau</button></div>`;
+            if (E && Q.tab === 'edit') {
+                const selArr = Array.from(Q.sel);
+                const sDv = selArr.reduce((s, wc) => s + qhdWard_(wc).dv, 0), sPv = selArr.reduce((s, wc) => s + qhdWard_(wc).pv, 0);
+                const fromHubs = Array.from(new Set(selArr.map(qhdHub_))).map(qhdName_);
+                h += `<datalist id="qhd-hubs-dl">${qhdHubOptions_()}</datalist><datalist id="qhd-am-dl">${qhdAmList_().map(a => `<option value="${escapeHtml_(a)}">`).join('')}</datalist>
+                    <div class="qhd-sec"><div class="qhd-st">1. Chọn xã/phường</div>
+                    <label class="qhd-chk"><input type="checkbox" id="qhd-pick" ${Q.pick ? 'checked' : ''}> Bấm bản đồ để chọn / bỏ chọn xã/phường (bấm chấm bưu cục = chọn cả bưu cục)</label>
+                    <div class="qhd-row"><input id="qhd-addhub" list="qhd-hubs-dl" placeholder="Thêm cả 1 bưu cục…"><button id="qhd-addhub-b" class="qhd-b">＋</button><button id="qhd-addflt" class="qhd-b" title="Thêm mọi xã/phường của Tỉnh / AM / Bưu cục đang lọc trên thanh công cụ">＋ Vùng đang lọc</button></div>
+                    <div class="qhd-selbox">${selArr.length ? `Đang chọn <b>${selArr.length}</b> xã/phường · giao <b>${qhdN_(sDv)}</b> · lấy <b>${qhdN_(sPv)}</b> đơn<div class="qhd-mut">Thuộc: ${escapeHtml_(fromHubs.slice(0, 6).join(', '))}${fromHubs.length > 6 ? ' …' : ''}</div><div class="qhd-mut">${escapeHtml_(selArr.slice(0, 10).map(wc => qhdWard_(wc).name).join(', '))}${selArr.length > 10 ? ' …' : ''}</div><button id="qhd-selclr" class="qhd-lnk">Bỏ chọn hết</button>` : '<span class="qhd-mut">Chưa chọn xã/phường nào.</span>'}</div></div>
+                    <div class="qhd-sec"><div class="qhd-st">2. Gộp vùng đang chọn</div>
+                    <div class="qhd-row"><input id="qhd-to" list="qhd-hubs-dl" placeholder="Bưu cục nhận (có sẵn hoặc bưu cục mới)…"><button id="qhd-move" class="qhd-b pri" ${selArr.length ? '' : 'disabled'}>Gộp vào bưu cục</button></div>
+                    <div class="qhd-row"><input id="qhd-newname" placeholder="Tên bưu cục mới, vd (THN) Phú Bình 3"><button id="qhd-mknew" class="qhd-b pri" ${selArr.length ? '' : 'disabled'}>Tạo bưu cục mới</button></div>
+                    <div class="qhd-row"><button id="qhd-revert" class="qhd-b" ${selArr.some(wc => Object.prototype.hasOwnProperty.call(c.wm, wc)) ? '' : 'disabled'}>↩ Trả vùng chọn về bưu cục cũ</button></div></div>
+                    <div class="qhd-sec"><div class="qhd-st">3. Gộp bưu cục cho 1 AM / quy hoạch mới</div>
+                    <div class="qhd-row"><input id="qhd-amhub" list="qhd-hubs-dl" placeholder="Thêm bưu cục…"><button id="qhd-amhub-b" class="qhd-b">＋</button><button id="qhd-amflt" class="qhd-b" title="Thêm các bưu cục đang lọc trên thanh công cụ">＋ BC đang lọc</button></div>
+                    <div class="qhd-chips">${Q.amChips.map(k => `<span class="qhd-chip">${escapeHtml_(qhdName_(k))}<button data-unchip="${escapeHtml_(k)}">×</button></span>`).join('') || '<span class="qhd-mut">Chưa chọn bưu cục.</span>'}</div>
+                    <div class="qhd-row"><input id="qhd-amname" list="qhd-am-dl" placeholder="AM có sẵn hoặc tên quy hoạch mới…"><button id="qhd-setam" class="qhd-b pri" ${Q.amChips.length ? '' : 'disabled'}>Gán cho AM</button></div></div>`;
+                if (c.nh.length) {
+                    h += `<div class="qhd-sec"><div class="qhd-st">Bưu cục mới trong bản nháp</div>${c.nh.map(n => {
+                        const nW = Object.values(c.wm).filter(k => k === n.id).length;
+                        return `<div class="qhd-nh"><span class="qhd-dot" style="border-color:${hubColor_(n.id)}"></span><input data-nhname="${escapeHtml_(n.id)}" value="${escapeHtml_(n.name)}"><span class="qhd-mut">${nW} xã · ${escapeHtml_(n.am || 'chưa gán AM')}</span><button class="qhd-b" data-place="${escapeHtml_(n.id)}" title="Bấm rồi bấm 1 điểm trên bản đồ để đặt vị trí bưu cục">${Q.place === n.id ? '👉 Bấm bản đồ…' : '📍 Vị trí'}</button><button class="qhd-x" data-delnh="${escapeHtml_(n.id)}" title="Xoá bưu cục mới (xã/phường về bưu cục cũ)">✕</button></div>`;
+                    }).join('')}</div>`;
+                }
+                h += `<div class="qhd-sec"><div class="qhd-st">Các thay đổi</div>${qhdChangesHtml_()}</div>`;
+            } else {
+                h += `<div class="qhd-sec"><div class="qhd-st">Các thay đổi</div>${qhdChangesHtml_()}</div>` + qhdCmpHtml_();
+            }
+            h += `<div class="qhd-legend"><span><i style="background:#c92a2a"></i>viền đỏ đứt = xã/phường đổi bưu cục</span><span><i style="background:#1f2a44"></i>ranh giới bưu cục mới</span><span><i style="background:#7048e8"></i>ranh giới AM mới</span><span><i style="background:#ffd43b"></i>đang chọn</span></div>`;
+        } else if (Q.loaded) {
+            h += `<div class="qhd-mut" style="margin-top:8px">${E ? 'Chọn 1 bản nháp đã lưu để xem / sửa, hoặc bấm <b>＋ Tạo mới</b>.' : 'Chọn 1 bản nháp đã lưu để xem.'}</div>`;
+        }
+        el.innerHTML = h;
+        el.classList.toggle('wide', !!(c && (Q.tab === 'cmp' || !E)));
+        qhdWire_(el);
+    }
+    function qhdFltWards_() {
+        const set = typeof qhSelectedHubs_ === 'function' ? qhSelectedHubs_() : null;
+        if (!set) return [];
+        const s = new Set(set);
+        return qhdAllWards_().filter(wc => s.has(qhdBase_(wc)));
+    }
+    function qhdWire_(el) {
+        const Q = qhd_(), $ = id => el.querySelector('#' + id);
+        const on = (id, ev, fn) => { const x = $(id); if (x) x.addEventListener(ev, fn); };
+        on('qhd-close', 'click', () => { if (Q.dirty && !confirm('Có thay đổi chưa lưu. Vẫn đóng?')) return; Q.open = false; Q.cur = null; Q.dirty = false; Q.sel = new Set(); Q.place = null; qhdRefresh_(); });
+        on('qhd-list', 'change', (e) => { const v = e.target.value; if (v === '__new') return; qhdOpenDraft_(v); });
+        on('qhd-new', 'click', qhdNewDraft_);
+        on('qhd-save', 'click', () => qhdSave_(false));
+        on('qhd-saveas', 'click', () => qhdSave_(true));
+        on('qhd-del', 'click', qhdDelete_);
+        on('qhd-undo', 'click', qhdUndo_);
+        on('qhd-ten', 'input', (e) => { if (Q.cur) { Q.cur.ten = e.target.value; Q.dirty = true; } });
+        on('qhd-gc', 'input', (e) => { if (Q.cur) { Q.cur.ghiChu = e.target.value; Q.dirty = true; } });
+        el.querySelectorAll('.qhd-tabs button').forEach(b => b.addEventListener('click', () => { Q.tab = b.dataset.tab; qhdPanel_(); }));
+        on('qhd-pick', 'change', (e) => { Q.pick = e.target.checked; });
+        const addHub = (inpId) => { const inp = $(inpId); const k = qhdKeyByName_(inp && inp.value); if (!k) { if (inp) inp.style.borderColor = '#c92a2a'; return null; } return k; };
+        on('qhd-addhub-b', 'click', () => { const k = addHub('qhd-addhub'); if (!k) return; qhdAllWards_().forEach(wc => { if (qhdHub_(wc) === k) Q.sel.add(wc); }); qhdRefresh_(); });
+        on('qhd-addhub', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('qhd-addhub-b').click(); } });
+        on('qhd-addflt', 'click', () => { const ws = qhdFltWards_(); if (!ws.length) { Q.msg = 'Chưa lọc Tỉnh / AM / Bưu cục trên thanh công cụ.'; qhdPanel_(); return; } ws.forEach(wc => Q.sel.add(wc)); Q.msg = ''; qhdRefresh_(); });
+        on('qhd-selclr', 'click', () => { Q.sel = new Set(); qhdRefresh_(); });
+        on('qhd-move', 'click', () => { const k = addHub('qhd-to'); if (!k) return; qhdAssign_(Array.from(Q.sel), k); Q.sel = new Set(); Q.msg = ''; qhdRefresh_(); });
+        on('qhd-mknew', 'click', () => { const nm = ($('qhd-newname') || {}).value; const id = qhdNewHub_(nm, Array.from(Q.sel)); if (id) { Q.sel = new Set(); Q.msg = ''; qhdRefresh_(); } });
+        on('qhd-revert', 'click', () => { qhdRevert_(Array.from(Q.sel)); Q.sel = new Set(); qhdRefresh_(); });
+        on('qhd-amhub-b', 'click', () => { const k = addHub('qhd-amhub'); if (!k) return; if (!Q.amChips.includes(k)) Q.amChips.push(k); qhdPanel_(); });
+        on('qhd-amhub', 'keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('qhd-amhub-b').click(); } });
+        on('qhd-amflt', 'click', () => { const set = typeof qhSelectedHubs_ === 'function' ? qhSelectedHubs_() : null; if (!set) { Q.msg = 'Chưa lọc Tỉnh / AM / Bưu cục trên thanh công cụ.'; qhdPanel_(); return; } set.forEach(k => { if (!Q.amChips.includes(k)) Q.amChips.push(k); }); Q.msg = ''; qhdPanel_(); });
+        el.querySelectorAll('[data-unchip]').forEach(b => b.addEventListener('click', () => { Q.amChips = Q.amChips.filter(k => k !== b.dataset.unchip); qhdPanel_(); }));
+        on('qhd-setam', 'click', () => { const am = ($('qhd-amname') || {}).value; if (!String(am || '').trim()) { $('qhd-amname').style.borderColor = '#c92a2a'; return; } qhdSetAm_(Q.amChips.slice(), am); Q.amChips = []; qhdRefresh_(); });
+        el.querySelectorAll('[data-nhname]').forEach(inp => inp.addEventListener('change', () => { const n = qhdNew_(inp.dataset.nhname); if (n && inp.value.trim()) { qhdPush_(); n.name = inp.value.trim(); qhdRefresh_(); } }));
+        el.querySelectorAll('[data-place]').forEach(b => b.addEventListener('click', () => { Q.place = Q.place === b.dataset.place ? null : b.dataset.place; qhdPanel_(); }));
+        el.querySelectorAll('[data-delnh]').forEach(b => b.addEventListener('click', () => { if (confirm('Xoá bưu cục mới này? Các xã/phường của nó về lại bưu cục cũ.')) { qhdDelNew_(b.dataset.delnh); qhdRefresh_(); } }));
+        el.querySelectorAll('[data-rv]').forEach(b => b.addEventListener('click', () => { qhdRevert_(b.dataset.rv.split(',')); qhdRefresh_(); }));
+        el.querySelectorAll('[data-rham]').forEach(b => b.addEventListener('click', () => { const c = Q.cur; qhdPush_(); delete c.ham[b.dataset.rham]; qhdRefresh_(); }));
+        el.querySelectorAll('[data-zk]').forEach(a => a.addEventListener('click', (e) => {
+            e.preventDefault();
+            const k = a.dataset.zk, fs = qhdAllWards_().filter(wc => qhdHub_(wc) === k || qhdBase_(wc) === k).map(wc => state.qhdFeat[wc]);
+            if (fs.length && state.map) { try { const bb = turf.bbox({ type: 'FeatureCollection', features: fs }); state.map.fitBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: 50, duration: 500 }); } catch (err) { /* bỏ qua */ } }
+        }));
+    }
+    function qhdAfterLoad_() {
+        state.qhdFeatSrc = null;
+        const Q = state.qhd;
+        if (Q && Q.open) { if (state.map && state.map.getLayer('wards-fill')) qhdRefresh_(); else if (state.map) state.map.once('idle', qhdRefresh_); }
     }
 
     function init_() {

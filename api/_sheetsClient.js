@@ -975,7 +975,7 @@ async function requireActiveUser(token) {
   const mainValues = await getMainValuesCached();
   const found = findUserRow(mainValues, email);
   if (!found || found.values[COL.ACTIVE - 1] !== true) return { error: 'account_inactive' };
-  return { email, name: String(found.values[COL.HOTEN - 1] || email) };
+  return { email, name: String(found.values[COL.HOTEN - 1] || email), role: String(found.values[COL.VAITRO - 1] || '') };
 }
 
 async function isAdminEmail(email) {
