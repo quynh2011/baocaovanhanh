@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.35
+// @version      1.7.36
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -15,6 +15,7 @@
 // ==/UserScript==
 //
 // ========================= CHANGELOG (BẢN TEST — CHƯA PUSH GIT) =========================
+// v1.7.36 — Bản nháp: mở 1 bản nháp là CẢ BẢN ĐỒ + bộ lọc Tỉnh / AM / Bưu cục + ô tìm + bảng khu vực + viền chạy theo bản nháp (qhOrgV_/qhdBuildOrg_; BC mới có trong danh sách, BC bị gộp hết thì biến mất); nút — thu nhỏ bảng nháp để xem cả vùng, nút trên thanh công cụ ghi "Đang xem nháp: …".
 // v1.7.35 — Bản nháp: chọn AM ngay khi tạo bưu cục mới (ô #qhd-newam, để trống = AM nhiều đơn nhất) + đổi AM ở danh sách BC mới (data-nham).
 // v1.7.34 — BẢN NHÁP QUY HOẠCH (nút "📝 Bản nháp" trên thanh công cụ, chạy cả Tampermonkey + web): thử gộp mà KHÔNG
 //     đụng quy hoạch thật — (1) gộp các bưu cục cho 1 AM / quy hoạch mới, (2) gộp thêm xã/phường vào 1 bưu cục có sẵn,
@@ -6099,6 +6100,8 @@
             #qh-cc-pop .sub { font-size: 12px; color: #6c757d; }
             .qhd-btn.on { background: #e8590c; color: #fff; border-color: #e8590c; }
             #qhd-panel { position: absolute; top: 12px; left: 12px; width: 380px; max-width: calc(100% - 24px); max-height: calc(100% - 24px); overflow-y: auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 18px rgba(0,0,0,.25); padding: 12px 14px; z-index: 6; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 12px; color: #212529; box-sizing: border-box; }
+            #qhd-panel.min { width: 340px; }
+            #qhd-btn { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             #qhd-panel.wide { width: min(760px, calc(100% - 24px)); }
             #qhd-panel .qhd-hd { display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 4px; }
             #qhd-panel .qhd-row { display: flex; gap: 6px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
@@ -7918,7 +7921,7 @@
     // v1.7.33 — ô tìm nhanh tỉnh / AM / bưu cục
     function qhSearchFill_() {
         const dl = document.getElementById('qh-search-dl'); if (!dl) return;
-        const org = state.qhOrg || {};
+        const org = qhOrgV_();
         const items = [];
         Array.from(new Set(Object.values(org).map(o => o.tinh))).sort((a, b) => a.localeCompare(b, 'vi')).forEach(t => items.push('Tỉnh: ' + t));
         Array.from(new Set(Object.values(org).map(o => o.am))).sort((a, b) => a.localeCompare(b, 'vi')).forEach(a => items.push('AM: ' + a));
@@ -7926,7 +7929,7 @@
         dl.innerHTML = items.map(x => `<option value="${escapeHtml_(x)}">`).join('');
     }
     function qhSearchGo_(q) {
-        const org = state.qhOrg || {}; q = String(q || '').trim(); if (!q) return false;
+        const org = qhOrgV_(); q = String(q || '').trim(); if (!q) return false;
         const m = /^(Tỉnh|AM|Bưu cục):\s*(.+)$/.exec(q);
         const codes = Object.keys(org);
         const pickBc = c => { state.qhBc = c; state.qhTinh = org[c].tinh; state.qhAm = org[c].am; };
@@ -7959,7 +7962,7 @@
     }
     function qhOpt_(v, l, sel) { return `<option value="${escapeHtml_(v)}"${v === sel ? ' selected' : ''}>${escapeHtml_(l)}</option>`; }
     function qhFillSelects_() {
-        const org = state.qhOrg || {};
+        const org = qhOrgV_();
         const codes = Object.keys(org);
         const tSel = document.getElementById('qh-tinh'), aSel = document.getElementById('qh-am'), bSel = document.getElementById('qh-bc');
         if (!tSel || !aSel || !bSel) return;
@@ -7976,12 +7979,18 @@
         qhSearchFill_();
     }
     function qhSelectedHubs_() {
-        const org = state.qhOrg || {};
+        const org = qhOrgV_();
         if (state.qhBc) return [state.qhBc];
         if (!state.qhTinh && !state.qhAm) return null;
         return Object.keys(org).filter(c => (!state.qhTinh || org[c].tinh === state.qhTinh) && (!state.qhAm || org[c].am === state.qhAm));
     }
     function qhHubShape_(code) {
+        if (qhdOn_()) { // v1.7.36 — đang xem bản nháp: ranh giới BC theo bản nháp
+            const ws = (state.qhdAfter && state.qhdAfter[code] && state.qhdAfter[code].wards) || [];
+            const u = ws.length ? qhdShape_('H:' + code, ws) : null;
+            if (u) u.properties = { hub_code: code, name: qhdName_(code) };
+            return u;
+        }
         state.qhHubShape = state.qhHubShape || {};
         if (state.qhHubShape[code] !== undefined) return state.qhHubShape[code];
         const feats = ((state.wardsOldEnriched && state.wardsOldEnriched.features) || []).filter(f => String(f.properties.delivery_hub) === code);
@@ -8012,6 +8021,9 @@
         const set = qhSelectedHubs_();
         const baseOpacity = state.currentMode === 'hub' ? 0.65 : 0.8;
         const empty = { type: 'FeatureCollection', features: [] };
+        const dOn = qhdOn_() && map.getLayer('qhd-fill');
+        const dOp = ['case', ['==', ['get', 'ch'], 1], 0.85, 0.6];
+        if (dOn) map.setPaintProperty('qhd-fill', 'fill-opacity', set ? ['case', ['in', ['get', 'k'], ['literal', set]], dOp, 0.07] : dOp);
         if (!set) {
             map.setPaintProperty('wards-fill', 'fill-opacity', baseOpacity);
             if (map.getLayer('hubs-points')) map.setPaintProperty('hubs-points', 'circle-opacity', 1);
@@ -8034,7 +8046,9 @@
                 map.fitBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: 40, duration: 500 });
             } catch (e) { /* bỏ qua */ }
         }
-        if (state.qhBc) {
+        if (state.qhBc && qhdOn_()) {
+            qhSummary_(set);
+        } else if (state.qhBc) {
             const h = state.hubsByCode[state.qhBc];
             const pf = hubsToPointsGeoJson_().features.find(f => String(f.properties.hub_code) === state.qhBc);
             selectHubTerritory_(state.qhBc);
@@ -8046,22 +8060,27 @@
     function qhFmt_(n) { return (Math.round(n || 0)).toLocaleString('vi-VN'); }
     function qhSummary_(set) {
         if (!set) return;
-        const org = state.qhOrg || {};
-        const rows = set.map(c => {
+        const org = qhOrgV_();
+        const D = qhdOn_() ? (state.qhdAfter || {}) : null;
+        const rows = D ? set.map(c => {
+            const s = D[c] || { nW: 0, dv: 0, pv: 0, staff: 0 };
+            return { c, name: org[c] ? org[c].name : c, am: org[c] ? org[c].am : '', tinh: org[c] ? org[c].tinh : '', nW: s.nW, staff: qhdNew_(c) ? 0 : ((state.hubsByCode[c] || {}).staff || 0), dv: s.dv, pv: s.pv, isNew: !!qhdNew_(c) };
+        }).sort((x, y) => y.dv - x.dv) : set.map(c => {
             const h = state.hubsByCode[c] || {};
             const a = h.actual || {};
             const nW = ((state.wardsOldEnriched && state.wardsOldEnriched.features) || []).filter(f => String(f.properties.delivery_hub) === c).length;
             return { c, name: org[c] ? org[c].name : c, am: org[c] ? org[c].am : '', tinh: org[c] ? org[c].tinh : '', nW, staff: h.staff || 0, dv: a.dv || 0, pv: a.pv || 0 };
         }).sort((x, y) => y.dv - x.dv);
         const sum = (k) => rows.reduce((s, r) => s + (r[k] || 0), 0);
-        const title = state.qhAm ? `AM ${state.qhAm}${state.qhTinh ? ' · ' + state.qhTinh : ''}` : `Tỉnh ${state.qhTinh}`;
+        let title = state.qhBc ? `Bưu cục ${(org[state.qhBc] || {}).name || state.qhBc}` : state.qhAm ? `AM ${state.qhAm}${state.qhTinh ? ' · ' + state.qhTinh : ''}` : `Tỉnh ${state.qhTinh}`;
+        if (D) title = '📝 ' + title + ' — theo bản nháp "' + ((state.qhd.cur || {}).ten || '') + '"';
         const showAm = !state.qhAm;
         let html = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif">
             <div style="font-weight:700;font-size:14px;color:#212529">${escapeHtml_(title)}</div>
             <div style="font-size:12px;color:#6c757d;margin:2px 0 8px">Khu vực quản lý: <b>${rows.length}</b> bưu cục · <b>${qhFmt_(sum('nW'))}</b> xã/phường · nhân sự <b>${qhFmt_(sum('staff'))}</b> · giao <b>${qhFmt_(sum('dv'))}</b> đơn · lấy <b>${qhFmt_(sum('pv'))}</b> đơn (số liệu quy hoạch)</div>
             <table class="qh-sum"><thead><tr><th>Bưu cục</th>${showAm ? '<th>AM</th>' : ''}<th>Xã/phường</th><th>Nhân sự</th><th>Giao</th><th>Lấy</th></tr></thead><tbody>`;
         rows.forEach(r => {
-            html += `<tr><td><a href="#" class="qh-bc-link" data-hub="${escapeHtml_(r.c)}">${escapeHtml_(r.name)}</a></td>${showAm ? `<td>${escapeHtml_(r.am)}</td>` : ''}<td>${r.nW}</td><td>${qhFmt_(r.staff)}</td><td>${qhFmt_(r.dv)}</td><td>${qhFmt_(r.pv)}</td></tr>`;
+            html += `<tr><td><a href="#" class="qh-bc-link" data-hub="${escapeHtml_(r.c)}">${r.isNew ? '★ ' : ''}${escapeHtml_(r.name)}</a></td>${showAm ? `<td>${escapeHtml_(r.am)}</td>` : ''}<td>${r.nW}</td><td>${qhFmt_(r.staff)}</td><td>${qhFmt_(r.dv)}</td><td>${qhFmt_(r.pv)}</td></tr>`;
         });
         html += `</tbody></table><div style="font-size:11px;color:#868e96;margin-top:6px">Viền cam = ranh giới cả khu vực · viền xanh đen = ranh giới từng bưu cục. Bấm tên bưu cục để xem chi tiết.</div></div>`;
         showInfoPanel_(html, true);
@@ -8079,14 +8098,14 @@
         aSel.addEventListener('change', () => {
             state.qhAm = aSel.value; state.qhBc = '';
             if (state.qhAm && !state.qhTinh) {
-                const ts = Array.from(new Set(Object.values(state.qhOrg || {}).filter(o => o.am === state.qhAm).map(o => o.tinh)));
+                const ts = Array.from(new Set(Object.values(qhOrgV_()).filter(o => o.am === state.qhAm).map(o => o.tinh)));
                 if (ts.length === 1) state.qhTinh = ts[0];
             }
             clearSelection_(); qhFillSelects_(); qhApply_(true);
         });
         bSel.addEventListener('change', () => {
             state.qhBc = bSel.value;
-            if (state.qhBc) { const o = state.qhOrg[state.qhBc]; if (o) { state.qhTinh = o.tinh; state.qhAm = o.am; } }
+            if (state.qhBc) { const o = qhOrgV_()[state.qhBc]; if (o) { state.qhTinh = o.tinh; state.qhAm = o.am; } }
             clearSelection_(); qhFillSelects_(); qhApply_(true);
         });
         const sIn = document.getElementById('qh-search');
@@ -8108,6 +8127,24 @@
     //   (1) gộp các bưu cục đang có cho 1 AM / 1 quy hoạch mới  (2) gộp thêm xã/phường vào 1 bưu cục có sẵn
     //   (3) gộp xã/phường của nhiều bưu cục thành 1 bưu cục mới. Bảng so sánh trước → sau: số xã/phường, diện tích,
     //   sản lượng giao/lấy, nhân sự hiện có, định biên cần (đơn giao ÷ năng lực ổn định 70 xã / 90 phường), khoảng cách tới BC.
+    function qhdOn_() { const Q = state.qhd; return !!(Q && Q.open && Q.cur); }
+    // v1.7.36 — cơ cấu Tỉnh / AM / Bưu cục đang xem: bản nháp (khi đang mở 1 bản nháp) hoặc quy hoạch thật
+    function qhOrgV_() { return qhdOn_() && state.qhdOrg ? state.qhdOrg : (state.qhOrg || {}); }
+    function qhdBuildOrg_() {
+        if (!qhdOn_()) { state.qhdOrg = null; state.qhdAfter = null; return; }
+        const base = state.qhOrg || {}, A = qhdStats_(qhdHub_, qhdPos_), org = {};
+        const hadWards = new Set(qhdAllWards_().map(qhdBase_));
+        state.qhdAfter = A;
+        qhdHubKeys_().forEach(k => {
+            const n = qhdNew_(k), s = A[k];
+            if (!n && !base[k]) return;
+            if (!n && !s && hadWards.has(k)) return; // BC bị gộp hết xã/phường → không còn trong bản nháp
+            let tinh = base[k] ? base[k].tinh : '';
+            if (n || !tinh) { const c = {}; (s ? s.wards : []).forEach(wc => { const p = qhdWard_(wc).province; if (p) c[p] = (c[p] || 0) + 1; }); tinh = Object.keys(c).sort((x, y) => c[y] - c[x])[0] || tinh || '(chưa rõ tỉnh)'; }
+            org[k] = { tinh, am: qhdAm_(k), name: qhdName_(k) };
+        });
+        state.qhdOrg = org;
+    }
     function qhd_() {
         if (!state.qhd) state.qhd = { open: false, list: [], canEdit: false, isAdmin: false, who: '', me: '', loaded: false, cur: null, sel: new Set(), pick: true, place: null, tab: 'edit', undo: [], dirty: false, msg: '', amChips: [] };
         return state.qhd;
@@ -8293,6 +8330,8 @@
         if (!Q.cur || !Q.open) { qhdVis_(false); return; }
         if (!qhdEnsureLayers_()) { if (map) map.once('idle', qhdRender_); return; }
         qhdVis_(true);
+        // viền khu vực Tỉnh/AM/BC (cam) phải nằm trên lớp tô bản nháp
+        ['qh-hubs-line', 'qh-grp-casing', 'qh-grp-line'].forEach(id => { if (map.getLayer(id)) map.moveLayer(id, map.getLayer('hubs-points') ? 'hubs-points' : undefined); });
         qhdIdx_();
         const keys = new Set();
         const feats = qhdAllWards_().map(wc => {
@@ -8422,11 +8461,22 @@
     // ---- giao diện ----
     function qhdToggle_() {
         const Q = qhd_();
+        if (Q.open && Q.min) { Q.min = false; qhdRefresh_(); return; }
+        if (Q.open && Q.dirty && !confirm('Bản nháp có thay đổi chưa lưu. Vẫn đóng?')) return;
         Q.open = !Q.open;
+        if (!Q.open) { Q.cur = null; Q.dirty = false; Q.sel = new Set(); Q.place = null; }
         if (Q.open && !Q.loaded) qhdLoadList_();
         qhdRefresh_();
     }
-    function qhdRefresh_() { qhdPanel_(); qhdRender_(); const b = document.getElementById('qhd-btn'); if (b) b.classList.toggle('on', qhd_().open); }
+    function qhdRefresh_() {
+        const Q = qhd_();
+        qhdBuildOrg_();
+        qhdPanel_(); qhdRender_();
+        // bộ lọc Tỉnh / AM / Bưu cục + viền khu vực chạy theo bản nháp đang mở (đóng bản nháp → về quy hoạch thật)
+        if (typeof qhFillSelects_ === 'function' && state.qhOrg) { qhFillSelects_(); if (state.map && state.map.getLayer('wards-fill')) qhApply_(false); }
+        const b = document.getElementById('qhd-btn');
+        if (b) { b.classList.toggle('on', Q.open); b.textContent = qhdOn_() ? '📝 Đang xem nháp: ' + (Q.cur.ten || '') : '📝 Bản nháp'; b.title = qhdOn_() ? 'Cả bản đồ + bộ lọc Tỉnh / AM / Bưu cục đang theo bản nháp này — bấm để đóng bản nháp' : 'Bản nháp quy hoạch — thử gộp xã/phường, bưu cục, AM thành quy hoạch mới'; }
+    }
     function qhdN_(n, d) { if (n == null || !isFinite(n)) return '—'; return (+n).toLocaleString('vi-VN', { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 }); }
     function qhdHubOptions_() {
         const keys = qhdHubKeys_().sort((a, b) => qhdName_(a).localeCompare(qhdName_(b), 'vi'));
@@ -8512,7 +8562,14 @@
         if (!el) { el = document.createElement('div'); el.id = 'qhd-panel'; wrap.appendChild(el); }
         const c = Q.cur, E = Q.canEdit;
         const opts = Q.list.map(d => `<option value="${escapeHtml_(d.id)}"${c && c.id === d.id ? ' selected' : ''}>${escapeHtml_(d.ten)} · ${escapeHtml_(d.nguoiSua || d.nguoiTao)}</option>`).join('');
-        let h = `<div class="qhd-hd"><b>📝 Bản nháp quy hoạch</b><button class="qhd-x" id="qhd-close" title="Đóng — bản đồ trở về quy hoạch thật">✕</button></div>
+        if (Q.min && c) {
+            el.innerHTML = `<div class="qhd-hd"><b>📝 Đang xem bản nháp: ${escapeHtml_(c.ten)}</b><span><button class="qhd-x" id="qhd-max" title="Mở lại bảng bản nháp">▢</button><button class="qhd-x" id="qhd-close" title="Đóng bản nháp — bản đồ về quy hoạch thật">✕</button></span></div><div class="qhd-mut">Cả bản đồ và bộ lọc Tỉnh / AM / Bưu cục đang theo bản nháp này${Q.dirty ? ' · <b style="color:#e8590c">chưa lưu</b>' : ''}.</div>`;
+            el.classList.add('min'); el.classList.remove('wide');
+            qhdWire_(el);
+            return;
+        }
+        el.classList.remove('min');
+        let h = `<div class="qhd-hd"><b>📝 Bản nháp quy hoạch</b><span>${c ? '<button class="qhd-x" id="qhd-min" title="Thu nhỏ bảng để xem cả bản đồ theo bản nháp">—</button>' : ''}<button class="qhd-x" id="qhd-close" title="Đóng — bản đồ trở về quy hoạch thật">✕</button></span></div>
             <div class="qhd-mut" style="margin-bottom:6px">Thử gộp xã/phường, bưu cục, AM mà không đụng tới quy hoạch thật.${E ? '' : (Q.loaded ? ' <b>Bạn chỉ xem được</b> — Admin / Quản lý mới được tạo, sửa.' : '')}</div>
             <div class="qhd-row"><select id="qhd-list"><option value="">${Q.list.length ? '— Chọn bản nháp đã lưu (' + Q.list.length + ') —' : '— Chưa có bản nháp đã lưu —'}</option>${opts}${c && !c.id ? '<option value="__new" selected>(bản nháp mới — chưa lưu)</option>' : ''}</select>${E ? '<button id="qhd-new" class="qhd-b">＋ Tạo mới</button>' : ''}</div>`;
         if (Q.msg) h += `<div class="qhd-msg">${escapeHtml_(Q.msg)}</div>`;
@@ -8568,7 +8625,9 @@
     function qhdWire_(el) {
         const Q = qhd_(), $ = id => el.querySelector('#' + id);
         const on = (id, ev, fn) => { const x = $(id); if (x) x.addEventListener(ev, fn); };
-        on('qhd-close', 'click', () => { if (Q.dirty && !confirm('Có thay đổi chưa lưu. Vẫn đóng?')) return; Q.open = false; Q.cur = null; Q.dirty = false; Q.sel = new Set(); Q.place = null; qhdRefresh_(); });
+        on('qhd-close', 'click', () => { if (Q.dirty && !confirm('Có thay đổi chưa lưu. Vẫn đóng?')) return; Q.open = false; Q.min = false; Q.cur = null; Q.dirty = false; Q.sel = new Set(); Q.place = null; qhdRefresh_(); });
+        on('qhd-min', 'click', () => { Q.min = true; qhdPanel_(); });
+        on('qhd-max', 'click', () => { Q.min = false; qhdPanel_(); });
         on('qhd-list', 'change', (e) => { const v = e.target.value; if (v === '__new') return; qhdOpenDraft_(v); });
         on('qhd-new', 'click', qhdNewDraft_);
         on('qhd-save', 'click', () => qhdSave_(false));
