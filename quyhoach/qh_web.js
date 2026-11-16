@@ -217,18 +217,34 @@
     // v1.7.29 — gửi phiên đăng nhập quyhoachbuucuc.info lên máy chủ web báo cáo để web tự đồng bộ (xem changelog)
     const QH_WEB_API = 'https://baocaovanhanh.vercel.app/api/gas';
     function readQuyhoachCookie_() {
-        return new Promise(resolve => {
+        const listBy = d => new Promise(res => {
             try {
-                if (typeof GM_cookie !== 'undefined' && GM_cookie && typeof GM_cookie.list === 'function') {
-                    GM_cookie.list({ url: QUYHOACH_BASE + '/' }, (cookies, err) => {
-                        if (err || !Array.isArray(cookies) || !cookies.length) { resolve({ cookie: '', why: err ? String(err) : 'khong_co_cookie' }); return; }
-                        resolve({ cookie: cookies.map(c => c.name + '=' + c.value).join('; '), why: '' });
-                    });
-                    return;
-                }
-            } catch (e) { resolve({ cookie: '', why: String(e && e.message || e) }); return; }
-            resolve({ cookie: '', why: 'tampermonkey_khong_ho_tro_GM_cookie' });
+                GM_cookie.list(d, (cookies, err) => res({ cookies: Array.isArray(cookies) ? cookies : [], err: err ? String(err) : '' }));
+            } catch (e) { res({ cookies: [], err: String(e && e.message || e) }); }
         });
+        return (async () => {
+            if (typeof GM_cookie === 'undefined' || !GM_cookie || typeof GM_cookie.list !== 'function') {
+                return { cookie: '', why: 'tampermonkey_khong_ho_tro_GM_cookie' };
+            }
+            const tries = [
+                ['url', { url: QUYHOACH_BASE + '/' }],
+                ['url_api', { url: QUYHOACH_BASE + '/api/hubs.json' }],
+                ['domain', { domain: 'quyhoachbuucuc.info' }],
+                ['domain_www', { domain: 'www.quyhoachbuucuc.info' }],
+                ['tat_ca', {}]
+            ];
+            const notes = [];
+            for (const [name, d] of tries) {
+                const r = await listBy(d);
+                const ck = r.cookies.filter(c => !c.domain || String(c.domain).indexOf('quyhoachbuucuc') !== -1);
+                notes.push(name + ':' + (r.err ? 'loi ' + r.err : ck.length));
+                if (ck.length) {
+                    console.log('[Tuyến Giao] Cookie quyhoach đọc được (' + name + '):', ck.map(c => c.name + (c.httpOnly ? '[httpOnly]' : '')).join(', '));
+                    return { cookie: ck.map(c => c.name + '=' + c.value).join('; '), why: '' };
+                }
+            }
+            return { cookie: '', why: 'khong_co_cookie [' + notes.join(' ') + ']' };
+        })();
     }
     async function pushQuyhoachSessionToWeb_() {
         try {
@@ -5887,7 +5903,7 @@
         root.id = 'ghn-tuyen-giao-root';
         root.innerHTML = `
             <div id="ghn-tuyen-giao-titlebar">
-                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.30, chưa gộp vào Báo cáo GTC)</span></span>
+                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.31, chưa gộp vào Báo cáo GTC)</span></span>
                 <span class="ghn-tg-titlebar-btns">
                     <button id="ghn-tg-admin-open-btn" class="ghn-tg-titlebar-btn" title="Quản trị phân quyền" style="display:none;">🔐</button>
                     <button id="ghn-tg-minimize-btn" class="ghn-tg-titlebar-btn" title="Thu nhỏ">➖</button>
@@ -6369,7 +6385,17 @@
     }
 
     // v1.7.30 — @match quyhoachbuucuc.info chỉ để GM_cookie được phép đọc phiên; trên trang đó không làm gì
-    if (location.hostname.indexOf('quyhoachbuucuc.info') !== -1) return;
+    if (location.hostname.indexOf('quyhoachbuucuc.info') !== -1) {
+        // v1.7.31 — đang mở trang quyhoachbuucuc.info: nếu đọc được phiên ngay trên trang thì gửi luôn cho web báo cáo
+        try {
+            if (document.cookie && /=/.test(document.cookie) && typeof GM_xmlhttpRequest === 'function') {
+                GM_xmlhttpRequest({ method: 'POST', url: 'https://baocaovanhanh.vercel.app/api/gas', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    data: JSON.stringify({ action: 'qhSaveSid', cookie: document.cookie, by: 'trang quyhoachbuucuc.info' }),
+                    onload: r => console.log('[Tuyến Giao] Gửi phiên quyhoach (từ trang quyhoach) cho web báo cáo:', r.responseText) });
+            }
+        } catch (e) { /* bỏ qua */ }
+        return;
+    }
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init_);
     } else {

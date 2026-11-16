@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.30
+// @version      1.7.31
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -15,6 +15,8 @@
 // ==/UserScript==
 //
 // ========================= CHANGELOG (BẢN TEST — CHƯA PUSH GIT) =========================
+// v1.7.31 — v1.7.30 báo "khong_co_cookie": GM_cookie.list({url}) trả rỗng → thử lần lượt nhiều cách lọc (url, domain có/không www,
+//   lấy hết rồi lọc theo tên miền) + đọc document.cookie khi đang ở trang quyhoachbuucuc.info; chẩn đoán ghi rõ đã thử gì.
 // v1.7.30 — SỬA v1.7.29 báo "the URL needs to be included by the scripts @include or @match tag": GM_cookie chỉ đọc được
 //   cookie của trang có trong @match → thêm @match www.quyhoachbuucuc.info (trên trang đó script KHÔNG chạy gì, thoát ngay).
 // v1.7.29 — WEB BÁO CÁO TỰ ĐỒNG BỘ: mỗi lần tải trực tiếp thành công, gửi phiên đăng nhập quyhoachbuucuc.info
@@ -1926,18 +1928,34 @@
     // v1.7.29 — gửi phiên đăng nhập quyhoachbuucuc.info lên máy chủ web báo cáo để web tự đồng bộ (xem changelog)
     const QH_WEB_API = 'https://baocaovanhanh.vercel.app/api/gas';
     function readQuyhoachCookie_() {
-        return new Promise(resolve => {
+        const listBy = d => new Promise(res => {
             try {
-                if (typeof GM_cookie !== 'undefined' && GM_cookie && typeof GM_cookie.list === 'function') {
-                    GM_cookie.list({ url: QUYHOACH_BASE + '/' }, (cookies, err) => {
-                        if (err || !Array.isArray(cookies) || !cookies.length) { resolve({ cookie: '', why: err ? String(err) : 'khong_co_cookie' }); return; }
-                        resolve({ cookie: cookies.map(c => c.name + '=' + c.value).join('; '), why: '' });
-                    });
-                    return;
-                }
-            } catch (e) { resolve({ cookie: '', why: String(e && e.message || e) }); return; }
-            resolve({ cookie: '', why: 'tampermonkey_khong_ho_tro_GM_cookie' });
+                GM_cookie.list(d, (cookies, err) => res({ cookies: Array.isArray(cookies) ? cookies : [], err: err ? String(err) : '' }));
+            } catch (e) { res({ cookies: [], err: String(e && e.message || e) }); }
         });
+        return (async () => {
+            if (typeof GM_cookie === 'undefined' || !GM_cookie || typeof GM_cookie.list !== 'function') {
+                return { cookie: '', why: 'tampermonkey_khong_ho_tro_GM_cookie' };
+            }
+            const tries = [
+                ['url', { url: QUYHOACH_BASE + '/' }],
+                ['url_api', { url: QUYHOACH_BASE + '/api/hubs.json' }],
+                ['domain', { domain: 'quyhoachbuucuc.info' }],
+                ['domain_www', { domain: 'www.quyhoachbuucuc.info' }],
+                ['tat_ca', {}]
+            ];
+            const notes = [];
+            for (const [name, d] of tries) {
+                const r = await listBy(d);
+                const ck = r.cookies.filter(c => !c.domain || String(c.domain).indexOf('quyhoachbuucuc') !== -1);
+                notes.push(name + ':' + (r.err ? 'loi ' + r.err : ck.length));
+                if (ck.length) {
+                    console.log('[Tuyến Giao] Cookie quyhoach đọc được (' + name + '):', ck.map(c => c.name + (c.httpOnly ? '[httpOnly]' : '')).join(', '));
+                    return { cookie: ck.map(c => c.name + '=' + c.value).join('; '), why: '' };
+                }
+            }
+            return { cookie: '', why: 'khong_co_cookie [' + notes.join(' ') + ']' };
+        })();
     }
     async function pushQuyhoachSessionToWeb_() {
         try {
@@ -7574,7 +7592,7 @@
         root.id = 'ghn-tuyen-giao-root';
         root.innerHTML = `
             <div id="ghn-tuyen-giao-titlebar">
-                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.30, chưa gộp vào Báo cáo GTC)</span></span>
+                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.31, chưa gộp vào Báo cáo GTC)</span></span>
                 <span class="ghn-tg-titlebar-btns">
                     <button id="ghn-tg-admin-open-btn" class="ghn-tg-titlebar-btn" title="Quản trị phân quyền" style="display:none;">🔐</button>
                     <button id="ghn-tg-minimize-btn" class="ghn-tg-titlebar-btn" title="Thu nhỏ">➖</button>
@@ -7709,7 +7727,17 @@
     }
 
     // v1.7.30 — @match quyhoachbuucuc.info chỉ để GM_cookie được phép đọc phiên; trên trang đó không làm gì
-    if (location.hostname.indexOf('quyhoachbuucuc.info') !== -1) return;
+    if (location.hostname.indexOf('quyhoachbuucuc.info') !== -1) {
+        // v1.7.31 — đang mở trang quyhoachbuucuc.info: nếu đọc được phiên ngay trên trang thì gửi luôn cho web báo cáo
+        try {
+            if (document.cookie && /=/.test(document.cookie) && typeof GM_xmlhttpRequest === 'function') {
+                GM_xmlhttpRequest({ method: 'POST', url: 'https://baocaovanhanh.vercel.app/api/gas', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    data: JSON.stringify({ action: 'qhSaveSid', cookie: document.cookie, by: 'trang quyhoachbuucuc.info' }),
+                    onload: r => console.log('[Tuyến Giao] Gửi phiên quyhoach (từ trang quyhoach) cho web báo cáo:', r.responseText) });
+            }
+        } catch (e) { /* bỏ qua */ }
+        return;
+    }
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init_);
     } else {
