@@ -111,7 +111,8 @@ const LOCAL_ACTIONS = {
   saveVHWeekConfig: sheetsClient.handleSaveVHWeekConfig,
   // [TNT] - Quy hoạch: máy chủ tự đồng bộ bản đồ từ quyhoachbuucuc.info (2026-11-16)
   qhSaveSid: qhSync.handleQhSaveSid,
-  qhAutoSync: qhSync.handleQhAutoSync
+  qhAutoSync: qhSync.handleQhAutoSync,
+  qhCocau: qhSync.handleQhCocau
 };
 
 // ================= NHÁNH CŨ: proxy sang Apps Script (giữ nguyên, dùng cho action chưa port) =================

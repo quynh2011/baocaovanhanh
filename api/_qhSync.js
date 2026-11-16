@@ -145,4 +145,28 @@ async function handleQhAutoSync(body) {
   return { ok: true, synced: true, dongBoLuc: at, hubs: m.hubs.length, wards: m.wards.length, regions: m.regions, liveRegions: Array.from(new Set((live.hubs || []).map((h) => h.region).filter(Boolean))) };
 }
 
-module.exports = { handleQhSaveSid, handleQhAutoSync };
+// Cơ cấu bưu cục (sheet 999_Cocau) cho lớp Tỉnh / AM của bản đồ quy hoạch — dùng chung cho web + Tampermonkey (không cần đăng nhập web,
+// chỉ trả tên BC / mã BC / AM / Tỉnh, không trả cột khác). Cột dò theo TÊN.
+const qhNorm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/\s+/g, ' ').trim();
+let qhCocauCache = null;
+async function handleQhCocau(body) {
+  if (qhCocauCache && Date.now() - qhCocauCache.t < 5 * 60 * 1000 && !(body && body.fresh)) return qhCocauCache.res;
+  const cc = await getValues(SHEET_ID, "'999_Cocau'!A1:Z3000", { valueRenderOption: 'FORMATTED_VALUE' });
+  const head = cc[0] || [], H = head.map(qhNorm);
+  const find = (res) => { for (const re of res) { const i = H.findIndex((h) => re.test(h)); if (i >= 0) return i; } return -1; };
+  const cBc = find([/^buu cuc moi/, /^ten buu cuc/, /^buu cuc$/, /^buu cuc/, /^chi tiet/]);
+  const cMa = find([/^ma buu cuc/, /^ma bc/, /^hub ?code/, /^ma kho/, /^ma$/]);
+  const cAm = find([/^chuan am/, /^am moi/, /^am$/, /^am /, /quan ly/]);
+  const cTinh = find([/^tinh moi/, /^tinh$/, /^tinh /, /tinh\/thanh/]);
+  const rows = [];
+  if (cBc >= 0) cc.slice(1).forEach((r) => {
+    const bc = String(r[cBc] || '').trim(); if (!bc) return;
+    const am = cAm >= 0 ? String(r[cAm] || '').trim() : ''; if (/^loai$/i.test(qhNorm(am))) return;
+    rows.push([bc, cMa >= 0 ? String(r[cMa] || '').trim() : '', am, cTinh >= 0 ? String(r[cTinh] || '').trim() : '']);
+  });
+  const res = { ok: true, cols: head, dung: { bc: head[cBc] || null, ma: head[cMa] || null, am: head[cAm] || null, tinh: head[cTinh] || null }, rows };
+  qhCocauCache = { t: Date.now(), res };
+  return res;
+}
+
+module.exports = { handleQhSaveSid, handleQhAutoSync, handleQhCocau };
