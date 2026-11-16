@@ -1,3 +1,31 @@
+    // ===== 16/11 — gọn thanh công cụ trên web (nút chỉ còn biểu tượng, có chú thích khi rê chuột) + toàn màn hình + thu nhỏ bảng bên phải =====
+    let qhCompactDone = false;
+    function qhWebCompact_() {
+        if (qhCompactDone || !document.getElementById('ghn-tg-map-controls')) return;
+        qhCompactDone = true;
+        const lb = (id, txt, title) => { const b = document.getElementById(id); if (!b) return; const l = b.querySelector('.ghn-tg-combo-trigger-label'); if (l) l.textContent = txt; else b.textContent = txt; b.title = title; };
+        lb('ghn-tg-layers-combo-trigger', '🗂️', 'Lớp hiển thị');
+        lb('ghn-tg-legend-combo-trigger', 'ℹ️', 'Chú thích màu');
+        lb('ghn-tg-clear-selection-btn', '✖', 'Bỏ chọn — về hiển thị mặc định');
+        lb('ghn-tg-reload-btn', '🔄', 'Tải lại dữ liệu');
+        const rl = document.getElementById('ghn-tg-reload-btn');
+        if (rl && !document.getElementById('qh-fs-btn')) {
+            const fs = document.createElement('button'); fs.id = 'qh-fs-btn'; fs.type = 'button'; fs.textContent = '⛶'; fs.title = 'Toàn màn hình (Esc để thoát)';
+            fs.addEventListener('click', () => {
+                try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) { /* bỏ qua */ }
+            });
+            document.addEventListener('fullscreenchange', () => { fs.textContent = document.fullscreenElement ? '🗗' : '⛶'; setTimeout(() => { try { state.map && state.map.resize(); } catch (e) { /* */ } }, 200); });
+            rl.after(fs);
+        }
+        const ip = document.getElementById('ghn-tg-info-panel');
+        if (ip && !document.getElementById('qh-info-min')) {
+            const mb = document.createElement('button'); mb.id = 'qh-info-min'; mb.type = 'button'; mb.textContent = '–'; mb.title = 'Thu nhỏ / mở bảng';
+            mb.addEventListener('click', () => { const m = ip.classList.toggle('qh-min'); mb.textContent = m ? '▢' : '–'; });
+            ip.appendChild(mb);
+        }
+        setTimeout(() => { try { state.map && state.map.resize(); } catch (e) { /* */ } }, 300);
+    }
+
     // ===== Vòng xoay % khi tải bản đồ (web) — để người xem biết web đang chạy, không phải màn hình trắng =====
     // Mỗi bước tải có trọng số (file ranh giới cũ nặng nhất); giữa 2 bước số % tự nhích dần tới mốc kế tiếp.
     const QH_LOAD_W = { getMeta: 3, getWardsOldGeoJson: 32, getWardsGeoJson: 14, getHubs: 5, getWards: 10, getWardCentroids: 3, getRezone: 10, extra: 8 };
@@ -40,6 +68,7 @@
         el.style.top = top + 'px';
     }
     function qhLoadStart_(label) {
+        qhWebCompact_();
         const el = qhLoadEl_();
         qhLoad.on = true; qhLoad.got = 0; qhLoad.shown = 0; qhLoad.target = 2;
         el.classList.remove('hide'); qhLoadPlace_(); qhLoadPaint_();

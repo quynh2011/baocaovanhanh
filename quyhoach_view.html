@@ -29,9 +29,30 @@
   .qh-ghn-help { color:#5c5f66; }
   .qh-bm { display:inline-block; padding:2px 8px; border-radius:5px; background:#1c7ed6; color:#fff !important; font-weight:700; text-decoration:none; cursor:grab; }
   .qh-bc-link { color: #1c7ed6; text-decoration: underline; }
+  /* ===== 16/11 — GỌN GIAO DIỆN, TĂNG DIỆN TÍCH BẢN ĐỒ (chỉ bản web) ===== */
+  #ghn-tuyen-giao-tabs { padding: 3px 8px 0 !important; gap: 2px !important; }
+  .ghn-tg-tab-btn { padding: 4px 12px !important; font-size: 12px !important; }
+  #ghn-tg-map-controls { flex-wrap: nowrap !important; overflow-x: auto; overflow-y: hidden; padding: 4px 8px !important; gap: 6px !important; scrollbar-width: thin; }
+  #ghn-tg-map-controls > label:has(#ghn-tg-region-select) { display: none !important; }
+  #ghn-tg-map-controls > label, #ghn-tg-map-controls .qh-lab { font-size: 0 !important; gap: 0 !important; flex-shrink: 0; }
+  #ghn-tg-map-controls select { font-size: 12px !important; padding: 4px 6px !important; }
+  #qh-tinh { width: 150px; } #qh-am { width: 215px; } #qh-bc { width: 160px; } #ghn-tg-mode-select { width: 100px; }
+  #ghn-tg-map-controls .qh-search { width: 135px; flex-shrink: 0; }
+  #ghn-tg-map-controls .ghn-tg-combo-trigger { min-width: 0 !important; padding: 4px 8px !important; }
+  #ghn-tg-map-controls button { flex-shrink: 0; }
+  #ghn-tg-reload-btn, #ghn-tg-clear-selection-btn { padding: 4px 9px !important; }
+  #qh-fs-btn { padding: 4px 9px; border-radius: 6px; border: 1px solid #ced4da; background: #fff; cursor: pointer; font-size: 13px; line-height: 1; }
+  #qh-fs-btn:hover { background: #f1f3f5; }
+  #ghn-tg-map-status { padding: 2px 10px !important; font-size: 11px !important; }
+  #ghn-tg-info-panel { width: 340px; padding: 10px 12px; top: 8px; right: 8px; font-size: 12px; max-height: calc(100% - 16px); }
+  #ghn-tg-info-panel.ghn-tg-info-panel--wide { width: 430px; }
+  #ghn-tg-info-panel.qh-min { max-height: 34px !important; overflow: hidden !important; }
+  #qh-info-min { position: absolute; top: 6px; right: 28px; border: none; background: transparent; font-size: 15px; line-height: 1; cursor: pointer; color: #868e96; padding: 2px 4px; }
+  #qh-info-min:hover { color: #212529; }
+  table.qh-sum th, table.qh-sum td { padding: 3px 5px; }
 </style>
 </head>
 <body>
-<script src="quyhoach/qh_web.js?v=12"></script>
+<script src="quyhoach/qh_web.js?v=13"></script>
 </body>
 </html>

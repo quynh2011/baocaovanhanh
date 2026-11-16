@@ -1227,7 +1227,7 @@ td.dn-keycol{background:#FBF7EE}
   </div>
   <!-- ================= [TNT] - QUY HOẠCH — bản đồ quy hoạch bưu cục (bản web của Modul 6 Tuyến Giao, quyhoach_view.html) ================= -->
   <div id="vhQuyHoach" class="vh-pane">
-    <iframe id="qhFrame" title="[TNT] - Quy hoạch" style="width:100%;height:calc(100vh - 110px);min-height:560px;border:0;border-radius:10px;background:#fff"></iframe>
+    <iframe id="qhFrame" title="[TNT] - Quy hoạch" allow="fullscreen" allowfullscreen style="width:100%;height:calc(100vh - 110px);min-height:480px;border:0;border-radius:8px;background:#fff;display:block"></iframe>
   </div>
   <!-- ================= [TNT]-REPORT — sheet mã 200 trở đi (Giao hàng ca 1 / ca 2 / tồn) ================= -->
   <div id="vhTnt" class="vh-pane">
@@ -5531,8 +5531,15 @@ function switchVanHanhTab(tab){
   if (tab === 'ngay' && typeof loadVanHanhNgay === 'function') loadVanHanhNgay();
   if (tab === 'sreport' && typeof loadSReport === 'function') loadSReport();
   if (tab === 'tnt' && typeof loadTntReport === 'function') loadTntReport();
-  if (tab === 'quyhoach') { const f = document.getElementById('qhFrame'); if (f && !f.getAttribute('src')) f.setAttribute('src', 'quyhoach_view.html?v=12'); }
+  if (tab === 'quyhoach') { const f = document.getElementById('qhFrame'); if (f && !f.getAttribute('src')) f.setAttribute('src', 'quyhoach_view.html?v=13'); setTimeout(qhFitFrame, 30); }
 }
+// [TNT] - Quy hoạch: khung bản đồ cao vừa khít tới đáy màn hình (không chừa khoảng trống)
+function qhFitFrame() {
+  const f = document.getElementById('qhFrame'); if (!f || !f.offsetParent) return;
+  const top = f.getBoundingClientRect().top;
+  f.style.height = Math.max(480, Math.floor(window.innerHeight - Math.max(top, 0) - 4)) + 'px';
+}
+window.addEventListener('resize', () => { try { qhFitFrame(); } catch (e) {} });
 // tương tự switchVanHanhTab nhưng cho Kinh doanh — Ngày/Tháng hiện là placeholder "sắp ra mắt" (logic thật sẽ
 // bổ sung sau khi có cấu trúc tab dữ liệu theo Ngày/Tháng riêng trên Sheet), Tuần giữ nguyên nội dung hiện có.
 function switchKDTab(tab){
