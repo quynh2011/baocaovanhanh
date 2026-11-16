@@ -5887,7 +5887,7 @@
         root.id = 'ghn-tuyen-giao-root';
         root.innerHTML = `
             <div id="ghn-tuyen-giao-titlebar">
-                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.29, chưa gộp vào Báo cáo GTC)</span></span>
+                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.30, chưa gộp vào Báo cáo GTC)</span></span>
                 <span class="ghn-tg-titlebar-btns">
                     <button id="ghn-tg-admin-open-btn" class="ghn-tg-titlebar-btn" title="Quản trị phân quyền" style="display:none;">🔐</button>
                     <button id="ghn-tg-minimize-btn" class="ghn-tg-titlebar-btn" title="Thu nhỏ">➖</button>
@@ -6368,6 +6368,8 @@
         openWindow_();
     }
 
+    // v1.7.30 — @match quyhoachbuucuc.info chỉ để GM_cookie được phép đọc phiên; trên trang đó không làm gì
+    if (location.hostname.indexOf('quyhoachbuucuc.info') !== -1) return;
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init_);
     } else {
