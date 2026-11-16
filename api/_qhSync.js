@@ -150,15 +150,19 @@ async function handleQhAutoSync(body) {
 const qhNorm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/\s+/g, ' ').trim();
 let qhCocauCache = null;
 async function qhCocauCheck(rows) {
-  const v = await getValues(SHEET_ID, "'200_1_GTCTOTAL'!A1:B30000", { valueRenderOption: 'FORMATTED_VALUE' });
-  const sys = {}; let lastA = '';
-  (v || []).forEach((r) => {
-    const a = String(r[0] || '').trim(), b = String(r[1] || '').trim();
-    if (a) lastA = a;
-    if (!/^\([A-Z0-9]{2,5}\)\s*\S/i.test(b)) return;           // chỉ dòng có tên bưu cục dạng "(THN) …"
-    if (/grand total|tong cong|^tong/i.test(qhNorm(a))) return;
+  // Bảng thô: hàng 1 = tiêu đề; cột A "Cấp quản lý" (AM theo hệ thống), cột B "Chi tiết" (bưu cục), cột "Chuẩn ngày".
+  // AM của mỗi BC lấy theo NGÀY MỚI NHẤT (BC đổi AM thì lấy AM hiện tại).
+  const v = await getValues(SHEET_ID, "'200_1_GTCTOTAL'!A1:Z40000", { valueRenderOption: 'UNFORMATTED_VALUE' });
+  const H = (v[0] || []).map(qhNorm);
+  const fi = (re, d) => { const i = H.findIndex((h) => re.test(h)); return i >= 0 ? i : d; };
+  const cA = fi(/^cap quan ly/, 0), cB = fi(/^chi tiet/, 1), cD = fi(/^chuan ngay/, -1);
+  const sys = {};
+  (v || []).slice(1).forEach((r) => {
+    const a = String(r[cA] == null ? '' : r[cA]).trim(), b = String(r[cB] == null ? '' : r[cB]).trim();
+    if (!b || /^(grand total|tong)/.test(qhNorm(b))) return;
+    const d = cD >= 0 ? (+r[cD] || 0) : 0;
     const k = qhNorm(b);
-    if (!sys[k]) sys[k] = { bc: b, am: a || lastA };
+    if (!sys[k] || d >= sys[k].d) sys[k] = { bc: b, am: a || (sys[k] && sys[k].am) || '', d };
   });
   const cc = {};
   rows.forEach((r) => { cc[qhNorm(r[0])] = { bc: r[0], am: r[2], id: r[4] }; });
@@ -167,7 +171,7 @@ async function qhCocauCheck(rows) {
   const thieu = [], lechAm = [], du = [];
   Object.keys(sys).forEach((k) => { const s = sys[k], c = cc[k]; if (!c) thieu.push({ bc: s.bc, amHt: s.am }); else if (!sameAm(s.am, c)) lechAm.push({ bc: s.bc, amCc: (c.id ? c.id + ' - ' : '') + c.am, amHt: s.am }); });
   Object.keys(cc).forEach((k) => { if (!sys[k]) du.push({ bc: cc[k].bc, amCc: (cc[k].id ? cc[k].id + ' - ' : '') + cc[k].am }); });
-  return { soHt: Object.keys(sys).length, soCc: rows.length, thieu, lechAm, du, mauHt: Object.values(sys).slice(0, 3) };
+  return { soHt: Object.keys(sys).length, soCc: rows.length, thieu, lechAm, du };
 }
 async function handleQhCocau(body) {
   if (qhCocauCache && Date.now() - qhCocauCache.t < 5 * 60 * 1000 && !(body && body.fresh)) return qhCocauCache.res;
