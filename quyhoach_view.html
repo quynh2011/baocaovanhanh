@@ -22,23 +22,16 @@
   table.qh-sum th { position: sticky; top: 0; background: #f1f3f5; text-align: left; padding: 5px 6px; border-bottom: 1px solid #dee2e6; }
   table.qh-sum td { padding: 4px 6px; border-bottom: 1px solid #f1f3f5; }
   table.qh-sum td:nth-child(n+2), table.qh-sum th:nth-child(n+2) { text-align: right; }
+  .qh-ghn-bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:8px 12px; background:#fff8e6; border-bottom:1px solid #f1dfb0; font-size:12px; }
+  .qh-ghn-ok { color:#2b8a3e; font-weight:700; } .qh-ghn-no { color:#c92a2a; font-weight:700; }
+  .qh-ghn-btn { padding:6px 12px; border-radius:6px; border:none; background:#ff7300; color:#fff; font-weight:700; cursor:pointer; }
+  .qh-ghn-btn2 { padding:4px 10px; border-radius:6px; border:1px solid #ced4da; background:#fff; color:#495057; cursor:pointer; }
+  .qh-ghn-help { color:#5c5f66; }
+  .qh-bm { display:inline-block; padding:2px 8px; border-radius:5px; background:#1c7ed6; color:#fff !important; font-weight:700; text-decoration:none; cursor:grab; }
   .qh-bc-link { color: #1c7ed6; text-decoration: underline; }
 </style>
 </head>
 <body>
-<script>
-  // Lấy dữ liệu chuyến đi GHN cho tab "Theo Nhân Viên" qua backend web (cần cấu hình proxy GHN).
-  window.QH_GHN_POST = async function (path, body) {
-    var ss = {}; try { ss = JSON.parse(localStorage.getItem('ghn_report_session_v1') || '{}') || {}; } catch (e) {}
-    var r = await fetch('/api/gas', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'qhGhnPost', token: ss.token || '', path: path, body: body }) });
-    var j = await r.json().catch(function () { return null; });
-    if (!j || !j.ok) throw new Error((j && j.error) === 'not_configured' || !j
-      ? 'Bản web chưa kết nối được dữ liệu chuyến đi GHN (đang chờ cấu hình) — tạm thời xem sản lượng theo nhân viên trên Tampermonkey.'
-      : ('Lỗi lấy dữ liệu chuyến đi: ' + (j.error || '')));
-    return j.data;
-  };
-</script>
-<script src="quyhoach/qh_web.js?v=2"></script>
+<script src="quyhoach/qh_web.js?v=3"></script>
 </body>
 </html>

@@ -24,9 +24,19 @@ rep("            return { text: `OFFLINE — dùng backup lúc ${state.lastSyncA
 rep("    async function checkPermissionAndGate_() {\n        let profile;",
     "    async function checkPermissionAndGate_() {\n        const ss = qhSession_();\n        state.currentUser = { ssoId: ss.email || 'web', fullname: ss.name || '' };\n        state.permission = { role: 'ADMIN', hubCodes: [] };\n        state.permissionChecked = true;\n        return { allowed: true, profile: state.currentUser };\n    }\n    async function checkPermissionAndGate_OLD_() {\n        let profile;")
 
-# 3) Gọi API chuyến đi GHN qua backend web (window.QH_GHN_POST do trang vỏ định nghĩa)
-rep("    async function ghnApiPost_(path, body) {\n        const token = getGhnBearerToken_();",
-    "    async function ghnApiPost_(path, body) {\n        if (typeof window.QH_GHN_POST === 'function') return window.QH_GHN_POST(path, body);\n        const token = getGhnBearerToken_();")
+# 3) Token GHN trên web: lấy từ nút "Kết nối GHN" (localStorage), trình duyệt gọi thẳng GHN (CORS *)
+rep("    function getGhnBearerToken_() {\n        if (state.ghnToken) return state.ghnToken;",
+    "    function getGhnBearerToken_() {\n        if (!state.ghnToken && qhGhnToken_()) state.ghnToken = qhGhnToken_();\n        if (!state.ghnToken) throw new Error('Chưa kết nối GHN — bấm \"🔗 Kết nối GHN\" ở trên rồi bấm nút \"Kết nối báo cáo TNT\" trên trang nhanh.ghn.vn.');\n        if (state.ghnToken) return state.ghnToken;")
+rep("            state.ghnToken = null; // token hết hạn — bắt lại ở lần gọi sau\n            throw new Error(`Chưa đăng nhập / hết phiên GHN (HTTP ${res.status}) khi gọi ${path}`);",
+    "            state.ghnToken = null; // token hết hạn — bắt lại ở lần gọi sau\n            qhSetGhnToken_('');\n            throw new Error(`Phiên GHN đã hết hạn (HTTP ${res.status}) — bấm \"🔗 Kết nối GHN\" để kết nối lại.`);")
+# thanh kết nối GHN ở đầu tab Theo Nhân Viên
+rep("""            <div id="ghn-tg-staff-controls">
+                <label style="font-size:12px; color:#495057;">Từ ngày:""",
+    """            <div id="qh-ghn-box" class="qh-ghn-bar"></div>
+            <div id="ghn-tg-staff-controls">
+                <label style="font-size:12px; color:#495057;">Từ ngày:""")
+rep("        wireMapControls_();\n        wireSyncControls_();\n        wireStaffControls_();",
+    "        wireMapControls_();\n        wireSyncControls_();\n        wireStaffControls_();\n        qhGhnUi_();")
 
 # 4) Mở thẳng cửa sổ (full khung) thay cho nút launcher
 rep("        injectBaseStyles_();\n        createLauncherButton_();", "        injectBaseStyles_();\n        openWindow_();")

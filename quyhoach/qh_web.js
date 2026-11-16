@@ -2631,6 +2631,8 @@
     }
 
     function getGhnBearerToken_() {
+        if (!state.ghnToken && qhGhnToken_()) state.ghnToken = qhGhnToken_();
+        if (!state.ghnToken) throw new Error('Chưa kết nối GHN — bấm "🔗 Kết nối GHN" ở trên rồi bấm nút "Kết nối báo cáo TNT" trên trang nhanh.ghn.vn.');
         if (state.ghnToken) return state.ghnToken;
         const found = autoDetectGhnToken_();
         if (!found) {
@@ -2685,7 +2687,6 @@
     }
 
     async function ghnApiPost_(path, body) {
-        if (typeof window.QH_GHN_POST === 'function') return window.QH_GHN_POST(path, body);
         const token = getGhnBearerToken_();
         const res = await fetch(`${GHN_API_BASE}${path}`, {
             method: 'POST',
@@ -2700,7 +2701,8 @@
         });
         if (res.status === 401 || res.status === 403) {
             state.ghnToken = null; // token hết hạn — bắt lại ở lần gọi sau
-            throw new Error(`Chưa đăng nhập / hết phiên GHN (HTTP ${res.status}) khi gọi ${path}`);
+            qhSetGhnToken_('');
+            throw new Error(`Phiên GHN đã hết hạn (HTTP ${res.status}) — bấm "🔗 Kết nối GHN" để kết nối lại.`);
         }
         if (!res.ok) throw new Error(`HTTP ${res.status} khi gọi ${path}`);
         return res.json();
@@ -4715,6 +4717,7 @@
         // '.ghn-tg-combo-trigger' (min-width:170px; max-width:260px — Y HỆT combobox "Nhân
         // viên" bên cạnh) — panel theo đó cũng gọn lại đúng 280px thay vì tràn hết màn hình.
         panel.innerHTML = `
+            <div id="qh-ghn-box" class="qh-ghn-bar"></div>
             <div id="ghn-tg-staff-controls">
                 <label style="font-size:12px; color:#495057;">Từ ngày:
                     <input type="date" id="ghn-tg-staff-from" value="${todayStr}">
@@ -5875,6 +5878,7 @@
         wireMapControls_();
         wireSyncControls_();
         wireStaffControls_();
+        qhGhnUi_();
 
         loadAndRenderMap_();
         loadHrmData_(); // v1.7.5 — chạy song song, KHÔNG await (xem giải thích ở loadHrmData_())
@@ -6084,6 +6088,68 @@
         };
     }
     window.__qh = { state, qhApply_, qhBuildOrg_, qhDotDiag_, updateStaffDotsOnMap_, computeStaffDotFeatures_ };
+
+    // ==================== KẾT NỐI GHN TRÊN WEB (bookmarklet "Kết nối báo cáo TNT") ====================
+    // Web báo cáo KHÔNG đọc được phiên đăng nhập của nhanh.ghn.vn (trình duyệt chặn khác trang). Luồng:
+    // bấm "Kết nối GHN" → mở tab nhanh.ghn.vn → người dùng bấm nút dấu trang → nút lấy token của CHÍNH
+    // người đó, gửi về tab báo cáo (postMessage cho cửa sổ đã mở nó, hoặc mở web kèm #qhGhnToken=…).
+    // Token lưu localStorage 'qh_ghn_token' của máy người dùng, KHÔNG gửi lên server. API chuyến đi GHN
+    // cho phép gọi từ trang khác (CORS *) nên trình duyệt gọi thẳng GHN, không cần proxy.
+    const QH_TOKEN_KEY = 'qh_ghn_token';
+    function qhGhnToken_() { try { return localStorage.getItem(QH_TOKEN_KEY) || ''; } catch (e) { return ''; } }
+    function qhSetGhnToken_(t) {
+        try { if (t) localStorage.setItem(QH_TOKEN_KEY, t); else localStorage.removeItem(QH_TOKEN_KEY); } catch (e) { /* bỏ qua */ }
+        state.ghnToken = t || null;
+        qhGhnUi_();
+    }
+    function qhTokenWho_(t) {
+        try { const p = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); return p.ssoId ? 'mã ' + p.ssoId : ''; } catch (e) { return ''; }
+    }
+    function qhBookmarklet_() {
+        const W = location.origin;
+        const js = "(function(){var T=null,re=/eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*/g,f=function(s){if(T||!s)return;var m=String(s).match(re)||[];for(var i=0;i<m.length;i++)if(m[i].length>100){T=m[i];return}};"
+            + "if(!/(^|\\.)ghn\\.vn$/.test(location.hostname)){alert('Hãy bấm nút này khi đang ở trang nhanh.ghn.vn (đã đăng nhập).');return}"
+            + "document.querySelectorAll('script').forEach(function(s){f(s.textContent)});"
+            + "[localStorage,sessionStorage].forEach(function(st){try{for(var i=0;i<st.length&&!T;i++)f(st.getItem(st.key(i)))}catch(e){}});f(document.cookie);"
+            + "if(!T){alert('Chưa thấy phiên đăng nhập GHN. Đăng nhập nhanh.ghn.vn, mở 1 trang bất kỳ rồi bấm lại.');return}"
+            + "var W='" + W + "';try{if(window.opener&&!window.opener.closed){window.opener.postMessage({type:'qhGhnToken',token:T},W);alert('✅ Đã kết nối GHN với web báo cáo TNT. Quay lại tab báo cáo để tải sản lượng.');return}}catch(e){}"
+            + "window.open(W+'/#qhGhnToken='+encodeURIComponent(T),'_blank')})()";
+        return 'javascript:' + encodeURIComponent(js);
+    }
+    function qhGhnUi_() {
+        const box = document.getElementById('qh-ghn-box');
+        if (!box) return;
+        const t = qhGhnToken_();
+        const who = t ? qhTokenWho_(t) : '';
+        box.innerHTML = t
+            ? `<span class="qh-ghn-ok">● Đã kết nối GHN${who ? ' (' + who + ')' : ''}</span>
+               <button type="button" id="qh-ghn-btn" class="qh-ghn-btn2">↻ Kết nối lại</button>
+               <button type="button" id="qh-ghn-off" class="qh-ghn-btn2">Ngắt</button>`
+            : `<span class="qh-ghn-no">● Chưa kết nối GHN</span>
+               <button type="button" id="qh-ghn-btn" class="qh-ghn-btn">🔗 Kết nối GHN</button>
+               <span class="qh-ghn-help">Bấm → mở trang nhanh.ghn.vn → bấm nút <a class="qh-bm" href="${qhBookmarklet_()}" title="Kéo nút này lên thanh dấu trang (làm 1 lần)">🔗 Kết nối báo cáo TNT</a> trên thanh dấu trang.
+               Lần đầu: <b>kéo</b> nút xanh đó lên thanh dấu trang (Ctrl+Shift+B để hiện thanh).</span>`;
+        const b = document.getElementById('qh-ghn-btn');
+        if (b) b.addEventListener('click', () => {
+            window.__qhGhnWin = window.open('https://nhanh.ghn.vn/', 'qhGhnConnect');
+            qhSetStatusHint_('Đã mở nhanh.ghn.vn — bấm nút "🔗 Kết nối báo cáo TNT" trên thanh dấu trang ở tab đó.');
+        });
+        const o = document.getElementById('qh-ghn-off');
+        if (o) o.addEventListener('click', () => qhSetGhnToken_(''));
+        const bm = box.querySelector('.qh-bm');
+        if (bm) bm.addEventListener('click', (e) => { e.preventDefault(); alert('Kéo nút này lên thanh dấu trang (không bấm ở đây). Sau đó bấm nó khi đang ở trang nhanh.ghn.vn.'); });
+    }
+    function qhSetStatusHint_(txt) { try { setStaffStatus_(txt); } catch (e) { /* bỏ qua */ } }
+    window.addEventListener('message', (ev) => {
+        if (!/^https:\/\/([a-z0-9-]+\.)*ghn\.vn$/.test(ev.origin)) return;
+        const d = ev.data || {};
+        if (d.type === 'qhGhnToken' && typeof d.token === 'string' && d.token.length > 100) {
+            qhSetGhnToken_(d.token);
+            qhSetStatusHint_('✅ Đã kết nối GHN — chọn bưu cục, ngày rồi bấm "Tải sản lượng".');
+            try { if (window.__qhGhnWin && !window.__qhGhnWin.closed) window.__qhGhnWin.close(); } catch (e) { /* bỏ qua */ }
+        }
+    });
+    window.addEventListener('storage', (ev) => { if (ev.key === QH_TOKEN_KEY) { state.ghnToken = ev.newValue || null; qhGhnUi_(); } });
 
     function init_() {
         injectBaseStyles_();

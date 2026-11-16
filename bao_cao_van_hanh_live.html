@@ -2514,6 +2514,8 @@ function enterApp(user){
   applyDataProtection(user, perms);
   applyModuleVisibilityToDom();
   // mở web (F5) → Vận hành vào thẳng [TNT]-Report (nếu người dùng có quyền xem mục này)
+  // [TNT] - Quy hoạch: nút "Kết nối báo cáo TNT" trên nhanh.ghn.vn mở web kèm #qhGhnToken=… → lưu token GHN vào máy, mở tab Quy hoạch
+  try { const mm = /[#&]qhGhnToken=([^&]+)/.exec(location.hash || ''); if (mm) { localStorage.setItem('qh_ghn_token', decodeURIComponent(mm[1])); history.replaceState(null, '', location.pathname + location.search); window.__vhDefaultTab = 1; if (typeof modVisible !== 'function' || modVisible('vh_quyhoach')) switchVanHanhTab('quyhoach'); } } catch (e) {}
   if (!window.__vhDefaultTab) { window.__vhDefaultTab = 1; try { if (typeof modVisible !== 'function' || modVisible('vh_tnt')) switchVanHanhTab('tnt'); } catch (e) {} }
   main().catch(e => { document.getElementById('loadingNote').style.display='none'; showError('Lỗi tổng thể: '+e.message); });
   startPresenceTracking();
@@ -5529,7 +5531,7 @@ function switchVanHanhTab(tab){
   if (tab === 'ngay' && typeof loadVanHanhNgay === 'function') loadVanHanhNgay();
   if (tab === 'sreport' && typeof loadSReport === 'function') loadSReport();
   if (tab === 'tnt' && typeof loadTntReport === 'function') loadTntReport();
-  if (tab === 'quyhoach') { const f = document.getElementById('qhFrame'); if (f && !f.getAttribute('src')) f.setAttribute('src', 'quyhoach_view.html?v=2'); }
+  if (tab === 'quyhoach') { const f = document.getElementById('qhFrame'); if (f && !f.getAttribute('src')) f.setAttribute('src', 'quyhoach_view.html?v=3'); }
 }
 // tương tự switchVanHanhTab nhưng cho Kinh doanh — Ngày/Tháng hiện là placeholder "sắp ra mắt" (logic thật sẽ
 // bổ sung sau khi có cấu trúc tab dữ liệu theo Ngày/Tháng riêng trên Sheet), Tuần giữ nguyên nội dung hiện có.
