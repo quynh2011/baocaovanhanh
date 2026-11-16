@@ -1,0 +1,148 @@
+# Bàn giao: Bản đồ quy hoạch tuyến giao — "[TNT] - Quy hoạch" + Tampermonkey "Modul 6 - Tuyến Giao"
+
+> Đọc file này + `CLAUDE.md` (gốc repo, mục 0/5/7/8/9) TRƯỚC khi sửa bất cứ gì của phần bản đồ.
+> Cập nhật lần cuối: 16/11/2026 — userscript **v1.7.33**, bản web chống cache **`?v=13`**.
+> Mọi thay đổi phần bản đồ: ghi Nhật ký ở `CLAUDE.md` mục 7 **và** cập nhật file này (mục 10 trạng thái/kế hoạch) trong cùng commit.
+
+---
+
+## 1. Mục tiêu (chủ dự án yêu cầu)
+- Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / sản lượng, ranh giới lãnh thổ BC, tab **Theo Nhân Viên** (sản lượng lấy/giao từng nhân viên GHN, chấm trên bản đồ).
+- Chạy ở **2 nơi, CHỨC NĂNG GIỐNG NHAU**:
+  1. **Tampermonkey** trên `nhanh.ghn.vn/lastmile` (bản gốc của chủ dự án, file `modul6_tuyen_giao.user.js`).
+  2. **Web báo cáo** `baocaovanhanh.vercel.app` › Vận hành › **[TNT] - Quy hoạch** (bản web tự sinh từ userscript).
+- Dữ liệu phải đủ **CẢ 2 VÙNG DBB + TNT** ở web, Tampermonkey và Drive.
+- Chọn **Tỉnh / AM / Bưu cục** → bản đồ khoanh đúng phạm vi các BC theo **cơ cấu bưu cục** (sheet `999_Cocau`), có cảnh báo khi cơ cấu lệch so với hệ thống, có ô gõ tìm nhanh.
+- Web **TỰ ĐỒNG BỘ** dữ liệu từ quyhoachbuucuc.info như Tampermonkey, nhưng **KHÔNG có nút/tab Đồng bộ trên web** (kể cả Admin).
+
+## 2. Kiến trúc tổng thể
+```
+                     quyhoachbuucuc.info/api/*  (cần cookie phiên "sid" — đăng nhập trang đó)
+                       ▲                     ▲
+   (1) tải trực tiếp   │                     │ (4) máy chủ web tự tải bằng cookie đã lưu
+   bằng GM_xmlhttpReq. │                     │
+┌──────────────────────┴───┐   (2) qhSaveSid  ┌┴──────────────────────────────────────┐
+│ Tampermonkey Modul 6     │ ───cookie───────▶│ Vercel /api/gas  (api/_qhSync.js)      │
+│ (nhanh.ghn.vn/lastmile)  │                  │  qhSaveSid · qhAutoSync · qhCocau      │
+│  regionMergeData_ → ghi  │                  │  lưu cookie ở sheet CauHinhQuyHoach    │
+└──────────┬───────────────┘                  └──────┬──────────────────▲──────────────┘
+           │ (3) POST syncData (đã gộp vùng)          │ POST syncData    │ qhCocau / qhAutoSync
+           ▼                                          ▼                  │
+     ┌───────────────────────────────────────────────────────┐          │
+     │ Apps Script GAS_TUYEN_GIAO (URL công khai) ⇄ Drive     │          │
+     │ files tuyen_giao_*.json  (backup ĐỦ MỌI VÙNG)          │          │
+     └───────────────────────────▲───────────────────────────┘          │
+                                 │ GET getMeta/getHubs/...               │
+                      ┌──────────┴───────────────────────────────────────┴──┐
+                      │ Web: bao_cao_van_hanh_live.html › iframe qhFrame    │
+                      │   → quyhoach_view.html?v=13 → quyhoach/qh_web.js     │
+                      │   + file tĩnh quyhoach/data/tnt_*.json (bù vùng TNT) │
+                      └─────────────────────────────────────────────────────┘
+   Tab "Theo Nhân Viên": trình duyệt gọi THẲNG API chuyến đi GHN (fe-nhanh-api / nhanh-api, CORS *).
+```
+
+## 3. Các file
+| File | Vai trò | Sửa tay? |
+|---|---|---|
+| `quyhoach/modul6_tuyen_giao.user.js` | **Bản gốc** userscript Tampermonkey (~10k dòng). Mọi tính năng chung (lớp Tỉnh/AM/BC, cảnh báo cơ cấu, ô tìm, gộp vùng, gửi cookie) nằm ở đây. | CÓ — sửa ở đây, tăng `@version` |
+| `quyhoach/qh_addon.js` | Code CHỈ DÀNH CHO WEB: vòng xoay %, giao diện gọn + nút toàn màn hình, ghép vùng tĩnh `qhMergeExtra_`, `qhSeedDrive_`, `qhAutoSync_`, kết nối token GHN (bookmarklet), chẩn đoán chấm. | CÓ |
+| `quyhoach/build.py` | Ghép userscript + qh_addon.js + các patch chuỗi (mỗi patch `assert` đúng 1 lần) → sinh `qh_web.js` và `api/_qhMerge.js`. | CÓ |
+| `quyhoach/qh_web.js` | **TỰ SINH** — bản web. | **KHÔNG** (chạy build.py) |
+| `api/_qhMerge.js` | **TỰ SINH** — hàm `regionMergeData_` trích từ userscript cho máy chủ dùng. | **KHÔNG** |
+| `quyhoach_view.html` | Trang trong iframe: nạp maplibre-gl 5.3.0 + turf 6.5.0 + `qh_web.js?v=N`; CSS ép thanh công cụ 1 hàng, ẩn tab Đồng bộ. | CÓ |
+| `quyhoach/data/tnt_{wards_old,wards_new,hubs,wards,centroids,rezone}.json` | Dữ liệu vùng TNT (6 file tải từ quyhoachbuucuc.info, minify). | Thay khi có bản mới |
+| `api/_qhSync.js` | Backend: `handleQhSaveSid`, `handleQhAutoSync`, `handleQhCocau` + `qhCocauCheck`. | CÓ |
+| `api/gas.js` | Đăng ký `qhSaveSid`, `qhAutoSync`, `qhCocau` trong `LOCAL_ACTIONS`. | CÓ |
+| `bao_cao_van_hanh_live.html` | Tab Vận hành › [TNT] - Quy hoạch (module id `vh_quyhoach`): iframe `qhFrame` (`allow="fullscreen"`), `switchVanHanhTab` đặt `src=quyhoach_view.html?v=N`, `qhFitFrame()` cho khung cao khít đáy màn hình. | CÓ |
+| `quyhoach/tests/server_test.js`, `map_test.js` | Test backend (fetch giả) và test giao diện Playwright (GAS giả). Cần thư mục fixtures — xem mục 9. | CÓ |
+
+## 4. Nguồn dữ liệu
+### 4a. Apps Script GAS_TUYEN_GIAO (backup Drive)
+- URL: `https://script.google.com/macros/s/AKfycbx7-gr0yl5Ps9Pn_Ax0nedYCuN3-B9skJ1aSq36ntkltDl_w4SCO86fFnzcYOHQCeb5/exec` (công khai; cũng có trong userscript và `api/_qhSync.js` hằng `QH_GAS`).
+- GET `?action=`: `getMeta` (lastSyncAt, has*), `getWardsOldGeoJson`, `getWardsGeoJson`, `getHubs`, `getWards`, `getWardCentroids`, `getRezone`, `getHrm`.
+- POST `{action:'syncData', syncedBy, wardsGeoJson, wardsOldGeoJson, hubs, wards, wardCentroids, rezone}` (mỗi trường là CHUỖI JSON) → `{ok, saved, errors}`. Ghi vào Drive các file `tuyen_giao_*.json`.
+- Code `.gs` không nằm trong repo này (backend riêng của chủ dự án). Môi trường Claude cloud **không gọi được script.google.com** → mọi test dùng GAS giả.
+
+### 4b. quyhoachbuucuc.info
+- API: `/api/wards_new.geojson`, `/api/wards.geojson` (phường cũ), `/api/hubs.json`, `/api/wards.json`, `/api/ward_centroids.json`, `/api/rezone.json`.
+- Cần cookie phiên `sid` (đăng nhập trang). Sai/hết hạn → 302/401. Máy chủ Vercel gọi được trang này.
+- Mỗi lần tải trực tiếp chỉ trả về VÙNG của tài khoản đang đăng nhập → bắt buộc gộp vùng (mục 5).
+
+### 4c. Google Sheet chính (SHEET_ID trong CLAUDE.md)
+| Sheet | Dùng cho |
+|---|---|
+| `999_Cocau` | Cơ cấu bưu cục chủ dự án tự cập nhật tay. Cột dò theo TÊN: **Mã BC** (= `hub_code`), **Bưu Cục mới**, **ID AM**, **AM**, **Tỉnh** (còn Usertele, Lọc, Note). ~153 dòng, 11 tỉnh. |
+| `200_1_GTCTOTAL` | Cơ cấu THEO HỆ THỐNG: cột A "Cấp quản lý" (AM, có thể nhiều tên), cột B "Chi tiết" (BC), "Chuẩn ngày". Lấy AM ở ngày mới nhất. |
+| `CauHinhQuyHoach` | Cột A khoá / B giá trị: `cookie` (KHÔNG BAO GIỜ trả về trình duyệt), `cookieLuc`, `cookieBoi`, `dongBoLuc`, `thuLuc`, `ketQua`. Tự tạo nếu chưa có. |
+
+### 4d. Quy mô hiện tại (16/11/2026)
+DBB 59 BC / 771 phường (Thái Nguyên, Hà Giang, Cao Bằng, Tuyên Quang, Bắc Kạn) + TNT 73 BC / 877 phường cũ / 277 phường mới (Ninh Bình, Nam Định, Hà Nam, Vĩnh Phúc, Phú Thọ, Hòa Bình) = **132–133 BC, 1.648 xã/phường**. Mã phường và mã BC 2 vùng không trùng nhau.
+
+## 5. Quy tắc GỘP VÙNG (quan trọng nhất — không được phá)
+- Hàm `regionMergeData_(live, old)` trong userscript (v1.7.28): vùng nào có trong `live` thì **thay toàn bộ** dữ liệu vùng đó; vùng khác lấy từ `old` **giữ nguyên**. Áp cho hubs, wards, wardsOld, wardsNew, centroids, rezone.
+- MỌI đường ghi Drive đều phải đi qua hàm này: Tampermonkey tự tải (`tryLiveSync_` → `fetchBackupData_` → gộp → hiển thị + POST), tab Đồng bộ dán tay của Tampermonkey, web (`qhSeedDrive_`), máy chủ (`handleQhAutoSync` dùng `api/_qhMerge.js`).
+- ⚠️ Ai còn chạy Tampermonkey **< v1.7.28** sẽ ghi đè Drive còn 1 vùng. Bắt mọi người dùng bản mới.
+- Web khi tải: `qhMergeExtra_` (danh sách `QH_EXTRA_REGIONS=['tnt']`) bù vùng TNT từ file tĩnh nếu Drive thiếu; Drive chưa có TNT → `qhSeedDrive_` ghi bản gộp lên Drive 1 lần (được `await` trước tự đồng bộ để không ghi chồng).
+- **Thêm vùng mới**: cách 1 — dán 6 file vào tab "Đồng Bộ Dữ Liệu" của Tampermonkey (tự gộp); cách 2 — thêm `quyhoach/data/<vùng>_*.json` + tên vào `QH_EXTRA_REGIONS` rồi build.
+
+## 6. Tự đồng bộ của web (máy chủ)
+1. Tampermonkey ≥ v1.7.29, mỗi lần tải trực tiếp thành công: `readQuyhoachCookie_` đọc cookie bằng `GM_cookie` (thử url / url api / domain / domain www / tất cả) → `pushQuyhoachSessionToWeb_` POST `/api/gas {action:'qhSaveSid', cookie, by}` (tối đa 1 lần/2 giờ). Kết quả nối vào dòng trạng thái: "✅ đã gửi phiên cho web báo cáo tự đồng bộ" / "⚠️ chưa gửi được phiên cho web (lý do)".
+   - Dự phòng: khi mở trang quyhoachbuucuc.info script đọc `document.cookie` (chỉ được nếu cookie không HttpOnly).
+2. `handleQhSaveSid` (công khai, không cần đăng nhập web): chỉ lưu khi cookie tải được `hubs.json` thật.
+3. Người dùng mở tab Quy hoạch → `qhAutoSync_` gọi `qhAutoSync` (cần phiên web). Máy chủ chỉ chạy khi Drive cũ hơn **3 giờ** (`QH_SYNC_EVERY_MS`), khoá chống chạy chồng 3 phút: tải 6 file bằng cookie → đọc backup Drive → `regionMergeData_` → POST `syncData` → web tự bấm "Tải lại" khi bản đồ sẵn sàng. Dòng trạng thái ghi "bản đồ tự cập nhật lúc …"; lỗi phiên (`cookie_het_han`, `khong_co_cookie`) **chỉ Admin thấy**.
+4. **Cài đặt Tampermonkey BẮT BUỘC** (đã xác nhận thật 16/11): Bảng điều khiển › Cài đặt › Chế độ cấu hình = **Nâng cao** › Bảo mật › **"Cho phép script truy cập cookie" = Tất cả**. Mặc định tắt → GM_cookie trả 0 cookie mọi cách (`khong_co_cookie [url:0 …]`). Lần đầu `@connect baocaovanhanh.vercel.app` hỏi quyền → chọn "Luôn cho phép".
+5. Header userscript cần: `@match https://nhanh.ghn.vn/lastmile*`, `@match https://www.quyhoachbuucuc.info/*` (GM_cookie chỉ đọc được cookie trang có trong @match; trên host này script thoát ngay sau phần gửi cookie), `@grant GM_xmlhttpRequest`, `@grant GM_cookie`, `@connect www.quyhoachbuucuc.info`, `@connect baocaovanhanh.vercel.app`.
+
+## 7. Lớp Tỉnh / AM / Bưu cục + kiểm tra cơ cấu + ô tìm (v1.7.32–33, CHUNG Tampermonkey và web)
+- Action công khai `qhCocau` (`handleQhCocau`, cache 5 phút, tham số `fresh` bỏ cache) trả `rows:[[bc, ma, am, tinh, idAm]]` + `kiemTra`. Tampermonkey gọi bằng `GM_xmlhttpRequest` (`QH_WEB_API_URL`), web gọi `/api/gas`.
+- `qhBuildOrg_`: ưu tiên cơ cấu (khớp Mã BC = hub_code, thiếu thì theo tên không dấu), AM hiển thị "ID AM - Họ tên"; thiếu cơ cấu → danh mục [TNT]-Report của trang cha (`parent.TNT.data.ents`) → AM phổ biến nhất theo HRM.
+- Điều khiển: `#qh-tinh`, `#qh-am` (chỉ AM của tỉnh đã chọn), `#qh-bc`, `#qh-clear`; `qhApply_` làm mờ ngoài khu vực, viền cam bao khu vực + viền từng BC, zoom tới; `qhSummary_` bảng BC của khu vực (bấm tên mở popup BC).
+- `qhCocauCheck` so `999_Cocau` với `200_1_GTCTOTAL` (AM ngày mới nhất theo "Chuẩn ngày", đọc UNFORMATTED): `thieu` (BC hệ thống có, cơ cấu chưa có), `lechAm` (AM khác — khớp nếu ID AM hoặc họ tên nằm trong chuỗi AM hệ thống), `du` (cơ cấu có, hệ thống không có sản lượng: kho chuyển tiếp/điểm giao — chỉ thông tin).
+- Nhãn `#qh-cc-badge` (`qhCcBadge_`/`qhCcPop_`): tick xanh **"Đã xác thực"** hoặc tam giác vàng **"N thay đổi cơ cấu — bấm xem"** → popup 3 mục (BC mới / BC đổi AM / không có sản lượng — thu gọn). Số thật 16/11: 133 BC hệ thống, 0 thiếu, 0 lệch AM, 20 dòng "dư" → Đã xác thực.
+- Ô tìm `#qh-search` + datalist `#qh-search-dl` (`qhSearchFill_`/`qhSearchGo_`): gợi ý "Tỉnh: …", "AM: …", "Bưu cục: …"; gõ tự do không dấu + Enter, ưu tiên AM → Tỉnh → BC.
+- Bản đồ VẪN chạy theo `999_Cocau` (chủ dự án tự cập nhật); hệ thống chỉ dùng để cảnh báo.
+
+## 8. Giao diện web (chỉ web)
+- Vòng xoay % khi tải (`qhLoadStart_/qhLoadTick_/qhLoadMsg_/qhLoadDone_`, trọng số `QH_LOAD_W`, ranh giới cũ nặng nhất): tự nhích giữa các phần, 94% "Đang vẽ bản đồ…", 100% khi map idle (tối đa 15s), lỗi thì ẩn ngay.
+- `qhWebCompact_`: thanh công cụ 1 hàng (thừa thì cuộn ngang, ẩn ô Vùng, ô chọn không nhãn), nút Lớp/Chú thích/Bỏ chọn/Tải lại chỉ còn biểu tượng (có tooltip), nút ⛶ toàn màn hình `#qh-fs-btn`, bảng thông tin phải 340/430px + nút thu nhỏ `#qh-info-min`. Trang cha `qhFitFrame()` cho iframe cao khít đáy màn hình.
+- Tab "Theo Nhân Viên": token GHN lấy bằng nút dấu trang "🔗 Kết nối báo cáo TNT" (`qhBookmarklet_`): bấm "🔗 Kết nối GHN" trên web → mở nhanh.ghn.vn → bấm dấu trang → token gửi về bằng `postMessage({type:'qhGhnToken'})` (chỉ nhận origin *.ghn.vn) hoặc mở web kèm `#qhGhnToken=…` → localStorage `qh_ghn_token` (chỉ trên máy người dùng). 401/403 → tự xoá + báo kết nối lại. Có nút "📋 Copy mã nút" để tạo dấu trang thủ công.
+- Vị trí đơn GHN (đã xác nhận bằng phản hồi API thật, v1.7.27): `senderContact/receiverContact` bị che; vị trí nằm ở `pickInfo` (đơn lấy) / `deliverInfo` (đơn giao) / `returnInfo` (đơn trả), có wardName/districtName/cityName/lat/lng, không có wardCode → khớp phường bằng GPS (`locFromItem_`, `vnLatLng_` tự đảo lat/lng).
+
+## 9. Quy trình sửa → build → test → deploy
+1. Sửa `modul6_tuyen_giao.user.js` (tăng `@version` + ghi changelog đầu file theo kiểu các bản trước) và/hoặc `qh_addon.js` / `build.py` / `api/_qhSync.js`.
+2. Build: `python3 quyhoach/build.py` (patch nào không khớp đúng 1 lần là `assert` báo lỗi → sửa chuỗi patch theo code mới).
+3. Kiểm cú pháp: `node --check quyhoach/qh_web.js && node --check quyhoach/modul6_tuyen_giao.user.js && node --check api/_qhSync.js && node --check api/_qhMerge.js`.
+4. **Tăng `?v=N`** ở CẢ `quyhoach_view.html` (thẻ script qh_web.js) và `bao_cao_van_hanh_live.html` (`switchVanHanhTab` đặt src iframe) — không tăng thì người dùng giữ bản cũ trong cache.
+5. Test (fixtures KHÔNG nằm trong repo vì có họ tên nhân sự/AM — repo công khai):
+   - Tạo `quyhoach/tests/fixtures/` (đã nằm trong `.gitignore`) gồm: `getHubs.json, getWards.json, getWardsGeoJson.json, getWardsOldGeoJson.json, getWardCentroids.json, getRezone.json` (lưu nguyên phản hồi GAS `{ok,data}` — mở URL GAS `?action=…` bằng trình duyệt của chủ dự án), `hrm.json` (`?action=getHrm`), `cocau.json` (phản hồi `/api/gas {action:'qhCocau'}`), và bản tải về `maplibre-gl.js`, `maplibre-gl.css` (5.3.0), `turf.min.js` (6.5.0).
+   - Backend: `node quyhoach/tests/server_test.js [thư mục fixtures]` → cookie sai bị từ chối, đồng bộ ra ~132 BC/1.648 phường "vùng DBB, TNT", lần 2 bỏ qua, cookie hết hạn → `cookie_het_han`.
+   - Giao diện: `cd <repo> && python3 -m http.server 8765` rồi `node quyhoach/tests/map_test.js [fixtures]` (Playwright; proxy `bypass:'localhost,127.0.0.1'`) → in số BC/phường, danh sách tỉnh/AM, chụp `t1.png/c1.png/c2.png` trong thư mục fixtures — XEM ảnh trước khi báo xong.
+   - Nói rõ với chủ dự án "chưa thử với GAS/Drive/GHN thật" nếu chỉ test bằng dữ liệu giả.
+6. Ghi `CLAUDE.md` mục 7 (+ mục 5 nếu đổi cấu trúc) + cập nhật file này → commit (tiếng Việt không dấu) → `git push origin main` → kiểm bản live: `curl -s https://baocaovanhanh.vercel.app/quyhoach_view.html | grep "qh_web.js?v=N"`.
+7. Đổi userscript → gửi file `.user.js` cho chủ dự án cài lại vào Tampermonkey (đặt tên `modul6_tuyen_giao_v1.7.xx.user.js`), nhắc người khác trong vùng cập nhật.
+
+## 10. Lưu ý & quy tắc chủ dự án đã chốt
+- Web **KHÔNG** có tab/nút Đồng Bộ Dữ Liệu (kể cả Admin) — build.py xoá `buildSyncPanel_`, CSS ẩn tab. Ghi Drive trên web chỉ tự động.
+- Tính năng nào cũng phải có ở **cả Tampermonkey lẫn web** → viết trong userscript; `qh_addon.js` chỉ cho thứ riêng web.
+- Không hiện tên sheet / tên cột kỹ thuật trên giao diện.
+- **Bảo mật**: KHÔNG ghi token GHN, cookie `sid` hay bí mật nào vào file/commit/log (chủ dự án từng dán trong chat — nhắc anh ấy đừng dán). Cookie chỉ nằm trong sheet `CauHinhQuyHoach`, không trả về trình duyệt; console chỉ in TÊN cookie. Repo GitHub công khai → `quyhoach/data/*` (có giá thuê mặt bằng BC) xem được công khai, giống dữ liệu GAS.
+- Không tải trực tiếp quyhoachbuucuc.info từ trình duyệt web (cần cookie + CORS) — chỉ Tampermonkey hoặc máy chủ.
+
+## 11. Hạn chế đã biết
+- Dữ liệu quy hoạch chỉ có các vùng đã tải (DBB, TNT). BC không có trên quyhoachbuucuc.info thì không có ranh giới.
+- Tự đồng bộ của máy chủ phụ thuộc cookie Tampermonkey gửi lên; cookie hết hạn mà không ai mở Tampermonkey → web giữ dữ liệu Drive cũ (Admin thấy cảnh báo).
+- Tự đồng bộ chỉ chạy khi có người mở tab Quy hoạch (không có lịch chạy nền).
+- Vercel giới hạn 60s/lượt (`maxDuration`) và body ~4,5MB; 6 file hiện ~vài MB — vùng tăng nhiều có thể chạm giới hạn.
+- Token GHN của tab Theo Nhân Viên nằm ở localStorage từng máy; mỗi người phải tự kết nối.
+
+## 12. Trạng thái & kế hoạch tiếp theo
+| # | Việc | Trạng thái |
+|---|---|---|
+| 1 | Gộp vùng TNT, Drive/web/Tampermonkey đủ 2 vùng | ✅ Xong (Drive thật 133 BC / 1.648 phường) |
+| 2 | Tampermonkey gửi cookie cho máy chủ | ✅ Xác nhận thật 16/11 ("đã gửi phiên…") |
+| 3 | Lượt máy chủ tự đồng bộ đầu tiên | ⏳ Chưa thấy chạy thật — chờ Drive cũ > 3h + có người mở tab; kiểm sheet `CauHinhQuyHoach` khoá `ketQua`/`dongBoLuc` |
+| 4 | Lớp Tỉnh/AM/BC theo cơ cấu, cảnh báo cơ cấu, ô tìm | ✅ Xong (test Playwright dữ liệu giả + cơ cấu thật) |
+| 5 | Giao diện web gọn, bản đồ to, toàn màn hình | ✅ Xong (`?v=13`) |
+| 6 | Tự động lấy token GHN trên web cho tab Theo Nhân Viên (không cần bookmarklet) | ⏸ Chủ dự án hoãn ("để tý xử") |
+| 7 | (Tuỳ chọn) Giao diện gọn tương tự cho bản Tampermonkey | Chưa làm — hỏi chủ dự án trước |
+| 8 | (Tuỳ chọn) Lịch chạy nền đồng bộ không cần người mở tab (Vercel cron gọi `qhAutoSync` với quyền hệ thống) | Chưa làm — hỏi trước |

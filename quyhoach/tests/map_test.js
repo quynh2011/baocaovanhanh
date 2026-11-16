@@ -1,0 +1,27 @@
+const { chromium } = require('playwright');
+const fs = require('fs');
+const Q = process.argv[2] || (__dirname + '/fixtures');
+(async () => {
+  const b = await chromium.launch({ proxy: { server: process.env.HTTPS_PROXY, bypass: 'localhost,127.0.0.1' } });
+  const p = await (await b.newContext({ viewport: { width: 1500, height: 900 }, ignoreHTTPSErrors: true })).newPage();
+  p.on('pageerror', e => console.log('PAGEERR', e.message));
+  p.on('console', m => { if (m.type()==='error'||/Quy hoạch/.test(m.text())) console.log('CONSOLE', m.text().slice(0,200)); });
+  await p.route(/script\.google\.com/, r => { if (r.request().method()==='POST') return r.fulfill({contentType:'application/json',body:'{"ok":true,"saved":["all"]}'}); const a = new URL(r.request().url()).searchParams.get('action');
+    if (a === 'getMeta') return r.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, lastSyncAt: '2026-11-09T00:51:12.519Z', hasWardsOldGeoJson: true, hasWardsGeoJson: true, hasHubs: true, hasWards: true, hasWardCentroids: true, hasRezone: true }) });
+    return r.fulfill({ contentType: 'application/json', body: fs.readFileSync(Q + '/' + (a === 'getHrm' ? 'hrm.json' : a + '.json')) }); });
+  await p.route(/maplibre-gl\.js/, r => r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(Q + '/maplibre-gl.js') }));
+  await p.route(/maplibre-gl\.css/, r => r.fulfill({ contentType: 'text/css', body: fs.readFileSync(Q + '/maplibre-gl.css') }));
+  await p.route(/turf/, r => r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(Q + '/turf.min.js') }));
+  let posts=[];await p.route(/\/api\/gas/, r=>r.fulfill({contentType:'application/json',body:fs.readFileSync(Q+'/cocau.json')}));p.on('request',rq=>{if(rq.method()==='POST'&&/script\.google/.test(rq.url()))posts.push(rq.postData())});await p.goto('http://localhost:8765/quyhoach_view.html');
+  await p.waitForTimeout(12000);
+  console.log(await p.evaluate(() => document.getElementById('ghn-tg-status-text').textContent));
+  console.log(await p.evaluate(() => { const st = window.__qh.state; return JSON.stringify({hubs: st.hubs.length, wards: st.wards.length, old: st.wardsOldRaw.features.length, nw: st.wardsNewRaw.features.length, rz: st.rezone.new_wards.length, cen: Object.keys(st.wardCentroids).length, matched: st.matchedWardCount, tot: st.totalWardFeatureCount}); }));
+  const tinh = await p.evaluate(() => Array.from(document.querySelectorAll('#qh-tinh option')).map(o => o.value));
+  console.log('TINH', tinh.join(', '));
+  const ams = await p.evaluate(() => Array.from(document.querySelectorAll('#qh-am option')).map(o => o.textContent));
+  console.log('AM', ams.length, ams.slice(0,12).join(' | '));
+  await p.screenshot({ path: Q + '/t1.png' });
+  await p.selectOption('#qh-tinh','Thái Nguyên');await p.waitForTimeout(2500);await p.screenshot({path:Q+'/c1.png'});const am=await p.evaluate(()=>Array.from(document.querySelectorAll('#qh-am option')).map(o=>o.value).filter(Boolean));console.log('AM TN',am.join(' | '));await p.selectOption('#qh-am',am[0]); await p.waitForTimeout(3000);
+  await p.screenshot({ path: Q + '/c2.png' });console.log('fromCocau',await p.evaluate(()=>window.__qh&&window.__qh.state?window.__qh.state.qhOrgFromCocau:'?'));
+  await p.waitForTimeout(2000);console.log('POSTS',posts.length,posts.map(x=>{const j=JSON.parse(x);return j.action+' '+JSON.parse(j.hubs).length+' hubs '+JSON.parse(j.wards).length+' wards '+JSON.parse(j.wardsOldGeoJson).features.length+' old '+JSON.parse(j.rezone).new_wards.length+' rz | '+j.syncedBy}).join('\n'));await b.close();
+})();
