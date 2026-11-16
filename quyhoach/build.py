@@ -59,23 +59,9 @@ rep("        wireMapControls_();\n        wireSyncControls_();\n        wireStaf
 # 4) Mở thẳng cửa sổ (full khung) thay cho nút launcher
 rep("        injectBaseStyles_();\n        createLauncherButton_();", "        injectBaseStyles_();\n        openWindow_();")
 
-# 5) Thanh điều khiển: thêm Tỉnh / AM / Bưu cục
-rep("""                <label style="font-size:12px; color:#495057;">Xem theo:""",
-    """                <label class="qh-lab">Tỉnh: <select id="qh-tinh"><option value="">Toàn vùng</option></select></label>
-                <label class="qh-lab">AM: <select id="qh-am"><option value="">Tất cả AM</option></select></label>
-                <label class="qh-lab">Bưu cục: <select id="qh-bc"><option value="">Tất cả bưu cục</option></select></label>
-                <button id="qh-clear" class="qh-clear" title="Bỏ lọc Tỉnh / AM / Bưu cục">✕</button>
-                <span class="ghn-tg-controls-sep"></span>
-                <label style="font-size:12px; color:#495057;">Xem theo:""")
-rep("        infoCloseBtn.addEventListener('click', () => clearSelection_());\n    }",
-    "        infoCloseBtn.addEventListener('click', () => clearSelection_());\n        qhWireControls_();\n    }")
-rep("            const summary = statusSummary_();\n            setStatus_(summary.text, summary.dot);",
-    "            const summary = statusSummary_();\n            setStatus_(summary.text, summary.dot);\n            qhAfterLoad_();")
-# applyPaint_ đặt lại fill-opacity → áp lại lớp Tỉnh/AM
-rep("            state.map.setPaintProperty('wards-fill', 'fill-opacity', 0.8);\n        }\n    }",
-    "            state.map.setPaintProperty('wards-fill', 'fill-opacity', 0.8);\n        }\n        if (state.qhOrg) qhApply_(false);\n    }")
-# HRM tải xong → dựng lại AM
-rep("            state.hrmLoaded = true;\n", "            state.hrmLoaded = true;\n            if (state.dataLoaded) qhBuildOrg_();\n")
+# 5) Lớp Tỉnh / AM / Bưu cục nay nằm SẴN trong userscript (v1.7.32) — web chỉ thêm vòng xoay/tự đồng bộ sau khi tải xong
+rep("            setStatus_(summary.text, summary.dot);\n            qhOrgAfterLoad_();",
+    "            setStatus_(summary.text, summary.dot);\n            qhOrgAfterLoad_();\n            qhAfterLoad_();")
 
 # Dòng trạng thái sau khi tải sản lượng: thêm chẩn đoán chấm
 

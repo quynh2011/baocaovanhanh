@@ -158,13 +158,14 @@ async function handleQhCocau(body) {
   const cMa = find([/^ma buu cuc/, /^ma bc/, /^hub ?code/, /^ma kho/, /^ma$/]);
   const cAm = find([/^chuan am/, /^am moi/, /^am$/, /^am /, /quan ly/]);
   const cTinh = find([/^tinh moi/, /^tinh$/, /^tinh /, /tinh\/thanh/]);
+  const cId = find([/^id am/, /^ma am/, /^msnv am/]);
   const rows = [];
   if (cBc >= 0) cc.slice(1).forEach((r) => {
     const bc = String(r[cBc] || '').trim(); if (!bc) return;
     const am = cAm >= 0 ? String(r[cAm] || '').trim() : ''; if (/^loai$/i.test(qhNorm(am))) return;
-    rows.push([bc, cMa >= 0 ? String(r[cMa] || '').trim() : '', am, cTinh >= 0 ? String(r[cTinh] || '').trim() : '']);
+    rows.push([bc, cMa >= 0 ? String(r[cMa] || '').trim() : '', am, cTinh >= 0 ? String(r[cTinh] || '').trim() : '', cId >= 0 ? String(r[cId] || '').trim() : '']);
   });
-  const res = { ok: true, cols: head, dung: { bc: head[cBc] || null, ma: head[cMa] || null, am: head[cAm] || null, tinh: head[cTinh] || null }, rows };
+  const res = { ok: true, cols: head, dung: { bc: head[cBc] || null, ma: head[cMa] || null, am: head[cAm] || null, tinh: head[cTinh] || null, idAm: head[cId] || null }, rows };
   qhCocauCache = { t: Date.now(), res };
   return res;
 }

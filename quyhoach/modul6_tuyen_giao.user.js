@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.31
+// @version      1.7.32
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -15,6 +15,9 @@
 // ==/UserScript==
 //
 // ========================= CHANGELOG (BẢN TEST — CHƯA PUSH GIT) =========================
+// v1.7.32 — LỚP TỈNH / AM / BƯU CỤC (trước chỉ có trên web báo cáo) đưa vào chính modul: chọn Tỉnh / AM / Bưu cục → bản đồ
+//   làm nổi khu vực quản lý (xã/phường do các BC đó giao), mờ phần còn lại, viền cam cả khu vực + viền từng BC, bảng BC.
+//   AM / Tỉnh lấy theo CƠ CẤU BƯU CỤC của web báo cáo (action qhCocau: Mã BC = hub_code, AM ghi "ID - Họ tên").
 // v1.7.31 — v1.7.30 báo "khong_co_cookie": GM_cookie.list({url}) trả rỗng → thử lần lượt nhiều cách lọc (url, domain có/không www,
 //   lấy hết rồi lọc theo tên miền) + đọc document.cookie khi đang ở trang quyhoachbuucuc.info; chẩn đoán ghi rõ đã thử gì.
 // v1.7.30 — SỬA v1.7.29 báo "the URL needs to be included by the scripts @include or @match tag": GM_cookie chỉ đọc được
@@ -1792,6 +1795,7 @@
             (res.rows || []).forEach(r => { if (r.id) map[String(r.id).trim()] = r; });
             state.hrmByDriverId = map;
             state.hrmLoaded = true;
+            if (state.dataLoaded) qhBuildOrg_();
             // Nếu tab "Theo Nhân Viên" đã có dữ liệu TRƯỚC KHI HRM tải xong (chạy song
             // song, không chờ nhau) -> vẽ lại NGAY để cập nhật màu xám/trạng thái, không bắt
             // người dùng phải tự bấm tải lại sản lượng.
@@ -2410,6 +2414,7 @@
             ]);
             state.map.setPaintProperty('wards-fill', 'fill-opacity', 0.8);
         }
+        if (state.qhOrg) qhApply_(false);
     }
 
     function applyRegionFilter_() {
@@ -6062,6 +6067,15 @@
 
         const style = document.createElement('style');
         style.textContent = `
+            .qh-lab { font-size: 12px; color: #495057; display: inline-flex; align-items: center; gap: 4px; }
+            .qh-lab select { max-width: 240px; font-weight: 600; padding: 4px 6px; border-radius: 6px; border: 1px solid #ced4da; }
+            .qh-clear { padding: 4px 8px; border-radius: 6px; border: 1px solid #ced4da; background: #fff; color: #868e96; cursor: pointer; font-size: 12px; }
+            .qh-clear:hover { color: #c92a2a; border-color: #c92a2a; }
+            table.qh-sum { width: 100%; border-collapse: collapse; font-size: 12px; }
+            table.qh-sum th { position: sticky; top: 0; background: #f1f3f5; text-align: left; padding: 5px 6px; border-bottom: 1px solid #dee2e6; }
+            table.qh-sum td { padding: 4px 6px; border-bottom: 1px solid #f1f3f5; }
+            table.qh-sum td:nth-child(n+2), table.qh-sum th:nth-child(n+2) { text-align: right; }
+            .qh-bc-link { color: #1c7ed6; text-decoration: underline; }
             #ghn-tuyen-giao-root {
                 position: fixed; box-sizing: border-box;
                 background: #ffffff; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
@@ -6427,6 +6441,11 @@
                 <label style="font-size:12px; color:#495057;">Vùng:
                     <select id="ghn-tg-region-select"><option value="all">Tất cả</option></select>
                 </label>
+                <label class="qh-lab">Tỉnh: <select id="qh-tinh"><option value="">Toàn vùng</option></select></label>
+                <label class="qh-lab">AM: <select id="qh-am"><option value="">Tất cả AM</option></select></label>
+                <label class="qh-lab">Bưu cục: <select id="qh-bc"><option value="">Tất cả bưu cục</option></select></label>
+                <button id="qh-clear" class="qh-clear" title="Bỏ lọc Tỉnh / AM / Bưu cục">✕</button>
+                <span class="ghn-tg-controls-sep"></span>
                 <label style="font-size:12px; color:#495057;">Xem theo:
                     <select id="ghn-tg-mode-select">
                         <option value="hub">Bưu cục</option>
@@ -7362,6 +7381,7 @@
         clearBtn.addEventListener('click', () => resetToDefaultDisplay_());
         reloadBtn.addEventListener('click', () => { loadAndRenderMap_(); });
         infoCloseBtn.addEventListener('click', () => clearSelection_());
+        qhWireControls_();
     }
 
     async function loadAndRenderMap_() {
@@ -7400,6 +7420,7 @@
 
             const summary = statusSummary_();
             setStatus_(summary.text, summary.dot);
+            qhOrgAfterLoad_();
         } catch (err) {
             setStatus_(`❌ Lỗi: ${err.message || err}`, 'offline');
             console.error('[Tuyến Giao] Lỗi tải dữ liệu:', err);
@@ -7592,7 +7613,7 @@
         root.id = 'ghn-tuyen-giao-root';
         root.innerHTML = `
             <div id="ghn-tuyen-giao-titlebar">
-                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.31, chưa gộp vào Báo cáo GTC)</span></span>
+                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.32, chưa gộp vào Báo cáo GTC)</span></span>
                 <span class="ghn-tg-titlebar-btns">
                     <button id="ghn-tg-admin-open-btn" class="ghn-tg-titlebar-btn" title="Quản trị phân quyền" style="display:none;">🔐</button>
                     <button id="ghn-tg-minimize-btn" class="ghn-tg-titlebar-btn" title="Thu nhỏ">➖</button>
@@ -7719,6 +7740,221 @@
         btn.textContent = '🗺️ Tuyến Giao';
         btn.addEventListener('click', openWindow_);
         document.body.appendChild(btn);
+    }
+
+
+    // ==================== v1.7.32 — LỚP TỈNH / AM / BƯU CỤC THEO CƠ CẤU (dùng chung Tampermonkey + web) ====================
+    // v1.7.32 — CƠ CẤU BƯU CỤC (sheet cơ cấu của web báo cáo: Mã BC / Bưu cục / ID AM / AM / Tỉnh) → lớp Tỉnh / AM.
+    // Khớp bưu cục theo Mã BC (= hub_code), không có thì theo tên. AM hiển thị "ID - Họ tên". Thiếu cơ cấu thì dùng
+    // danh mục [TNT]-Report trên trang web cha (nếu đang chạy trong web) rồi AM phổ biến nhất của nhân viên theo HRM.
+    const QH_WEB_API_URL = 'https://baocaovanhanh.vercel.app/api/gas';
+    function qhCocauFetch_() {
+        return new Promise(resolve => {
+            const body = JSON.stringify({ action: 'qhCocau' });
+            const done = (txt) => { try { const j = JSON.parse(txt); resolve(j && j.ok ? j.rows || [] : null); } catch (e) { resolve(null); } };
+            try {
+                if (typeof GM_xmlhttpRequest === 'function') {
+                    GM_xmlhttpRequest({ method: 'POST', url: QH_WEB_API_URL, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, data: body,
+                        onload: r => done(r.responseText), onerror: () => resolve(null), ontimeout: () => resolve(null), timeout: 30000 });
+                    return;
+                }
+                const url = /baocaovanhanh/.test(location.hostname) || location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? '/api/gas' : QH_WEB_API_URL;
+                fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body }).then(r => r.text()).then(done).catch(() => resolve(null));
+            } catch (e) { resolve(null); }
+        });
+    }
+    function qhLoadCocau_() {
+        if (state.qhCocauLoading || state.qhCocau) return;
+        state.qhCocauLoading = true;
+        qhCocauFetch_().then(rows => {
+            state.qhCocauLoading = false;
+            if (!Array.isArray(rows) || !rows.length) { console.warn('[Tuyến Giao] Không đọc được cơ cấu bưu cục — dùng AM theo nhân sự.'); return; }
+            state.qhCocau = rows;
+            if (state.dataLoaded) { qhBuildOrg_(); if (qhSelectedHubs_()) qhApply_(false); }
+        });
+    }
+    function qhParentEnts_() {
+        try { const T = window.parent && window.parent !== window && window.parent.TNT; return (T && T.data && T.data.ents) || null; } catch (e) { return null; }
+    }
+    function qhBuildOrg_() {
+        const ccByCode = {}, ccByName = {};
+        (state.qhCocau || []).forEach(r => {
+            const [bc, ma, am, tinh, idAm] = r;
+            const amLb = am ? (idAm ? String(idAm).trim() + ' - ' + am : am) : '';
+            const o = { am: amLb, tinh: String(tinh || '').trim() };
+            if (ma) ccByCode[String(ma).trim()] = o;
+            if (bc) ccByName[normalizeVn_(bc)] = o;
+        });
+        const byName = {};
+        (qhParentEnts_() || []).forEach(e => { if (e && e[0]) byName[normalizeVn_(e[0])] = { am: String(e[1] || '').trim() }; });
+        const cnt = {};
+        Object.values(state.hrmByDriverId || {}).forEach(r => {
+            const code = String(r.buuCuc || '').split(' - ')[0].trim();
+            const am = String(r.am || '').trim();
+            if (!code || !am || /^loai$/.test(normalizeVn_(am))) return;
+            const w = normalizeHrmTrangThai_(r.trangThai) === 'ACTIVE' ? 5 : 1;
+            cnt[code] = cnt[code] || {};
+            cnt[code][am] = (cnt[code][am] || 0) + w;
+        });
+        const org = {};
+        let fromCc = 0;
+        (state.hubs || []).forEach(h => {
+            const code = String(h.hub_code);
+            const cc = ccByCode[code] || ccByName[normalizeVn_(h.name)];
+            let am = cc && cc.am ? cc.am : '';
+            let tinh = cc && cc.tinh ? cc.tinh : '';
+            if (cc) fromCc++;
+            if (!am) { const t = byName[normalizeVn_(h.name)]; if (t && t.am && !/^loai$/.test(normalizeVn_(t.am))) am = t.am; }
+            if (!am && cnt[code]) am = Object.entries(cnt[code]).sort((a, b) => b[1] - a[1])[0][0];
+            org[code] = { tinh: tinh || h.province || '(chưa rõ tỉnh)', am: am || '(chưa rõ AM)', name: h.name || code };
+        });
+        state.qhOrg = org;
+        state.qhOrgFromCocau = fromCc;
+        state.qhHubShape = state.qhHubShape || {};
+        qhFillSelects_();
+    }
+    // gọi sau mỗi lần tải dữ liệu bản đồ xong (cả Tampermonkey và web)
+    function qhOrgAfterLoad_() {
+        state.qhHubShape = {};
+        qhLoadCocau_();
+        qhBuildOrg_();
+        const go = () => qhApply_(!!qhSelectedHubs_());
+        if (state.map && state.map.getLayer('wards-fill')) go();
+        else if (state.map) state.map.once('idle', go);
+    }
+    function qhOpt_(v, l, sel) { return `<option value="${escapeHtml_(v)}"${v === sel ? ' selected' : ''}>${escapeHtml_(l)}</option>`; }
+    function qhFillSelects_() {
+        const org = state.qhOrg || {};
+        const codes = Object.keys(org);
+        const tSel = document.getElementById('qh-tinh'), aSel = document.getElementById('qh-am'), bSel = document.getElementById('qh-bc');
+        if (!tSel || !aSel || !bSel) return;
+        const tinhs = Array.from(new Set(codes.map(c => org[c].tinh))).sort((a, b) => a.localeCompare(b, 'vi'));
+        if (state.qhTinh && !tinhs.includes(state.qhTinh)) state.qhTinh = '';
+        tSel.innerHTML = qhOpt_('', 'Toàn vùng', state.qhTinh || '') + tinhs.map(t => qhOpt_(t, `${t} (${codes.filter(c => org[c].tinh === t).length} BC)`, state.qhTinh)).join('');
+        const inT = codes.filter(c => !state.qhTinh || org[c].tinh === state.qhTinh);
+        const ams = Array.from(new Set(inT.map(c => org[c].am))).sort((a, b) => a.localeCompare(b, 'vi'));
+        if (state.qhAm && !ams.includes(state.qhAm)) state.qhAm = '';
+        aSel.innerHTML = qhOpt_('', 'Tất cả AM', state.qhAm || '') + ams.map(a => qhOpt_(a, `${a} (${inT.filter(c => org[c].am === a).length} BC)`, state.qhAm)).join('');
+        const inA = inT.filter(c => !state.qhAm || org[c].am === state.qhAm).sort((a, b) => org[a].name.localeCompare(org[b].name, 'vi'));
+        if (state.qhBc && !inA.includes(state.qhBc)) state.qhBc = '';
+        bSel.innerHTML = qhOpt_('', 'Tất cả bưu cục', state.qhBc || '') + inA.map(c => qhOpt_(c, org[c].name, state.qhBc)).join('');
+    }
+    function qhSelectedHubs_() {
+        const org = state.qhOrg || {};
+        if (state.qhBc) return [state.qhBc];
+        if (!state.qhTinh && !state.qhAm) return null;
+        return Object.keys(org).filter(c => (!state.qhTinh || org[c].tinh === state.qhTinh) && (!state.qhAm || org[c].am === state.qhAm));
+    }
+    function qhHubShape_(code) {
+        state.qhHubShape = state.qhHubShape || {};
+        if (state.qhHubShape[code] !== undefined) return state.qhHubShape[code];
+        const feats = ((state.wardsOldEnriched && state.wardsOldEnriched.features) || []).filter(f => String(f.properties.delivery_hub) === code);
+        let u = null;
+        try { u = unionFeatures_(feats.map(f => ({ type: 'Feature', properties: {}, geometry: f.geometry }))); } catch (e) { u = null; }
+        if (u) u.properties = { hub_code: code, name: (state.qhOrg[code] || {}).name || code };
+        state.qhHubShape[code] = u;
+        return u;
+    }
+    function qhEnsureLayers_() {
+        const map = state.map;
+        if (!map || !map.getLayer('wards-fill')) return false;
+        const empty = { type: 'FeatureCollection', features: [] };
+        if (!map.getSource('qh-grp')) {
+            map.addSource('qh-grp', { type: 'geojson', data: empty });
+            map.addSource('qh-hubs', { type: 'geojson', data: empty });
+            const before = map.getLayer('staff-territory-line-primary') ? 'staff-territory-line-primary' : undefined;
+            map.addLayer({ id: 'qh-hubs-line', type: 'line', source: 'qh-hubs', paint: { 'line-color': '#1f2a44', 'line-width': 1.6, 'line-opacity': 0.85 } }, before);
+            map.addLayer({ id: 'qh-grp-casing', type: 'line', source: 'qh-grp', paint: { 'line-color': '#ffffff', 'line-width': 7, 'line-opacity': 0.9 } }, before);
+            map.addLayer({ id: 'qh-grp-line', type: 'line', source: 'qh-grp', paint: { 'line-color': '#e8590c', 'line-width': 3.6 } }, before);
+        }
+        return true;
+    }
+    function qhApply_(fit) {
+        const map = state.map;
+        if (!map || !map.getLayer('wards-fill')) return;
+        if (!qhEnsureLayers_()) return;
+        const set = qhSelectedHubs_();
+        const baseOpacity = state.currentMode === 'hub' ? 0.65 : 0.8;
+        const empty = { type: 'FeatureCollection', features: [] };
+        if (!set) {
+            map.setPaintProperty('wards-fill', 'fill-opacity', baseOpacity);
+            if (map.getLayer('hubs-points')) map.setPaintProperty('hubs-points', 'circle-opacity', 1);
+            map.getSource('qh-grp').setData(empty);
+            map.getSource('qh-hubs').setData(empty);
+            qhSummary_(null);
+            return;
+        }
+        const lit = ['literal', set];
+        map.setPaintProperty('wards-fill', 'fill-opacity', ['case', ['in', ['to-string', ['get', 'delivery_hub']], lit], baseOpacity, 0.07]);
+        if (map.getLayer('hubs-points')) map.setPaintProperty('hubs-points', 'circle-opacity', ['case', ['in', ['to-string', ['get', 'hub_code']], lit], 1, 0.18]);
+        const shapes = set.map(qhHubShape_).filter(Boolean);
+        map.getSource('qh-hubs').setData({ type: 'FeatureCollection', features: shapes });
+        let grp = null;
+        try { grp = shapes.length > 1 ? unionFeatures_(shapes) : shapes[0]; } catch (e) { grp = null; }
+        map.getSource('qh-grp').setData(grp ? { type: 'FeatureCollection', features: [grp] } : empty);
+        if (fit && shapes.length) {
+            try {
+                const bb = turf.bbox({ type: 'FeatureCollection', features: shapes });
+                map.fitBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: 40, duration: 500 });
+            } catch (e) { /* bỏ qua */ }
+        }
+        if (state.qhBc) {
+            const h = state.hubsByCode[state.qhBc];
+            const pf = hubsToPointsGeoJson_().features.find(f => String(f.properties.hub_code) === state.qhBc);
+            selectHubTerritory_(state.qhBc);
+            if (h && pf) { showInfoPanel_(hubPopupHtml_(pf.properties), true); wireHubStaffingTable_(); }
+        } else {
+            qhSummary_(set);
+        }
+    }
+    function qhFmt_(n) { return (Math.round(n || 0)).toLocaleString('vi-VN'); }
+    function qhSummary_(set) {
+        if (!set) return;
+        const org = state.qhOrg || {};
+        const rows = set.map(c => {
+            const h = state.hubsByCode[c] || {};
+            const a = h.actual || {};
+            const nW = ((state.wardsOldEnriched && state.wardsOldEnriched.features) || []).filter(f => String(f.properties.delivery_hub) === c).length;
+            return { c, name: org[c] ? org[c].name : c, am: org[c] ? org[c].am : '', tinh: org[c] ? org[c].tinh : '', nW, staff: h.staff || 0, dv: a.dv || 0, pv: a.pv || 0 };
+        }).sort((x, y) => y.dv - x.dv);
+        const sum = (k) => rows.reduce((s, r) => s + (r[k] || 0), 0);
+        const title = state.qhAm ? `AM ${state.qhAm}${state.qhTinh ? ' · ' + state.qhTinh : ''}` : `Tỉnh ${state.qhTinh}`;
+        const showAm = !state.qhAm;
+        let html = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+            <div style="font-weight:700;font-size:14px;color:#212529">${escapeHtml_(title)}</div>
+            <div style="font-size:12px;color:#6c757d;margin:2px 0 8px">Khu vực quản lý: <b>${rows.length}</b> bưu cục · <b>${qhFmt_(sum('nW'))}</b> xã/phường · nhân sự <b>${qhFmt_(sum('staff'))}</b> · giao <b>${qhFmt_(sum('dv'))}</b> đơn · lấy <b>${qhFmt_(sum('pv'))}</b> đơn (số liệu quy hoạch)</div>
+            <table class="qh-sum"><thead><tr><th>Bưu cục</th>${showAm ? '<th>AM</th>' : ''}<th>Xã/phường</th><th>Nhân sự</th><th>Giao</th><th>Lấy</th></tr></thead><tbody>`;
+        rows.forEach(r => {
+            html += `<tr><td><a href="#" class="qh-bc-link" data-hub="${escapeHtml_(r.c)}">${escapeHtml_(r.name)}</a></td>${showAm ? `<td>${escapeHtml_(r.am)}</td>` : ''}<td>${r.nW}</td><td>${qhFmt_(r.staff)}</td><td>${qhFmt_(r.dv)}</td><td>${qhFmt_(r.pv)}</td></tr>`;
+        });
+        html += `</tbody></table><div style="font-size:11px;color:#868e96;margin-top:6px">Viền cam = ranh giới cả khu vực · viền xanh đen = ranh giới từng bưu cục. Bấm tên bưu cục để xem chi tiết.</div></div>`;
+        showInfoPanel_(html, true);
+        document.querySelectorAll('#ghn-tg-info-content .qh-bc-link').forEach(a => a.addEventListener('click', (e) => {
+            e.preventDefault();
+            state.qhBc = a.dataset.hub;
+            qhFillSelects_();
+            qhApply_(true);
+        }));
+    }
+    function qhWireControls_() {
+        const tSel = document.getElementById('qh-tinh'), aSel = document.getElementById('qh-am'), bSel = document.getElementById('qh-bc');
+        if (!tSel) return;
+        tSel.addEventListener('change', () => { state.qhTinh = tSel.value; state.qhAm = ''; state.qhBc = ''; clearSelection_(); qhFillSelects_(); qhApply_(true); });
+        aSel.addEventListener('change', () => {
+            state.qhAm = aSel.value; state.qhBc = '';
+            if (state.qhAm && !state.qhTinh) {
+                const ts = Array.from(new Set(Object.values(state.qhOrg || {}).filter(o => o.am === state.qhAm).map(o => o.tinh)));
+                if (ts.length === 1) state.qhTinh = ts[0];
+            }
+            clearSelection_(); qhFillSelects_(); qhApply_(true);
+        });
+        bSel.addEventListener('change', () => {
+            state.qhBc = bSel.value;
+            if (state.qhBc) { const o = state.qhOrg[state.qhBc]; if (o) { state.qhTinh = o.tinh; state.qhAm = o.am; } }
+            clearSelection_(); qhFillSelects_(); qhApply_(true);
+        });
+        const clr = document.getElementById('qh-clear');
+        if (clr) clr.addEventListener('click', () => { state.qhTinh = ''; state.qhAm = ''; state.qhBc = ''; clearSelection_(); qhFillSelects_(); qhApply_(false); fitToData_(); });
     }
 
     function init_() {
