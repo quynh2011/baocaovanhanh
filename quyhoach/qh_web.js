@@ -1116,14 +1116,14 @@
         const rows = (state.staffRawRows || []).filter(r => r.type === 'DELIVER');
         const how = {};
         rows.forEach(r => { resolveOldWardCode_(r); const k = r.__oldWardHow || 'khong'; how[k] = (how[k] || 0) + 1; });
-        const lbl = { ghn: 'mã cũ', gps: 'GPS', name: 'tên xã', newname: 'tên xã mới', rezone: 'mã mới', text: 'địa chỉ', khong: 'KHÔNG khớp' };
+        const lbl = { gpsngoai: 'GPS nằm ngoài ranh giới bản đồ', ghn: 'mã cũ', gps: 'GPS', name: 'tên xã', newname: 'tên xã mới', rezone: 'mã mới', text: 'địa chỉ', khong: 'KHÔNG khớp' };
         const feats = (state.staffDotFeatures && state.staffDotFeatures.features) || [];
         const hidden = feats.filter(f => !staffStatusAllowed_(f.properties && f.properties.workStatusCategory)).length;
         const s0 = rows[0] || {};
         console.log('[Tuyến Giao] Mẫu 3 đơn giao:', rows.slice(0, 3).map(r => ({ wardCode: r.wardCode, wardName: r.wardName, districtName: r.districtName, cityName: r.cityName, lat: r.lat, lng: r.lng, address: r.address })));
         return `🔎 Chẩn đoán: ${rows.length} đơn giao → ` + Object.keys(how).map(k => `${lbl[k] || k} ${how[k]}`).join(' · ')
-            + ` · GPS có ${rows.filter(r => typeof r.lat === 'number').length} · ${feats.length} chấm${hidden ? ` (⚠️ ${hidden} bị ẩn do lọc trạng thái)` : ''}`
-            + ` · mẫu: mã "${s0.wardCode || ''}" / xã "${s0.wardName || ''}" / ${String(s0.address || '').slice(0, 70)}`;
+            + ` · GPS hợp lệ ${rows.filter(r => vnLatLng_(r.lat, r.lng)).length} · ${feats.length} chấm${hidden ? ` (⚠️ ${hidden} bị ẩn do lọc trạng thái)` : ''}`
+            + ` · mẫu: mã "${s0.wardCode || ''}" / xã "${s0.wardName || ''}" / toạ độ ${s0.lat},${s0.lng} / ${String(s0.address || '').slice(0, 70)}`;
     }
     function resolveOldWardCode_(r) {
         if (r.__oldWard !== undefined) return r.__oldWard;
@@ -1132,7 +1132,10 @@
         const hub = state.hubsByCode ? state.hubsByCode[String(r.hubId)] : null;
         const region = hub ? (hub.region || '__none__') : '__none__';
         if (wc && state.wardsByCode && state.wardsByCode[wc]) { code = wc; how = 'ghn'; }
-        if (!code && typeof r.lat === 'number' && typeof r.lng === 'number') { code = oldWardByPoint_(r.lng, r.lat); if (code) how = 'gps'; }
+        if (!code && typeof r.lat === 'number' && typeof r.lng === 'number') {
+            const ll = vnLatLng_(r.lat, r.lng);
+            if (ll) { code = oldWardByPoint_(ll[1], ll[0]); if (code) how = 'gps'; else how = 'gpsngoai'; }
+        }
         if (!code && r.wardName) {
             const m = matchAddressToWard_([r.wardName, r.districtName, r.cityName].filter(Boolean).join(', '), region);
             if (m) { code = m.wardCode; how = 'name'; }
@@ -1160,6 +1163,7 @@
             const m = matchAddressToWard_(r.address, region);
             if (m) { code = m.wardCode; how = 'text'; }
         }
+        if (!code && how === 'gpsngoai') { r.__oldWard = null; r.__oldWardHow = how; return null; }
         r.__oldWard = code; r.__oldWardHow = how;
         return code;
     }
@@ -2867,6 +2871,51 @@
     // "TB Lấy/Giao", còn "Hiện có"/bảng Theo Nhân Viên/bản đồ vẫn CHỈ đọc "rows" như cũ (không đổi
     // hành vi những chỗ đó — đúng, vì đơn chưa gán thì không thể "thuộc về" 1 nhân viên nào để vẽ
     // chấm/tính Hiện có).
+    // v1.7.26 — GHN có lúc để trống receiverContact (không mã/tên xã, không địa chỉ) nhưng vẫn có
+    // toạ độ — có khi đảo lat/lng, hoặc để 0, hoặc nằm ở field khác. Hàm này: (1) lấy từ contact như
+    // cũ; (2) thiếu thì dò TOÀN BỘ đơn (sâu 4 cấp) tìm cặp lat/lng + mã/tên xã + địa chỉ; (3) chuẩn
+    // hoá toạ độ: bỏ 0/ngoài VN, tự đảo nếu lat/lng bị ngược.
+    function vnLatLng_(lat, lng) {
+        lat = Number(lat); lng = Number(lng);
+        if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) return null;
+        const ok = (a, b) => a >= 8 && a <= 24 && b >= 102 && b <= 110;
+        if (ok(lat, lng)) return [lat, lng];
+        if (ok(lng, lat)) return [lng, lat];
+        return null;
+    }
+    function locFromItem_(item, contact) {
+        const out = {
+            wardCode: contact && contact.wardCode != null ? contact.wardCode : null,
+            wardName: (contact && contact.wardName) || '', districtCode: contact && contact.districtCode != null ? contact.districtCode : null,
+            districtName: (contact && contact.districtName) || '', cityName: (contact && contact.cityName) || '',
+            address: (contact && contact.address) || '', lat: null, lng: null
+        };
+        const ll0 = contact ? vnLatLng_(contact.lat, contact.lng != null ? contact.lng : contact.long) : null;
+        if (ll0) { out.lat = ll0[0]; out.lng = ll0[1]; }
+        const pref = item.type === 'PICK' ? /sender|from|pick/i : /receiver|to[A-Z_]|deliver|customer|recipient/i;
+        const found = { ll: [], ward: [], wardName: [], addr: [] };
+        const walk = (o, path, depth) => {
+            if (!o || typeof o !== 'object' || depth > 4) return;
+            const keys = Object.keys(o);
+            const kLat = keys.find(k => /^(lat|latitude)$/i.test(k) || /(^|_)lat$/i.test(k) || /Lat$/.test(k));
+            const kLng = keys.find(k => /^(lng|lon|long|longitude)$/i.test(k) || /(^|_)(lng|lon)$/i.test(k) || /(Lng|Lon|Long)$/.test(k));
+            if (kLat && kLng) { const ll = vnLatLng_(o[kLat], o[kLng]); if (ll) found.ll.push({ ll, path }); }
+            keys.forEach(k => {
+                const v = o[k], p = path + '.' + k;
+                if (v && typeof v === 'object') walk(v, p, depth + 1);
+                else if (/wardcode/i.test(k) && v) found.ward.push({ v: String(v), path: p });
+                else if (/wardname/i.test(k) && v) found.wardName.push({ v: String(v), path: p });
+                else if (/address/i.test(k) && typeof v === 'string' && v.length > 5) found.addr.push({ v, path: p });
+            });
+        };
+        try { walk(item, 'item', 0); } catch (e) { /* bỏ qua */ }
+        const pick = (arr) => (arr.find(x => pref.test(x.path)) || arr[0]);
+        if (out.lat == null && found.ll.length) { const x = pick(found.ll); out.lat = x.ll[0]; out.lng = x.ll[1]; }
+        if (out.wardCode == null || out.wardCode === '') { const x = found.ward.length ? pick(found.ward) : null; if (x) out.wardCode = x.v; }
+        if (!out.wardName) { const x = found.wardName.length ? pick(found.wardName) : null; if (x) out.wardName = x.v; }
+        if (!out.address) { const x = found.addr.length ? pick(found.addr) : null; if (x) out.address = x.v; }
+        return out;
+    }
     async function fetchStaffVolumeRows_(hubIds, fromDateStr, toDateStr, onProgress, isCancelled) {
         const TRIP_BATCH_SIZE = 3;
         const REQUEST_DELAY = 300;
@@ -2926,7 +2975,8 @@
                             // RETURN: vị trí liên quan là nơi NHẬN (receiverContact). Field này
                             // KHÔNG phụ thuộc chuyến đã gán tài xế hay chưa — vẫn khớp xã/phường
                             // đúng cho cả đơn "chưa gán".
-                            const loc = item.type === 'PICK' ? sender : receiver;
+                            const loc = locFromItem_(item, item.type === 'PICK' ? sender : receiver);
+                            if (!state.__rawItemLogged) { state.__rawItemLogged = true; try { console.log('[Tuyến Giao] Mẫu 1 đơn GHN trả về (raw):', JSON.stringify(item).slice(0, 4000)); } catch (e) { /* bỏ qua */ } }
                             targetArr.push({
                                 hubId,
                                 staffKey,
@@ -2935,7 +2985,7 @@
                                 tripCode,
                                 orderCode: item.orderCode || '',
                                 type: item.type || '',
-                                address: receiver.address || '',
+                                address: loc.address || receiver.address || '',
                                 wardCode: loc.wardCode != null ? String(loc.wardCode) : '',
                                 wardName: loc.wardName || '',
                                 districtCode: loc.districtCode != null ? String(loc.districtCode) : '',
@@ -3207,8 +3257,9 @@
             ws.count += 1;
             if (succeeded) ws.success += 1;
             if (ws.groupCounts[r.customerGroup] !== undefined) ws.groupCounts[r.customerGroup] += 1;
-            if (typeof r.lat === 'number' && typeof r.lng === 'number') {
-                ws.latSum += r.lat; ws.lngSum += r.lng; ws.gpsCount += 1;
+            const llv = vnLatLng_(r.lat, r.lng); // v1.7.26 — bỏ toạ độ 0/ngoài VN, tự đảo nếu ngược
+            if (llv) {
+                ws.latSum += llv[0]; ws.lngSum += llv[1]; ws.gpsCount += 1;
             }
         });
 
@@ -3452,7 +3503,7 @@
             if (!staffMap.has(r.staffKey)) staffMap.set(r.staffKey, { count: 0, driverName: r.driverName, points: [] });
             const s = staffMap.get(r.staffKey);
             s.count += 1;
-            if (typeof r.lat === 'number' && typeof r.lng === 'number') s.points.push([r.lng, r.lat]);
+            { const llv = vnLatLng_(r.lat, r.lng); if (llv) s.points.push([llv[1], llv[0]]); }
         });
         return byWardDay;
     }
@@ -5701,7 +5752,7 @@
         root.id = 'ghn-tuyen-giao-root';
         root.innerHTML = `
             <div id="ghn-tuyen-giao-titlebar">
-                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.25, chưa gộp vào Báo cáo GTC)</span></span>
+                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.26, chưa gộp vào Báo cáo GTC)</span></span>
                 <span class="ghn-tg-titlebar-btns">
                     <button id="ghn-tg-admin-open-btn" class="ghn-tg-titlebar-btn" title="Quản trị phân quyền" style="display:none;">🔐</button>
                     <button id="ghn-tg-minimize-btn" class="ghn-tg-titlebar-btn" title="Thu nhỏ">➖</button>
