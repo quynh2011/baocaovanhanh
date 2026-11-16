@@ -29,6 +29,9 @@ rep("    function getGhnBearerToken_() {\n        if (state.ghnToken) return sta
     "    function getGhnBearerToken_() {\n        if (!state.ghnToken && qhGhnToken_()) state.ghnToken = qhGhnToken_();\n        if (!state.ghnToken) throw new Error('Chưa kết nối GHN — bấm \"🔗 Kết nối GHN\" ở trên rồi bấm nút \"Kết nối báo cáo TNT\" trên trang nhanh.ghn.vn.');\n        if (state.ghnToken) return state.ghnToken;")
 rep("            state.ghnToken = null; // token hết hạn — bắt lại ở lần gọi sau\n            throw new Error(`Chưa đăng nhập / hết phiên GHN (HTTP ${res.status}) khi gọi ${path}`);",
     "            state.ghnToken = null; // token hết hạn — bắt lại ở lần gọi sau\n            qhSetGhnToken_('');\n            throw new Error(`Phiên GHN đã hết hạn (HTTP ${res.status}) — bấm \"🔗 Kết nối GHN\" để kết nối lại.`);")
+# 1b) Ghép thêm dữ liệu bản đồ vùng khác (file tĩnh quyhoach/data/*) vào dữ liệu GAS — qhMergeExtra_ trong qh_addon.js
+rep("        state.lastSyncAt = meta.lastSyncAt || null;\n    }\n\n    async function loadAllData_(",
+    "        state.lastSyncAt = meta.lastSyncAt || null;\n        await qhMergeExtra_(onProgress);\n    }\n\n    async function loadAllData_(")
 # thanh kết nối GHN ở đầu tab Theo Nhân Viên
 rep("""            <div id="ghn-tg-staff-controls">
                 <label style="font-size:12px; color:#495057;">Từ ngày:""",

@@ -1,3 +1,45 @@
+    // ===== Ghép dữ liệu bản đồ các vùng bổ sung (file tĩnh trong quyhoach/data, tải 1 lần) =====
+    // Mỗi vùng 6 file giống quyhoachbuucuc.info: wards_old (ranh giới phường cũ), wards_new (ranh giới mới),
+    // hubs, wards, centroids, rezone. Mã nào đã có trong dữ liệu chính thì giữ bản chính.
+    const QH_EXTRA_REGIONS = ['tnt'];
+    async function qhMergeExtra_(onProgress) {
+        const get = async (r, k) => {
+            const res = await fetch('quyhoach/data/' + r + '_' + k + '.json?v=1');
+            if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + k);
+            return res.json();
+        };
+        for (const r of QH_EXTRA_REGIONS) {
+            try {
+                onProgress && onProgress('Đang tải bản đồ vùng ' + r.toUpperCase() + '...');
+                const [wo, wn, hubs, wards, cen, rz] = await Promise.all(
+                    ['wards_old', 'wards_new', 'hubs', 'wards', 'centroids', 'rezone'].map(k => get(r, k).catch(() => null)));
+                const addFeat = (fc, key, extra) => {
+                    if (!extra || !Array.isArray(extra.features)) return fc;
+                    if (!fc || !Array.isArray(fc.features)) return { type: 'FeatureCollection', features: extra.features.slice() };
+                    const have = new Set(fc.features.map(f => String((f.properties || {})[key])));
+                    extra.features.forEach(f => { if (!have.has(String((f.properties || {})[key]))) fc.features.push(f); });
+                    return fc;
+                };
+                const addArr = (arr, key, extra) => {
+                    if (!Array.isArray(extra)) return arr || [];
+                    arr = arr || [];
+                    const have = new Set(arr.map(x => String(x[key])));
+                    extra.forEach(x => { if (!have.has(String(x[key]))) arr.push(x); });
+                    return arr;
+                };
+                state.wardsOldRaw = addFeat(state.wardsOldRaw, 'ward_code', wo);
+                state.wardsNewRaw = addFeat(state.wardsNewRaw, 'new_ward_code', wn);
+                state.hubs = addArr(state.hubs, 'hub_code', hubs);
+                state.wards = addArr(state.wards, 'ward_code', wards);
+                if (cen && typeof cen === 'object') state.wardCentroids = Object.assign({}, cen, state.wardCentroids || {});
+                if (rz && Array.isArray(rz.new_wards)) {
+                    if (!state.rezone || !Array.isArray(state.rezone.new_wards)) state.rezone = { stats: rz.stats || {}, new_wards: [] };
+                    state.rezone.new_wards = addArr(state.rezone.new_wards, 'new_code', rz.new_wards);
+                }
+            } catch (e) { console.warn('[Quy hoạch] Không ghép được dữ liệu vùng ' + r, e); }
+        }
+    }
+
     // ==================== [TNT] - QUY HOẠCH (BẢN WEB) — LỚP TỈNH / AM / BƯU CỤC ====================
     // Chèn vào trong IIFE của Modul 6 khi build bản web (quyhoach/build.py). Ánh xạ bưu cục → Tỉnh (hubs.json
     // province) và → AM (ưu tiên danh mục bưu cục của [TNT]-Report trên trang cha, thiếu thì lấy AM phổ biến
