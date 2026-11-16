@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.39
+// @version      1.7.40
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -15,6 +15,7 @@
 // ==/UserScript==
 //
 // ========================= CHANGELOG (BẢN TEST — CHƯA PUSH GIT) =========================
+// v1.7.40 — FIX nút "✖ Bỏ chọn": trước chỉ reset lớp hiển thị nên đang lọc Tỉnh/AM/Bưu cục bấm vào không thấy gì thay đổi. Nay xoá cả lọc Tỉnh/AM/BC, ô tìm, xã/phường đang chọn trong bản nháp rồi đưa bản đồ về toàn vùng.
 // v1.7.39 — Nhãn kiểm tra cơ cấu ("Đã xác thực" / "N thay đổi cơ cấu") chuyển lên hàng tab cạnh "Theo Nhân Viên".
 // v1.7.38 — Nút "📝 Bản nháp quy hoạch" tô màu cam nổi bật (đang xem nháp: tím).
 // v1.7.37 — Mọi thông báo / xác nhận dùng popup riêng (`qhDialog_`/`qhAlert_`/`qhConfirm_`, thay alert/confirm của trình duyệt). Bản nháp: nút "＋ AM mới" (`qhdNewAm_`) nhập ID + Họ tên AM chưa có trong cơ cấu → "ID - Họ tên" (trùng ID thì dùng AM có sẵn).
@@ -2758,6 +2759,19 @@
         applyStaffLabelVisibility_();
         applyStaffStatusFilter_();
         applyStaffHullVisibility_();
+
+        // v1.7.40 — bỏ luôn lọc Tỉnh / AM / Bưu cục + ô tìm + xã/phường đang chọn trong bản nháp,
+        // rồi đưa bản đồ về toàn vùng (trước chỉ reset lớp hiển thị → người dùng thấy nút "không chạy").
+        try {
+            state.qhTinh = ''; state.qhAm = ''; state.qhBc = '';
+            const qs = document.getElementById('qh-search'); if (qs) qs.value = '';
+            if (state.qhd) { if (state.qhd.sel) state.qhd.sel = new Set(); state.qhd.place = null; }
+            if (typeof qhFillSelects_ === 'function') qhFillSelects_();
+            if (typeof qhApply_ === 'function') qhApply_(false);
+            if (state.qhd && state.qhd.open && typeof qhdRefresh_ === 'function') qhdRefresh_();
+            if (typeof fitToData_ === 'function') fitToData_();
+        } catch (e) { console.warn('[Modul 6] Bỏ chọn:', e); }
+        hideInfoPanel_();
     }
 
     // ==================== PANEL THÔNG TIN (cố định góc bản đồ, KHÔNG dùng maplibregl.Popup

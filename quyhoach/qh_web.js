@@ -1032,6 +1032,19 @@
         applyStaffLabelVisibility_();
         applyStaffStatusFilter_();
         applyStaffHullVisibility_();
+
+        // v1.7.40 — bỏ luôn lọc Tỉnh / AM / Bưu cục + ô tìm + xã/phường đang chọn trong bản nháp,
+        // rồi đưa bản đồ về toàn vùng (trước chỉ reset lớp hiển thị → người dùng thấy nút "không chạy").
+        try {
+            state.qhTinh = ''; state.qhAm = ''; state.qhBc = '';
+            const qs = document.getElementById('qh-search'); if (qs) qs.value = '';
+            if (state.qhd) { if (state.qhd.sel) state.qhd.sel = new Set(); state.qhd.place = null; }
+            if (typeof qhFillSelects_ === 'function') qhFillSelects_();
+            if (typeof qhApply_ === 'function') qhApply_(false);
+            if (state.qhd && state.qhd.open && typeof qhdRefresh_ === 'function') qhdRefresh_();
+            if (typeof fitToData_ === 'function') fitToData_();
+        } catch (e) { console.warn('[Modul 6] Bỏ chọn:', e); }
+        hideInfoPanel_();
     }
 
     // ==================== PANEL THÔNG TIN (cố định góc bản đồ, KHÔNG dùng maplibregl.Popup
