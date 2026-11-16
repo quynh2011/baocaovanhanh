@@ -2884,6 +2884,13 @@
         return null;
     }
     function locFromItem_(item, contact) {
+        // v1.7.27 — ĐÃ XÁC NHẬN bằng phản hồi thật của API get-trip-items (chủ dự án gửi 16/11/2026): GHN đã
+        // CHE thông tin trong senderContact/receiverContact (chỉ còn contactName/contactPhone "*******"), vị trí
+        // chuyển sang 3 khối riêng: pickInfo (đơn LẤY), deliverInfo (đơn GIAO), returnInfo (đơn TRẢ) — mỗi khối có
+        // wardName/districtName/cityName/lat/lng (address bị che 1 phần, KHÔNG có wardCode). Ưu tiên đúng khối
+        // theo loại đơn; thiếu thì mới dùng contact cũ / dò sâu như v1.7.26.
+        const info = item && (item.type === 'PICK' ? item.pickInfo : item.type === 'RETURN' ? item.returnInfo : item.deliverInfo);
+        if (info && (info.lat != null || info.wardName)) contact = Object.assign({}, contact || {}, info);
         const out = {
             wardCode: contact && contact.wardCode != null ? contact.wardCode : null,
             wardName: (contact && contact.wardName) || '', districtCode: contact && contact.districtCode != null ? contact.districtCode : null,
@@ -2914,6 +2921,7 @@
         if (out.wardCode == null || out.wardCode === '') { const x = found.ward.length ? pick(found.ward) : null; if (x) out.wardCode = x.v; }
         if (!out.wardName) { const x = found.wardName.length ? pick(found.wardName) : null; if (x) out.wardName = x.v; }
         if (!out.address) { const x = found.addr.length ? pick(found.addr) : null; if (x) out.address = x.v; }
+        if (/^\*+/.test(out.address || '')) out.address = [out.wardName, out.districtName, out.cityName].filter(Boolean).join(', '); // địa chỉ bị che → dựng lại từ tên xã/huyện/tỉnh
         return out;
     }
     async function fetchStaffVolumeRows_(hubIds, fromDateStr, toDateStr, onProgress, isCancelled) {
@@ -5752,7 +5760,7 @@
         root.id = 'ghn-tuyen-giao-root';
         root.innerHTML = `
             <div id="ghn-tuyen-giao-titlebar">
-                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.26, chưa gộp vào Báo cáo GTC)</span></span>
+                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.27, chưa gộp vào Báo cáo GTC)</span></span>
                 <span class="ghn-tg-titlebar-btns">
                     <button id="ghn-tg-admin-open-btn" class="ghn-tg-titlebar-btn" title="Quản trị phân quyền" style="display:none;">🔐</button>
                     <button id="ghn-tg-minimize-btn" class="ghn-tg-titlebar-btn" title="Thu nhỏ">➖</button>

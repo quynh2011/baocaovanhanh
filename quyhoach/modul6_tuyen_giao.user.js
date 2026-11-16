@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.26
+// @version      1.7.27
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -12,6 +12,9 @@
 // ==/UserScript==
 //
 // ========================= CHANGELOG (BẢN TEST — CHƯA PUSH GIT) =========================
+// v1.7.27 — NGUYÊN NHÂN ĐÃ XÁC NHẬN (phản hồi API get-trip-items thật 16/11): GHN che senderContact/receiverContact
+//  (chỉ còn tên/SĐT "*******"), vị trí nằm ở pickInfo / deliverInfo / returnInfo (wardName, districtName,
+//  cityName, lat, lng; không có wardCode). locFromItem_ đọc thẳng đúng khối theo loại đơn PICK/DELIVER/RETURN.
 // v1.7.26 — Chẩn đoán thật (THN Phan Đình Phùng 15/11): 2334 đơn giao KHÔNG khớp, mã/tên xã/địa chỉ đều RỖNG,
 //  có "GPS" nhưng không nằm trong ranh giới nào → thêm locFromItem_ (dò toàn bộ đơn tìm toạ độ/mã/tên xã/địa chỉ ở
 //  field khác) + vnLatLng_ (bỏ toạ độ 0/ngoài VN, tự đảo lat/lng ngược); chẩn đoán in mẫu toạ độ + log 1 đơn raw.
@@ -4575,6 +4578,13 @@
         return null;
     }
     function locFromItem_(item, contact) {
+        // v1.7.27 — ĐÃ XÁC NHẬN bằng phản hồi thật của API get-trip-items (chủ dự án gửi 16/11/2026): GHN đã
+        // CHE thông tin trong senderContact/receiverContact (chỉ còn contactName/contactPhone "*******"), vị trí
+        // chuyển sang 3 khối riêng: pickInfo (đơn LẤY), deliverInfo (đơn GIAO), returnInfo (đơn TRẢ) — mỗi khối có
+        // wardName/districtName/cityName/lat/lng (address bị che 1 phần, KHÔNG có wardCode). Ưu tiên đúng khối
+        // theo loại đơn; thiếu thì mới dùng contact cũ / dò sâu như v1.7.26.
+        const info = item && (item.type === 'PICK' ? item.pickInfo : item.type === 'RETURN' ? item.returnInfo : item.deliverInfo);
+        if (info && (info.lat != null || info.wardName)) contact = Object.assign({}, contact || {}, info);
         const out = {
             wardCode: contact && contact.wardCode != null ? contact.wardCode : null,
             wardName: (contact && contact.wardName) || '', districtCode: contact && contact.districtCode != null ? contact.districtCode : null,
@@ -4605,6 +4615,7 @@
         if (out.wardCode == null || out.wardCode === '') { const x = found.ward.length ? pick(found.ward) : null; if (x) out.wardCode = x.v; }
         if (!out.wardName) { const x = found.wardName.length ? pick(found.wardName) : null; if (x) out.wardName = x.v; }
         if (!out.address) { const x = found.addr.length ? pick(found.addr) : null; if (x) out.address = x.v; }
+        if (/^\*+/.test(out.address || '')) out.address = [out.wardName, out.districtName, out.cityName].filter(Boolean).join(', '); // địa chỉ bị che → dựng lại từ tên xã/huyện/tỉnh
         return out;
     }
     async function fetchStaffVolumeRows_(hubIds, fromDateStr, toDateStr, onProgress, isCancelled) {
@@ -7429,7 +7440,7 @@
         root.id = 'ghn-tuyen-giao-root';
         root.innerHTML = `
             <div id="ghn-tuyen-giao-titlebar">
-                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.26, chưa gộp vào Báo cáo GTC)</span></span>
+                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.27, chưa gộp vào Báo cáo GTC)</span></span>
                 <span class="ghn-tg-titlebar-btns">
                     <button id="ghn-tg-admin-open-btn" class="ghn-tg-titlebar-btn" title="Quản trị phân quyền" style="display:none;">🔐</button>
                     <button id="ghn-tg-minimize-btn" class="ghn-tg-titlebar-btn" title="Thu nhỏ">➖</button>
