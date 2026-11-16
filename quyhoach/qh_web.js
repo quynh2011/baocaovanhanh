@@ -43,7 +43,9 @@
         const url = `${GOOGLE_APPS_SCRIPT_WEB_APP_URL_TUYEN_GIAO}?${params.toString()}`;
         const res = await fetch(url, { method: 'GET' });
         if (!res.ok) throw new Error(`HTTP ${res.status} khi gọi action=${action}`);
-        return res.json();
+        const qhJ = await res.json();
+        qhLoadTick_(action);
+        return qhJ;
     }
 
     // QUAN TRỌNG: dùng "text/plain;charset=utf-8" (KHÔNG dùng "application/json")
@@ -5676,7 +5678,8 @@
     async function loadAndRenderMap_() {
         try {
             setStatus_('Đang tải dữ liệu...', 'loading');
-            await loadAllData_((msg) => { setStatus_(msg, 'loading'); });
+            qhLoadStart_();
+            await loadAllData_((msg) => { setStatus_(msg, 'loading'); qhLoadMsg_(msg); });
 
             const regionSelect = document.getElementById('ghn-tg-region-select');
             const currentVal = regionSelect.value;
@@ -5712,6 +5715,7 @@
             qhAfterLoad_();
         } catch (err) {
             setStatus_(`❌ Lỗi: ${err.message || err}`, 'offline');
+            qhLoadDone_(true);
             console.error('[Tuyến Giao] Lỗi tải dữ liệu:', err);
         }
     }
@@ -6032,6 +6036,82 @@
         document.body.appendChild(btn);
     }
 
+    // ===== Vòng xoay % khi tải bản đồ (web) — để người xem biết web đang chạy, không phải màn hình trắng =====
+    // Mỗi bước tải có trọng số (file ranh giới cũ nặng nhất); giữa 2 bước số % tự nhích dần tới mốc kế tiếp.
+    const QH_LOAD_W = { getMeta: 3, getWardsOldGeoJson: 32, getWardsGeoJson: 14, getHubs: 5, getWards: 10, getWardCentroids: 3, getRezone: 10, extra: 8 };
+    const qhLoad = { on: false, got: 0, shown: 0, target: 0, timer: null };
+    function qhLoadEl_() {
+        let el = document.getElementById('qh-load');
+        if (el) return el;
+        if (!document.getElementById('qh-load-css')) {
+            const st = document.createElement('style'); st.id = 'qh-load-css';
+            st.textContent = '#qh-load{position:fixed;left:0;right:0;bottom:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:rgba(248,249,250,.92);transition:opacity .35s}' +
+                '#qh-load.hide{opacity:0;pointer-events:none}' +
+                '#qh-load .box{display:flex;flex-direction:column;align-items:center;gap:12px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}' +
+                '#qh-load .ring{position:relative;width:120px;height:120px}' +
+                '#qh-load svg{position:absolute;inset:0;transform:rotate(-90deg)}' +
+                '#qh-load .spin{position:absolute;inset:0;animation:qhspin 1.1s linear infinite}' +
+                '#qh-load .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#e8590c}' +
+                '#qh-load .lab{font-size:13px;color:#495057;max-width:420px;text-align:center}' +
+                '@keyframes qhspin{to{transform:rotate(270deg)}}';
+            document.head.appendChild(st);
+        }
+        el = document.createElement('div'); el.id = 'qh-load'; el.className = 'hide';
+        el.innerHTML = '<div class="box"><div class="ring">' +
+            '<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="#f1f3f5" stroke-width="10"/>' +
+            '<circle id="qh-load-arc" cx="60" cy="60" r="52" fill="none" stroke="#e8590c" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 327"/></svg>' +
+            '<svg class="spin" viewBox="0 0 120 120"><circle cx="60" cy="60" r="38" fill="none" stroke="#ffb27a" stroke-width="4" stroke-linecap="round" stroke-dasharray="40 200"/></svg>' +
+            '<div class="pct" id="qh-load-pct">0%</div></div><div class="lab" id="qh-load-lab">Đang tải bản đồ quy hoạch…</div></div>';
+        document.body.appendChild(el);
+        return el;
+    }
+    function qhLoadPaint_() {
+        const p = Math.max(0, Math.min(100, Math.round(qhLoad.shown)));
+        const a = document.getElementById('qh-load-arc'), t = document.getElementById('qh-load-pct');
+        if (a) a.setAttribute('stroke-dasharray', (327 * p / 100).toFixed(1) + ' 327');
+        if (t) t.textContent = p + '%';
+    }
+    function qhLoadPlace_() {
+        const el = document.getElementById('qh-load'), c = document.getElementById('ghn-tg-map-container');
+        if (!el) return;
+        const top = c ? Math.max(0, c.getBoundingClientRect().top) : 0;
+        el.style.top = top + 'px';
+    }
+    function qhLoadStart_(label) {
+        const el = qhLoadEl_();
+        qhLoad.on = true; qhLoad.got = 0; qhLoad.shown = 0; qhLoad.target = 2;
+        el.classList.remove('hide'); qhLoadPlace_(); qhLoadPaint_();
+        const lab = document.getElementById('qh-load-lab'); if (lab) lab.textContent = label || 'Đang tải bản đồ quy hoạch…';
+        clearInterval(qhLoad.timer);
+        qhLoad.timer = setInterval(() => {
+            if (!qhLoad.on) return;
+            // nhích dần tới sát mốc kế tiếp (không bao giờ tự lên 100%)
+            const cap = Math.min(99, qhLoad.target + 9);
+            if (qhLoad.shown < qhLoad.target) qhLoad.shown += Math.max(0.6, (qhLoad.target - qhLoad.shown) * 0.25);
+            else if (qhLoad.shown < cap) qhLoad.shown += 0.15;
+            qhLoadPaint_(); qhLoadPlace_();
+        }, 120);
+    }
+    function qhLoadTick_(step, label) {
+        if (!qhLoad.on || !QH_LOAD_W[step]) return;
+        qhLoad.got += QH_LOAD_W[step];
+        qhLoad.target = Math.min(90, qhLoad.got);
+        if (label) { const lab = document.getElementById('qh-load-lab'); if (lab) lab.textContent = label; }
+    }
+    function qhLoadMsg_(msg) {
+        if (!qhLoad.on) return;
+        if (/backup|server/i.test(msg || '')) msg = 'Đang tải bản đồ quy hoạch…';
+        const lab = document.getElementById('qh-load-lab'); if (lab && msg) lab.textContent = msg;
+    }
+    function qhLoadDone_(err) {
+        if (!qhLoad.on) return;
+        qhLoad.on = false; clearInterval(qhLoad.timer);
+        const el = document.getElementById('qh-load'); if (!el) return;
+        if (err) { el.classList.add('hide'); return; }
+        qhLoad.shown = 100; qhLoadPaint_();
+        setTimeout(() => el.classList.add('hide'), 250);
+    }
+
     // ===== Ghép dữ liệu bản đồ các vùng bổ sung (file tĩnh trong quyhoach/data, tải 1 lần) =====
     // Mỗi vùng 6 file giống quyhoachbuucuc.info: wards_old (ranh giới phường cũ), wards_new (ranh giới mới),
     // hubs, wards, centroids, rezone. Mã nào đã có trong dữ liệu chính thì giữ bản chính.
@@ -6045,6 +6125,7 @@
         for (const r of QH_EXTRA_REGIONS) {
             try {
                 onProgress && onProgress('Đang tải bản đồ vùng ' + r.toUpperCase() + '...');
+                qhLoadTick_('extra');
                 const [wo, wn, hubs, wards, cen, rz] = await Promise.all(
                     ['wards_old', 'wards_new', 'hubs', 'wards', 'centroids', 'rezone'].map(k => get(r, k).catch(() => null)));
                 if (!Array.isArray(hubs) || !Array.isArray(wards)) continue;
@@ -6282,6 +6363,14 @@
     }
 
     function qhAfterLoad_() {
+        // bản đồ đã có dữ liệu → 92%, chờ bản đồ vẽ xong (idle) thì 100% + ẩn vòng xoay
+        if (qhLoad.on) {
+            qhLoad.target = 94; qhLoadMsg_('Đang vẽ bản đồ…');
+            const fin = () => qhLoadDone_(false);
+            if (state.map && state.map.loaded() && !state.map.isMoving()) setTimeout(fin, 300);
+            else if (state.map) { state.map.once('idle', fin); setTimeout(fin, 15000); }
+            else fin();
+        }
         state.qhHubShape = {};
         qhAutoSync_();
         qhBuildOrg_();

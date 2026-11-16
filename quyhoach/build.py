@@ -40,6 +40,13 @@ rep("""        const btn = document.getElementById('ghn-tg-sync-btn');
         const statusEl = document.getElementById('ghn-tg-sync-status');
         if (!btn) return;
         btn.addEventListener""")
+# 1d) Vòng xoay % khi tải bản đồ (qhLoad* trong qh_addon.js)
+rep("            setStatus_('Đang tải dữ liệu...', 'loading');\n            await loadAllData_((msg) => { setStatus_(msg, 'loading'); });",
+    "            setStatus_('Đang tải dữ liệu...', 'loading');\n            qhLoadStart_();\n            await loadAllData_((msg) => { setStatus_(msg, 'loading'); qhLoadMsg_(msg); });")
+rep("        if (!res.ok) throw new Error(`HTTP ${res.status} khi gọi action=${action}`);\n        return res.json();\n    }\n\n    // QUAN TRỌNG",
+    "        if (!res.ok) throw new Error(`HTTP ${res.status} khi gọi action=${action}`);\n        const qhJ = await res.json();\n        qhLoadTick_(action);\n        return qhJ;\n    }\n\n    // QUAN TRỌNG")
+rep("            setStatus_(`❌ Lỗi: ${err.message || err}`, 'offline');\n            console.error('[Tuyến Giao] Lỗi tải dữ liệu:', err);",
+    "            setStatus_(`❌ Lỗi: ${err.message || err}`, 'offline');\n            qhLoadDone_(true);\n            console.error('[Tuyến Giao] Lỗi tải dữ liệu:', err);")
 # thanh kết nối GHN ở đầu tab Theo Nhân Viên
 rep("""            <div id="ghn-tg-staff-controls">
                 <label style="font-size:12px; color:#495057;">Từ ngày:""",
