@@ -6128,7 +6128,7 @@
             : `<span class="qh-ghn-no">● Chưa kết nối GHN</span>
                <button type="button" id="qh-ghn-btn" class="qh-ghn-btn">🔗 Kết nối GHN</button>
                <span class="qh-ghn-help">Bấm → mở trang nhanh.ghn.vn → bấm nút <a class="qh-bm" href="${qhBookmarklet_()}" title="Kéo nút này lên thanh dấu trang (làm 1 lần)">🔗 Kết nối báo cáo TNT</a> trên thanh dấu trang.
-               Lần đầu: <b>kéo</b> nút xanh đó lên thanh dấu trang (Ctrl+Shift+B để hiện thanh).</span>`;
+               Lần đầu: <b>kéo</b> nút xanh đó lên thanh dấu trang (Ctrl+Shift+B để hiện thanh), hoặc <button type="button" id="qh-bm-copy" class="qh-ghn-btn2">📋 Copy mã nút</button> rồi tạo dấu trang mới, dán vào ô URL.</span>`;
         const b = document.getElementById('qh-ghn-btn');
         if (b) b.addEventListener('click', () => {
             window.__qhGhnWin = window.open('https://nhanh.ghn.vn/', 'qhGhnConnect');
@@ -6136,6 +6136,12 @@
         });
         const o = document.getElementById('qh-ghn-off');
         if (o) o.addEventListener('click', () => qhSetGhnToken_(''));
+        const cp = document.getElementById('qh-bm-copy');
+        if (cp) cp.addEventListener('click', async () => {
+            const url = qhBookmarklet_();
+            try { await navigator.clipboard.writeText(url); } catch (e) { window.prompt('Copy dòng này:', url); }
+            alert('Đã copy mã nút.\n\nCách tạo nút:\n1) Bấm Ctrl+Shift+B để hiện thanh dấu trang\n2) Chuột phải vào thanh dấu trang → "Thêm trang…" (Add page)\n3) Tên: Kết nối báo cáo TNT\n4) URL: dán (Ctrl+V) → Lưu.');
+        });
         const bm = box.querySelector('.qh-bm');
         if (bm) bm.addEventListener('click', (e) => { e.preventDefault(); alert('Kéo nút này lên thanh dấu trang (không bấm ở đây). Sau đó bấm nó khi đang ở trang nhanh.ghn.vn.'); });
     }
