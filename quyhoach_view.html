@@ -13,7 +13,9 @@
   #ghn-tuyen-giao-root { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important;
     border-radius: 0 !important; box-shadow: none !important; min-width: 0 !important; min-height: 0 !important; }
   #ghn-tuyen-giao-titlebar, #ghn-tg-resize-handle, #ghn-tuyen-giao-launcher-btn,
-  #ghn-tg-admin-open-btn, .ghn-tg-tab-btn[data-tab="sync"] { display: none !important; }
+  #ghn-tg-admin-open-btn { display: none !important; }
+  /* tab Đồng Bộ Dữ Liệu: chỉ Admin của web báo cáo thấy (giống Tampermonkey chỉ ADMIN) */
+  html:not(.qh-admin) .ghn-tg-tab-btn[data-tab="sync"] { display: none !important; }
   .qh-lab { font-size: 12px; color: #495057; display: inline-flex; align-items: center; gap: 4px; }
   .qh-lab select { max-width: 220px; font-weight: 600; }
   .qh-clear { padding: 4px 8px; border-radius: 6px; border: 1px solid #ced4da; background: #fff; color: #868e96; cursor: pointer; font-size: 12px; }
@@ -32,6 +34,7 @@
 </style>
 </head>
 <body>
-<script src="quyhoach/qh_web.js?v=6"></script>
+<script>try { var _s = JSON.parse(localStorage.getItem('ghn_report_session_v1') || '{}'); if (_s && _s.role === 'Admin') document.documentElement.classList.add('qh-admin'); } catch (e) {}</script>
+<script src="quyhoach/qh_web.js?v=7"></script>
 </body>
 </html>

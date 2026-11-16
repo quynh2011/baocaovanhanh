@@ -5473,9 +5473,10 @@
         panel.innerHTML = `
             <div style="padding: 16px; overflow-y: auto;">
                 <div style="font-size: 12px; color: #6c757d; margin-bottom: 14px; line-height: 1.6; background:#fff8e1; border:1px solid #ffe082; border-radius:6px; padding:10px;">
-                    ℹ️ Modul đã <b>TỰ ĐỘNG</b> tải trực tiếp từ quyhoachbuucuc.info mỗi khi mở (tab
-                    "🗺️ Bản Đồ") — KHÔNG cần dán tay ở đây trong điều kiện bình thường. Tab này chỉ còn
-                    là <b>phương án dự phòng thủ công</b>, dùng khi việc tải trực tiếp báo lỗi.
+                    ℹ️ Ghi dữ liệu bản đồ lên Drive — <b>cùng cách ghi với Tampermonkey</b>: dán đủ 6 file của 1 vùng
+                    → <b>GỘP theo vùng</b> (vùng vừa dán thay bản cũ của chính vùng đó, các vùng khác giữ nguyên).
+                    Bản web không tự tải được từ quyhoachbuucuc.info (cần đăng nhập trang đó), nên dán tay ở đây
+                    hoặc mở Tampermonkey (tự tải + tự gộp). Ghi xong bấm "Tải lại dữ liệu" ở tab Bản Đồ để xem.
                 </div>
                 <div style="font-size: 12px; color: #6c757d; margin-bottom: 14px; line-height: 1.6;">
                     Mở từng link bên dưới trên trình duyệt ĐÃ đăng nhập

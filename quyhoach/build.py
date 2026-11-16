@@ -32,6 +32,14 @@ rep("            state.ghnToken = null; // token hết hạn — bắt lại ở
 # 1b) Ghép thêm dữ liệu bản đồ vùng khác (file tĩnh quyhoach/data/*) vào dữ liệu GAS — qhMergeExtra_ trong qh_addon.js
 rep("        state.lastSyncAt = meta.lastSyncAt || null;\n    }\n\n    async function loadAllData_(",
     "        state.lastSyncAt = meta.lastSyncAt || null;\n        await qhMergeExtra_(onProgress);\n    }\n\n    async function loadAllData_(")
+# 1c) Tab Đồng Bộ Dữ Liệu trên web: cùng code ghi Drive với Tampermonkey (gộp theo vùng), chỉ đổi lời dẫn vì web không tự tải được quyhoachbuucuc.info
+rep("""                    ℹ️ Modul đã <b>TỰ ĐỘNG</b> tải trực tiếp từ quyhoachbuucuc.info mỗi khi mở (tab
+                    "🗺️ Bản Đồ") — KHÔNG cần dán tay ở đây trong điều kiện bình thường. Tab này chỉ còn
+                    là <b>phương án dự phòng thủ công</b>, dùng khi việc tải trực tiếp báo lỗi.""",
+    """                    ℹ️ Ghi dữ liệu bản đồ lên Drive — <b>cùng cách ghi với Tampermonkey</b>: dán đủ 6 file của 1 vùng
+                    → <b>GỘP theo vùng</b> (vùng vừa dán thay bản cũ của chính vùng đó, các vùng khác giữ nguyên).
+                    Bản web không tự tải được từ quyhoachbuucuc.info (cần đăng nhập trang đó), nên dán tay ở đây
+                    hoặc mở Tampermonkey (tự tải + tự gộp). Ghi xong bấm "Tải lại dữ liệu" ở tab Bản Đồ để xem.""")
 # thanh kết nối GHN ở đầu tab Theo Nhân Viên
 rep("""            <div id="ghn-tg-staff-controls">
                 <label style="font-size:12px; color:#495057;">Từ ngày:""",
