@@ -11,7 +11,7 @@ global.fetch = async (url, opt = {}) => {
   url = String(url);
   const resp = (st, o) => ({ status: st, ok: st === 200, json: async () => o, text: async () => JSON.stringify(o) });
   if (url.includes('my-profile')) { const t = opt.headers.authorization.split(' ')[1]; return t === 'ghnQL' ? resp(200, { data: { userInfo: { ssoId: '111', profile: { fullname: 'Quản lý A' } } } }) : resp(401, {}); }
-  if (url.includes('getPermission')) return resp(200, { ok: true, found: true, role: 'QUAN_LY' });
+  if (url.includes('script.google')) { const u = new URL(url); const ok = u.searchParams.get('action') === 'getPermission' && u.searchParams.get('ssoId') === '111'; return resp(200, ok ? { ok: true, found: true, role: 'QUAN_LY' } : { ok: true, found: false }); }
   throw new Error('url ' + url);
 };
 const q = require(R + 'api/_qhSync.js');

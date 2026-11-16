@@ -234,7 +234,11 @@ async function qhdAuth(body) {
       prof = { ssoId: String(u.ssoId).trim(), name: (u.profile && u.profile.fullname) || '' };
     } catch (e) { return { error: 'ghn_loi_mang' }; } finally { to.done(); }
     let perm = null;
-    try { perm = await gasGet('getPermission&ssoId=' + encodeURIComponent(prof.ssoId)); } catch (e) { perm = null; }
+    const tp = withTimeout(25000);
+    try {
+      const r = await fetch(QH_GAS + '?action=getPermission&ssoId=' + encodeURIComponent(prof.ssoId), { signal: tp.signal });
+      perm = await r.json();
+    } catch (e) { perm = null; } finally { tp.done(); }
     if (!perm || !perm.ok || !perm.found) return { error: 'khong_co_quyen' };
     const role = String(perm.role || '').toUpperCase();
     const v = { who: prof.name || prof.ssoId, id: 'GHN ' + prof.ssoId, canEdit: role === 'ADMIN' || role === 'QUAN_LY', isAdmin: role === 'ADMIN' };
