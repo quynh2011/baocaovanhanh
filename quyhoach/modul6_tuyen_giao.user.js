@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.38
+// @version      1.7.39
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -15,6 +15,7 @@
 // ==/UserScript==
 //
 // ========================= CHANGELOG (BẢN TEST — CHƯA PUSH GIT) =========================
+// v1.7.39 — Nhãn kiểm tra cơ cấu ("Đã xác thực" / "N thay đổi cơ cấu") chuyển lên hàng tab cạnh "Theo Nhân Viên".
 // v1.7.38 — Nút "📝 Bản nháp quy hoạch" tô màu cam nổi bật (đang xem nháp: tím).
 // v1.7.37 — Mọi thông báo / xác nhận dùng popup riêng (`qhDialog_`/`qhAlert_`/`qhConfirm_`, thay alert/confirm của trình duyệt). Bản nháp: nút "＋ AM mới" (`qhdNewAm_`) nhập ID + Họ tên AM chưa có trong cơ cấu → "ID - Họ tên" (trùng ID thì dùng AM có sẵn).
 // v1.7.36 — Bản nháp: mở 1 bản nháp là CẢ BẢN ĐỒ + bộ lọc Tỉnh / AM / Bưu cục + ô tìm + bảng khu vực + viền chạy theo bản nháp (qhOrgV_/qhdBuildOrg_; BC mới có trong danh sách, BC bị gộp hết thì biến mất); nút — thu nhỏ bảng nháp để xem cả vùng, nút trên thanh công cụ ghi "Đang xem nháp: …".
@@ -6094,6 +6095,7 @@
             .qh-search { width: 210px; padding: 5px 8px; border-radius: 6px; border: 1px solid #ced4da; font-size: 12px; }
             .qh-search:focus { outline: none; border-color: #e8590c; box-shadow: 0 0 0 2px rgba(232,89,12,.15); }
             .qh-cc-badge { font-size: 12px; white-space: nowrap; }
+            .qh-cc-badge.qh-cc-intab { align-self: center; margin-left: 10px; padding-bottom: 2px; }
             .qh-cc-ok { color: #1c7ed6; font-weight: 700; cursor: pointer; }
             .qh-cc-warn { color: #c92a2a; font-weight: 700; cursor: pointer; text-decoration: underline; }
             #qh-cc-pop { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 2147483600; display: flex; align-items: center; justify-content: center; }
@@ -8131,6 +8133,9 @@
             sIn.addEventListener('change', () => { if (qhSearchGo_(sIn.value)) sIn.value = ''; });
             sIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (qhSearchGo_(sIn.value)) sIn.value = ''; else sIn.style.borderColor = '#c92a2a'; } else sIn.style.borderColor = ''; });
         }
+        // v1.7.39 — nhãn "Đã xác thực" chuyển lên hàng tab (cạnh "Theo Nhân Viên") để thanh công cụ rộng chỗ hơn
+        const ccb = document.getElementById('qh-cc-badge'), tabs = document.getElementById('ghn-tuyen-giao-tabs');
+        if (ccb && tabs && ccb.parentNode !== tabs) { ccb.classList.add('qh-cc-intab'); tabs.appendChild(ccb); }
         qhCcBadge_();
         const qb = document.getElementById('qhd-btn');
         if (qb) qb.addEventListener('click', qhdToggle_);

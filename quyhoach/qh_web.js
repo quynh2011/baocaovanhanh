@@ -4379,6 +4379,7 @@
             .qh-search { width: 210px; padding: 5px 8px; border-radius: 6px; border: 1px solid #ced4da; font-size: 12px; }
             .qh-search:focus { outline: none; border-color: #e8590c; box-shadow: 0 0 0 2px rgba(232,89,12,.15); }
             .qh-cc-badge { font-size: 12px; white-space: nowrap; }
+            .qh-cc-badge.qh-cc-intab { align-self: center; margin-left: 10px; padding-bottom: 2px; }
             .qh-cc-ok { color: #1c7ed6; font-weight: 700; cursor: pointer; }
             .qh-cc-warn { color: #c92a2a; font-weight: 700; cursor: pointer; text-decoration: underline; }
             #qh-cc-pop { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 2147483600; display: flex; align-items: center; justify-content: center; }
@@ -6421,6 +6422,9 @@
             sIn.addEventListener('change', () => { if (qhSearchGo_(sIn.value)) sIn.value = ''; });
             sIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (qhSearchGo_(sIn.value)) sIn.value = ''; else sIn.style.borderColor = '#c92a2a'; } else sIn.style.borderColor = ''; });
         }
+        // v1.7.39 — nhãn "Đã xác thực" chuyển lên hàng tab (cạnh "Theo Nhân Viên") để thanh công cụ rộng chỗ hơn
+        const ccb = document.getElementById('qh-cc-badge'), tabs = document.getElementById('ghn-tuyen-giao-tabs');
+        if (ccb && tabs && ccb.parentNode !== tabs) { ccb.classList.add('qh-cc-intab'); tabs.appendChild(ccb); }
         qhCcBadge_();
         const qb = document.getElementById('qhd-btn');
         if (qb) qb.addEventListener('click', qhdToggle_);
