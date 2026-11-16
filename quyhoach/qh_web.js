@@ -685,6 +685,10 @@
             matchExpr.push('#a0a0a0'); // màu mặc định khi chưa gán BC
             state.map.setPaintProperty('wards-fill', 'fill-color', matchExpr);
             state.map.setPaintProperty('wards-fill', 'fill-opacity', 0.65);
+        } else if (state.currentMode === 'am') {
+            // v1.7.43 — tô theo AM quản lý bưu cục giao (theo cơ cấu), mỗi AM 1 màu
+            qhAmPaint_();
+            state.map.setPaintProperty('wards-fill', 'fill-opacity', 0.65);
         } else {
             // Tô theo cường độ sản lượng GIAO (dv) — thang màu ColorBrewer "Reds".
             let maxDv = 1;
@@ -704,6 +708,7 @@
             state.map.setPaintProperty('wards-fill', 'fill-opacity', 0.8);
         }
         if (state.qhOrg) qhApply_(false);
+        qhAmLayer_();
     }
 
     function applyRegionFilter_() {
@@ -4862,6 +4867,7 @@
                 <label style="font-size:12px; color:#495057;">Xem theo:
                     <select id="ghn-tg-mode-select">
                         <option value="hub">Bưu cục</option>
+                        <option value="am">AM (khu vực từng AM)</option>
                         <option value="ward">Xã/Phường (sản lượng giao)</option>
                     </select>
                 </label>
@@ -6297,7 +6303,7 @@
 
     // gọi sau mỗi lần tải dữ liệu bản đồ xong (cả Tampermonkey và web)
     function qhOrgAfterLoad_() {
-        state.qhHubShape = {};
+        state.qhHubShape = {}; state.qhAmKey = null;
         qhLoadCocau_();
         qhBuildOrg_();
         const go = () => qhApply_(!!qhSelectedHubs_());
@@ -6407,6 +6413,63 @@
         state.qhHubShape[code] = u;
         return u;
     }
+    // ===== v1.7.43 — LỚP THEO AM: màu từng AM + viền + tên khu vực AM =====
+    // màu AM: các AM ĐANG XEM (theo lọc) lấy trước từ bảng màu tương phản mạnh → AM cạnh nhau không trùng màu
+    function qhAmColor_(am) {
+        const ord = state.qhAmOrd || [];
+        const P = ['#e6194b', '#4363d8', '#f58231', '#3cb44b', '#911eb4', '#f032e6', '#469990', '#9a6324', '#000075', '#808000', '#42d4f4', '#800000', '#d4a017', '#5f9ea0', '#c71585', '#2f4f4f', '#ff7f50', '#6b8e23', '#8a2be2', '#a0522d'];
+        let i = ord.indexOf(am); if (i < 0) { let h = 0; for (const ch of String(am)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; i = ord.length + (h % 40); }
+        if (i < P.length) return P[i];
+        return `hsl(${Math.round((i * 137.508) % 360)}, 62%, 46%)`;
+    }
+    function qhAmOrder_() {
+        const org = qhOrgV_() || {}, set = qhSelectedHubs_();
+        const inV = Array.from(new Set((set || []).map(c => (org[c] || {}).am).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+        const rest = Array.from(new Set(Object.values(org).map(o => o.am).filter(Boolean))).filter(a => !inV.includes(a)).sort((a, b) => a.localeCompare(b, 'vi'));
+        state.qhAmOrd = inV.concat(rest);
+    }
+    function qhAmPaint_() {
+        if (!state.map || !state.map.getLayer('wards-fill') || state.currentMode !== 'am') return;
+        qhAmOrder_();
+        const org = qhOrgV_() || {};
+        const matchExpr = ['match', ['to-string', ['get', 'delivery_hub']]];
+        const seen = {};
+        (state.wards || []).forEach(w => { const c = String(w.delivery_hub || ''); if (!c || seen[c]) return; seen[c] = 1; const am = (org[c] || {}).am; matchExpr.push(c, am ? qhAmColor_(am) : '#c8c8c8'); });
+        if (matchExpr.length === 2) matchExpr.push('__', '#c8c8c8');
+        matchExpr.push('#c8c8c8');
+        state.map.setPaintProperty('wards-fill', 'fill-color', matchExpr);
+    }
+    function qhAmLayer_() {
+        const map = state.map; if (!map || !map.getLayer('wards-fill') || !qhEnsureLayers_()) return;
+        const empty = { type: 'FeatureCollection', features: [] };
+        if (!map.getSource('qh-am')) {
+            map.addSource('qh-am', { type: 'geojson', data: empty });
+            map.addSource('qh-am-pt', { type: 'geojson', data: empty });
+            map.addLayer({ id: 'qh-am-casing', type: 'line', source: 'qh-am', paint: { 'line-color': '#ffffff', 'line-width': 5, 'line-opacity': 0.85 } }, 'qh-grp-casing');
+            map.addLayer({ id: 'qh-am-line', type: 'line', source: 'qh-am', paint: { 'line-color': ['get', 'color'], 'line-width': 2.6 } }, 'qh-grp-casing');
+            map.addLayer({ id: 'qh-am-label', type: 'symbol', source: 'qh-am-pt', layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Bold'], 'text-size': ['interpolate', ['linear'], ['zoom'], 6, 10, 9, 13, 12, 15], 'text-allow-overlap': false, 'text-padding': 4, 'text-max-width': 14 }, paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#ffffff', 'text-halo-width': 2.2 } });
+        }
+        const on = state.currentMode === 'am';
+        ['qh-am-casing', 'qh-am-line', 'qh-am-label'].forEach(id => map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'));
+        if (!on) return;
+        const org = qhOrgV_() || {}, set = qhSelectedHubs_();
+        const codes = (set || Object.keys(org)).filter(c => org[c] && org[c].am);
+        const key = codes.map(c => c + ':' + org[c].am).sort().join(',');
+        if (!qhdOn_() && state.qhAmKey === key) return;
+        state.qhAmKey = key; qhAmPaint_();
+        const by = {};
+        codes.forEach(c => { (by[org[c].am] = by[org[c].am] || []).push(c); });
+        const polys = [], pts = [];
+        Object.keys(by).forEach(am => {
+            const shapes = by[am].map(qhHubShape_).filter(Boolean); if (!shapes.length) return;
+            let u = null; try { u = shapes.length > 1 ? unionFeatures_(shapes) : shapes[0]; } catch (e) { u = null; }
+            const color = qhAmColor_(am), nm = am.replace(/^\s*\d+\s*-\s*/, '');
+            (u ? [u] : shapes).forEach(f => polys.push({ type: 'Feature', geometry: f.geometry, properties: { color } }));
+            try { const big = u || shapes[0]; const pt = turf.pointOnFeature(big); pts.push({ type: 'Feature', geometry: pt.geometry, properties: { color, label: `AM ${nm}\n${by[am].length} BC` } }); } catch (e) { /* bỏ qua */ }
+        });
+        map.getSource('qh-am').setData({ type: 'FeatureCollection', features: polys });
+        map.getSource('qh-am-pt').setData({ type: 'FeatureCollection', features: pts });
+    }
     function qhEnsureLayers_() {
         const map = state.map;
         if (!map || !map.getLayer('wards-fill')) return false;
@@ -6426,7 +6489,8 @@
         if (!map || !map.getLayer('wards-fill')) return;
         if (!qhEnsureLayers_()) return;
         const set = qhSelectedHubs_();
-        const baseOpacity = state.currentMode === 'hub' ? 0.65 : 0.8;
+        try { qhAmLayer_(); } catch (e) { /* bỏ qua */ }
+        const baseOpacity = state.currentMode === 'ward' ? 0.8 : 0.65;
         const empty = { type: 'FeatureCollection', features: [] };
         const dOn = qhdOn_() && map.getLayer('qhd-fill');
         const dOp = ['case', ['==', ['get', 'ch'], 1], 0.85, 0.6];
@@ -6488,9 +6552,10 @@
         let html = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif">
             <div style="font-weight:700;font-size:14px;color:#212529">${escapeHtml_(title)}</div>
             <div style="font-size:12px;color:#6c757d;margin:2px 0 8px">Khu vực quản lý: <b>${rows.length}</b> bưu cục · <b>${qhFmt_(sum('nW'))}</b> xã/phường · nhân sự <b>${qhFmt_(sum('staff'))}</b> · giao <b>${qhFmt_(sum('dv'))}</b> đơn · lấy <b>${qhFmt_(sum('pv'))}</b> đơn (số liệu quy hoạch)</div>
+            ${state.currentMode === 'am' ? (() => { const g = {}; rows.forEach(r => { if (r.am) g[r.am] = (g[r.am] || 0) + 1; }); return '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;margin:0 0 8px;font-size:12px">' + Object.keys(g).sort((a, b) => g[b] - g[a]).map(a => `<span><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${qhAmColor_(a)};vertical-align:-1px;margin-right:4px"></span>${escapeHtml_(a)} <b>${g[a]} BC</b></span>`).join('') + '</div>'; })() : ''}
             <table class="qh-sum"><thead><tr><th>Bưu cục</th>${showAm ? '<th>AM</th>' : ''}<th>Xã/phường</th><th>Nhân sự</th><th>Giao</th><th>Lấy</th></tr></thead><tbody>`;
         rows.forEach(r => {
-            html += `<tr><td><a href="#" class="qh-bc-link" data-hub="${escapeHtml_(r.c)}">${r.isNew ? '★ ' : ''}${escapeHtml_(r.name)}</a></td>${showAm ? `<td>${escapeHtml_(r.am)}</td>` : ''}<td>${r.nW}</td><td>${qhFmt_(r.staff)}</td><td>${qhFmt_(r.dv)}</td><td>${qhFmt_(r.pv)}</td></tr>`;
+            html += `<tr><td><a href="#" class="qh-bc-link" data-hub="${escapeHtml_(r.c)}">${r.isNew ? '★ ' : ''}${escapeHtml_(r.name)}</a></td>${showAm ? `<td>${state.currentMode === 'am' && r.am ? `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${qhAmColor_(r.am)};margin-right:4px"></span>` : ''}${escapeHtml_(r.am)}</td>` : ''}<td>${r.nW}</td><td>${qhFmt_(r.staff)}</td><td>${qhFmt_(r.dv)}</td><td>${qhFmt_(r.pv)}</td></tr>`;
         });
         html += `</tbody></table><div style="font-size:11px;color:#868e96;margin-top:6px">Viền cam = ranh giới cả khu vực · viền xanh đen = ranh giới từng bưu cục. Bấm tên bưu cục để xem chi tiết.</div></div>`;
         showInfoPanel_(html, true);

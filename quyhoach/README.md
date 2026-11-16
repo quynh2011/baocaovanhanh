@@ -1,7 +1,7 @@
 # Bàn giao: Bản đồ quy hoạch tuyến giao — "[TNT] - Quy hoạch" + Tampermonkey "Modul 6 - Tuyến Giao"
 
 > Đọc file này + `CLAUDE.md` (gốc repo, mục 0/5/7/8/9) TRƯỚC khi sửa bất cứ gì của phần bản đồ.
-> Cập nhật lần cuối: 16/11/2026 — userscript **v1.7.42**, bản web chống cache **`?v=22`**.
+> Cập nhật lần cuối: 16/11/2026 — userscript **v1.7.43**, bản web chống cache **`?v=23`**.
 > Mọi thay đổi phần bản đồ: ghi Nhật ký ở `CLAUDE.md` mục 7 **và** cập nhật file này (mục 10 trạng thái/kế hoạch) trong cùng commit.
 
 ---
@@ -97,6 +97,7 @@ DBB 59 BC / 771 phường (Thái Nguyên, Hà Giang, Cao Bằng, Tuyên Quang, B
 ## 7. Lớp Tỉnh / AM / Bưu cục + kiểm tra cơ cấu + ô tìm (v1.7.32–33, CHUNG Tampermonkey và web)
 - Action công khai `qhCocau` (`handleQhCocau`, cache 5 phút, tham số `fresh` bỏ cache) trả `rows:[[bc, ma, am, tinh, idAm]]` + `kiemTra`. Tampermonkey gọi bằng `GM_xmlhttpRequest` (`QH_WEB_API_URL`), web gọi `/api/gas`.
 - `qhBuildOrg_`: ưu tiên cơ cấu (khớp Mã BC = hub_code, thiếu thì theo tên không dấu), AM hiển thị "ID AM - Họ tên"; thiếu cơ cấu → danh mục [TNT]-Report của trang cha (`parent.TNT.data.ents`) → AM phổ biến nhất theo HRM.
+- Xem theo **AM** (v1.7.43, `currentMode = 'am'`): tô màu theo AM + viền/tên khu vực AM (`qhAmPaint_/qhAmLayer_/qhAmColor_/qhAmOrder_`).
 - Điều khiển: `#qh-tinh`, `#qh-am` (chỉ AM của các tỉnh đã chọn), `#qh-bc`, `#qh-clear`. **Từ v1.7.41 cả 3 ô CHỌN NHIỀU** (kiểu [S]-Report: `qhMsSet_/qhMsOpen_/qhMsDraw_/qhMsApply_`, danh sách nổi `#qh-msp` gắn body, position fixed, z-index cao nhất để không bị thanh công cụ/bản đồ che); `state.qhTinh/qhAm/qhBc` là MẢNG (rỗng = tất cả, dùng `qhA_()` khi đọc); đúng 1 BC thì mở popup BC, nhiều thì bảng khu vực; `qhApply_` làm mờ ngoài khu vực, viền cam bao khu vực + viền từng BC, zoom tới; `qhSummary_` bảng BC của khu vực (bấm tên mở popup BC).
 - `qhCocauCheck` so `999_Cocau` với `200_1_GTCTOTAL` (AM ngày mới nhất theo "Chuẩn ngày", đọc UNFORMATTED): `thieu` (BC hệ thống có, cơ cấu chưa có), `lechAm` (AM khác — khớp nếu ID AM hoặc họ tên nằm trong chuỗi AM hệ thống), `du` (cơ cấu có, hệ thống không có sản lượng: kho chuyển tiếp/điểm giao — chỉ thông tin).
 - Nhãn `#qh-cc-badge` (`qhCcBadge_`/`qhCcPop_`): tick xanh **"Đã xác thực"** hoặc tam giác vàng **"N thay đổi cơ cấu — bấm xem"** → popup 3 mục (BC mới / BC đổi AM / không có sản lượng — thu gọn). Số thật 16/11: 133 BC hệ thống, 0 thiếu, 0 lệch AM, 20 dòng "dư" → Đã xác thực.
