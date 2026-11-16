@@ -5531,7 +5531,7 @@ function switchVanHanhTab(tab){
   if (tab === 'ngay' && typeof loadVanHanhNgay === 'function') loadVanHanhNgay();
   if (tab === 'sreport' && typeof loadSReport === 'function') loadSReport();
   if (tab === 'tnt' && typeof loadTntReport === 'function') loadTntReport();
-  if (tab === 'quyhoach') { const f = document.getElementById('qhFrame'); if (f && !f.getAttribute('src')) f.setAttribute('src', 'quyhoach_view.html?v=5'); }
+  if (tab === 'quyhoach') { const f = document.getElementById('qhFrame'); if (f && !f.getAttribute('src')) f.setAttribute('src', 'quyhoach_view.html?v=6'); }
 }
 // tương tự switchVanHanhTab nhưng cho Kinh doanh — Ngày/Tháng hiện là placeholder "sắp ra mắt" (logic thật sẽ
 // bổ sung sau khi có cấu trúc tab dữ liệu theo Ngày/Tháng riêng trên Sheet), Tuần giữ nguyên nội dung hiện có.

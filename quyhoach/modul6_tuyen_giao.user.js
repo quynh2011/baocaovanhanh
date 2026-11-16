@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.27
+// @version      1.7.28
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -12,6 +12,10 @@
 // ==/UserScript==
 //
 // ========================= CHANGELOG (BẢN TEST — CHƯA PUSH GIT) =========================
+// v1.7.28 — NHIỀU VÙNG: trước đây mỗi lần tự đồng bộ (mở modul) GHI ĐÈ toàn bộ backup Drive bằng đúng vùng tài khoản
+//   đang xem trên quyhoachbuucuc.info → vùng khác (vd TNT) bị xoá. Nay tải trực tiếp xong thì đọc thêm backup Drive,
+//   GỘP theo vùng (regionMergeData_: vùng vừa tải trực tiếp thay mới, các vùng khác trong backup giữ nguyên) rồi mới
+//   hiển thị + ghi ngược lên Drive → bản đồ và Drive luôn đủ mọi vùng.
 // v1.7.27 — NGUYÊN NHÂN ĐÃ XÁC NHẬN (phản hồi API get-trip-items thật 16/11): GHN che senderContact/receiverContact
 //  (chỉ còn tên/SĐT "*******"), vị trí nằm ở pickInfo / deliverInfo / returnInfo (wardName, districtName,
 //  cityName, lat, lng; không có wardCode). locFromItem_ đọc thẳng đúng khối theo loại đơn PICK/DELIVER/RETURN.
@@ -1853,6 +1857,64 @@
         });
     }
 
+    // v1.7.28 — GỘP DỮ LIỆU NHIỀU VÙNG. "live" = dữ liệu mới (thắng), "old" = dữ liệu cũ (vd backup Drive).
+    // Vùng có trong live → lấy hoàn toàn từ live (bỏ bản cũ của vùng đó, kể cả phường/bưu cục đã bị xoá);
+    // các vùng KHÁC trong old giữ nguyên. Mỗi tham số: {wardsNew, wardsOld, hubs, wards, centroids, rezone}.
+    function regionMergeData_(live, old) {
+        live = live || {}; old = old || {};
+        const S = v => String(v == null ? '' : v);
+        const liveRegions = new Set();
+        (live.hubs || []).forEach(h => h && h.region && liveRegions.add(S(h.region)));
+        (live.wards || []).forEach(w => w && w.region && liveRegions.add(S(w.region)));
+        const oldWardRegion = {};
+        (old.wards || []).forEach(w => { if (w) oldWardRegion[S(w.ward_code)] = S(w.region); });
+        const oldNewRegion = {};
+        ((old.rezone && old.rezone.new_wards) || []).forEach(n => { if (n) oldNewRegion[S(n.new_code)] = S(n.region); });
+        const liveWard = new Set((live.wards || []).map(w => S(w.ward_code)));
+        ((live.wardsOld && live.wardsOld.features) || []).forEach(f => liveWard.add(S((f.properties || {}).ward_code)));
+        const liveHub = new Set((live.hubs || []).map(h => S(h.hub_code)));
+        const liveNew = new Set(((live.rezone && live.rezone.new_wards) || []).map(n => S(n.new_code)));
+        ((live.wardsNew && live.wardsNew.features) || []).forEach(f => liveNew.add(S((f.properties || {}).new_ward_code)));
+        const keepWard = c => !liveWard.has(S(c)) && !liveRegions.has(oldWardRegion[S(c)]);
+        const keepNew = c => !liveNew.has(S(c)) && !liveRegions.has(oldNewRegion[S(c)]);
+        const fc = (a, b, key, keep) => {
+            const A = a && Array.isArray(a.features) ? a.features : null;
+            const B = b && Array.isArray(b.features) ? b.features.filter(f => keep((f.properties || {})[key])) : [];
+            if (!A && !B.length) return a || b || null;
+            return { type: 'FeatureCollection', features: (A || []).concat(B) };
+        };
+        const out = {};
+        out.hubs = (live.hubs || []).concat((old.hubs || []).filter(h => h && !liveHub.has(S(h.hub_code)) && !liveRegions.has(S(h.region))));
+        out.wards = (live.wards || []).concat((old.wards || []).filter(w => w && keepWard(w.ward_code)));
+        out.wardsOld = fc(live.wardsOld, old.wardsOld, 'ward_code', keepWard);
+        out.wardsNew = fc(live.wardsNew, old.wardsNew, 'new_ward_code', keepNew);
+        out.centroids = {};
+        Object.keys(old.centroids || {}).forEach(k => { if (keepWard(k)) out.centroids[k] = old.centroids[k]; });
+        Object.assign(out.centroids, live.centroids || {});
+        const lr = live.rezone && Array.isArray(live.rezone.new_wards) ? live.rezone : null;
+        const or = old.rezone && Array.isArray(old.rezone.new_wards) ? old.rezone : null;
+        out.rezone = (lr || or) ? {
+            stats: (lr || or).stats || {},
+            new_wards: (lr ? lr.new_wards : []).concat(or ? or.new_wards.filter(n => n && keepNew(n.new_code)) : [])
+        } : null;
+        out.regions = Array.from(new Set(out.hubs.map(h => S(h.region)).filter(Boolean)));
+        return out;
+    }
+
+    // v1.7.28 — đọc toàn bộ backup Drive (qua GAS) thành 1 object cho regionMergeData_. Lỗi → null.
+    async function fetchBackupData_() {
+        try {
+            const meta = await gasGet_('getMeta');
+            if (!meta || !meta.ok || !meta.hasHubs || !meta.hasWards || !meta.hasWardsOldGeoJson) return null;
+            const g = async (a, ok) => { try { const r = await gasGet_(a); return r && r.ok ? r.data : null; } catch (e) { return null; } };
+            const [wardsOld, wardsNew, hubs, wards, centroids, rezone] = await Promise.all([
+                g('getWardsOldGeoJson'), meta.hasWardsGeoJson ? g('getWardsGeoJson') : null, g('getHubs'), g('getWards'),
+                g('getWardCentroids'), meta.hasRezone ? g('getRezone') : null]);
+            if (!Array.isArray(hubs) || !Array.isArray(wards)) return null;
+            return { wardsOld, wardsNew, hubs, wards, centroids: centroids || {}, rezone };
+        } catch (e) { console.warn('[Tuyến Giao] Không đọc được backup Drive để gộp vùng:', e); return null; }
+    }
+
     // Thử tải TRỰC TIẾP cả 6 nguồn từ quyhoachbuucuc.info. Thành công thì gán thẳng
     // vào state (không cần qua GAS trước), đồng thời BẮN NGẦM 1 bản backup lên
     // GAS_TUYEN_GIAO.gs (không chờ, không chặn UI).
@@ -1874,12 +1936,17 @@
         if (!wardsOld || !Array.isArray(wardsOld.features)) {
             throw new Error('wards.geojson (ranh giới cũ) tải về không hợp lệ.');
         }
-        state.wardsNewRaw = wardsNew && Array.isArray(wardsNew.features) ? wardsNew : null;
-        state.wardsOldRaw = wardsOld;
-        state.hubs = hubs;
-        state.wards = wards;
-        state.wardCentroids = centroids;
-        state.rezone = rezone && Array.isArray(rezone.new_wards) ? rezone : null;
+        // v1.7.28 — gộp với backup Drive để KHÔNG mất các vùng khác (xem regionMergeData_)
+        onProgress && onProgress('🔎 Đang gộp với dữ liệu các vùng khác đã lưu...');
+        const backupAll = await fetchBackupData_();
+        const merged = regionMergeData_({ wardsNew: wardsNew && Array.isArray(wardsNew.features) ? wardsNew : null,
+            wardsOld, hubs, wards, centroids, rezone: rezone && Array.isArray(rezone.new_wards) ? rezone : null }, backupAll);
+        state.wardsNewRaw = merged.wardsNew && Array.isArray(merged.wardsNew.features) ? merged.wardsNew : null;
+        state.wardsOldRaw = merged.wardsOld;
+        state.hubs = merged.hubs;
+        state.wards = merged.wards;
+        state.wardCentroids = merged.centroids;
+        state.rezone = merged.rezone;
 
         // Backup ngầm lên GAS — cố tình KHÔNG await, để không làm chậm việc hiển thị
         // bản đồ. Lỗi backup chỉ log ra console, không ảnh hưởng phiên đang xem.
@@ -1895,11 +1962,11 @@
                 : '(không xác định được người dùng)';
             const backupPayload = {
                 syncedBy: `Tự động (auto-sync khi mở modul) — bởi ${whoTriggered}`,
-                wardsGeoJson: JSON.stringify(wardsNew),
-                wardsOldGeoJson: JSON.stringify(wardsOld),
-                hubs: JSON.stringify(hubs),
-                wards: JSON.stringify(wards),
-                wardCentroids: JSON.stringify(centroids)
+                wardsGeoJson: JSON.stringify(state.wardsNewRaw),
+                wardsOldGeoJson: JSON.stringify(state.wardsOldRaw),
+                hubs: JSON.stringify(state.hubs),
+                wards: JSON.stringify(state.wards),
+                wardCentroids: JSON.stringify(state.wardCentroids)
             };
             if (state.rezone) backupPayload.rezone = JSON.stringify(state.rezone);
             gasPost_('syncData', backupPayload).then(r => {
@@ -7294,6 +7361,19 @@
                     btn.disabled = false;
                     return;
                 }
+                // v1.7.28 — dán đủ hubs + wards của 1 vùng → GỘP với backup đang có (giữ các vùng khác), không ghi đè
+                if (body.hubs && body.wards) {
+                    statusEl.textContent = 'Đang gộp với dữ liệu các vùng đã lưu...';
+                    const P = t => { try { return t ? JSON.parse(t) : null; } catch (e) { throw new Error('Dữ liệu dán không phải JSON hợp lệ.'); } };
+                    const m = regionMergeData_({ wardsOld: P(body.wardsOldGeoJson), wardsNew: P(body.wardsGeoJson), hubs: P(body.hubs),
+                        wards: P(body.wards), centroids: P(body.wardCentroids), rezone: P(body.rezone) }, await fetchBackupData_());
+                    body.hubs = JSON.stringify(m.hubs); body.wards = JSON.stringify(m.wards);
+                    if (m.wardsOld) body.wardsOldGeoJson = JSON.stringify(m.wardsOld);
+                    if (m.wardsNew) body.wardsGeoJson = JSON.stringify(m.wardsNew);
+                    body.wardCentroids = JSON.stringify(m.centroids);
+                    if (m.rezone) body.rezone = JSON.stringify(m.rezone);
+                    body.syncedBy += ' — gộp vùng: ' + m.regions.join(', ');
+                }
                 const result = await gasPost_('syncData', body);
                 if (result.ok) {
                     statusEl.textContent = `✅ Đồng bộ thành công: ${result.saved.join(', ')}.`;
@@ -7440,7 +7520,7 @@
         root.id = 'ghn-tuyen-giao-root';
         root.innerHTML = `
             <div id="ghn-tuyen-giao-titlebar">
-                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.27, chưa gộp vào Báo cáo GTC)</span></span>
+                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.28, chưa gộp vào Báo cáo GTC)</span></span>
                 <span class="ghn-tg-titlebar-btns">
                     <button id="ghn-tg-admin-open-btn" class="ghn-tg-titlebar-btn" title="Quản trị phân quyền" style="display:none;">🔐</button>
                     <button id="ghn-tg-minimize-btn" class="ghn-tg-titlebar-btn" title="Thu nhỏ">➖</button>

@@ -13,31 +13,30 @@
                 onProgress && onProgress('Đang tải bản đồ vùng ' + r.toUpperCase() + '...');
                 const [wo, wn, hubs, wards, cen, rz] = await Promise.all(
                     ['wards_old', 'wards_new', 'hubs', 'wards', 'centroids', 'rezone'].map(k => get(r, k).catch(() => null)));
-                const addFeat = (fc, key, extra) => {
-                    if (!extra || !Array.isArray(extra.features)) return fc;
-                    if (!fc || !Array.isArray(fc.features)) return { type: 'FeatureCollection', features: extra.features.slice() };
-                    const have = new Set(fc.features.map(f => String((f.properties || {})[key])));
-                    extra.features.forEach(f => { if (!have.has(String((f.properties || {})[key]))) fc.features.push(f); });
-                    return fc;
-                };
-                const addArr = (arr, key, extra) => {
-                    if (!Array.isArray(extra)) return arr || [];
-                    arr = arr || [];
-                    const have = new Set(arr.map(x => String(x[key])));
-                    extra.forEach(x => { if (!have.has(String(x[key]))) arr.push(x); });
-                    return arr;
-                };
-                state.wardsOldRaw = addFeat(state.wardsOldRaw, 'ward_code', wo);
-                state.wardsNewRaw = addFeat(state.wardsNewRaw, 'new_ward_code', wn);
-                state.hubs = addArr(state.hubs, 'hub_code', hubs);
-                state.wards = addArr(state.wards, 'ward_code', wards);
-                if (cen && typeof cen === 'object') state.wardCentroids = Object.assign({}, cen, state.wardCentroids || {});
-                if (rz && Array.isArray(rz.new_wards)) {
-                    if (!state.rezone || !Array.isArray(state.rezone.new_wards)) state.rezone = { stats: rz.stats || {}, new_wards: [] };
-                    state.rezone.new_wards = addArr(state.rezone.new_wards, 'new_code', rz.new_wards);
-                }
+                if (!Array.isArray(hubs) || !Array.isArray(wards)) continue;
+                const nHub0 = (state.hubs || []).length;
+                // Drive (đang trong state) là bản chính; file tĩnh chỉ bù vùng Drive CHƯA có (regionMergeData_ của Modul 6 v1.7.28)
+                const m = regionMergeData_({ wardsOld: state.wardsOldRaw, wardsNew: state.wardsNewRaw, hubs: state.hubs, wards: state.wards,
+                    centroids: state.wardCentroids, rezone: state.rezone },
+                    { wardsOld: wo, wardsNew: wn, hubs, wards, centroids: cen, rezone: rz });
+                state.wardsOldRaw = m.wardsOld; state.wardsNewRaw = m.wardsNew; state.hubs = m.hubs; state.wards = m.wards;
+                state.wardCentroids = m.centroids; state.rezone = m.rezone;
+                // Drive chưa có vùng này → ghi bản đã gộp lên Drive 1 lần (Tampermonkey v1.7.28 sẽ giữ lại khi tự đồng bộ)
+                if (m.hubs.length > nHub0) qhSeedDrive_(r, m);
             } catch (e) { console.warn('[Quy hoạch] Không ghép được dữ liệu vùng ' + r, e); }
         }
+    }
+    async function qhSeedDrive_(r, m) {
+        try {
+            const ss = qhSession_();
+            const res = await gasPost_('syncData', {
+                syncedBy: 'Web báo cáo [TNT] - Quy hoạch — gộp thêm vùng ' + r.toUpperCase() + ' (' + (ss.email || '?') + ')',
+                wardsOldGeoJson: JSON.stringify(m.wardsOld), wardsGeoJson: JSON.stringify(m.wardsNew),
+                hubs: JSON.stringify(m.hubs), wards: JSON.stringify(m.wards),
+                wardCentroids: JSON.stringify(m.centroids), rezone: JSON.stringify(m.rezone)
+            });
+            console.log('[Quy hoạch] Đã ghi dữ liệu gộp vùng ' + r + ' lên Drive:', res);
+        } catch (e) { console.warn('[Quy hoạch] Ghi Drive thất bại:', e); }
     }
 
     // ==================== [TNT] - QUY HOẠCH (BẢN WEB) — LỚP TỈNH / AM / BƯU CỤC ====================
