@@ -135,6 +135,7 @@ DBB 59 BC / 771 phường (Thái Nguyên, Hà Giang, Cao Bằng, Tuyên Quang, B
 7. Đổi userscript → gửi file `.user.js` cho chủ dự án cài lại vào Tampermonkey (đặt tên `modul6_tuyen_giao_v1.7.xx.user.js`), nhắc người khác trong vùng cập nhật.
 
 ## 10. Lưu ý & quy tắc chủ dự án đã chốt
+- KHÔNG làm xuất file HTML cho tab Quy hoạch (chủ dự án chốt 16/11) — bản nháp, tuyến giao nhân viên chỉ dùng trên web + Tampermonkey.
 - KHÔNG dùng alert/confirm/prompt của trình duyệt — mọi thông báo/xác nhận/nhập liệu dùng popup `qhDialog_` (`qhAlert_`, `qhConfirm_`). AM mới chưa có trong cơ cấu nhập qua `qhdNewAm_` (ID + Họ tên → "ID - Họ tên").
 - Thanh công cụ web giữ ô chọn Vùng và các nút có chữ ngắn (không chỉ biểu tượng).
 - Web **KHÔNG** có tab/nút Đồng Bộ Dữ Liệu (kể cả Admin) — build.py xoá `buildSyncPanel_`, CSS ẩn tab. Ghi Drive trên web chỉ tự động.
