@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.41
+// @version      1.7.42
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -15,6 +15,7 @@
 // ==/UserScript==
 //
 // ========================= CHANGELOG (BẢN TEST — CHƯA PUSH GIT) =========================
+// v1.7.42 — 3 ô lọc Tỉnh / AM / Bưu cục hiện NGAY khi mở (trước phải chờ tải xong dữ liệu mới có ô → chỉ thấy vạch trống + dấu ✕); nút ✕ ghi rõ "✕ Bỏ lọc".
 // v1.7.41 — Lọc Tỉnh / AM / Bưu cục CHỌN NHIỀU (kiểu [S]-Report): ô hiện "☑ Tất cả N …", bấm ra danh sách tick + ô tìm (không dấu), Chọn tất cả / Bỏ chọn tất cả / Áp dụng (n), "chỉ … này". state.qhTinh/qhAm/qhBc thành MẢNG (rỗng = tất cả).
 // v1.7.40 — FIX nút "✖ Bỏ chọn": trước chỉ reset lớp hiển thị nên đang lọc Tỉnh/AM/Bưu cục bấm vào không thấy gì thay đổi. Nay xoá cả lọc Tỉnh/AM/BC, ô tìm, xã/phường đang chọn trong bản nháp rồi đưa bản đồ về toàn vùng.
 // v1.7.39 — Nhãn kiểm tra cơ cấu ("Đã xác thực" / "N thay đổi cơ cấu") chuyển lên hàng tab cạnh "Theo Nhân Viên".
@@ -6571,7 +6572,7 @@
                 <span id="qh-tinh" class="qh-ms" data-unit="tỉnh" data-lab="Tỉnh"></span>
                 <span id="qh-am" class="qh-ms" data-unit="AM" data-lab="AM"></span>
                 <span id="qh-bc" class="qh-ms" data-unit="BC" data-lab="Bưu cục"></span>
-                <button id="qh-clear" class="qh-clear" title="Bỏ lọc Tỉnh / AM / Bưu cục">✕</button>
+                <button id="qh-clear" class="qh-clear" title="Bỏ lọc Tỉnh / AM / Bưu cục — về toàn vùng">✕ Bỏ lọc</button>
                 <input id="qh-search" class="qh-search" list="qh-search-dl" placeholder="🔍 Tìm tỉnh, AM, bưu cục…" autocomplete="off">
                 <datalist id="qh-search-dl"></datalist>
                 <span id="qh-cc-badge" class="qh-cc-badge"></span>
@@ -8021,7 +8022,7 @@
     // v1.7.41 — lọc CHỌN NHIỀU: state.qhTinh / qhAm / qhBc là MẢNG (rỗng = tất cả)
     function qhA_(v) { return Array.isArray(v) ? v : (v ? [v] : []); }
     function qhFillSelects_() {
-        const org = qhOrgV_();
+        const org = qhOrgV_() || {};
         const codes = Object.keys(org);
         const tH = document.getElementById('qh-tinh'), aH = document.getElementById('qh-am'), bH = document.getElementById('qh-bc');
         if (!tH || !aH || !bH) return;
@@ -8041,6 +8042,7 @@
     function qhFilterChanged_() { clearSelection_(); qhFillSelects_(); qhApply_(true); }
     // ---- Ô chọn nhiều (kiểu [S]-Report). Danh sách nổi gắn vào body (position:fixed) để không bị thanh công cụ cuộn ngang cắt mất.
     function qhMsSum_(H) { const M = H._ms, sel = M.sel; const n = M.opts.length, lab = v => (M.opts.find(o => o.v === v) || { l: v }).l;
+        if (!n) return `☑ Tất cả ${M.unit}`;
         return !sel.length ? `☑ Tất cả ${n} ${M.unit}` : sel.length === 1 ? lab(sel[0]) : `☑ ${sel.length}/${n} ${M.unit}: ${sel.slice(0, 2).map(lab).join(', ')}${sel.length > 2 ? '…' : ''}`; }
     function qhMsSet_(H, opts, sel, cb) {
         H._ms = { opts, sel: sel.filter(v => opts.some(o => o.v === v)), cb, unit: H.dataset.unit || '', st: null, q: '' };
@@ -8079,7 +8081,7 @@
         const vis = M.list = qhMsVis_(M);
         p.innerHTML = `<div class="h"><b>${vis.length} kết quả${M.q ? '' : ' (tất cả ' + escapeHtml_(M.unit) + ')'}</b><button data-a="all">Chọn tất cả</button><button data-a="none">Bỏ chọn tất cả</button><button class="ap" data-a="ap">Áp dụng (${M.st.size})</button></div>
             <div class="n">Gõ để tìm (không dấu cũng được) · bấm tên để chọn / bỏ chọn · Enter = Áp dụng · Esc = đóng · "chỉ … này" = xem riêng 1 mục</div>
-            <div class="l">${vis.length ? vis.map((o, i) => `<div class="it${M.st.has(o.v) ? ' on' : ''}" data-i="${i}"><span class="ck"></span><span class="nm">${escapeHtml_(o.l)}</span>${o.sb ? `<span class="sb">${escapeHtml_(o.sb)}</span>` : ''}<button class="one" data-one="${i}">chỉ ${escapeHtml_(M.unit)} này</button></div>`).join('') : '<div class="e">Không có mục nào khớp.</div>'}</div>`;
+            <div class="l">${vis.length ? vis.map((o, i) => `<div class="it${M.st.has(o.v) ? ' on' : ''}" data-i="${i}"><span class="ck"></span><span class="nm">${escapeHtml_(o.l)}</span>${o.sb ? `<span class="sb">${escapeHtml_(o.sb)}</span>` : ''}<button class="one" data-one="${i}">chỉ ${escapeHtml_(M.unit)} này</button></div>`).join('') : (M.opts.length ? '<div class="e">Không có mục nào khớp.</div>' : '<div class="e">Đang tải dữ liệu bản đồ… chờ chút rồi bấm lại.</div>')}</div>`;
         p.onclick = (e) => {
             const a = e.target.closest('[data-a]'), one = e.target.closest('[data-one]'), it = e.target.closest('[data-i]');
             if (a) { const k = a.dataset.a; if (k === 'ap') return qhMsApply_(H); vis.forEach(o => { if (k === 'all') M.st.add(o.v); else M.st.delete(o.v); }); return qhMsDraw_(H); }
@@ -8216,6 +8218,7 @@
     function qhWireControls_() {
         if (!document.getElementById('qh-tinh')) return;
         state.qhTinh = qhA_(state.qhTinh); state.qhAm = qhA_(state.qhAm); state.qhBc = qhA_(state.qhBc);
+        try { qhFillSelects_(); } catch (e) { /* chưa có dữ liệu — ô vẫn hiện "Tất cả …" */ }
         const sIn = document.getElementById('qh-search');
         if (sIn) {
             sIn.addEventListener('change', () => { if (qhSearchGo_(sIn.value)) sIn.value = ''; });
