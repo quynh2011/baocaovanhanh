@@ -4,17 +4,17 @@
         if (qhCompactDone || !document.getElementById('ghn-tg-map-controls')) return;
         qhCompactDone = true;
         const lb = (id, txt, title) => { const b = document.getElementById(id); if (!b) return; const l = b.querySelector('.ghn-tg-combo-trigger-label'); if (l) l.textContent = txt; else b.textContent = txt; b.title = title; };
-        lb('ghn-tg-layers-combo-trigger', '🗂️', 'Lớp hiển thị');
-        lb('ghn-tg-legend-combo-trigger', 'ℹ️', 'Chú thích màu');
-        lb('ghn-tg-clear-selection-btn', '✖', 'Bỏ chọn — về hiển thị mặc định');
-        lb('ghn-tg-reload-btn', '🔄', 'Tải lại dữ liệu');
+        lb('ghn-tg-layers-combo-trigger', '🗂️ Lớp hiển thị', 'Bật/tắt ranh giới, nhãn, tuyến giao nhân viên');
+        lb('ghn-tg-legend-combo-trigger', 'ℹ️ Chú thích', 'Chú thích màu trên bản đồ');
+        lb('ghn-tg-clear-selection-btn', '✖ Bỏ chọn', 'Bỏ chọn — về hiển thị mặc định');
+        lb('ghn-tg-reload-btn', '🔄 Tải lại', 'Tải lại dữ liệu bản đồ');
         const rl = document.getElementById('ghn-tg-reload-btn');
         if (rl && !document.getElementById('qh-fs-btn')) {
-            const fs = document.createElement('button'); fs.id = 'qh-fs-btn'; fs.type = 'button'; fs.textContent = '⛶'; fs.title = 'Toàn màn hình (Esc để thoát)';
+            const fs = document.createElement('button'); fs.id = 'qh-fs-btn'; fs.type = 'button'; fs.textContent = '⛶ Toàn màn hình'; fs.title = 'Toàn màn hình (Esc để thoát)';
             fs.addEventListener('click', () => {
                 try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) { /* bỏ qua */ }
             });
-            document.addEventListener('fullscreenchange', () => { fs.textContent = document.fullscreenElement ? '🗗' : '⛶'; setTimeout(() => { try { state.map && state.map.resize(); } catch (e) { /* */ } }, 200); });
+            document.addEventListener('fullscreenchange', () => { fs.textContent = document.fullscreenElement ? '🗗 Thoát toàn màn hình' : '⛶ Toàn màn hình'; setTimeout(() => { try { state.map && state.map.resize(); } catch (e) { /* */ } }, 200); });
             rl.after(fs);
         }
         const ip = document.getElementById('ghn-tg-info-panel');
@@ -243,12 +243,12 @@
     }
     function qhBookmarklet_() {
         const W = location.origin;
-        const js = "(function(){var T=null,re=/eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*/g,f=function(s){if(T||!s)return;var m=String(s).match(re)||[];for(var i=0;i<m.length;i++)if(m[i].length>100){T=m[i];return}};"
-            + "if(!/(^|\\.)ghn\\.vn$/.test(location.hostname)){alert('Hãy bấm nút này khi đang ở trang nhanh.ghn.vn (đã đăng nhập).');return}"
+        const js = "(function(){var M=function(t){var d=document.createElement('div');d.style.cssText='position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#212529;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.3);padding:14px 20px;font:14px -apple-system,Segoe UI,Roboto,sans-serif;max-width:440px;border-left:5px solid #1c7ed6';d.textContent=t;document.body.appendChild(d);setTimeout(function(){d.remove()},6000)};var T=null,re=/eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*/g,f=function(s){if(T||!s)return;var m=String(s).match(re)||[];for(var i=0;i<m.length;i++)if(m[i].length>100){T=m[i];return}};"
+            + "if(!/(^|\\.)ghn\\.vn$/.test(location.hostname)){M('Hãy bấm nút này khi đang ở trang nhanh.ghn.vn (đã đăng nhập).');return}"
             + "document.querySelectorAll('script').forEach(function(s){f(s.textContent)});"
             + "[localStorage,sessionStorage].forEach(function(st){try{for(var i=0;i<st.length&&!T;i++)f(st.getItem(st.key(i)))}catch(e){}});f(document.cookie);"
-            + "if(!T){alert('Chưa thấy phiên đăng nhập GHN. Đăng nhập nhanh.ghn.vn, mở 1 trang bất kỳ rồi bấm lại.');return}"
-            + "var W='" + W + "';try{if(window.opener&&!window.opener.closed){window.opener.postMessage({type:'qhGhnToken',token:T},W);alert('✅ Đã kết nối GHN với web báo cáo TNT. Quay lại tab báo cáo để tải sản lượng.');return}}catch(e){}"
+            + "if(!T){M('Chưa thấy phiên đăng nhập GHN. Đăng nhập nhanh.ghn.vn, mở 1 trang bất kỳ rồi bấm lại.');return}"
+            + "var W='" + W + "';try{if(window.opener&&!window.opener.closed){window.opener.postMessage({type:'qhGhnToken',token:T},W);M('✅ Đã kết nối GHN với web báo cáo TNT. Quay lại tab báo cáo để tải sản lượng.');return}}catch(e){}"
             + "window.open(W+'/#qhGhnToken='+encodeURIComponent(T),'_blank')})()";
         return 'javascript:' + encodeURIComponent(js);
     }
@@ -275,11 +275,13 @@
         const cp = document.getElementById('qh-bm-copy');
         if (cp) cp.addEventListener('click', async () => {
             const url = qhBookmarklet_();
-            try { await navigator.clipboard.writeText(url); } catch (e) { window.prompt('Copy dòng này:', url); }
-            alert('Đã copy mã nút.\n\nCách tạo nút:\n1) Bấm Ctrl+Shift+B để hiện thanh dấu trang\n2) Chuột phải vào thanh dấu trang → "Thêm trang…" (Add page)\n3) Tên: Kết nối báo cáo TNT\n4) URL: dán (Ctrl+V) → Lưu.');
+            let copied = true;
+            try { await navigator.clipboard.writeText(url); } catch (e) { copied = false; }
+            if (!copied) { await qhDialog_({ title: 'Copy mã nút', icon: '📋', msg: 'Trình duyệt không cho copy tự động — bôi đen và copy dòng dưới:', fields: [{ key: 'u', label: 'Mã nút', value: url }], cancel: false, ok: 'Xong' }); }
+            qhAlert_('Đã copy mã nút.\n\nCách tạo nút:\n1) Bấm Ctrl+Shift+B để hiện thanh dấu trang\n2) Chuột phải vào thanh dấu trang → "Thêm trang…" (Add page)\n3) Tên: Kết nối báo cáo TNT\n4) URL: dán (Ctrl+V) → Lưu.', 'Tạo nút kết nối GHN');
         });
         const bm = box.querySelector('.qh-bm');
-        if (bm) bm.addEventListener('click', (e) => { e.preventDefault(); alert('Kéo nút này lên thanh dấu trang (không bấm ở đây). Sau đó bấm nó khi đang ở trang nhanh.ghn.vn.'); });
+        if (bm) bm.addEventListener('click', (e) => { e.preventDefault(); qhAlert_('Kéo nút này lên thanh dấu trang (không bấm ở đây). Sau đó bấm nó khi đang ở trang nhanh.ghn.vn.'); });
     }
     function qhSetStatusHint_(txt) { try { setStaffStatus_(txt); } catch (e) { /* bỏ qua */ } }
     window.addEventListener('message', (ev) => {

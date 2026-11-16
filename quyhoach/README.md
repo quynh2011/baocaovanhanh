@@ -1,7 +1,7 @@
 # Bàn giao: Bản đồ quy hoạch tuyến giao — "[TNT] - Quy hoạch" + Tampermonkey "Modul 6 - Tuyến Giao"
 
 > Đọc file này + `CLAUDE.md` (gốc repo, mục 0/5/7/8/9) TRƯỚC khi sửa bất cứ gì của phần bản đồ.
-> Cập nhật lần cuối: 16/11/2026 — userscript **v1.7.36**, bản web chống cache **`?v=16`**.
+> Cập nhật lần cuối: 16/11/2026 — userscript **v1.7.38**, bản web chống cache **`?v=18`**.
 > Mọi thay đổi phần bản đồ: ghi Nhật ký ở `CLAUDE.md` mục 7 **và** cập nhật file này (mục 10 trạng thái/kế hoạch) trong cùng commit.
 
 ---
@@ -135,6 +135,8 @@ DBB 59 BC / 771 phường (Thái Nguyên, Hà Giang, Cao Bằng, Tuyên Quang, B
 7. Đổi userscript → gửi file `.user.js` cho chủ dự án cài lại vào Tampermonkey (đặt tên `modul6_tuyen_giao_v1.7.xx.user.js`), nhắc người khác trong vùng cập nhật.
 
 ## 10. Lưu ý & quy tắc chủ dự án đã chốt
+- KHÔNG dùng alert/confirm/prompt của trình duyệt — mọi thông báo/xác nhận/nhập liệu dùng popup `qhDialog_` (`qhAlert_`, `qhConfirm_`). AM mới chưa có trong cơ cấu nhập qua `qhdNewAm_` (ID + Họ tên → "ID - Họ tên").
+- Thanh công cụ web giữ ô chọn Vùng và các nút có chữ ngắn (không chỉ biểu tượng).
 - Web **KHÔNG** có tab/nút Đồng Bộ Dữ Liệu (kể cả Admin) — build.py xoá `buildSyncPanel_`, CSS ẩn tab. Ghi Drive trên web chỉ tự động.
 - Tính năng nào cũng phải có ở **cả Tampermonkey lẫn web** → viết trong userscript; `qh_addon.js` chỉ cho thứ riêng web.
 - Không hiện tên sheet / tên cột kỹ thuật trên giao diện.

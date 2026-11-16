@@ -4295,14 +4295,14 @@
         if (saveBtn) {
             saveBtn.addEventListener('click', async () => {
                 const u = readAdminRowInputs_(tr);
-                if (!u.ssoId) { alert('Thiếu SSO ID.'); return; }
-                if (u.vaiTro !== 'ADMIN' && !u.hubCodes) { alert('Quản lý / Nhân viên xử lý cần nhập ít nhất 1 mã bưu cục.'); return; }
+                if (!u.ssoId) { qhAlert_('Thiếu SSO ID.'); return; }
+                if (u.vaiTro !== 'ADMIN' && !u.hubCodes) { qhAlert_('Quản lý / Nhân viên xử lý cần nhập ít nhất 1 mã bưu cục.'); return; }
                 try {
                     const res = await gasPost_('saveUser', { callerSsoId: state.currentUser.ssoId, user: u });
                     if (!res.ok) throw new Error(res.error || 'Lưu thất bại.');
                     await reloadAdminUserList_();
                 } catch (err) {
-                    alert('❌ ' + (err.message || err));
+                    qhAlert_('❌ ' + (err.message || err), 'Lỗi');
                 }
             });
         }
@@ -4311,13 +4311,13 @@
             delBtn.addEventListener('click', async () => {
                 const originalSsoId = tr.dataset.originalSsoid;
                 if (!originalSsoId) { tr.remove(); return; } // dòng vừa thêm, chưa lưu -> chỉ cần bỏ khỏi bảng
-                if (!confirm(`Xoá quyền của "${originalSsoId}"?`)) return;
+                if (!(await qhConfirm_(`Xoá quyền của "${originalSsoId}"?`, 'Xoá', 'Xoá quyền', true))) return;
                 try {
                     const res = await gasPost_('deleteUser', { callerSsoId: state.currentUser.ssoId, targetSsoId: originalSsoId });
                     if (!res.ok) throw new Error(res.error || 'Xoá thất bại.');
                     await reloadAdminUserList_();
                 } catch (err) {
-                    alert('❌ ' + (err.message || err));
+                    qhAlert_('❌ ' + (err.message || err), 'Lỗi');
                 }
             });
         }
@@ -4385,7 +4385,23 @@
             #qh-cc-pop .box { background: #fff; border-radius: 10px; width: min(860px, 94vw); max-height: 84vh; overflow: auto; padding: 16px 18px; box-shadow: 0 10px 40px rgba(0,0,0,.3); font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
             #qh-cc-pop h4 { margin: 14px 0 6px; font-size: 13px; color: #212529; }
             #qh-cc-pop .sub { font-size: 12px; color: #6c757d; }
-            .qhd-btn.on { background: #e8590c; color: #fff; border-color: #e8590c; }
+            #qh-dlg { position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 2147483646; display: flex; align-items: center; justify-content: center; font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
+            #qh-dlg .qh-dlg-box { background: #fff; border-radius: 12px; width: min(440px, 92vw); padding: 18px 20px 14px; box-shadow: 0 16px 48px rgba(0,0,0,.3); animation: qhDlgIn .14s ease-out; }
+            @keyframes qhDlgIn { from { transform: translateY(8px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
+            #qh-dlg .qh-dlg-t { font-weight: 700; font-size: 15px; color: #212529; margin-bottom: 8px; }
+            #qh-dlg .qh-dlg-m { font-size: 13px; color: #495057; line-height: 1.55; margin-bottom: 10px; }
+            #qh-dlg .qh-dlg-f { display: block; margin: 8px 0; font-size: 12px; color: #495057; }
+            #qh-dlg .qh-dlg-f span { display: block; margin-bottom: 3px; font-weight: 600; }
+            #qh-dlg .qh-dlg-f input { width: 100%; box-sizing: border-box; padding: 7px 9px; border: 1px solid #ced4da; border-radius: 7px; font-size: 13px; }
+            #qh-dlg .qh-dlg-f input:focus { outline: none; border-color: #1c7ed6; box-shadow: 0 0 0 3px rgba(28,126,214,.15); }
+            #qh-dlg .qh-dlg-err { color: #c92a2a; font-size: 12px; min-height: 16px; }
+            #qh-dlg .qh-dlg-b { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+            #qh-dlg button { padding: 7px 16px; border-radius: 7px; font-size: 13px; cursor: pointer; border: 1px solid #ced4da; background: #fff; color: #495057; }
+            #qh-dlg .qh-dlg-ok { background: #1c7ed6; border-color: #1c7ed6; color: #fff; font-weight: 600; }
+            #qh-dlg .qh-dlg-ok.red { background: #e03131; border-color: #e03131; }
+            .qhd-btn { background: linear-gradient(135deg, #ff7a18, #e8590c) !important; color: #fff !important; border: none !important; font-weight: 700; padding: 5px 12px !important; border-radius: 7px; box-shadow: 0 2px 6px rgba(232,89,12,.35); white-space: nowrap; }
+            .qhd-btn:hover { filter: brightness(1.06); }
+            .qhd-btn.on { background: linear-gradient(135deg, #7048e8, #5f3dc4) !important; box-shadow: 0 2px 6px rgba(112,72,232,.4); }
             #qhd-panel { position: absolute; top: 12px; left: 12px; width: 380px; max-width: calc(100% - 24px); max-height: calc(100% - 24px); overflow-y: auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 18px rgba(0,0,0,.25); padding: 12px 14px; z-index: 6; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 12px; color: #212529; box-sizing: border-box; }
             #qhd-panel.min { width: 340px; }
             #qhd-btn { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -4805,7 +4821,7 @@
                 <input id="qh-search" class="qh-search" list="qh-search-dl" placeholder="🔍 Tìm tỉnh, AM, bưu cục…" autocomplete="off">
                 <datalist id="qh-search-dl"></datalist>
                 <span id="qh-cc-badge" class="qh-cc-badge"></span>
-                <button id="qhd-btn" class="qh-clear qhd-btn" title="Bản nháp quy hoạch — thử gộp xã/phường, bưu cục, AM thành quy hoạch mới">📝 Bản nháp</button>
+                <button id="qhd-btn" class="qh-clear qhd-btn" title="Bản nháp quy hoạch — thử gộp xã/phường, bưu cục, AM thành quy hoạch mới">📝 Bản nháp quy hoạch</button>
                 <span class="ghn-tg-controls-sep"></span>
                 <label style="font-size:12px; color:#495057;">Xem theo:
                     <select id="ghn-tg-mode-select">
@@ -6412,6 +6428,49 @@
         if (clr) clr.addEventListener('click', () => { state.qhTinh = ''; state.qhAm = ''; state.qhBc = ''; clearSelection_(); qhFillSelects_(); qhApply_(false); fitToData_(); });
     }
 
+    // ==================== v1.7.37 — HỘP THÔNG BÁO / XÁC NHẬN / NHẬP LIỆU dạng popup (thay alert / confirm / prompt của trình duyệt) ====================
+    function qhDialog_(o) {
+        o = o || {};
+        return new Promise(resolve => {
+            const old = document.getElementById('qh-dlg'); if (old) old.remove();
+            const el = document.createElement('div'); el.id = 'qh-dlg';
+            const fields = (o.fields || []).map(f => `<label class="qh-dlg-f"><span>${escapeHtml_(f.label || '')}</span><input data-k="${escapeHtml_(f.key)}" value="${escapeHtml_(f.value || '')}" placeholder="${escapeHtml_(f.placeholder || '')}" ${f.list ? `list="${escapeHtml_(f.list)}"` : ''} autocomplete="off"></label>`).join('');
+            el.innerHTML = `<div class="qh-dlg-box" role="dialog"><div class="qh-dlg-t">${o.icon || ''} ${escapeHtml_(o.title || 'Thông báo')}</div>
+                ${o.msg ? `<div class="qh-dlg-m">${o.html ? o.msg : escapeHtml_(o.msg).replace(/\n/g, '<br>')}</div>` : ''}${fields}<div class="qh-dlg-err"></div>
+                <div class="qh-dlg-b">${o.cancel === false ? '' : `<button class="qh-dlg-no">${escapeHtml_(o.cancel || 'Huỷ')}</button>`}<button class="qh-dlg-ok${o.danger ? ' red' : ''}">${escapeHtml_(o.ok || 'OK')}</button></div></div>`;
+            document.body.appendChild(el);
+            const vals = () => { const v = {}; el.querySelectorAll('input[data-k]').forEach(i => { v[i.dataset.k] = i.value.trim(); }); return v; };
+            const close = (r) => { el.remove(); document.removeEventListener('keydown', key, true); resolve(r); };
+            const ok = () => {
+                const v = vals();
+                if (o.validate) { const e = o.validate(v); if (e) { el.querySelector('.qh-dlg-err').textContent = e; return; } }
+                close(o.fields ? v : true);
+            };
+            const key = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(o.fields ? null : false); } else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); ok(); } };
+            document.addEventListener('keydown', key, true);
+            el.querySelector('.qh-dlg-ok').addEventListener('click', ok);
+            const no = el.querySelector('.qh-dlg-no'); if (no) no.addEventListener('click', () => close(o.fields ? null : false));
+            el.addEventListener('click', (e) => { if (e.target === el) close(o.fields ? null : false); });
+            const f1 = el.querySelector('input[data-k]'); (f1 || el.querySelector('.qh-dlg-ok')).focus();
+        });
+    }
+    function qhAlert_(msg, title) { return qhDialog_({ title: title || 'Thông báo', icon: 'ℹ️', msg, cancel: false, ok: 'Đã hiểu' }); }
+    function qhConfirm_(msg, ok, title, danger) { return qhDialog_({ title: title || 'Xác nhận', icon: danger ? '⚠️' : '❓', msg, ok: ok || 'Đồng ý', danger }); }
+    // v1.7.37 — thêm AM mới chưa có trong cơ cấu: nhập ID + Họ tên → "ID - Họ tên"
+    async function qhdNewAm_() {
+        const known = qhdAmList_();
+        const v = await qhDialog_({ title: 'Thêm AM mới', icon: '👤', msg: 'AM chưa có trong cơ cấu. Nhập mã nhân viên và họ tên — sẽ hiện dạng "ID - Họ tên".',
+            fields: [{ key: 'id', label: 'ID AM (mã nhân viên)', placeholder: 'vd 3172684' }, { key: 'name', label: 'Họ tên AM', placeholder: 'vd Nguyễn Văn A' }],
+            ok: 'Thêm AM',
+            validate: (x) => !x.id ? 'Chưa nhập ID AM.' : !/^[A-Za-z0-9._-]{3,20}$/.test(x.id) ? 'ID AM chỉ gồm chữ/số, 3–20 ký tự.' : !x.name ? 'Chưa nhập họ tên AM.' : '' });
+        if (!v) return null;
+        const same = known.find(a => String(a).split(' - ')[0].trim() === v.id);
+        if (same) { await qhAlert_('ID ' + v.id + ' đã có: "' + same + '". Dùng AM này.', 'AM đã có'); return same; }
+        const lb = v.id + ' - ' + v.name.replace(/\s+/g, ' ');
+        const Q = qhd_(); Q.amNew = Q.amNew || []; if (!Q.amNew.includes(lb)) Q.amNew.push(lb);
+        return lb;
+    }
+
     // ==================== v1.7.34 — BẢN NHÁP QUY HOẠCH (gộp xã/phường, bưu cục, AM — dùng chung Tampermonkey + web) ====================
     // Dữ liệu quy hoạch thật (Drive) KHÔNG bị đụng tới. Bản nháp = danh sách "ghi đè": xã/phường → bưu cục mới (wm),
     // bưu cục mới tạo (nh), bưu cục → AM mới (ham). Lưu CHUNG ở sheet của web báo cáo (action qhDraftList/qhDraftSave/
@@ -6702,9 +6761,9 @@
         if (keepId) { const d = Q.list.find(x => x.id === keepId); if (d && Q.cur) Q.cur.suaLuc = d.suaLuc; }
         qhdPanel_();
     }
-    function qhdOpenDraft_(id) {
+    async function qhdOpenDraft_(id) {
         const Q = qhd_();
-        if (Q.dirty && !confirm('Bản nháp đang mở có thay đổi chưa lưu. Bỏ thay đổi?')) { qhdPanel_(); return; }
+        if (Q.dirty && !(await qhConfirm_('Bản nháp đang mở có thay đổi chưa lưu. Bỏ thay đổi để mở bản khác?', 'Bỏ thay đổi', 'Chưa lưu', true))) { qhdPanel_(); return; }
         const d = Q.list.find(x => x.id === id);
         Q.sel = new Set(); Q.undo = []; Q.dirty = false; Q.place = null;
         if (!d) { Q.cur = null; qhdRefresh_(); return; }
@@ -6713,9 +6772,9 @@
         qhdRefresh_();
         qhdFit_();
     }
-    function qhdNewDraft_() {
+    async function qhdNewDraft_() {
         const Q = qhd_();
-        if (Q.dirty && !confirm('Bản nháp đang mở có thay đổi chưa lưu. Bỏ thay đổi?')) return;
+        if (Q.dirty && !(await qhConfirm_('Bản nháp đang mở có thay đổi chưa lưu. Bỏ thay đổi để tạo bản mới?', 'Bỏ thay đổi', 'Chưa lưu', true))) return;
         Q.cur = { id: '', ten: 'Quy hoạch nháp ' + new Date().toLocaleDateString('vi-VN'), ghiChu: '', suaLuc: '', wm: {}, nh: [], ham: {} };
         Q.sel = new Set(); Q.undo = []; Q.dirty = true; Q.tab = 'edit'; Q.pick = true;
         qhdRefresh_();
@@ -6734,7 +6793,7 @@
     }
     async function qhdDelete_() {
         const Q = qhd_(); if (!Q.cur || !Q.cur.id) { Q.cur = null; Q.dirty = false; qhdRefresh_(); return; }
-        if (!confirm('Xoá bản nháp "' + Q.cur.ten + '"? (Bản đồ thật không bị ảnh hưởng.)')) return;
+        if (!(await qhConfirm_('Xoá bản nháp "' + Q.cur.ten + '"?\nQuy hoạch thật không bị ảnh hưởng.', 'Xoá', 'Xoá bản nháp', true))) return;
         const r = await qhdPost_({ action: 'qhDraftDelete', id: Q.cur.id });
         if (!r.ok) { Q.msg = qhdErr_(r); qhdPanel_(); return; }
         Q.cur = null; Q.dirty = false; Q.sel = new Set();
@@ -6751,10 +6810,10 @@
     }
 
     // ---- giao diện ----
-    function qhdToggle_() {
+    async function qhdToggle_() {
         const Q = qhd_();
         if (Q.open && Q.min) { Q.min = false; qhdRefresh_(); return; }
-        if (Q.open && Q.dirty && !confirm('Bản nháp có thay đổi chưa lưu. Vẫn đóng?')) return;
+        if (Q.open && Q.dirty && !(await qhConfirm_('Bản nháp có thay đổi chưa lưu. Vẫn đóng?', 'Đóng, bỏ thay đổi', 'Chưa lưu', true))) return;
         Q.open = !Q.open;
         if (!Q.open) { Q.cur = null; Q.dirty = false; Q.sel = new Set(); Q.place = null; }
         if (Q.open && !Q.loaded) qhdLoadList_();
@@ -6767,7 +6826,7 @@
         // bộ lọc Tỉnh / AM / Bưu cục + viền khu vực chạy theo bản nháp đang mở (đóng bản nháp → về quy hoạch thật)
         if (typeof qhFillSelects_ === 'function' && state.qhOrg) { qhFillSelects_(); if (state.map && state.map.getLayer('wards-fill')) qhApply_(false); }
         const b = document.getElementById('qhd-btn');
-        if (b) { b.classList.toggle('on', Q.open); b.textContent = qhdOn_() ? '📝 Đang xem nháp: ' + (Q.cur.ten || '') : '📝 Bản nháp'; b.title = qhdOn_() ? 'Cả bản đồ + bộ lọc Tỉnh / AM / Bưu cục đang theo bản nháp này — bấm để đóng bản nháp' : 'Bản nháp quy hoạch — thử gộp xã/phường, bưu cục, AM thành quy hoạch mới'; }
+        if (b) { b.classList.toggle('on', Q.open); b.textContent = qhdOn_() ? '📝 Đang xem nháp: ' + (Q.cur.ten || '') : '📝 Bản nháp quy hoạch'; b.title = qhdOn_() ? 'Cả bản đồ + bộ lọc Tỉnh / AM / Bưu cục đang theo bản nháp này — bấm để đóng bản nháp' : 'Bản nháp quy hoạch — thử gộp xã/phường, bưu cục, AM thành quy hoạch mới'; }
     }
     function qhdN_(n, d) { if (n == null || !isFinite(n)) return '—'; return (+n).toLocaleString('vi-VN', { maximumFractionDigits: d || 0, minimumFractionDigits: d || 0 }); }
     function qhdHubOptions_() {
@@ -6782,6 +6841,7 @@
     function qhdAmList_() {
         const s = new Set(Object.values(state.qhOrg || {}).map(o => o.am));
         const c = qhd_().cur; if (c) { Object.values(c.ham).forEach(a => s.add(a)); c.nh.forEach(h => h.am && s.add(h.am)); }
+        (qhd_().amNew || []).forEach(a => s.add(a));
         return Array.from(s).sort((a, b) => a.localeCompare(b, 'vi'));
     }
     function qhdChangesHtml_() {
@@ -6883,17 +6943,17 @@
                     <div class="qhd-sec"><div class="qhd-st">2. Gộp vùng đang chọn</div>
                     <div class="qhd-row"><input id="qhd-to" list="qhd-hubs-dl" placeholder="Bưu cục nhận (có sẵn hoặc bưu cục mới)…"><button id="qhd-move" class="qhd-b pri" ${selArr.length ? '' : 'disabled'}>Gộp vào bưu cục</button></div>
                     <div class="qhd-row"><input id="qhd-newname" placeholder="Tên bưu cục mới, vd (THN) Phú Bình 3"></div>
-                    <div class="qhd-row"><input id="qhd-newam" list="qhd-am-dl" placeholder="AM quản lý bưu cục mới (chọn AM có sẵn hoặc gõ tên mới)…"><button id="qhd-mknew" class="qhd-b pri" ${selArr.length ? '' : 'disabled'}>Tạo bưu cục mới</button></div>
+                    <div class="qhd-row"><input id="qhd-newam" list="qhd-am-dl" placeholder="AM quản lý (chọn AM có sẵn)…"><button id="qhd-newam-add" class="qhd-b" title="AM chưa có trong cơ cấu — nhập ID + họ tên">＋ AM mới</button><button id="qhd-mknew" class="qhd-b pri" ${selArr.length ? '' : 'disabled'}>Tạo bưu cục mới</button></div>
                     <div class="qhd-mut">Để trống ô AM = tự lấy AM có nhiều đơn giao nhất trong vùng chọn.</div>
                     <div class="qhd-row"><button id="qhd-revert" class="qhd-b" ${selArr.some(wc => Object.prototype.hasOwnProperty.call(c.wm, wc)) ? '' : 'disabled'}>↩ Trả vùng chọn về bưu cục cũ</button></div></div>
                     <div class="qhd-sec"><div class="qhd-st">3. Gộp bưu cục cho 1 AM / quy hoạch mới</div>
                     <div class="qhd-row"><input id="qhd-amhub" list="qhd-hubs-dl" placeholder="Thêm bưu cục…"><button id="qhd-amhub-b" class="qhd-b">＋</button><button id="qhd-amflt" class="qhd-b" title="Thêm các bưu cục đang lọc trên thanh công cụ">＋ BC đang lọc</button></div>
                     <div class="qhd-chips">${Q.amChips.map(k => `<span class="qhd-chip">${escapeHtml_(qhdName_(k))}<button data-unchip="${escapeHtml_(k)}">×</button></span>`).join('') || '<span class="qhd-mut">Chưa chọn bưu cục.</span>'}</div>
-                    <div class="qhd-row"><input id="qhd-amname" list="qhd-am-dl" placeholder="AM có sẵn hoặc tên quy hoạch mới…"><button id="qhd-setam" class="qhd-b pri" ${Q.amChips.length ? '' : 'disabled'}>Gán cho AM</button></div></div>`;
+                    <div class="qhd-row"><input id="qhd-amname" list="qhd-am-dl" placeholder="Chọn AM có sẵn…"><button id="qhd-amname-add" class="qhd-b" title="AM chưa có trong cơ cấu — nhập ID + họ tên">＋ AM mới</button><button id="qhd-setam" class="qhd-b pri" ${Q.amChips.length ? '' : 'disabled'}>Gán cho AM</button></div></div>`;
                 if (c.nh.length) {
                     h += `<div class="qhd-sec"><div class="qhd-st">Bưu cục mới trong bản nháp</div>${c.nh.map(n => {
                         const nW = Object.values(c.wm).filter(k => k === n.id).length;
-                        return `<div class="qhd-nh"><span class="qhd-dot" style="border-color:${hubColor_(n.id)}"></span><input data-nhname="${escapeHtml_(n.id)}" value="${escapeHtml_(n.name)}" title="Tên bưu cục mới"><span class="qhd-mut">${nW} xã</span><input data-nham="${escapeHtml_(n.id)}" list="qhd-am-dl" value="${escapeHtml_(n.am || '')}" placeholder="AM…" title="AM quản lý — chọn hoặc gõ tên mới" class="qhd-nham"><button class="qhd-b" data-place="${escapeHtml_(n.id)}" title="Bấm rồi bấm 1 điểm trên bản đồ để đặt vị trí bưu cục">${Q.place === n.id ? '👉 Bấm bản đồ…' : '📍 Vị trí'}</button><button class="qhd-x" data-delnh="${escapeHtml_(n.id)}" title="Xoá bưu cục mới (xã/phường về bưu cục cũ)">✕</button></div>`;
+                        return `<div class="qhd-nh"><span class="qhd-dot" style="border-color:${hubColor_(n.id)}"></span><input data-nhname="${escapeHtml_(n.id)}" value="${escapeHtml_(n.name)}" title="Tên bưu cục mới"><span class="qhd-mut">${nW} xã</span><input data-nham="${escapeHtml_(n.id)}" list="qhd-am-dl" value="${escapeHtml_(n.am || '')}" placeholder="AM…" title="AM quản lý — chọn AM có sẵn" class="qhd-nham"><button class="qhd-b" data-nhamnew="${escapeHtml_(n.id)}" title="AM chưa có trong cơ cấu — nhập ID + họ tên">＋ AM mới</button><button class="qhd-b" data-place="${escapeHtml_(n.id)}" title="Bấm rồi bấm 1 điểm trên bản đồ để đặt vị trí bưu cục">${Q.place === n.id ? '👉 Bấm bản đồ…' : '📍 Vị trí'}</button><button class="qhd-x" data-delnh="${escapeHtml_(n.id)}" title="Xoá bưu cục mới (xã/phường về bưu cục cũ)">✕</button></div>`;
                     }).join('')}</div>`;
                 }
                 h += `<div class="qhd-sec"><div class="qhd-st">Các thay đổi</div>${qhdChangesHtml_()}</div>`;
@@ -6917,7 +6977,7 @@
     function qhdWire_(el) {
         const Q = qhd_(), $ = id => el.querySelector('#' + id);
         const on = (id, ev, fn) => { const x = $(id); if (x) x.addEventListener(ev, fn); };
-        on('qhd-close', 'click', () => { if (Q.dirty && !confirm('Có thay đổi chưa lưu. Vẫn đóng?')) return; Q.open = false; Q.min = false; Q.cur = null; Q.dirty = false; Q.sel = new Set(); Q.place = null; qhdRefresh_(); });
+        on('qhd-close', 'click', async () => { if (Q.dirty && !(await qhConfirm_('Bản nháp có thay đổi chưa lưu. Vẫn đóng?', 'Đóng, bỏ thay đổi', 'Chưa lưu', true))) return; Q.open = false; Q.min = false; Q.cur = null; Q.dirty = false; Q.sel = new Set(); Q.place = null; qhdRefresh_(); });
         on('qhd-min', 'click', () => { Q.min = true; qhdPanel_(); });
         on('qhd-max', 'click', () => { Q.min = false; qhdPanel_(); });
         on('qhd-list', 'change', (e) => { const v = e.target.value; if (v === '__new') return; qhdOpenDraft_(v); });
@@ -6944,9 +7004,12 @@
         el.querySelectorAll('[data-unchip]').forEach(b => b.addEventListener('click', () => { Q.amChips = Q.amChips.filter(k => k !== b.dataset.unchip); qhdPanel_(); }));
         on('qhd-setam', 'click', () => { const am = ($('qhd-amname') || {}).value; if (!String(am || '').trim()) { $('qhd-amname').style.borderColor = '#c92a2a'; return; } qhdSetAm_(Q.amChips.slice(), am); Q.amChips = []; qhdRefresh_(); });
         el.querySelectorAll('[data-nhname]').forEach(inp => inp.addEventListener('change', () => { const n = qhdNew_(inp.dataset.nhname); if (n && inp.value.trim()) { qhdPush_(); n.name = inp.value.trim(); qhdRefresh_(); } }));
+        on('qhd-newam-add', 'click', async () => { const a = await qhdNewAm_(); if (a) { qhdPanel_(); const i = document.getElementById('qhd-newam'); if (i) i.value = a; } });
+        on('qhd-amname-add', 'click', async () => { const a = await qhdNewAm_(); if (a) { const keep = ($('qhd-newname') || {}).value; qhdPanel_(); const i = document.getElementById('qhd-amname'); if (i) i.value = a; const nn = document.getElementById('qhd-newname'); if (nn && keep) nn.value = keep; } });
+        el.querySelectorAll('[data-nhamnew]').forEach(b => b.addEventListener('click', async () => { const a = await qhdNewAm_(); const n = qhdNew_(b.dataset.nhamnew); if (a && n) { qhdPush_(); n.am = a; qhdRefresh_(); } }));
         el.querySelectorAll('[data-nham]').forEach(inp => inp.addEventListener('change', () => { const n = qhdNew_(inp.dataset.nham); const v = inp.value.trim(); if (n && v && v !== n.am) { qhdPush_(); n.am = v; qhdRefresh_(); } }));
         el.querySelectorAll('[data-place]').forEach(b => b.addEventListener('click', () => { Q.place = Q.place === b.dataset.place ? null : b.dataset.place; qhdPanel_(); }));
-        el.querySelectorAll('[data-delnh]').forEach(b => b.addEventListener('click', () => { if (confirm('Xoá bưu cục mới này? Các xã/phường của nó về lại bưu cục cũ.')) { qhdDelNew_(b.dataset.delnh); qhdRefresh_(); } }));
+        el.querySelectorAll('[data-delnh]').forEach(b => b.addEventListener('click', async () => { if (await qhConfirm_('Xoá bưu cục mới này?\nCác xã/phường của nó về lại bưu cục cũ.', 'Xoá', 'Xoá bưu cục mới', true)) { qhdDelNew_(b.dataset.delnh); qhdRefresh_(); } }));
         el.querySelectorAll('[data-rv]').forEach(b => b.addEventListener('click', () => { qhdRevert_(b.dataset.rv.split(',')); qhdRefresh_(); }));
         el.querySelectorAll('[data-rham]').forEach(b => b.addEventListener('click', () => { const c = Q.cur; qhdPush_(); delete c.ham[b.dataset.rham]; qhdRefresh_(); }));
         el.querySelectorAll('[data-zk]').forEach(a => a.addEventListener('click', (e) => {
@@ -6967,17 +7030,17 @@
         if (qhCompactDone || !document.getElementById('ghn-tg-map-controls')) return;
         qhCompactDone = true;
         const lb = (id, txt, title) => { const b = document.getElementById(id); if (!b) return; const l = b.querySelector('.ghn-tg-combo-trigger-label'); if (l) l.textContent = txt; else b.textContent = txt; b.title = title; };
-        lb('ghn-tg-layers-combo-trigger', '🗂️', 'Lớp hiển thị');
-        lb('ghn-tg-legend-combo-trigger', 'ℹ️', 'Chú thích màu');
-        lb('ghn-tg-clear-selection-btn', '✖', 'Bỏ chọn — về hiển thị mặc định');
-        lb('ghn-tg-reload-btn', '🔄', 'Tải lại dữ liệu');
+        lb('ghn-tg-layers-combo-trigger', '🗂️ Lớp hiển thị', 'Bật/tắt ranh giới, nhãn, tuyến giao nhân viên');
+        lb('ghn-tg-legend-combo-trigger', 'ℹ️ Chú thích', 'Chú thích màu trên bản đồ');
+        lb('ghn-tg-clear-selection-btn', '✖ Bỏ chọn', 'Bỏ chọn — về hiển thị mặc định');
+        lb('ghn-tg-reload-btn', '🔄 Tải lại', 'Tải lại dữ liệu bản đồ');
         const rl = document.getElementById('ghn-tg-reload-btn');
         if (rl && !document.getElementById('qh-fs-btn')) {
-            const fs = document.createElement('button'); fs.id = 'qh-fs-btn'; fs.type = 'button'; fs.textContent = '⛶'; fs.title = 'Toàn màn hình (Esc để thoát)';
+            const fs = document.createElement('button'); fs.id = 'qh-fs-btn'; fs.type = 'button'; fs.textContent = '⛶ Toàn màn hình'; fs.title = 'Toàn màn hình (Esc để thoát)';
             fs.addEventListener('click', () => {
                 try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) { /* bỏ qua */ }
             });
-            document.addEventListener('fullscreenchange', () => { fs.textContent = document.fullscreenElement ? '🗗' : '⛶'; setTimeout(() => { try { state.map && state.map.resize(); } catch (e) { /* */ } }, 200); });
+            document.addEventListener('fullscreenchange', () => { fs.textContent = document.fullscreenElement ? '🗗 Thoát toàn màn hình' : '⛶ Toàn màn hình'; setTimeout(() => { try { state.map && state.map.resize(); } catch (e) { /* */ } }, 200); });
             rl.after(fs);
         }
         const ip = document.getElementById('ghn-tg-info-panel');
@@ -7206,12 +7269,12 @@
     }
     function qhBookmarklet_() {
         const W = location.origin;
-        const js = "(function(){var T=null,re=/eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*/g,f=function(s){if(T||!s)return;var m=String(s).match(re)||[];for(var i=0;i<m.length;i++)if(m[i].length>100){T=m[i];return}};"
-            + "if(!/(^|\\.)ghn\\.vn$/.test(location.hostname)){alert('Hãy bấm nút này khi đang ở trang nhanh.ghn.vn (đã đăng nhập).');return}"
+        const js = "(function(){var M=function(t){var d=document.createElement('div');d.style.cssText='position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#fff;color:#212529;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.3);padding:14px 20px;font:14px -apple-system,Segoe UI,Roboto,sans-serif;max-width:440px;border-left:5px solid #1c7ed6';d.textContent=t;document.body.appendChild(d);setTimeout(function(){d.remove()},6000)};var T=null,re=/eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*/g,f=function(s){if(T||!s)return;var m=String(s).match(re)||[];for(var i=0;i<m.length;i++)if(m[i].length>100){T=m[i];return}};"
+            + "if(!/(^|\\.)ghn\\.vn$/.test(location.hostname)){M('Hãy bấm nút này khi đang ở trang nhanh.ghn.vn (đã đăng nhập).');return}"
             + "document.querySelectorAll('script').forEach(function(s){f(s.textContent)});"
             + "[localStorage,sessionStorage].forEach(function(st){try{for(var i=0;i<st.length&&!T;i++)f(st.getItem(st.key(i)))}catch(e){}});f(document.cookie);"
-            + "if(!T){alert('Chưa thấy phiên đăng nhập GHN. Đăng nhập nhanh.ghn.vn, mở 1 trang bất kỳ rồi bấm lại.');return}"
-            + "var W='" + W + "';try{if(window.opener&&!window.opener.closed){window.opener.postMessage({type:'qhGhnToken',token:T},W);alert('✅ Đã kết nối GHN với web báo cáo TNT. Quay lại tab báo cáo để tải sản lượng.');return}}catch(e){}"
+            + "if(!T){M('Chưa thấy phiên đăng nhập GHN. Đăng nhập nhanh.ghn.vn, mở 1 trang bất kỳ rồi bấm lại.');return}"
+            + "var W='" + W + "';try{if(window.opener&&!window.opener.closed){window.opener.postMessage({type:'qhGhnToken',token:T},W);M('✅ Đã kết nối GHN với web báo cáo TNT. Quay lại tab báo cáo để tải sản lượng.');return}}catch(e){}"
             + "window.open(W+'/#qhGhnToken='+encodeURIComponent(T),'_blank')})()";
         return 'javascript:' + encodeURIComponent(js);
     }
@@ -7238,11 +7301,13 @@
         const cp = document.getElementById('qh-bm-copy');
         if (cp) cp.addEventListener('click', async () => {
             const url = qhBookmarklet_();
-            try { await navigator.clipboard.writeText(url); } catch (e) { window.prompt('Copy dòng này:', url); }
-            alert('Đã copy mã nút.\n\nCách tạo nút:\n1) Bấm Ctrl+Shift+B để hiện thanh dấu trang\n2) Chuột phải vào thanh dấu trang → "Thêm trang…" (Add page)\n3) Tên: Kết nối báo cáo TNT\n4) URL: dán (Ctrl+V) → Lưu.');
+            let copied = true;
+            try { await navigator.clipboard.writeText(url); } catch (e) { copied = false; }
+            if (!copied) { await qhDialog_({ title: 'Copy mã nút', icon: '📋', msg: 'Trình duyệt không cho copy tự động — bôi đen và copy dòng dưới:', fields: [{ key: 'u', label: 'Mã nút', value: url }], cancel: false, ok: 'Xong' }); }
+            qhAlert_('Đã copy mã nút.\n\nCách tạo nút:\n1) Bấm Ctrl+Shift+B để hiện thanh dấu trang\n2) Chuột phải vào thanh dấu trang → "Thêm trang…" (Add page)\n3) Tên: Kết nối báo cáo TNT\n4) URL: dán (Ctrl+V) → Lưu.', 'Tạo nút kết nối GHN');
         });
         const bm = box.querySelector('.qh-bm');
-        if (bm) bm.addEventListener('click', (e) => { e.preventDefault(); alert('Kéo nút này lên thanh dấu trang (không bấm ở đây). Sau đó bấm nó khi đang ở trang nhanh.ghn.vn.'); });
+        if (bm) bm.addEventListener('click', (e) => { e.preventDefault(); qhAlert_('Kéo nút này lên thanh dấu trang (không bấm ở đây). Sau đó bấm nó khi đang ở trang nhanh.ghn.vn.'); });
     }
     function qhSetStatusHint_(txt) { try { setStaffStatus_(txt); } catch (e) { /* bỏ qua */ } }
     window.addEventListener('message', (ev) => {
