@@ -67,6 +67,7 @@ const MODULE_DEFS = [
   { id: 'vh_thang', label: 'Vận hành › Tháng', cap: 'tab', chaId: 'vanhanh' },
   { id: 'vh_sreport', label: 'Vận hành › [S]-Report (Siêu báo cáo)', cap: 'tab', chaId: 'vanhanh' },
   { id: 'vh_tnt', label: 'Vận hành › [TNT]-Report', cap: 'tab', chaId: 'vanhanh' },
+  { id: 'vh_quyhoach', label: 'Vận hành › [TNT] - Quy hoạch', cap: 'tab', chaId: 'vanhanh' },
   { id: 'kinhdoanh', label: 'Kinh doanh', cap: 'section', chaId: '' },
   { id: 'kd_ngay', label: 'Kinh doanh › Ngày', cap: 'tab', chaId: 'kinhdoanh' },
   { id: 'kd_tuan', label: 'Kinh doanh › Tuần', cap: 'tab', chaId: 'kinhdoanh' },

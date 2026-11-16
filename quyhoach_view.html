@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>[TNT] - Quy hoạch</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.3.0/dist/maplibre-gl.css">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.3.0/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; background: #fff; }
+  /* cửa sổ Modul 6 chiếm trọn khung (không kéo/thu nhỏ như trên Tampermonkey) */
+  #ghn-tuyen-giao-root { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important;
+    border-radius: 0 !important; box-shadow: none !important; min-width: 0 !important; min-height: 0 !important; }
+  #ghn-tuyen-giao-titlebar, #ghn-tg-resize-handle, #ghn-tuyen-giao-launcher-btn,
+  #ghn-tg-admin-open-btn, .ghn-tg-tab-btn[data-tab="sync"] { display: none !important; }
+  .qh-lab { font-size: 12px; color: #495057; display: inline-flex; align-items: center; gap: 4px; }
+  .qh-lab select { max-width: 220px; font-weight: 600; }
+  .qh-clear { padding: 4px 8px; border-radius: 6px; border: 1px solid #ced4da; background: #fff; color: #868e96; cursor: pointer; font-size: 12px; }
+  .qh-clear:hover { color: #c92a2a; border-color: #c92a2a; }
+  table.qh-sum { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.qh-sum th { position: sticky; top: 0; background: #f1f3f5; text-align: left; padding: 5px 6px; border-bottom: 1px solid #dee2e6; }
+  table.qh-sum td { padding: 4px 6px; border-bottom: 1px solid #f1f3f5; }
+  table.qh-sum td:nth-child(n+2), table.qh-sum th:nth-child(n+2) { text-align: right; }
+  .qh-bc-link { color: #1c7ed6; text-decoration: underline; }
+</style>
+</head>
+<body>
+<script>
+  // Lấy dữ liệu chuyến đi GHN cho tab "Theo Nhân Viên" qua backend web (cần cấu hình proxy GHN).
+  window.QH_GHN_POST = async function (path, body) {
+    var ss = {}; try { ss = JSON.parse(localStorage.getItem('ghn_report_session_v1') || '{}') || {}; } catch (e) {}
+    var r = await fetch('/api/gas', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'qhGhnPost', token: ss.token || '', path: path, body: body }) });
+    var j = await r.json().catch(function () { return null; });
+    if (!j || !j.ok) throw new Error((j && j.error) === 'not_configured' || !j
+      ? 'Bản web chưa kết nối được dữ liệu chuyến đi GHN (đang chờ cấu hình) — tạm thời xem sản lượng theo nhân viên trên Tampermonkey.'
+      : ('Lỗi lấy dữ liệu chuyến đi: ' + (j.error || '')));
+    return j.data;
+  };
+</script>
+<script src="quyhoach/qh_web.js?v=1"></script>
+</body>
+</html>

@@ -1212,6 +1212,7 @@ td.dn-keycol{background:#FBF7EE}
     <button class="vh-subtab-btn" id="vhTabBtn-thang" onclick="switchVanHanhTab('thang')">Tháng</button>
     <button class="vh-subtab-btn sr-btn" id="vhTabBtn-sreport" onclick="switchVanHanhTab('sreport')" title="Siêu báo cáo (live) — tự cập nhật hằng ngày từ file Drive">[S]-Report</button>
     <button class="vh-subtab-btn sr-btn" id="vhTabBtn-tnt" onclick="switchVanHanhTab('tnt')" title="Báo cáo giao hàng vùng TNT — ca 1, ca 2, hàng tồn (sheet mã 200 trở đi)">[TNT]-Report</button>
+    <button class="vh-subtab-btn sr-btn" id="vhTabBtn-quyhoach" onclick="switchVanHanhTab('quyhoach')" title="Bản đồ quy hoạch bưu cục — ranh giới xã/phường, khu vực quản lý theo Tỉnh / AM / Bưu cục, tuyến giao nhân viên">[TNT] - Quy hoạch</button>
   </div>
 
   <!-- ================= [S]-REPORT — Siêu báo cáo (live): nhúng nguyên file bao-cao-bc-TNT-*.html mới nhất ================= -->
@@ -1223,6 +1224,10 @@ td.dn-keycol{background:#FBF7EE}
     <div id="srLoading" class="load-progress" style="display:none"><span>Đang tải [S]-Report…</span><span class="load-progress-track"><span class="load-progress-fill" id="srLoadingFill"></span></span><span class="load-progress-pct" id="srLoadingPct">0%</span></div>
     <div id="srErr"></div>
     <iframe id="srFrame" title="Siêu báo cáo" sandbox="allow-scripts allow-popups allow-downloads allow-modals" style="display:none"></iframe>
+  </div>
+  <!-- ================= [TNT] - QUY HOẠCH — bản đồ quy hoạch bưu cục (bản web của Modul 6 Tuyến Giao, quyhoach_view.html) ================= -->
+  <div id="vhQuyHoach" class="vh-pane">
+    <iframe id="qhFrame" title="[TNT] - Quy hoạch" style="width:100%;height:calc(100vh - 110px);min-height:560px;border:0;border-radius:10px;background:#fff"></iframe>
   </div>
   <!-- ================= [TNT]-REPORT — sheet mã 200 trở đi (Giao hàng ca 1 / ca 2 / tồn) ================= -->
   <div id="vhTnt" class="vh-pane">
@@ -1806,6 +1811,7 @@ window.MODULE_DEFS = [
   { id: 'vh_thang', label: 'Tháng', cap: 'tab' },
   { id: 'vh_sreport', label: '[S]-Report (Siêu báo cáo)', cap: 'tab' },
   { id: 'vh_tnt', label: '[TNT]-Report', cap: 'tab' },
+  { id: 'vh_quyhoach', label: '[TNT] - Quy hoạch', cap: 'tab' },
   { id: 'kinhdoanh', label: 'Kinh doanh', cap: 'section' },
   { id: 'kd_ngay', label: 'Ngày', cap: 'tab' },
   { id: 'kd_tuan', label: 'Tuần', cap: 'tab' },
@@ -1842,7 +1848,7 @@ window.MODULE_DOM_MAP = {
   kehoachevent: 'navBtn-sectionKeHoachEvent', lapday: 'navBtn-sectionTyLeLapDay', doisoat: 'navBtn-doiSoatVanTai',
   llv_canhbao: 'llvTabBtn-canhbao', llv_lichhop: 'llvTabBtn-lichhop',
   llv_congviec: 'llvTabBtn-congviec', llv_canhan: 'llvTabBtn-canhan',
-  vh_ngay: 'vhTabBtn-ngay', vh_tuan: 'vhTabBtn-tuan', vh_thang: 'vhTabBtn-thang', vh_sreport: 'vhTabBtn-sreport', vh_tnt: 'vhTabBtn-tnt',
+  vh_ngay: 'vhTabBtn-ngay', vh_tuan: 'vhTabBtn-tuan', vh_thang: 'vhTabBtn-thang', vh_sreport: 'vhTabBtn-sreport', vh_tnt: 'vhTabBtn-tnt', vh_quyhoach: 'vhTabBtn-quyhoach',
   kd_ngay: 'kdTabBtn-ngay', kd_tuan: 'kdTabBtn-tuan', kd_thang: 'kdTabBtn-thang',
   kd_kehoach: 'kdTabBtn-kehoach', kd_bckqkd: 'kdTabBtn-bckqkd',
   kd_kehoach_lap: 'khTabBtn-lap', kd_kehoach_capnhat: 'khTabBtn-capnhat', kd_kehoach_baocaokh: 'khTabBtn-baocaokh',
@@ -1871,7 +1877,7 @@ function modVisible(moduleId){
 // "Kế hoạch KD > Biểu Đồ" trong khi nhân viên đang xem đúng tab đó) — không áp dụng cho periods/builder (2 tab
 // nội bộ luôn hardcode chỉ Admin, không nằm trong hệ thống hạng mục này).
 const MODULE_TAB_GROUPS = [
-  { switchFn: 'switchVanHanhTab', items: [['ngay','vh_ngay'],['tuan','vh_tuan'],['thang','vh_thang'],['sreport','vh_sreport'],['tnt','vh_tnt']] },
+  { switchFn: 'switchVanHanhTab', items: [['ngay','vh_ngay'],['tuan','vh_tuan'],['thang','vh_thang'],['sreport','vh_sreport'],['tnt','vh_tnt'],['quyhoach','vh_quyhoach']] },
   { switchFn: 'switchKDTab', items: [['ngay','kd_ngay'],['tuan','kd_tuan'],['thang','kd_thang'],['kehoach','kd_kehoach'],['bckqkd','kd_bckqkd']] },
   { switchFn: 'switchKHTab', items: [['lap','kd_kehoach_lap'],['capnhat','kd_kehoach_capnhat'],['baocaokh','kd_kehoach_baocaokh'],['tongquan','kd_kehoach_tongquan'],['kinhdoanh','kd_kehoach_kinhdoanh'],['bieudo','kd_kehoach_bieudo']] },
   { switchFn: 'switchBCKQKDTab', items: [['submit','kd_bckqkd_submit'],['aggregate','kd_bckqkd_aggregate']] },
@@ -5513,8 +5519,8 @@ function loadTyLeLapDay(){
   };
 }
 function switchVanHanhTab(tab){
-  const paneIds = { ngay: 'vhNgay', tuan: 'vhTuan', thang: 'vhThang', sreport: 'vhSReport', tnt: 'vhTnt' };
-  ['ngay','tuan','thang','sreport','tnt'].forEach(t => {
+  const paneIds = { ngay: 'vhNgay', tuan: 'vhTuan', thang: 'vhThang', sreport: 'vhSReport', tnt: 'vhTnt', quyhoach: 'vhQuyHoach' };
+  ['ngay','tuan','thang','sreport','tnt','quyhoach'].forEach(t => {
     const pane = document.getElementById(paneIds[t]);
     if (pane) pane.classList.toggle('active', t===tab);
     const btn = document.getElementById('vhTabBtn-'+t);
@@ -5523,6 +5529,7 @@ function switchVanHanhTab(tab){
   if (tab === 'ngay' && typeof loadVanHanhNgay === 'function') loadVanHanhNgay();
   if (tab === 'sreport' && typeof loadSReport === 'function') loadSReport();
   if (tab === 'tnt' && typeof loadTntReport === 'function') loadTntReport();
+  if (tab === 'quyhoach') { const f = document.getElementById('qhFrame'); if (f && !f.getAttribute('src')) f.setAttribute('src', 'quyhoach_view.html?v=1'); }
 }
 // tương tự switchVanHanhTab nhưng cho Kinh doanh — Ngày/Tháng hiện là placeholder "sắp ra mắt" (logic thật sẽ
 // bổ sung sau khi có cấu trúc tab dữ liệu theo Ngày/Tháng riêng trên Sheet), Tuần giữ nguyên nội dung hiện có.
