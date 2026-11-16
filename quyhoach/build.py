@@ -48,9 +48,8 @@ rep("            state.map.setPaintProperty('wards-fill', 'fill-opacity', 0.8);\
     "            state.map.setPaintProperty('wards-fill', 'fill-opacity', 0.8);\n        }\n        if (state.qhOrg) qhApply_(false);\n    }")
 # HRM tải xong → dựng lại AM
 rep("            state.hrmLoaded = true;\n", "            state.hrmLoaded = true;\n            if (state.dataLoaded) qhBuildOrg_();\n")
+
 # Dòng trạng thái sau khi tải sản lượng: thêm chẩn đoán chấm
-rep("            setStaffStatus_(`${label} lúc ${state.staffLastLoadedAt.toLocaleTimeString('vi-VN')}:",
-    "            console.log('[Quy hoạch] ' + qhDotDiag_().text);\n            setStaffStatus_(`${qhDotDiag_().text} — ${label} lúc ${state.staffLastLoadedAt.toLocaleTimeString('vi-VN')}:")
 
 # 6) Chèn khối hàm web trước init_
 rep("    function init_() {", addon + "\n    function init_() {")

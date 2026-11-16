@@ -1111,6 +1111,20 @@
         }
         return null;
     }
+    // v1.7.25 — dòng CHẨN ĐOÁN chấm nhân viên (hiện đầu dòng trạng thái tab "Theo Nhân Viên")
+    function staffDotDiagText_() {
+        const rows = (state.staffRawRows || []).filter(r => r.type === 'DELIVER');
+        const how = {};
+        rows.forEach(r => { resolveOldWardCode_(r); const k = r.__oldWardHow || 'khong'; how[k] = (how[k] || 0) + 1; });
+        const lbl = { ghn: 'mã cũ', gps: 'GPS', name: 'tên xã', newname: 'tên xã mới', rezone: 'mã mới', text: 'địa chỉ', khong: 'KHÔNG khớp' };
+        const feats = (state.staffDotFeatures && state.staffDotFeatures.features) || [];
+        const hidden = feats.filter(f => !staffStatusAllowed_(f.properties && f.properties.workStatusCategory)).length;
+        const s0 = rows[0] || {};
+        console.log('[Tuyến Giao] Mẫu 3 đơn giao:', rows.slice(0, 3).map(r => ({ wardCode: r.wardCode, wardName: r.wardName, districtName: r.districtName, cityName: r.cityName, lat: r.lat, lng: r.lng, address: r.address })));
+        return `🔎 Chẩn đoán: ${rows.length} đơn giao → ` + Object.keys(how).map(k => `${lbl[k] || k} ${how[k]}`).join(' · ')
+            + ` · GPS có ${rows.filter(r => typeof r.lat === 'number').length} · ${feats.length} chấm${hidden ? ` (⚠️ ${hidden} bị ẩn do lọc trạng thái)` : ''}`
+            + ` · mẫu: mã "${s0.wardCode || ''}" / xã "${s0.wardName || ''}" / ${String(s0.address || '').slice(0, 70)}`;
+    }
     function resolveOldWardCode_(r) {
         if (r.__oldWard !== undefined) return r.__oldWard;
         let code = null, how = '';
@@ -5294,8 +5308,7 @@
                 : perfRows.length === 0
                     ? ' · 📊 Performance: chưa có dòng nào trong khoảng ngày này.'
                     : ` · 📊 Performance: ${perfRows.length.toLocaleString()} dòng${perfUnmatchedHubNames.size > 0 ? ` (⚠️ ${perfUnmatchedHubNames.size} tên bưu cục KHÔNG khớp được mã, xem console)` : ''}.`;
-            console.log('[Quy hoạch] ' + qhDotDiag_().text);
-            setStaffStatus_(`${qhDotDiag_().text} — ${label} lúc ${state.staffLastLoadedAt.toLocaleTimeString('vi-VN')}: ${rows.length.toLocaleString()} dòng đơn (${fromDate} → ${toDate}, ${hubIds.length} bưu cục) · ${dotCount} chấm nhân viên đã đặt lên bản đồ (tab Bản Đồ).${unmatchedNote}${cancelledNote}${unassignedNote}${perfNote}`);
+            setStaffStatus_(`${staffDotDiagText_()} — ${label} lúc ${state.staffLastLoadedAt.toLocaleTimeString('vi-VN')}: ${rows.length.toLocaleString()} dòng đơn (${fromDate} → ${toDate}, ${hubIds.length} bưu cục) · ${dotCount} chấm nhân viên đã đặt lên bản đồ (tab Bản Đồ).${unmatchedNote}${cancelledNote}${unassignedNote}${perfNote}`);
         } catch (err) {
             console.error('[Tuyến Giao] Lỗi tải sản lượng nhân viên:', err);
             setStaffStatus_(`❌ Lỗi: ${err.message || err}`);
@@ -5688,7 +5701,7 @@
         root.id = 'ghn-tuyen-giao-root';
         root.innerHTML = `
             <div id="ghn-tuyen-giao-titlebar">
-                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.24, chưa gộp vào Báo cáo GTC)</span></span>
+                <span class="ghn-tg-title-text">🗺️ Modul Tuyến Giao <span style="font-weight:400; opacity:0.85; font-size:11px;">(độc lập — v1.7.25, chưa gộp vào Báo cáo GTC)</span></span>
                 <span class="ghn-tg-titlebar-btns">
                     <button id="ghn-tg-admin-open-btn" class="ghn-tg-titlebar-btn" title="Quản trị phân quyền" style="display:none;">🔐</button>
                     <button id="ghn-tg-minimize-btn" class="ghn-tg-titlebar-btn" title="Thu nhỏ">➖</button>
