@@ -1036,7 +1036,7 @@
         // v1.7.40 — bỏ luôn lọc Tỉnh / AM / Bưu cục + ô tìm + xã/phường đang chọn trong bản nháp,
         // rồi đưa bản đồ về toàn vùng (trước chỉ reset lớp hiển thị → người dùng thấy nút "không chạy").
         try {
-            state.qhTinh = ''; state.qhAm = ''; state.qhBc = '';
+            state.qhTinh = []; state.qhAm = []; state.qhBc = [];
             const qs = document.getElementById('qh-search'); if (qs) qs.value = '';
             if (state.qhd) { if (state.qhd.sel) state.qhd.sel = new Set(); state.qhd.place = null; }
             if (typeof qhFillSelects_ === 'function') qhFillSelects_();
@@ -4380,6 +4380,28 @@
 
         const style = document.createElement('style');
         style.textContent = `
+            .qh-ms { display: inline-flex; align-items: center; border: 1px solid #ced4da; border-radius: 6px; background: #fff; height: 28px; flex: none; }
+            .qh-ms.on { border-color: #e8590c; box-shadow: inset 0 0 0 1px #e8590c; }
+            .qh-ms > b { font-size: 11.5px; color: #868e96; font-weight: 600; padding: 0 6px; border-right: 1px solid #e9ecef; height: 100%; display: flex; align-items: center; background: #f8f9fa; border-radius: 6px 0 0 6px; }
+            .qh-ms input { border: 0; outline: none; font: inherit; font-size: 12px; font-weight: 600; padding: 0 6px; width: 170px; height: 100%; background: none; cursor: pointer; }
+            .qh-ms i { font-style: normal; color: #adb5bd; font-size: 10px; padding-right: 6px; pointer-events: none; }
+            .qh-ms button { border: 0; background: none; color: #c92a2a; cursor: pointer; font-size: 14px; padding: 0 6px; height: 100%; }
+            #qh-msp { position: fixed; z-index: 2147483647; width: 460px; max-width: calc(100vw - 16px); background: #fff; border: 1px solid #ced4da; border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.22); font-family: -apple-system, Segoe UI, Roboto, sans-serif; overflow: hidden; }
+            #qh-msp .h { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 9px 10px 4px; }
+            #qh-msp .h b { font-size: 12.5px; color: #868e96; font-weight: 600; margin-right: auto; }
+            #qh-msp .h button { border: 1px solid #ced4da; background: #fff; border-radius: 14px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
+            #qh-msp .h button.ap { background: #1c7ed6; border-color: #1c7ed6; color: #fff; font-weight: 700; }
+            #qh-msp .n { font-size: 11px; color: #adb5bd; padding: 0 10px 6px; border-bottom: 1px solid #f1f3f5; }
+            #qh-msp .l { max-height: 320px; overflow: auto; padding: 4px; }
+            #qh-msp .it { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+            #qh-msp .it:hover { background: #fff4e6; }
+            #qh-msp .ck { width: 14px; height: 14px; border: 1.5px solid #1c7ed6; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: #1c7ed6; flex: none; }
+            #qh-msp .it.on .ck::after { content: '✓'; font-weight: 800; }
+            #qh-msp .nm { color: #1c7ed6; font-weight: 600; }
+            #qh-msp .sb { color: #adb5bd; font-size: 11.5px; margin-left: auto; white-space: nowrap; }
+            #qh-msp .one { display: none; border: 1px solid #ced4da; background: #fff; border-radius: 12px; padding: 1px 8px; font-size: 11px; cursor: pointer; color: #1c7ed6; margin-left: auto; white-space: nowrap; }
+            #qh-msp .it:hover .one { display: inline-block; } #qh-msp .it:hover .sb { display: none; }
+            #qh-msp .e { padding: 12px; color: #adb5bd; font-size: 12.5px; }
             .qh-lab { font-size: 12px; color: #495057; display: inline-flex; align-items: center; gap: 4px; }
             .qh-lab select { max-width: 240px; font-weight: 600; padding: 4px 6px; border-radius: 6px; border: 1px solid #ced4da; }
             .qh-clear { padding: 4px 8px; border-radius: 6px; border: 1px solid #ced4da; background: #fff; color: #868e96; cursor: pointer; font-size: 12px; }
@@ -4828,9 +4850,9 @@
                 <label style="font-size:12px; color:#495057;">Vùng:
                     <select id="ghn-tg-region-select"><option value="all">Tất cả</option></select>
                 </label>
-                <label class="qh-lab">Tỉnh: <select id="qh-tinh"><option value="">Toàn vùng</option></select></label>
-                <label class="qh-lab">AM: <select id="qh-am"><option value="">Tất cả AM</option></select></label>
-                <label class="qh-lab">Bưu cục: <select id="qh-bc"><option value="">Tất cả bưu cục</option></select></label>
+                <span id="qh-tinh" class="qh-ms" data-unit="tỉnh" data-lab="Tỉnh"></span>
+                <span id="qh-am" class="qh-ms" data-unit="AM" data-lab="AM"></span>
+                <span id="qh-bc" class="qh-ms" data-unit="BC" data-lab="Bưu cục"></span>
                 <button id="qh-clear" class="qh-clear" title="Bỏ lọc Tỉnh / AM / Bưu cục">✕</button>
                 <input id="qh-search" class="qh-search" list="qh-search-dl" placeholder="🔍 Tìm tỉnh, AM, bưu cục…" autocomplete="off">
                 <datalist id="qh-search-dl"></datalist>
@@ -6254,18 +6276,18 @@
         const org = qhOrgV_(); q = String(q || '').trim(); if (!q) return false;
         const m = /^(Tỉnh|AM|Bưu cục):\s*(.+)$/.exec(q);
         const codes = Object.keys(org);
-        const pickBc = c => { state.qhBc = c; state.qhTinh = org[c].tinh; state.qhAm = org[c].am; };
+        const pickBc = c => { state.qhBc = [c]; state.qhTinh = []; state.qhAm = []; };
         if (m) {
-            if (m[1] === 'Tỉnh') { state.qhTinh = m[2]; state.qhAm = ''; state.qhBc = ''; }
-            else if (m[1] === 'AM') { state.qhAm = m[2]; state.qhBc = ''; const ts = Array.from(new Set(codes.filter(c => org[c].am === m[2]).map(c => org[c].tinh))); state.qhTinh = ts.length === 1 ? ts[0] : ''; }
+            if (m[1] === 'Tỉnh') { state.qhTinh = [m[2]]; state.qhAm = []; state.qhBc = []; }
+            else if (m[1] === 'AM') { state.qhAm = [m[2]]; state.qhBc = []; state.qhTinh = []; }
             else { const c = codes.find(x => org[x].name === m[2]); if (!c) return false; pickBc(c); }
         } else {
             const n = normalizeVn_(q);
             const bc = codes.find(c => normalizeVn_(org[c].name).includes(n) || c === q);
             const am = Array.from(new Set(codes.map(c => org[c].am))).find(a => normalizeVn_(a).includes(n));
             const tinh = Array.from(new Set(codes.map(c => org[c].tinh))).find(t => normalizeVn_(t).includes(n));
-            if (am) { state.qhAm = am; state.qhBc = ''; const ts = Array.from(new Set(codes.filter(c => org[c].am === am).map(c => org[c].tinh))); state.qhTinh = ts.length === 1 ? ts[0] : ''; }
-            else if (tinh) { state.qhTinh = tinh; state.qhAm = ''; state.qhBc = ''; }
+            if (am) { state.qhAm = [am]; state.qhBc = []; state.qhTinh = []; }
+            else if (tinh) { state.qhTinh = [tinh]; state.qhAm = []; state.qhBc = []; }
             else if (bc) pickBc(bc);
             else return false;
         }
@@ -6283,28 +6305,90 @@
         else if (state.map) state.map.once('idle', go);
     }
     function qhOpt_(v, l, sel) { return `<option value="${escapeHtml_(v)}"${v === sel ? ' selected' : ''}>${escapeHtml_(l)}</option>`; }
+    // v1.7.41 — lọc CHỌN NHIỀU: state.qhTinh / qhAm / qhBc là MẢNG (rỗng = tất cả)
+    function qhA_(v) { return Array.isArray(v) ? v : (v ? [v] : []); }
     function qhFillSelects_() {
         const org = qhOrgV_();
         const codes = Object.keys(org);
-        const tSel = document.getElementById('qh-tinh'), aSel = document.getElementById('qh-am'), bSel = document.getElementById('qh-bc');
-        if (!tSel || !aSel || !bSel) return;
+        const tH = document.getElementById('qh-tinh'), aH = document.getElementById('qh-am'), bH = document.getElementById('qh-bc');
+        if (!tH || !aH || !bH) return;
+        const T = qhA_(state.qhTinh), A = qhA_(state.qhAm), B = qhA_(state.qhBc);
         const tinhs = Array.from(new Set(codes.map(c => org[c].tinh))).sort((a, b) => a.localeCompare(b, 'vi'));
-        if (state.qhTinh && !tinhs.includes(state.qhTinh)) state.qhTinh = '';
-        tSel.innerHTML = qhOpt_('', 'Toàn vùng', state.qhTinh || '') + tinhs.map(t => qhOpt_(t, `${t} (${codes.filter(c => org[c].tinh === t).length} BC)`, state.qhTinh)).join('');
-        const inT = codes.filter(c => !state.qhTinh || org[c].tinh === state.qhTinh);
+        state.qhTinh = T.filter(t => tinhs.includes(t));
+        const inT = codes.filter(c => !state.qhTinh.length || state.qhTinh.includes(org[c].tinh));
         const ams = Array.from(new Set(inT.map(c => org[c].am))).sort((a, b) => a.localeCompare(b, 'vi'));
-        if (state.qhAm && !ams.includes(state.qhAm)) state.qhAm = '';
-        aSel.innerHTML = qhOpt_('', 'Tất cả AM', state.qhAm || '') + ams.map(a => qhOpt_(a, `${a} (${inT.filter(c => org[c].am === a).length} BC)`, state.qhAm)).join('');
-        const inA = inT.filter(c => !state.qhAm || org[c].am === state.qhAm).sort((a, b) => org[a].name.localeCompare(org[b].name, 'vi'));
-        if (state.qhBc && !inA.includes(state.qhBc)) state.qhBc = '';
-        bSel.innerHTML = qhOpt_('', 'Tất cả bưu cục', state.qhBc || '') + inA.map(c => qhOpt_(c, org[c].name, state.qhBc)).join('');
+        state.qhAm = A.filter(a => ams.includes(a));
+        const inA = inT.filter(c => !state.qhAm.length || state.qhAm.includes(org[c].am)).sort((a, b) => org[a].name.localeCompare(org[b].name, 'vi'));
+        state.qhBc = B.filter(c => inA.includes(c));
+        qhMsSet_(tH, tinhs.map(t => ({ v: t, l: t, sb: codes.filter(c => org[c].tinh === t).length + ' BC' })), state.qhTinh, (arr) => { state.qhTinh = arr; qhFilterChanged_(); });
+        qhMsSet_(aH, ams.map(a => ({ v: a, l: a, sb: inT.filter(c => org[c].am === a).length + ' BC' })), state.qhAm, (arr) => { state.qhAm = arr; qhFilterChanged_(); });
+        qhMsSet_(bH, inA.map(c => ({ v: c, l: org[c].name, sb: org[c].am || '' })), state.qhBc, (arr) => { state.qhBc = arr; qhFilterChanged_(); });
         qhSearchFill_();
+    }
+    function qhFilterChanged_() { clearSelection_(); qhFillSelects_(); qhApply_(true); }
+    // ---- Ô chọn nhiều (kiểu [S]-Report). Danh sách nổi gắn vào body (position:fixed) để không bị thanh công cụ cuộn ngang cắt mất.
+    function qhMsSum_(H) { const M = H._ms, sel = M.sel; const n = M.opts.length, lab = v => (M.opts.find(o => o.v === v) || { l: v }).l;
+        return !sel.length ? `☑ Tất cả ${n} ${M.unit}` : sel.length === 1 ? lab(sel[0]) : `☑ ${sel.length}/${n} ${M.unit}: ${sel.slice(0, 2).map(lab).join(', ')}${sel.length > 2 ? '…' : ''}`; }
+    function qhMsSet_(H, opts, sel, cb) {
+        H._ms = { opts, sel: sel.filter(v => opts.some(o => o.v === v)), cb, unit: H.dataset.unit || '', st: null, q: '' };
+        if (!H._wired) {
+            H._wired = true;
+            H.innerHTML = `<b>${escapeHtml_(H.dataset.lab || '')}</b><input autocomplete="off"><i>▾</i><button title="Bỏ chọn — xem tất cả" style="display:none">×</button>`;
+            const inp = H.querySelector('input'), x = H.querySelector('button');
+            inp.addEventListener('focus', () => qhMsOpen_(H));
+            inp.addEventListener('input', () => { const M = H._ms; M.q = inp.value === inp.dataset.sum ? '' : inp.value; qhMsDraw_(H); });
+            inp.addEventListener('keydown', (e) => {
+                const M = H._ms; if (!M.st) return;
+                if (e.key === 'Enter') { e.preventDefault(); if (M.q && M.st.size === M.opts.length) { const v = qhMsVis_(M); if (v.length) M.st = new Set(v.map(o => o.v)); } qhMsApply_(H); }
+                else if (e.key === 'Escape') { M.st = null; qhMsClose_(); inp.value = inp.dataset.sum; inp.blur(); }
+            });
+            x.addEventListener('mousedown', e => e.preventDefault());
+            x.addEventListener('click', (e) => { e.preventDefault(); H._ms.st = new Set(); qhMsApply_(H); });
+        }
+        const inp = H.querySelector('input'), sum = qhMsSum_(H);
+        inp.value = sum; inp.dataset.sum = sum; inp.title = H._ms.sel.map(v => (opts.find(o => o.v === v) || {}).l).join(', ');
+        H.classList.toggle('on', H._ms.sel.length > 0);
+        H.querySelector('button').style.display = H._ms.sel.length ? '' : 'none';
+    }
+    function qhMsVis_(M) { const q = normalizeVn_(M.q || ''); return q ? M.opts.filter(o => normalizeVn_(o.l + ' ' + (o.sb || '')).includes(q)) : M.opts; }
+    function qhMsClose_() { const p = document.getElementById('qh-msp'); if (p) p.remove(); state.qhMsOpen = null; }
+    function qhMsOpen_(H) {
+        if (state.qhMsOpen && state.qhMsOpen !== H) qhMsApply_(state.qhMsOpen);
+        const M = H._ms; if (!M) return;
+        if (!M.st) M.st = new Set(M.sel.length ? M.sel : M.opts.map(o => o.v)); M.q = '';
+        state.qhMsOpen = H; H.querySelector('input').select(); qhMsDraw_(H);
+        if (!state.qhMsDoc) { state.qhMsDoc = true; document.addEventListener('mousedown', (ev) => { const O = state.qhMsOpen, p = document.getElementById('qh-msp'); if (O && !O.contains(ev.target) && !(p && p.contains(ev.target))) qhMsApply_(O); }, true); }
+    }
+    function qhMsDraw_(H) {
+        const M = H._ms; let p = document.getElementById('qh-msp');
+        if (!p) { p = document.createElement('div'); p.id = 'qh-msp'; p.addEventListener('mousedown', e => e.preventDefault()); document.body.appendChild(p); }
+        const rc = H.getBoundingClientRect(); p.style.top = (rc.bottom + 4) + 'px'; p.style.left = Math.max(8, Math.min(rc.left, window.innerWidth - Math.min(460, window.innerWidth - 16) - 8)) + 'px';
+        const vis = M.list = qhMsVis_(M);
+        p.innerHTML = `<div class="h"><b>${vis.length} kết quả${M.q ? '' : ' (tất cả ' + escapeHtml_(M.unit) + ')'}</b><button data-a="all">Chọn tất cả</button><button data-a="none">Bỏ chọn tất cả</button><button class="ap" data-a="ap">Áp dụng (${M.st.size})</button></div>
+            <div class="n">Gõ để tìm (không dấu cũng được) · bấm tên để chọn / bỏ chọn · Enter = Áp dụng · Esc = đóng · "chỉ … này" = xem riêng 1 mục</div>
+            <div class="l">${vis.length ? vis.map((o, i) => `<div class="it${M.st.has(o.v) ? ' on' : ''}" data-i="${i}"><span class="ck"></span><span class="nm">${escapeHtml_(o.l)}</span>${o.sb ? `<span class="sb">${escapeHtml_(o.sb)}</span>` : ''}<button class="one" data-one="${i}">chỉ ${escapeHtml_(M.unit)} này</button></div>`).join('') : '<div class="e">Không có mục nào khớp.</div>'}</div>`;
+        p.onclick = (e) => {
+            const a = e.target.closest('[data-a]'), one = e.target.closest('[data-one]'), it = e.target.closest('[data-i]');
+            if (a) { const k = a.dataset.a; if (k === 'ap') return qhMsApply_(H); vis.forEach(o => { if (k === 'all') M.st.add(o.v); else M.st.delete(o.v); }); return qhMsDraw_(H); }
+            if (one) { M.st = new Set([vis[+one.dataset.one].v]); return qhMsApply_(H); }
+            if (it) { const v = vis[+it.dataset.i].v; if (M.st.has(v)) M.st.delete(v); else M.st.add(v); qhMsDraw_(H); }
+        };
+    }
+    function qhMsApply_(H) {
+        const M = H._ms; qhMsClose_(); const inp = H.querySelector('input');
+        if (!M || !M.st) { if (inp) { inp.value = inp.dataset.sum || ''; inp.blur(); } return; }
+        let arr = M.opts.map(o => o.v).filter(v => M.st.has(v)); M.st = null;
+        if (arr.length === M.opts.length) arr = [];
+        if (inp) { inp.value = inp.dataset.sum || ''; inp.blur(); }
+        if (arr.length === M.sel.length && arr.every(v => M.sel.includes(v))) return;
+        M.sel = arr; M.cb(arr);
     }
     function qhSelectedHubs_() {
         const org = qhOrgV_();
-        if (state.qhBc) return [state.qhBc];
-        if (!state.qhTinh && !state.qhAm) return null;
-        return Object.keys(org).filter(c => (!state.qhTinh || org[c].tinh === state.qhTinh) && (!state.qhAm || org[c].am === state.qhAm));
+        const T = qhA_(state.qhTinh), A = qhA_(state.qhAm), B = qhA_(state.qhBc);
+        if (B.length) return B.filter(c => org[c]);
+        if (!T.length && !A.length) return null;
+        return Object.keys(org).filter(c => (!T.length || T.includes(org[c].tinh)) && (!A.length || A.includes(org[c].am)));
     }
     function qhHubShape_(code) {
         if (qhdOn_()) { // v1.7.36 — đang xem bản nháp: ranh giới BC theo bản nháp
@@ -6368,12 +6452,13 @@
                 map.fitBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: 40, duration: 500 });
             } catch (e) { /* bỏ qua */ }
         }
-        if (state.qhBc && qhdOn_()) {
+        const oneBc = qhA_(state.qhBc).length === 1 ? qhA_(state.qhBc)[0] : '';
+        if (oneBc && qhdOn_()) {
             qhSummary_(set);
-        } else if (state.qhBc) {
-            const h = state.hubsByCode[state.qhBc];
-            const pf = hubsToPointsGeoJson_().features.find(f => String(f.properties.hub_code) === state.qhBc);
-            selectHubTerritory_(state.qhBc);
+        } else if (oneBc) {
+            const h = state.hubsByCode[oneBc];
+            const pf = hubsToPointsGeoJson_().features.find(f => String(f.properties.hub_code) === oneBc);
+            selectHubTerritory_(oneBc);
             if (h && pf) { showInfoPanel_(hubPopupHtml_(pf.properties), true); wireHubStaffingTable_(); }
         } else {
             qhSummary_(set);
@@ -6394,9 +6479,11 @@
             return { c, name: org[c] ? org[c].name : c, am: org[c] ? org[c].am : '', tinh: org[c] ? org[c].tinh : '', nW, staff: h.staff || 0, dv: a.dv || 0, pv: a.pv || 0 };
         }).sort((x, y) => y.dv - x.dv);
         const sum = (k) => rows.reduce((s, r) => s + (r[k] || 0), 0);
-        let title = state.qhBc ? `Bưu cục ${(org[state.qhBc] || {}).name || state.qhBc}` : state.qhAm ? `AM ${state.qhAm}${state.qhTinh ? ' · ' + state.qhTinh : ''}` : `Tỉnh ${state.qhTinh}`;
+        const lst = (a, pre, unit, f) => !a.length ? '' : a.length <= 3 ? pre + ' ' + a.map(f || (x => x)).join(', ') : a.length + ' ' + unit;
+        const T_ = qhA_(state.qhTinh), A_ = qhA_(state.qhAm), B_ = qhA_(state.qhBc);
+        let title = [lst(T_, 'Tỉnh', 'tỉnh'), lst(A_, 'AM', 'AM'), lst(B_, 'Bưu cục', 'bưu cục', c => (org[c] || {}).name || c)].filter(Boolean).join(' · ');
         if (D) title = '📝 ' + title + ' — theo bản nháp "' + ((state.qhd.cur || {}).ten || '') + '"';
-        const showAm = !state.qhAm;
+        const showAm = qhA_(state.qhAm).length !== 1;
         let html = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif">
             <div style="font-weight:700;font-size:14px;color:#212529">${escapeHtml_(title)}</div>
             <div style="font-size:12px;color:#6c757d;margin:2px 0 8px">Khu vực quản lý: <b>${rows.length}</b> bưu cục · <b>${qhFmt_(sum('nW'))}</b> xã/phường · nhân sự <b>${qhFmt_(sum('staff'))}</b> · giao <b>${qhFmt_(sum('dv'))}</b> đơn · lấy <b>${qhFmt_(sum('pv'))}</b> đơn (số liệu quy hoạch)</div>
@@ -6408,28 +6495,14 @@
         showInfoPanel_(html, true);
         document.querySelectorAll('#ghn-tg-info-content .qh-bc-link').forEach(a => a.addEventListener('click', (e) => {
             e.preventDefault();
-            state.qhBc = a.dataset.hub;
+            state.qhBc = [a.dataset.hub];
             qhFillSelects_();
             qhApply_(true);
         }));
     }
     function qhWireControls_() {
-        const tSel = document.getElementById('qh-tinh'), aSel = document.getElementById('qh-am'), bSel = document.getElementById('qh-bc');
-        if (!tSel) return;
-        tSel.addEventListener('change', () => { state.qhTinh = tSel.value; state.qhAm = ''; state.qhBc = ''; clearSelection_(); qhFillSelects_(); qhApply_(true); });
-        aSel.addEventListener('change', () => {
-            state.qhAm = aSel.value; state.qhBc = '';
-            if (state.qhAm && !state.qhTinh) {
-                const ts = Array.from(new Set(Object.values(qhOrgV_()).filter(o => o.am === state.qhAm).map(o => o.tinh)));
-                if (ts.length === 1) state.qhTinh = ts[0];
-            }
-            clearSelection_(); qhFillSelects_(); qhApply_(true);
-        });
-        bSel.addEventListener('change', () => {
-            state.qhBc = bSel.value;
-            if (state.qhBc) { const o = qhOrgV_()[state.qhBc]; if (o) { state.qhTinh = o.tinh; state.qhAm = o.am; } }
-            clearSelection_(); qhFillSelects_(); qhApply_(true);
-        });
+        if (!document.getElementById('qh-tinh')) return;
+        state.qhTinh = qhA_(state.qhTinh); state.qhAm = qhA_(state.qhAm); state.qhBc = qhA_(state.qhBc);
         const sIn = document.getElementById('qh-search');
         if (sIn) {
             sIn.addEventListener('change', () => { if (qhSearchGo_(sIn.value)) sIn.value = ''; });
@@ -6442,7 +6515,7 @@
         const qb = document.getElementById('qhd-btn');
         if (qb) qb.addEventListener('click', qhdToggle_);
         const clr = document.getElementById('qh-clear');
-        if (clr) clr.addEventListener('click', () => { state.qhTinh = ''; state.qhAm = ''; state.qhBc = ''; clearSelection_(); qhFillSelects_(); qhApply_(false); fitToData_(); });
+        if (clr) clr.addEventListener('click', () => { state.qhTinh = []; state.qhAm = []; state.qhBc = []; clearSelection_(); qhFillSelects_(); qhApply_(false); fitToData_(); });
     }
 
     // ==================== v1.7.37 — HỘP THÔNG BÁO / XÁC NHẬN / NHẬP LIỆU dạng popup (thay alert / confirm / prompt của trình duyệt) ====================
