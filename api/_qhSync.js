@@ -149,6 +149,26 @@ async function handleQhAutoSync(body) {
 // chỉ trả tên BC / mã BC / AM / Tỉnh, không trả cột khác). Cột dò theo TÊN.
 const qhNorm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/\s+/g, ' ').trim();
 let qhCocauCache = null;
+async function qhCocauCheck(rows) {
+  const v = await getValues(SHEET_ID, "'200_1_GTCTOTAL'!A1:B30000", { valueRenderOption: 'FORMATTED_VALUE' });
+  const sys = {}; let lastA = '';
+  (v || []).forEach((r) => {
+    const a = String(r[0] || '').trim(), b = String(r[1] || '').trim();
+    if (a) lastA = a;
+    if (!/^\([A-Z0-9]{2,5}\)\s*\S/i.test(b)) return;           // chỉ dòng có tên bưu cục dạng "(THN) …"
+    if (/grand total|tong cong|^tong/i.test(qhNorm(a))) return;
+    const k = qhNorm(b);
+    if (!sys[k]) sys[k] = { bc: b, am: a || lastA };
+  });
+  const cc = {};
+  rows.forEach((r) => { cc[qhNorm(r[0])] = { bc: r[0], am: r[2], id: r[4] }; });
+  const amKey = (s) => qhNorm(s).replace(/^\d+\s*-\s*/, '').replace(/^am\s+/, '');
+  const sameAm = (sysAm, c) => { const a = qhNorm(sysAm); if (!a) return true; if (c.id && a.indexOf(qhNorm(c.id)) >= 0) return true; const n = amKey(c.am); return !!n && (amKey(sysAm) === n || a.indexOf(n) >= 0); };
+  const thieu = [], lechAm = [], du = [];
+  Object.keys(sys).forEach((k) => { const s = sys[k], c = cc[k]; if (!c) thieu.push({ bc: s.bc, amHt: s.am }); else if (!sameAm(s.am, c)) lechAm.push({ bc: s.bc, amCc: (c.id ? c.id + ' - ' : '') + c.am, amHt: s.am }); });
+  Object.keys(cc).forEach((k) => { if (!sys[k]) du.push({ bc: cc[k].bc, amCc: (cc[k].id ? cc[k].id + ' - ' : '') + cc[k].am }); });
+  return { soHt: Object.keys(sys).length, soCc: rows.length, thieu, lechAm, du, mauHt: Object.values(sys).slice(0, 3) };
+}
 async function handleQhCocau(body) {
   if (qhCocauCache && Date.now() - qhCocauCache.t < 5 * 60 * 1000 && !(body && body.fresh)) return qhCocauCache.res;
   const cc = await getValues(SHEET_ID, "'999_Cocau'!A1:Z3000", { valueRenderOption: 'FORMATTED_VALUE' });
@@ -165,7 +185,10 @@ async function handleQhCocau(body) {
     const am = cAm >= 0 ? String(r[cAm] || '').trim() : ''; if (/^loai$/i.test(qhNorm(am))) return;
     rows.push([bc, cMa >= 0 ? String(r[cMa] || '').trim() : '', am, cTinh >= 0 ? String(r[cTinh] || '').trim() : '', cId >= 0 ? String(r[cId] || '').trim() : '']);
   });
-  const res = { ok: true, cols: head, dung: { bc: head[cBc] || null, ma: head[cMa] || null, am: head[cAm] || null, tinh: head[cTinh] || null, idAm: head[cId] || null }, rows };
+  // So cơ cấu (sheet tự cập nhật tay) với cơ cấu theo HỆ THỐNG công ty = bảng GTC tổng (cột A = cấp quản lý/AM hệ thống, cột B = bưu cục)
+  let kiemTra = null;
+  try { kiemTra = await qhCocauCheck(rows); } catch (e) { kiemTra = { loi: String(e && e.message || e) }; }
+  const res = { ok: true, cols: head, dung: { bc: head[cBc] || null, ma: head[cMa] || null, am: head[cAm] || null, tinh: head[cTinh] || null, idAm: head[cId] || null }, rows, kiemTra };
   qhCocauCache = { t: Date.now(), res };
   return res;
 }
