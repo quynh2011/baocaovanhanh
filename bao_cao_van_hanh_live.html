@@ -9192,7 +9192,7 @@ function tntHlHtml() {
   const AMS = Object.keys(amM).map((k) => ({ k: k, es: amM[k], o: tntSumEnts(amM[k], C.idx) })), BCS = es.map((e) => ({ k: D.ents[e][0], es: [e], o: tntSumEnts([e], C.idx) }));
   // nhãn ngắn kỳ mốc / kỳ so: Tuần → T45 / T44 (cùng kỳ: T44*); Ngày → N-1 / N-2, N-8
   const wkS = (lab) => { const m2 = /(\d{4})\/(\d+)/.exec(lab || ''); return m2 ? 'T' + (+m2[2]) : ''; };
-  const curS = day ? 'N-1' : C.lab.replace('*', ''), prevS = (k) => day ? CMP[k].lab : (wkS(C.prevLab) || 'tuần trước') + (C.same ? '*' : '');
+  const curS = day ? 'N-1' : C.lab.replace('*', ''), prevS = (k) => day ? CMP[k].lab : (tntEvOn() ? 'kỳ trước' : (wkS(C.prevLab) || 'tuần trước')) + (C.same ? '*' : '');
   const dFmt = (m, cur, p) => m[7] ? (p ? ((cur - p) / p >= 0 ? '▲ +' : '▼ −') + tntP(Math.abs((cur - p) / p)) : '') : tntGhD(cur - p, m[5]);
   const worst = (list, m) => { const L = list.filter((r) => m[3](r.o) !== null && m[4](r.o) > 0 && (m[0].indexOf('fd') === 0 || m[4](r.o) >= (m[7] ? 1 : 10) * (C.idx.length || 1))); if (L.length < 2) return null;
     const sm = tntGhSmallSet(L, (r) => m[4](r.o)); return L.filter((r, i) => !sm[i]).sort((a, b) => (m[3](a.o) - m[3](b.o)) * m[5])[0] || null; };
@@ -9270,12 +9270,13 @@ function tntHlHtml() {
   const chips = hi.concat(lo).map((r) => '<button class="' + (EX[r.m[0]] ? '' : 'on') + '" onclick="tntHlExTog(\'' + r.m[0] + '\')">' + (EX[r.m[0]] ? '' : '✓ ') + esc(nmS(r.m)) + '</button>').join('');
   window.__tntHlTxt = T;
   const md = TNT.hlMode || 'full';
+  if (!tntEvOn()) { // bật Event: điểm sáng / cần cải thiện đã có ở khối Báo cáo Event → ẩn để không trùng
   h += '<div class="tnt-hlmode"><span>Điểm sáng / cần cải thiện:</span><button class="' + (md === 'full' ? 'on' : '') + '" onclick="tntHlSetMode(\'full\')">Đầy đủ</button><button class="' + (md === 'short' ? 'on' : '') + '" onclick="tntHlSetMode(\'short\')">Rút gọn</button></div>';
   if (md === 'short') h += '<div class="tnt-hlshort"><div class="tnt-hlsbar"><b>Bản rút gọn</b><button onclick="tntHlCopy(this)">📋 Copy</button></div><div class="tnt-hlpick"><span>Chỉ số đưa vào (bấm để bỏ / thêm):</span>' + chips + '</div><pre id="tntHlPre">' + T + '</pre></div>';
   else {
   h += box('hi', 'tnt-hlhi', '🟢 Điểm sáng', hi, 'Không có chỉ số nào tốt lên.');
   h += box('lo', 'tnt-hllo', '🔴 Điểm cần cải thiện', lo, 'Không có chỉ số nào xấu đi.');
-  if (flat.length) h += '<div class="tnt-rmd">Không đổi: ' + flat.map(esc).join(', ') + '.</div>'; }
+  if (flat.length) h += '<div class="tnt-rmd">Không đổi: ' + flat.map(esc).join(', ') + '.</div>'; } }
   return '<div class="tnt-osum">Kỳ mốc <b>' + esc(curLab) + '</b> so <b>' + CMP.map((c) => esc(c.full)).join('</b> và <b>') + '</b>' + (CMP.length > 1 ? ' — tốt lên ở cả 2 mốc (hoặc 1 mốc, mốc kia đứng yên) là điểm sáng; 2 mốc ngược chiều thì theo mốc thay đổi lớn hơn' : '') + ' · ' + (whole ? 'Vùng TNT' : 'phạm vi đang lọc') + ' · giao hàng: ' + (TNT.cust === 'tts' ? 'TTS' : 'Tất cả KH') + ' · bỏ qua AM/BC ít hàng</div>' + h;
 }
 // ===== BÁO CÁO EVENT — khối tóm tắt (đặt trên phần I khi bật Event). Văn ngắn, luôn kèm số.
