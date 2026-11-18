@@ -1,7 +1,7 @@
 # Bàn giao: Bản đồ quy hoạch tuyến giao — "[TNT] - Quy hoạch" + Tampermonkey "Modul 6 - Tuyến Giao"
 
 > Đọc file này + `CLAUDE.md` (gốc repo, mục 0/5/7/8/9) TRƯỚC khi sửa bất cứ gì của phần bản đồ.
-> Cập nhật lần cuối: 18/11/2026 — userscript **v1.7.52**, bản web chống cache **`?v=32`**.
+> Cập nhật lần cuối: 18/11/2026 — userscript **v1.7.53**, bản web chống cache **`?v=33`**.
 > Mọi thay đổi phần bản đồ: ghi Nhật ký ở `CLAUDE.md` mục 7 **và** cập nhật file này (mục 10 trạng thái/kế hoạch) trong cùng commit.
 
 ---
@@ -133,6 +133,7 @@ DBB 59 BC / 771 phường (Thái Nguyên, Hà Giang, Cao Bằng, Tuyên Quang, B
 - v1.7.50: bảng 2 có nút lọc Loại đơn Tất cả / Giao / Lấy / Trả (`state.qhWtType`, lọc đơn trước khi gộp, ẩn cột của loại khác) + Xếp theo Nhân viên / Xã-phường (`state.qhWtBy`, xếp theo xã để xem xã đó NV nào chạy).
 - v1.7.51: XÃ/PHƯỜNG CHÍNH của mỗi nhân viên (chủ dự án chốt): xếp xã theo số đơn GTC của NV đó cao → thấp, cộng dồn tới khi đạt ngưỡng (mặc định 80%, chọn 60/70/80/90%) → các xã đó là chính (1 xã ≥ 80% → 1 xã; 2 xã mỗi xã 40% → 2 xã). Cột "% GTC của NV" (⭐ = chính) + nút "Tất cả / ⭐ Chỉ xã/phường chính" (`state.qhWtMain`, `state.qhWtThr`); tính trên đơn giao thành công, không phụ thuộc nút Loại đơn.
 - v1.7.52: FIX khoảng cách = LỘ TRÌNH CỘNG DỒN (chủ dự án chốt): bưu cục → xã/phường gần nhất → xã kế tiếp gần nhất → … (`qhKmRoute_` trả thứ tự + km cộng dồn từng xã). Bảng chi tiết xã/phường cột "Km lộ trình BC → xã/phường" (#n = thứ tự, lộ trình dựng trên MỌI xã của NV kể cả khi bật lọc xã chính), "+" và popup chấm ghi "lộ trình #n: x km từ BC (+chặng)", bảng NV cột "Km tới xã cuối lộ trình". Km giao tổng (có quay về BC) không đổi.
+- v1.7.53: FIX km lộ trình bị cộng dồn sai khi gộp nhiều ngày (chủ dự án báo: Nam Hòa → Cây Thị ra 41,1 km): v1.7.52 dựng 1 lộ trình trên MỌI xã của NV trong cả khoảng ngày. Nay `qhKmWardCum_` dựng lộ trình theo TỪNG NGÀY THẬT (các xã ≥ 3% đơn của ngày đó + chính xã đang xét), nhiều ngày = trung bình km các ngày NV giao xã đó (ghi "TB n ngày"), 1 ngày thì ghi #thứ tự.
 - Hạn chế: là ƯỚC TÍNH theo tâm xã/phường, không phải quãng đường GPS thật của shipper (không tính đi lại giữa các điểm giao trong cùng xã).
 
 ## 9. Quy trình sửa → build → test → deploy

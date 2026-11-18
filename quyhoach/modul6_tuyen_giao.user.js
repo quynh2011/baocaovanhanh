@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.52
+// @version      1.7.53
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -7112,7 +7112,7 @@
             const mark = b.wardCode === primaryWardCode ? ' 🏆 (chính — đặt chấm/tên)'
                 : secondaryWardCodes.has(b.wardCode) ? ' ✅ (phụ — chỉ tô viền)'
                 : '';
-            const dk = qhRt_ && qhRt_.at[b.wardCode];
+            const dk = (qhRt_ && qhRt_.at[b.wardCode]) || qhKmWardCum_(shared.staffKey, shared.tripDate, shared.hubId, b.wardCode);
             const kmTxt = dk ? ` · 🛣️ lộ trình #${dk.step}: <b>${qhKmFmt_(dk.cum)} km</b> từ BC (+${qhKmFmt_(dk.leg)} km)${dk.road ? '' : ' (chim bay)'}` : '';
             return `<div>${name}: <b>${b.count}</b> đơn (${pct}%)${mark}${kmTxt}</div>`;
         }).join('');
@@ -7223,6 +7223,16 @@
     function qhKmStaffDay_(staffKey, tripDate, hubId) {
         const a = qhKmAsgMap_().get(staffKey + '\u0001' + tripDate);
         if (!a) return null; return qhKmTrip_(hubId || a.hubId, qhKmWardsOf_(a));
+    }
+    // v1.7.53 — km lộ trình tới 1 xã/phường của 1 nhân viên TRONG 1 NGÀY THẬT: lộ trình dựng trên các xã chính của ngày đó
+    // (≥ 3% đơn giao, như km giao) + chính xã này nếu nó nhỏ hơn; KHÔNG gộp xã của nhiều ngày vào 1 lộ trình (trước bị cộng dồn sai).
+    function qhKmWardCum_(staffKey, tripDate, hubId, wc) {
+        if (!wc || !qhKmWardPos_(wc)) return null;
+        const a = qhKmAsgMap_().get(staffKey + '\u0001' + tripDate);
+        const ws = a ? qhKmWardsOf_(a).slice() : [];
+        if (ws.indexOf(wc) < 0) ws.push(wc);
+        const rt = qhKmRoute_(hubId || (a && a.hubId), ws);
+        return rt && rt.at[wc] ? rt.at[wc] : null;
     }
     // Popup chấm (có thể gộp nhiều ngày) → trung bình km/ngày các ngày của nhân viên đó
     function qhKmStaffAvg_(staffKey, hubId) {
@@ -7423,8 +7433,8 @@
                 const wc = resolveOldWardCode_(r) || '';
                 const d = qhMulti_ ? qhRangeLabel_ : r.tripDate;
                 const k = d + '|' + r.hubId + '|' + wc + '|' + r.staffKey;
-                if (!wm.has(k)) wm.set(k, { d, hubId: r.hubId, wc, staffKey: r.staffKey, driverName: r.driverName, ps: 0, pf: 0, pp: 0, ds: 0, df: 0, dp: 0, rt: 0, tot: 0 });
-                const g = wm.get(k); g.tot += 1;
+                if (!wm.has(k)) wm.set(k, { d, hubId: r.hubId, wc, staffKey: r.staffKey, driverName: r.driverName, ps: 0, pf: 0, pp: 0, ds: 0, df: 0, dp: 0, rt: 0, tot: 0, days: new Set() });
+                const g = wm.get(k); g.tot += 1; g.days.add(r.tripDate);
                 if (r.type === 'PICK') { if (r.isUpdated && r.isSucceeded) g.ps++; else if (r.isUpdated) g.pf++; else g.pp++; }
                 else if (r.type === 'DELIVER') { if (r.isUpdated && r.isSucceeded) g.ds++; else if (r.isUpdated) g.df++; else g.dp++; }
                 else if (r.type === 'RETURN') g.rt++;
@@ -7451,9 +7461,6 @@
                 });
             });
             const isMain = (w) => mainSet.has(w.d + '|' + w.hubId + '|' + w.staffKey + '|' + w.wc);
-            const rtBy = new Map();
-            wm.forEach(w => { if (!w.wc || !qhKmWardPos_(w.wc)) return; const g = w.d + '|' + w.hubId + '|' + w.staffKey; if (!rtBy.has(g)) rtBy.set(g, { hubId: w.hubId, wcs: [] }); rtBy.get(g).wcs.push(w.wc); });
-            rtBy.forEach((v, g) => rtBy.set(g, qhKmRoute_(v.hubId, v.wcs)));
             if (wtMain) Array.from(wm.keys()).forEach(k => { if (!isMain(wm.get(k))) wm.delete(k); });
             const wNm = (w) => w.wc ? String((state.wardsByCode && state.wardsByCode[w.wc] && state.wardsByCode[w.wc].name) || w.wc) : '~';
             const wl = Array.from(wm.values()).sort((a, b) => b.d.localeCompare(a.d) || String(a.hubId).localeCompare(String(b.hubId)) ||
@@ -7463,8 +7470,8 @@
             const wRows = wShown.map(w => {
                 const cc = qhCanCells_(w.ps, w.pf, w.pp, w.ds, w.df, w.dp, w.rt);
                 const wName = w.wc ? ((state.wardsByCode && state.wardsByCode[w.wc] && state.wardsByCode[w.wc].name) || w.wc) : '<span style="color:#adb5bd;">(không xác định xã/phường)</span>';
-                const rtW = rtBy.get(w.d + '|' + w.hubId + '|' + w.staffKey), dk0 = w.wc && rtW ? rtW.at[w.wc] : null;
-                const dk = dk0 ? { km: dk0.cum, road: dk0.road, step: dk0.step } : { km: null };
+                const dks = Array.from(w.days || []).map(td => qhKmWardCum_(w.staffKey, td, w.hubId, w.wc)).filter(Boolean);
+                const dk = dks.length ? { km: dks.reduce((x, o) => x + o.cum, 0) / dks.length, road: dks.every(o => o.road), step: dks.length === 1 ? dks[0].step : null, nd: dks.length } : { km: null };
                 const sk = w.d + '|' + w.hubId + '|' + (wtBy === 'ward' ? w.wc : w.staffKey), first = sk !== lastStaff; lastStaff = sk;
                 const dTxt = qhMulti_ ? `${qhDays_[0].slice(5).split('-').reverse().join('/')} → ${qhDays_[qhDays_.length - 1].slice(5).split('-').reverse().join('/')}` : w.d;
                 return `<tr${first ? ' style="border-top:2px solid #ced4da;"' : ''}>
@@ -7477,7 +7484,7 @@
                     ${showR ? `<td style="text-align:right;">${w.rt}</td>${cc.tra}` : ''}
                     <td style="text-align:right; font-weight:700;">${w.tot}</td>
                     <td style="text-align:right; white-space:nowrap;">${(() => { const sh = shareOf.get(w.d + '|' + w.hubId + '|' + w.staffKey + '|' + w.wc); return sh === undefined ? '<span style="color:#adb5bd;">—</span>' : (isMain(w) ? '<b style="color:#b8860b;">⭐ ' : '<span style="color:#6c757d;">') + (Math.round(sh * 1000) / 10).toLocaleString('vi-VN') + '%' + (isMain(w) ? '</b>' : '</span>'); })()}</td>
-                    <td style="text-align:right; color:#1c4f9c; font-weight:700;">${dk.km !== null ? `<span title="Điểm thứ ${dk.step} trên lộ trình của nhân viên">${qhKmFmt_(dk.km)}<span style="font-size:10px; color:#6c757d; font-weight:400;"> #${dk.step}</span></span>` + (dk.road ? '' : '<span title="Đường chim bay" style="color:#adb5bd;">*</span>') : '—'}</td>
+                    <td style="text-align:right; color:#1c4f9c; font-weight:700;">${dk.km !== null ? (dk.step ? `<span title="Điểm thứ ${dk.step} trên lộ trình của nhân viên trong ngày">${qhKmFmt_(dk.km)}<span style="font-size:10px; color:#6c757d; font-weight:400;"> #${dk.step}</span></span>` : `<span title="Trung bình ${dk.nd} ngày nhân viên giao xã/phường này (mỗi ngày tính theo lộ trình riêng của ngày đó)">${qhKmFmt_(dk.km)}<span style="font-size:10px; color:#6c757d; font-weight:400;"> TB ${dk.nd} ngày</span></span>`) + (dk.road ? '' : '<span title="Đường chim bay" style="color:#adb5bd;">*</span>') : '—'}</td>
                 </tr>`;
             }).join('');
             const wBtn = (attr, val, cur, label) => `<button type="button" data-${attr}="${val}" style="border:1px solid ${val === cur ? '#1c4f9c' : '#ced4da'}; background:${val === cur ? '#1c4f9c' : '#fff'}; color:${val === cur ? '#fff' : '#495057'}; border-radius:6px; padding:3px 10px; font-size:12px; font-weight:700; cursor:pointer;">${label}</button>`;
@@ -7496,7 +7503,7 @@
                     <th>Ngày</th><th>Bưu cục</th><th>Xã/Phường</th><th>Nhân viên</th>
                     ${showP ? '<th>Lấy TC</th><th>Lấy thất bại</th><th>Đang lấy</th><th>Cần lấy</th><th>% LTC</th>' : ''}
                     ${showD ? '<th>Giao TC</th><th>Giao thất bại</th><th>Đang giao</th><th>Cần giao</th><th>% GTC</th>' : ''}
-                    ${showR ? '<th>Trả hàng</th><th>% Trả hàng</th>' : ''}<th>Tổng</th><th title="Số đơn giao thành công của nhân viên ở xã/phường này ÷ tổng đơn GTC của nhân viên. ⭐ = xã/phường chính (cộng dồn từ xã nhiều đơn nhất tới khi đạt ngưỡng)">% GTC của NV</th><th title="Km cộng dồn theo lộ trình của nhân viên: bưu cục → xã/phường gần nhất → xã kế tiếp gần nhất → … tới xã/phường này (#n = thứ tự trên lộ trình); * = chim bay">Km lộ trình BC → xã/phường</th>
+                    ${showR ? '<th>Trả hàng</th><th>% Trả hàng</th>' : ''}<th>Tổng</th><th title="Số đơn giao thành công của nhân viên ở xã/phường này ÷ tổng đơn GTC của nhân viên. ⭐ = xã/phường chính (cộng dồn từ xã nhiều đơn nhất tới khi đạt ngưỡng)">% GTC của NV</th><th title="Km cộng dồn theo lộ trình TRONG NGÀY của nhân viên: bưu cục → xã/phường gần nhất → xã kế tiếp gần nhất → … tới xã/phường này (#n = thứ tự trên lộ trình; nhiều ngày = trung bình các ngày giao xã này); * = chim bay">Km lộ trình BC → xã/phường</th>
                 </tr></thead>
                 <tbody>${wRows}</tbody>
             </table></div>
