@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.47
+// @version      1.7.48
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -7249,7 +7249,22 @@
         const wrapEl = document.getElementById('ghn-tg-staff-table-wrap');
         if (!summaryEl || !wrapEl) return;
 
-        const agg = aggregateStaffRows_(state.staffRawRows, state.staffSelectedStaffKey, state.staffSelectedGroup);
+        const aggDay = aggregateStaffRows_(state.staffRawRows, state.staffSelectedStaffKey, state.staffSelectedGroup);
+        // v1.7.48 — chọn NHIỀU ngày: GỘP mỗi (bưu cục, nhân viên) còn 1 dòng (cộng đơn cả khoảng ngày; km giao = TB/ngày, xã xa nhất = xa nhất trong các ngày)
+        const qhDays_ = Array.from(new Set((state.staffRawRows || []).map(r => r.tripDate).filter(Boolean))).sort();
+        const qhMulti_ = qhDays_.length > 1;
+        const qhRangeLabel_ = qhMulti_ ? `${qhDays_[0]} → ${qhDays_[qhDays_.length - 1]} (gộp ${qhDays_.length} ngày)` : '';
+        let agg = aggDay;
+        if (qhMulti_) {
+            const m = new Map();
+            aggDay.forEach(a => {
+                const k = a.hubId + '|' + a.staffKey;
+                if (!m.has(k)) m.set(k, Object.assign({}, a, { tripDate: qhRangeLabel_, days: [], pickSuccess: 0, pickFail: 0, pickPending: 0, deliverSuccess: 0, deliverFail: 0, deliverPending: 0, returnCount: 0, total: 0 }));
+                const g = m.get(k); g.days.push(a.tripDate);
+                ['pickSuccess', 'pickFail', 'pickPending', 'deliverSuccess', 'deliverFail', 'deliverPending', 'returnCount', 'total'].forEach(f => { g[f] += a[f] || 0; });
+            });
+            agg = Array.from(m.values()).sort((a, b) => String(a.hubId).localeCompare(String(b.hubId)) || a.driverName.localeCompare(b.driverName));
+        }
         if (state.staffRawRows.length === 0) {
             summaryEl.textContent = '';
             wrapEl.innerHTML = '';
@@ -7262,7 +7277,7 @@
         // Dựng lại debug khớp xã/phường (GIỐNG HỆT dữ liệu dùng để đặt chấm trên bản đồ)
         // để nút "+" hiện đúng thực tế thuật toán đang chạy.
         buildWardMatchIndex_();
-        const wardAssignments = computeStaffWardAssignments_(state.staffRawRows);
+        const wardAssignments = computeStaffWardAssignments_(qhMulti_ ? buildDotComputationRows_(state.staffRawRows) : state.staffRawRows);
         const wardDebugMap = new Map(); // key -> mảng kết quả (v1.5.5: có thể >1 chấm/ngày)
         wardAssignments.forEach(a => {
             const dkey = `${a.staffKey}${a.tripDate}`;
@@ -7321,7 +7336,7 @@
                 perfSummaryNote = ` · 📊 Volume: ${perf.volume.toLocaleString('vi-VN')} đơn · % Gán: ${pctGanStr} · % GTC: ${pctGtcStr} (theo sheet Performance)`;
             }
         }
-        summaryEl.textContent = `Tổng đơn giao: ${totalDeliverAll.toLocaleString('vi-VN')} đơn · ${staffCount} nhân viên · ${hubCount} bưu cục · ${agg.length} dòng (ngày×bưu cục×nhân viên).${perfSummaryNote}`;
+        summaryEl.textContent = `Tổng đơn giao: ${totalDeliverAll.toLocaleString('vi-VN')} đơn · ${staffCount} nhân viên · ${hubCount} bưu cục · ${agg.length} ${qhMulti_ ? `dòng (mỗi nhân viên 1 dòng, gộp ${qhDays_.length} ngày ${qhDays_[0]} → ${qhDays_[qhDays_.length - 1]})` : 'dòng (ngày×bưu cục×nhân viên)'}.${perfSummaryNote}`;
 
         const MAX_ROWS = 500;
         const shown = agg.slice(0, MAX_ROWS);
@@ -7344,7 +7359,11 @@
             // sung trang thai lam viec cua nhan vien" -- dung chung resolveHrmDisplay_() voi
             // popup ban do, tranh lech logic mau sac/nhan giua 2 noi.
             const cc = qhCanCells_(a.pickSuccess, a.pickFail, a.pickPending, a.deliverSuccess, a.deliverFail, a.deliverPending, a.returnCount);
-            const kmT = qhKmTrip_(a.hubId, qhKmWardsOf_(debug && debug[0]));
+            let kmT;
+            if (qhMulti_) {
+                const ts = (a.days || []).map(d => qhKmStaffDay_(a.staffKey, d, a.hubId)).filter(Boolean);
+                kmT = ts.length ? { km: ts.reduce((x, t) => x + t.km, 0) / ts.length, road: ts.every(t => t.road), far: ts.reduce((f, t) => (t.far && (!f || t.far.km > f.km)) ? t.far : f, null), n: ts.length } : null;
+            } else kmT = qhKmTrip_(a.hubId, qhKmWardsOf_(debug && debug[0]));
             const kmCell = kmT ? `<b>${qhKmFmt_(kmT.km)}</b>${kmT.road ? '' : '<span title="Đường chim bay — chưa lấy được khoảng cách đường bộ" style="color:#adb5bd;">*</span>'}` : '<span style="color:#adb5bd;">—</span>';
             const farCell = kmT && kmT.far ? `<b>${qhKmFmt_(kmT.far.km)}</b><div style="font-size:10px; color:#6c757d; white-space:nowrap;">${(state.wardsByCode && state.wardsByCode[kmT.far.wc] ? state.wardsByCode[kmT.far.wc].name : kmT.far.wc)}</div>` : '<span style="color:#adb5bd;">—</span>';
             if (kmT) { kmSum += kmT.km; kmN += 1; if (!kmT.road) kmAir = true; }
@@ -7355,7 +7374,7 @@
             return `
             <tr>
                 <td><button type="button" class="ghn-tg-ward-toggle" data-idx="${i}">+</button></td>
-                <td>${a.tripDate}</td>
+                <td>${qhMulti_ ? `<span style="white-space:nowrap;">${qhDays_[0].slice(5).split('-').reverse().join('/')} → ${qhDays_[qhDays_.length - 1].slice(5).split('-').reverse().join('/')}</span><div style="font-size:10px; color:#6c757d;">làm ${(a.days || []).length}/${qhDays_.length} ngày</div>` : a.tripDate}</td>
                 <td>${hubNameForStaffTable_(a.hubId)}</td>
                 <td>${a.driverName}</td>
                 <td style="font-size:11px; white-space:nowrap;">${hrmCellHtml}</td>
@@ -7408,7 +7427,7 @@
                         <th>Giao TC</th><th>Giao thất bại</th>
                         <th title="Đơn giao chưa cập nhật kết quả (đang đi giao)">Đang giao</th><th title="Cần giao = Giao TC + Giao thất bại + Đang giao">Cần giao</th><th title="% GTC = Giao TC ÷ Cần giao">% GTC</th>
                         <th>Trả hàng</th><th title="% Trả hàng = Đơn trả ÷ (Giao TC + Đơn trả)">% Trả hàng</th><th>Tổng</th>
-                        <th title="Ước tính quãng đường giao trong ngày: bưu cục → lần lượt tâm các xã/phường có đơn giao (gần nhất đi trước) → về bưu cục. Đường bộ; * = đường chim bay">Km giao (ước tính)</th>
+                        <th title="Ước tính quãng đường giao trong ngày: bưu cục → lần lượt tâm các xã/phường có đơn giao (gần nhất đi trước) → về bưu cục. Đường bộ; * = đường chim bay. Chọn nhiều ngày = trung bình 1 ngày làm việc">${qhMulti_ ? 'Km giao TB/ngày (ước tính)' : 'Km giao (ước tính)'}</th>
                         <th title="Khoảng cách từ bưu cục tới tâm xã/phường xa nhất nhân viên giao trong ngày">BC → xã xa nhất (km)</th>
                     </tr>
                 </thead>

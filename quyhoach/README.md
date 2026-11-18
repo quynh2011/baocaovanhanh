@@ -1,7 +1,7 @@
 # Bàn giao: Bản đồ quy hoạch tuyến giao — "[TNT] - Quy hoạch" + Tampermonkey "Modul 6 - Tuyến Giao"
 
 > Đọc file này + `CLAUDE.md` (gốc repo, mục 0/5/7/8/9) TRƯỚC khi sửa bất cứ gì của phần bản đồ.
-> Cập nhật lần cuối: 18/11/2026 — userscript **v1.7.47**, bản web chống cache **`?v=27`**.
+> Cập nhật lần cuối: 18/11/2026 — userscript **v1.7.48**, bản web chống cache **`?v=28`**.
 > Mọi thay đổi phần bản đồ: ghi Nhật ký ở `CLAUDE.md` mục 7 **và** cập nhật file này (mục 10 trạng thái/kế hoạch) trong cùng commit.
 
 ---
@@ -128,6 +128,7 @@ DBB 59 BC / 771 phường (Thái Nguyên, Hà Giang, Cao Bằng, Tuyên Quang, B
 - Đường bộ: OSRM công khai `router.project-osrm.org` (CORS `*`, Tampermonkey cần `@connect router.project-osrm.org`), mỗi BC 1 lần gọi `table` (BC + mọi xã có đơn, tối đa 96 điểm) → `state.qhKmRoad[hub]`, gọi lần lượt cách 1,1s (`qhKmPrefetch_`, chạy sau mỗi lần vẽ bảng), xong vẽ lại bảng. Lỗi/không gọi được → đường chim bay (`qhKmHav_`), ghi "*"/"(chim bay)". Chỉ gửi toạ độ BC + tâm xã, không gửi dữ liệu đơn/nhân viên.
 - v1.7.46: bảng còn có Cần lấy (Lấy TC + thất bại) + % LTC, Cần giao (Giao TC + thất bại) + % GTC, % Trả hàng = đơn trả ÷ (Giao TC + đơn trả); hàng TỔNG tính trên tổng (`qhCanCells_` trong `renderStaffTable_`).
 - v1.7.47: thêm cột Đang lấy / Đang giao (đơn chưa cập nhật kết quả, `pickPending`/`deliverPending`); Cần lấy/Cần giao + % LTC/% GTC tính CẢ đơn đang lấy/đang giao (chủ dự án chốt: đều là đơn chưa thành công). Dòng "Tổng đơn giao" cũng gồm đơn đang giao.
+- v1.7.48: chọn NHIỀU ngày → bảng GỘP mỗi (bưu cục, nhân viên) còn 1 dòng (cộng đơn cả khoảng; cột Ngày ghi khoảng + "làm x/N ngày"; Km giao = TB/ngày các ngày làm; xã xa nhất = xa nhất các ngày; "+" dùng phân bổ xã/phường gộp `buildDotComputationRows_`).
 - Hạn chế: là ƯỚC TÍNH theo tâm xã/phường, không phải quãng đường GPS thật của shipper (không tính đi lại giữa các điểm giao trong cùng xã).
 
 ## 9. Quy trình sửa → build → test → deploy
