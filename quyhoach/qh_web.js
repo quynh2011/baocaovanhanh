@@ -5503,6 +5503,7 @@
     async function qhKmPrefetch_() {
         if (state.qhKmBusy) return; state.qhKmRoad = state.qhKmRoad || {};
         const need = {};
+        (state.staffRawRows || []).forEach((r) => { const h = String(r.hubId); if (!qhKmHubPos_(h)) return; const wc = resolveOldWardCode_(r); if (wc && qhKmWardPos_(wc)) (need[h] = need[h] || new Set()).add(String(wc)); });
         qhKmAsgMap_().forEach((a) => { const h = String(a.hubId); if (!qhKmHubPos_(h)) return; (need[h] = need[h] || new Set()); (a.wardBreakdown || []).forEach((b) => { if (qhKmWardPos_(b.wardCode)) need[h].add(String(b.wardCode)); }); });
         const todo = Object.keys(need).filter((h) => { const R = state.qhKmRoad[h]; if (!R) return true; if (R.fail) return false; return Array.from(need[h]).some((w) => R.ix[w] === undefined); });
         if (!todo.length) return;
@@ -5677,6 +5678,57 @@
         // v1.7.22 — hàng TỔNG cuối bảng (phản hồi thật: "thêm số tổng vào").
         // v1.7.23 — 3 cột Performance (Volume/% Gán/% GTC) KHÔNG còn ở đây nữa (đã dời lên dòng
         // tóm tắt phía trên bảng, xem perfSummaryNote) nên hàng TỔNG trở lại đúng 11 cột như cũ.
+        // v1.7.49 — BẢNG 2: nhân viên đang chạy các xã/phường nào (mỗi dòng = ngày × bưu cục × xã/phường × nhân viên; nhiều ngày thì gộp)
+        let qhWardTblHtml = '';
+        {
+            const wm = new Map();
+            (state.staffRawRows || []).forEach(r => {
+                if (state.staffSelectedStaffKey !== 'all' && r.staffKey !== state.staffSelectedStaffKey) return;
+                if (state.staffSelectedGroup !== 'all' && r.customerGroup !== state.staffSelectedGroup) return;
+                const wc = resolveOldWardCode_(r) || '';
+                const d = qhMulti_ ? qhRangeLabel_ : r.tripDate;
+                const k = d + '|' + r.hubId + '|' + wc + '|' + r.staffKey;
+                if (!wm.has(k)) wm.set(k, { d, hubId: r.hubId, wc, staffKey: r.staffKey, driverName: r.driverName, ps: 0, pf: 0, pp: 0, ds: 0, df: 0, dp: 0, rt: 0, tot: 0 });
+                const g = wm.get(k); g.tot += 1;
+                if (r.type === 'PICK') { if (r.isUpdated && r.isSucceeded) g.ps++; else if (r.isUpdated) g.pf++; else g.pp++; }
+                else if (r.type === 'DELIVER') { if (r.isUpdated && r.isSucceeded) g.ds++; else if (r.isUpdated) g.df++; else g.dp++; }
+                else if (r.type === 'RETURN') g.rt++;
+            });
+            const wl = Array.from(wm.values()).sort((a, b) => b.d.localeCompare(a.d) || String(a.hubId).localeCompare(String(b.hubId)) || a.driverName.localeCompare(b.driverName) || b.tot - a.tot);
+            const WMAX = 1000, wShown = wl.slice(0, WMAX);
+            let lastStaff = '';
+            const wRows = wShown.map(w => {
+                const cc = qhCanCells_(w.ps, w.pf, w.pp, w.ds, w.df, w.dp, w.rt);
+                const wName = w.wc ? ((state.wardsByCode && state.wardsByCode[w.wc] && state.wardsByCode[w.wc].name) || w.wc) : '<span style="color:#adb5bd;">(không xác định xã/phường)</span>';
+                const dk = w.wc ? qhKmDist_(w.hubId, 'BC', w.wc) : { km: null };
+                const sk = w.d + '|' + w.hubId + '|' + w.staffKey, first = sk !== lastStaff; lastStaff = sk;
+                const dTxt = qhMulti_ ? `${qhDays_[0].slice(5).split('-').reverse().join('/')} → ${qhDays_[qhDays_.length - 1].slice(5).split('-').reverse().join('/')}` : w.d;
+                return `<tr${first ? ' style="border-top:2px solid #ced4da;"' : ''}>
+                    <td style="white-space:nowrap;">${first ? dTxt : ''}</td>
+                    <td>${first ? hubNameForStaffTable_(w.hubId) : ''}</td>
+                    <td><b>${wName}</b></td>
+                    <td>${first ? '<b>' + w.driverName + '</b>' : '<span style="color:#adb5bd;">〃</span>'}</td>
+                    <td style="text-align:right; color:#28a745;">${w.ps}</td><td style="text-align:right; color:#dc3545;">${w.pf}</td>${cc.lay}
+                    <td style="text-align:right; color:#28a745;">${w.ds}</td><td style="text-align:right; color:#dc3545;">${w.df}</td>${cc.giao}
+                    <td style="text-align:right;">${w.rt}</td>${cc.tra}
+                    <td style="text-align:right; font-weight:700;">${w.tot}</td>
+                    <td style="text-align:right; color:#1c4f9c; font-weight:700;">${dk.km !== null ? qhKmFmt_(dk.km) + (dk.road ? '' : '<span title="Đường chim bay" style="color:#adb5bd;">*</span>') : '—'}</td>
+                </tr>`;
+            }).join('');
+            qhWardTblHtml = wl.length ? `
+            <div style="margin-top:18px; font-weight:800; font-size:14px; color:#212529;">📍 Chi tiết xã/phường từng nhân viên đang chạy${qhMulti_ ? ` <span style="font-weight:400; font-size:12px; color:#6c757d;">(gộp ${qhDays_.length} ngày)</span>` : ''}</div>
+            <div style="max-height:560px; overflow:auto; margin-top:6px; border:1px solid #dee2e6; border-radius:6px;">
+            <table class="ghn-tg-staff-table" style="margin:0;">
+                <thead style="position:sticky; top:0; z-index:2; background:#fff;"><tr>
+                    <th>Ngày</th><th>Bưu cục</th><th>Xã/Phường</th><th>Nhân viên</th>
+                    <th>Lấy TC</th><th>Lấy thất bại</th><th>Đang lấy</th><th>Cần lấy</th><th>% LTC</th>
+                    <th>Giao TC</th><th>Giao thất bại</th><th>Đang giao</th><th>Cần giao</th><th>% GTC</th>
+                    <th>Trả hàng</th><th>% Trả hàng</th><th>Tổng</th><th title="Khoảng cách đường bộ từ bưu cục tới tâm xã/phường; * = chim bay">Km BC → xã/phường</th>
+                </tr></thead>
+                <tbody>${wRows}</tbody>
+            </table></div>
+            ${wl.length > WMAX ? `<div style="font-size:11px; color:#adb5bd; margin-top:6px;">Đang hiển thị ${WMAX}/${wl.length} dòng đầu — thu hẹp bằng bộ lọc nhân viên.</div>` : ''}` : '';
+        }
         const ccT = qhCanCells_(totalPickSuccess, totalPickFail, agg.reduce((s, a) => s + a.pickPending, 0), totalDeliverSuccess, totalDeliverFail, agg.reduce((s, a) => s + a.deliverPending, 0), totalReturn, true);
         const totalRowHtml = `
             <tr style="font-weight:700; background:#f1f3f5; border-top:2px solid #ced4da;">
@@ -5715,6 +5767,8 @@
             </table>
             <div style="font-size:11px; color:#6c757d; margin-top:6px;">🛣️ Km giao (ước tính) = bưu cục → tâm từng xã/phường có đơn giao (xã gần nhất đi trước, bỏ xã &lt; 3% đơn) → về bưu cục${kmAir ? ' · <b>*</b> = đường chim bay (chưa lấy được đường bộ)' : ' · khoảng cách đường bộ'}${state.qhKmBusy ? ' · <i>đang tính đường bộ…</i>' : ''}. Bấm "+" để xem khoảng cách bưu cục → từng xã/phường.</div>
             ${agg.length > MAX_ROWS ? `<div style="font-size:11px; color:#adb5bd; margin-top:6px;">Đang hiển thị ${MAX_ROWS}/${agg.length} dòng đầu (hàng TỔNG vẫn tính từ TOÀN BỘ ${agg.length} dòng) — thu hẹp bằng bộ lọc nhân viên/nhóm khách hàng hoặc khoảng ngày để xem hết.</div>` : ''}
+
+            ${qhWardTblHtml}
         `;
         wrapEl.querySelectorAll('.ghn-tg-ward-toggle').forEach(btn => {
             btn.addEventListener('click', () => {
