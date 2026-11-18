@@ -9307,7 +9307,7 @@ function tntEvHtml() {
   const nP = prevs.length, part = C.idx.length < L, H = tntEvHide(), OP = TNT.evOpen || (TNT.evOpen = {});
   const rgC = tntRg(C.idx), rgP = tntRg(C.prevIdx), allIdx = [].concat(...prevs.map((c) => c.idx));
   const rgA = nP ? tntDm(D.dates[Math.min(...allIdx)]) + '–' + tntDm(D.dates[Math.max(...allIdx)]) : '';
-  const MA = tntEvM(), M = MA.filter((m) => !H[m[0]] && m[4](C) > 0 && m[3](C) !== null);
+  const MA = tntEvM(), M = MA.filter((m) => !H[m[0]] && ((m[4](C) > 0 && m[3](C) !== null) || m[0] === 'bl' || m[0] === 'lgb'));
   const isN = (m) => !!m[7];
   const th = (m, base) => isN(m) ? Math.max(1, Math.abs(base || 0) * 0.01) : 0.001;
   const fv = (m, x) => tntHlFmt(m, x);
@@ -9320,8 +9320,8 @@ function tntEvHtml() {
   const val = (m, o) => (o && m[4](o) > 0 ? m[3](o) : null);
   // TB các kỳ trước: % = tổng ÷ tổng; số (backlog, sản lượng/ngày) = trung bình giá trị từng kỳ
   const avgOf = (m, key, es) => { if (!nP) return null; if (isN(m)) { const xs = prevs.map((c) => val(m, sumOf(key, es, c.idx))).filter((x) => x !== null); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null; } return val(m, sumOf(key, es, allIdx)); };
-  const rows = M.map((m) => { const ev = m[3](C), pv = val(m, P), av = avgOf(m, 'V', null), ep = PE ? val(m, PE) : null;
-    const d1 = pv === null ? null : ev - pv, d2 = av === null ? null : ev - av, d3 = ep === null ? null : ev - ep;
+  const rows = M.map((m) => { const ev = val(m, C), pv = val(m, P), av = avgOf(m, 'V', null), ep = PE ? val(m, PE) : null;
+    const d1 = pv === null || ev === null ? null : ev - pv, d2 = av === null || ev === null ? null : ev - av, d3 = ep === null || ev === null ? null : ev - ep;
     const sg = (d, b) => !m[5] || d === null || Math.abs(d) < th(m, b) ? 0 : (m[5] * d > 0 ? 1 : -1);
     return { m: m, ev: ev, pv: pv, av: av, ep: ep, d1: d1, d2: d2, d3: d3, st: sg(d1, pv), st3: sg(d3, ep), lv: tntHlLv(m, ev) }; });
   const R = rows.filter((x) => x.m[5]); // chỉ số có hướng tốt/xấu (bỏ sản lượng)
@@ -9344,10 +9344,10 @@ function tntEvHtml() {
     big.forEach((x) => { x.bad = -m[5] * (x.a - x.b) * (isN(m) ? 1 : x.w); }); big.sort((a, b) => b.bad - a.bad); const r = big[0] && big[0].bad > 0 ? big[0] : null;
     if (r) { r.k = D.ents[r.i][0]; r.am = D.ents[r.i][1] || ''; } return r; };
   // so kỳ hiện tại với các kỳ trước: TB K kỳ + Event trước (xanh = tốt, đỏ = xấu)
-  const vsMore = (x) => (nP > 1 && x.av !== null ? ' · so TB ' + nP + ' kỳ ' + fv(x.m, x.av) + ' (' + arw(x.m, x.d2, x.av) + ')' : '') + (PE && x.ep !== null ? ' · so Event trước ' + fv(x.m, x.ep) + ' (' + arw(x.m, x.d3, x.ep) + ')' : '');
+  const vsMore = (x) => PE ? ' · so Event trước ' + fv(x.m, x.ep) + ' (' + arw(x.m, x.d3, x.ep) + ')' : '';
   const tgTxt = (x) => x.lv === 0 ? ' · <span class="tnt-evg">đạt</span>' : x.lv === 2 ? ' · <span class="tnt-evr">chưa đạt ' + tntHlTg(x.m) + '</span>' : x.lv === 1 ? ' · <span style="color:#B7791F;font-weight:700">gần đạt ' + tntHlTg(x.m) + '</span>' : '';
-  const line = (x, bad) => { let t = '<li><b>' + esc(x.m[1]) + '</b>: ' + fv(x.m, x.pv) + ' → <b>' + fv(x.m, x.ev) + '</b> (' + arw(x.m, x.d1, x.pv) + ')' + tgTxt(x);
-    t += '<div class="wh">' + vsMore(x).replace(/^ · /, '') + '</div>';
+  const line = (x, bad) => { let t = '<li><b>' + esc(x.m[1]) + '</b>: EVENT <b>' + fv(x.m, x.ev) + '</b>' + tgTxt(x);
+    t += '<div class="wh">' + (PE ? vsMore(x).replace(/^ · /, '') + ' · ' : '') + 'so tuần bình thường ' + fv(x.m, x.pv) + ' (' + arw(x.m, x.d1, x.pv) + ')</div>';
     if (bad) { const w = worst(x.m), wb = worstBc(x.m); if (w) t += '<div class="wh">↳ AM xấu đi nhiều nhất: <b>' + esc(w.k) + '</b> (' + fv(x.m, w.b) + ' → ' + fv(x.m, w.a) + ')</div>'; if (wb) t += '<div class="wh">↳ Bưu cục xấu đi nhiều nhất: <b>' + esc(wb.k) + '</b>' + (wb.am ? ' (AM ' + esc(wb.am) + ')' : '') + ' (' + fv(x.m, wb.b) + ' → ' + fv(x.m, wb.a) + ')</div>'; }
     return t + '</li>'; };
   // Sản lượng
@@ -9356,21 +9356,25 @@ function tntEvHtml() {
   const pct = (a, b) => b ? (a - b) / b : null, pTxt = (x) => x === null ? '—' : (x > 0 ? '+' : x < 0 ? '−' : '') + (Math.abs(x) * 100).toFixed(1).replace('.', ',') + '%';
   const nU = up.length, nD = dn.length;
   const vcls = nU > nD ? 'g' : nD > nU ? 'r' : 'y';
-  const verdict = (nU > nD ? 'Event TỐT LÊN so với kỳ trước' : nD > nU ? 'Event TỆ ĐI so với kỳ trước' : 'Event đi ngang so với kỳ trước') + ': ' + nU + ' chỉ số tốt lên, ' + nD + ' chỉ số tệ đi' + (fl.length ? ', ' + fl.length + ' gần như không đổi' : '') + '.';
-  const volTxt = 'Cần giao ' + tntN(vC) + ' đơn/ngày (' + pTxt(pct(vC, vP)) + ' so kỳ trước' + (vA ? ', ' + pTxt(pct(vC, vA)) + ' so TB ' + nP + ' kỳ' : '') + '). Giao thành công ' + tntN(kC) + ' đơn/ngày (' + pTxt(pct(kC, kP)) + ').';
+  const verdict = (nU > nD ? 'So tuần bình thường: TỐT LÊN' : nD > nU ? 'So tuần bình thường: TỆ ĐI' : 'So tuần bình thường: đi ngang') + ' — ' + nU + ' chỉ số tốt lên, ' + nD + ' chỉ số tệ đi' + (fl.length ? ', ' + fl.length + ' gần như không đổi' : '') + '.';
+  const vE = PE ? PE.v / PE.n : null, kE = PE ? PE.k / PE.n : null;
+  const tg2 = (x) => x === null ? '—' : Math.abs(x) < 0.0005 ? 'không đổi' : (x > 0 ? 'tăng ' : 'giảm ') + (Math.abs(x) * 100).toFixed(1).replace('.', ',') + '%';
+  const vs2 = (a, b, e) => (e ? tg2(pct(a, e)) + ' so Event trước, ' : '') + tg2(pct(a, b)) + ' so tuần bình thường';
+  const mBl = tntHlM().find((m) => m[0] === 'bl'), bC = val(mBl, C), bP = val(mBl, P), bE = PE ? val(mBl, PE) : null;
+  const blTxt = bC === null ? ' Backlog giao: chưa có số chụp trong kỳ Event.' : ' Backlog giao ' + tntN(bC) + ' đơn (' + [bE !== null ? (bC > bE ? 'tăng ' : bC < bE ? 'giảm ' : 'bằng ') + tntN(Math.abs(bC - bE)) + ' so Event trước' : '', bP !== null ? (bC > bP ? 'tăng ' : bC < bP ? 'giảm ' : 'bằng ') + tntN(Math.abs(bC - bP)) + ' so tuần bình thường' : ''].filter(Boolean).join(', ') + ').';
+  const volTxt = 'Volume cần giao ' + tntN(vC) + ' đơn/ngày (' + vs2(vC, vP, vE) + '). Giao thành công ' + tntN(kC) + ' đơn/ngày (' + vs2(kC, kP, kE) + ').' + blTxt;
   const u3 = R.filter((x) => x.st3 > 0), d3 = R.filter((x) => x.st3 < 0);
-  const vs3Txt = PE ? 'So với Event trước (' + tntDm(D.dates[PE.idx[0]]) + '–' + tntDm(D.dates[PE.idx[PE.idx.length - 1]]) + '): ' + (u3.length > d3.length ? 'TỐT HƠN' : d3.length > u3.length ? 'KÉM HƠN' : 'tương đương') + ' — ' + u3.length + ' chỉ số tốt hơn, ' + d3.length + ' chỉ số kém hơn; cần giao ' + pTxt(pct(vC, PE.v / PE.n)) + '.' : '';
-  let h = '<div class="tnt-evsub">EVENT ' + rgC + ' so với kỳ liền trước ' + rgP + (nP > 1 ? ', TB ' + nP + ' kỳ trước (' + rgA + ')' : '') + (PE ? ' và Event trước ' + tntRg(PE.idx) : '') + '. Mỗi kỳ = ' + L + ' ngày liên tiếp lùi từ ngày bắt đầu Event (không theo tuần T2–CN).' +
+  const vs3Txt = PE ? 'So Event trước (' + tntDm(D.dates[PE.idx[0]]) + '–' + tntDm(D.dates[PE.idx[PE.idx.length - 1]]) + '): ' + (u3.length > d3.length ? 'TỐT HƠN' : d3.length > u3.length ? 'KÉM HƠN' : 'tương đương') + ' — ' + u3.length + ' chỉ số tốt hơn, ' + d3.length + ' chỉ số kém hơn.' : '';
+  let h = '<div class="tnt-evsub">EVENT ' + rgC + ' so 2 mốc: ' + (PE ? '<b>Event trước</b> ' + tntRg(PE.idx) + ' và ' : '') + '<b>tuần bình thường</b> (kỳ liền trước) ' + rgP + '.' + (PE ? '' : ' <span style="color:#B4231A">Chưa chọn / chưa có dữ liệu kỳ Event trước.</span>') +
     (part ? ' <b style="color:#B4231A">Event mới có ' + C.idx.length + '/' + L + ' ngày</b> → các kỳ so sánh cũng chỉ lấy ' + C.idx.length + ' ngày tương ứng.' : '') + '</div>';
-  h += '<div class="tnt-evv ' + vcls + '">' + verdict + '</div>';
-  if (PE) h += '<div class="tnt-evv ' + (u3.length > d3.length ? 'g' : d3.length > u3.length ? 'r' : 'y') + '" style="font-size:15px">' + vs3Txt + '</div>';
+  if (PE) h += '<div class="tnt-evv ' + (u3.length > d3.length ? 'g' : d3.length > u3.length ? 'r' : 'y') + '">' + vs3Txt + '</div>';
+  h += '<div class="tnt-evv ' + vcls + '"' + (PE ? ' style="font-size:15px"' : '') + '>' + verdict + '</div>';
   h += '<div class="tnt-evvol">📦 ' + volTxt + '</div>';
   // ---- Rút gọn (copy gửi báo cáo) — giống Tổng hợp nhanh
   const EXv = tntEvEx(), emd = tntEvMode();
   const nmS = (m) => m[0] === 'gtc' ? '% GTC total' : m[1].replace(' (đơn/ngày)', '');
   const dC = (m, d, b) => { if (d === null || !isFinite(d)) return '—'; if (Math.abs(d) < th(m, b) || !m[5]) return dTxt(m, d); return '<span class="' + (m[5] * d > 0 ? 'g' : 'r') + '">' + dTxt(m, d) + '</span>'; };
-  const oneS = (x) => '<b>' + esc(nmS(x.m)) + ':</b> Kỳ trước ' + fv(x.m, x.pv) + ' → EVENT <b>' + fv(x.m, x.ev) + '</b> (' + dC(x.m, x.d1, x.pv) + ')' +
-    (nP > 1 && x.av !== null ? ', so TB ' + nP + ' kỳ ' + dC(x.m, x.d2, x.av) : '') + (PE && x.ep !== null ? ', so Event trước ' + dC(x.m, x.d3, x.ep) : '');
+  const oneS = (x) => '<b>' + esc(nmS(x.m)) + ':</b> EVENT <b>' + fv(x.m, x.ev) + '</b>' + (PE && x.ep !== null ? ', so Event trước ' + fv(x.m, x.ep) + ' (' + dC(x.m, x.d3, x.ep) + ')' : '') + ', so tuần bình thường ' + fv(x.m, x.pv) + ' (' + dC(x.m, x.d1, x.pv) + ')';
   const linesS = (arr) => { const Lr = arr.filter((r) => !EXv[r.m[0]]), used = {}, out = [];
     Lr.forEach((r) => { const id = r.m[0]; if (used[id]) return; used[id] = 1;
       if (id.indexOf('fd') === 0) { const g = Lr.filter((x) => x.m[0].indexOf('fd') === 0); g.forEach((x) => { used[x.m[0]] = 1; }); out.push(g.map(oneS).join('; ')); return; }
@@ -9379,8 +9383,9 @@ function tntEvHtml() {
       out.push(oneS(r)); });
     return out.length ? out.map((x, i) => '\n' + (i + 1) + '. ' + x).join('') : '\n— không có'; };
   const scS = !tntFAny() ? 'Vùng TNT' : tntScopeTxt(false);
-  let TS = '<b>🎯 [TNT]-Report · Báo cáo Event ' + tntDm(E.from) + '–' + tntDm(E.to) + ' · ' + esc(scS) + (TNT.cust === 'tts' ? ' · TTS' : '') + '</b>\nKỳ: <b>EVENT ' + rgC + '</b> so kỳ trước ' + rgP + (nP > 1 ? ', TB ' + nP + ' kỳ trước' : '') + (PE ? ', Event trước ' + tntRg(PE.idx) : '') + (part ? ' (Event mới có ' + C.idx.length + '/' + L + ' ngày)' : '') + '\n';
-  TS += '<b class="' + vcls + '">' + verdict + '</b>\n';
+  let TS = '<b>🎯 [TNT]-Report · Báo cáo Event ' + tntDm(E.from) + '–' + tntDm(E.to) + ' · ' + esc(scS) + (TNT.cust === 'tts' ? ' · TTS' : '') + '</b>\nKỳ: <b>EVENT ' + rgC + '</b> so ' + (PE ? 'Event trước ' + tntRg(PE.idx) + ' và ' : '') + 'tuần bình thường ' + rgP + (part ? ' (Event mới có ' + C.idx.length + '/' + L + ' ngày)' : '') + '\n';
+  if (PE) TS += '<b class="' + (u3.length > d3.length ? 'g' : d3.length > u3.length ? 'r' : 'y') + '">' + vs3Txt + '</b>\n';
+  TS += '<b class="' + vcls + '">' + verdict + '</b>\n📦 ' + volTxt + '\n';
   TS += '\n<b class="g">🟢 ĐIỂM SÁNG</b>' + linesS(up);
   TS += '\n\n<b class="r">🔴 CẦN CẢI THIỆN</b>' + linesS(dn);
   const chipsS = up.concat(dn).map((r) => '<button class="' + (EXv[r.m[0]] ? '' : 'on') + '" onclick="tntEvExTog(\'' + r.m[0] + '\')">' + (EXv[r.m[0]] ? '' : '✓ ') + esc(nmS(r.m)) + '</button>').join('');
@@ -9403,17 +9408,16 @@ function tntEvHtml() {
         if (!oa) return; a.es.map((i) => ({ i: i, b: bad('b:' + i, [i]) })).sort((x, y) => y.b - x.b).forEach((b) => { o += '<tr class="tnt-evl3"><td>' + esc(D.ents[b.i][0]) + '</td>' + cells('b:' + b.i, [b.i]) + '</tr>'; }); }); });
     return o || '<tr class="tnt-evl1"><td colspan="' + ncol + '" class="tnt-evz">Không có dữ liệu chi tiết.</td></tr>'; };
   // 1) Bảng chi tiết từng chỉ số
-  const nc1 = 4 + (nP > 1 ? 2 : 0) + (PE ? 2 : 0) + 1;
-  const cells1 = (m) => (key, ent) => { const a = val(m, sumOf(key, ent, C.idx)), b = val(m, sumOf(key, ent, C.prevIdx)), av = avgOf(m, key, ent), e2 = PE ? val(m, sumOf(key, ent, PE.idx)) : null;
+  const nc1 = 4 + (PE ? 2 : 0) + 1;
+  const cells1 = (m) => (key, ent) => { const a = val(m, sumOf(key, ent, C.idx)), b = val(m, sumOf(key, ent, C.prevIdx)), e2 = PE ? val(m, sumOf(key, ent, PE.idx)) : null;
     const lv = tntHlLv(m, a), tc = lv === 0 ? 'tnt-evg' : lv === 2 ? 'tnt-evr' : '';
-    return '<td class="evc"><span class="' + tc + '">' + fv(m, a) + '</span></td><td>' + fv(m, b) + '</td><td>' + arw(m, a === null || b === null ? null : a - b, b) + '</td>' +
-      (nP > 1 ? '<td>' + fv(m, av) + '</td><td>' + arw(m, a === null || av === null ? null : a - av, av) + '</td>' : '') + (PE ? '<td>' + fv(m, e2) + '</td><td>' + arw(m, a === null || e2 === null ? null : a - e2, e2) + '</td>' : '') + '<td>' + (tntHlTg(m) || '<span class="tnt-evz">—</span>') + '</td>'; };
+    return '<td class="evc"><span class="' + tc + '">' + fv(m, a) + '</span></td>' + (PE ? '<td>' + fv(m, e2) + '</td><td>' + arw(m, a === null || e2 === null ? null : a - e2, e2) + '</td>' : '') + '<td>' + fv(m, b) + '</td><td>' + arw(m, a === null || b === null ? null : a - b, b) + '</td>' + '<td>' + (tntHlTg(m) || '<span class="tnt-evz">—</span>') + '</td>'; };
   const bad1 = (m) => (key, ent) => { const a = val(m, sumOf(key, ent, C.idx)), b = val(m, sumOf(key, ent, C.prevIdx)); if (a === null || b === null) return -1e9; const w = m[4](sumOf(key, ent, C.idx)); return (m[5] ? -m[5] : 1) * (a - b) * (isN(m) ? 1 : Math.sqrt(w)); };
   const tbl = (tb, title, thead, ncol, rowFn) => { let o = '<div class="tnt-evh5">' + title + ' <button class="tnt-evmini" onclick="tntEvAll(\'' + tb + '\',1)">▾ Mở hết Tỉnh</button><button class="tnt-evmini" onclick="tntEvAll(\'' + tb + '\',0)">▴ Thu gọn hết</button></div><div class="tnt-tw"><table class="tnt-evt"><thead>' + thead + '</thead><tbody>';
     let lastG = ''; rows.forEach((x) => { if (x.m[2] !== lastG) { lastG = x.m[2]; o += '<tr class="hd"><td colspan="' + ncol + '">' + grp[lastG] + '</td></tr>'; }
       const k = tb + '|' + x.m[0], op = OP[k]; o += '<tr class="tnt-evl0" onclick="tntEvTog(\'' + k + '\')" title="Bấm để xem theo Tỉnh → AM → Bưu cục"><td>' + (op ? '▾ ' : '▸ ') + esc(x.m[1]) + '</td>' + rowFn(x.m)('V', null) + '</tr>'; if (op) o += tree(tb, x.m, rowFn(x.m), tb === 'd' ? bad1(x.m) : badY(x.m), ncol); });
     return o + '</tbody></table></div>'; };
-  h += tbl('d', 'Chi tiết từng chỉ số <span class="tnt-evhint">· bấm vào chỉ số để xem Tỉnh → AM → Bưu cục</span>', '<tr><th>Chỉ số</th><th>EVENT<br><small>' + rgC + '</small></th><th>Kỳ trước<br><small>' + rgP + '</small></th><th>Chênh so kỳ trước</th>' + (nP > 1 ? '<th>TB ' + nP + ' kỳ trước</th><th>Chênh so TB</th>' : '') + (PE ? '<th>Event trước<br><small>' + tntRg(PE.idx) + '</small></th><th>Chênh so Event trước</th>' : '') + '<th>Target</th></tr>', nc1, cells1);
+  h += tbl('d', 'Chi tiết từng chỉ số <span class="tnt-evhint">· bấm vào chỉ số để xem Tỉnh → AM → Bưu cục</span>', '<tr><th>Chỉ số</th><th>EVENT<br><small>' + rgC + '</small></th>' + (PE ? '<th>Event trước<br><small>' + tntRg(PE.idx) + '</small></th><th>Chênh so Event trước</th>' : '') + '<th>Tuần bình thường<br><small>' + rgP + '</small></th><th>Chênh so tuần bình thường</th><th>Target</th></tr>', nc1, cells1);
   h += '<div class="tnt-evnote">▲ tăng / ▼ giảm · <span class="tnt-evg">xanh = tốt</span>, <span class="tnt-evr">đỏ = xấu</span>, xám = sản lượng (không xét tốt/xấu) · chênh % = trừ thẳng · backlog = đơn tồn lúc 01:00 cuối kỳ · trong Tỉnh/AM/BC: xấu nhất xếp trên.</div>';
   // 2) Diễn biến từng ngày: dòng = chỉ số, cột = từng ngày Event (chênh so cùng ngày tương ứng kỳ trước)
   const days = C.idx.map((i, j) => ({ i: i, p: C.prevIdx && C.prevIdx[j] !== undefined ? C.prevIdx[j] : null }));
@@ -9421,13 +9425,13 @@ function tntEvHtml() {
     if (a === null) return '<td class="tnt-evz">—</td>'; const lv = tntHlLv(m, a), tc = lv === 0 ? 'tnt-evg' : lv === 2 ? 'tnt-evr' : '';
     return '<td><b class="' + tc + '">' + fv(m, a) + '</b>' + (b !== null ? '<br><small>' + arw(m, a - b, b) + '</small>' : '') + '</td>'; }).join('');
   const badY = (m) => (key, ent) => { let s = 0; days.forEach((d) => { const a = val(m, sumOf(key, ent, [d.i])), b = d.p === null ? null : val(m, sumOf(key, ent, [d.p])); if (a !== null && b !== null) s += (m[5] ? -m[5] : 1) * (a - b); }); return s; };
-  h += tbl('y', 'Diễn biến từng ngày trong Event <span class="tnt-evhint">· dưới mỗi số: chênh so với ngày tương ứng của kỳ trước · bấm chỉ số để xem Tỉnh → AM → Bưu cục</span>', '<tr><th>Chỉ số</th>' + days.map((d) => { const x = D.dates[d.i]; return '<th>' + (tntWd(x) === 0 ? 'CN' : 'T' + (tntWd(x) + 1)) + ' ' + tntDm(x) + '</th>'; }).join('') + '</tr>', 1 + days.length, cellsY);
+  h += tbl('y', 'Diễn biến từng ngày trong Event <span class="tnt-evhint">· dưới mỗi số: chênh so với ngày tương ứng của tuần bình thường · bấm chỉ số để xem Tỉnh → AM → Bưu cục</span>', '<tr><th>Chỉ số</th>' + days.map((d) => { const x = D.dates[d.i]; return '<th>' + (tntWd(x) === 0 ? 'CN' : 'T' + (tntWd(x) + 1)) + ' ' + tntDm(x) + '</th>'; }).join('') + '</tr>', 1 + days.length, cellsY);
   // Bản copy
-  const pl = (x, bad) => { let t = '• ' + x.m[1] + ': ' + fv(x.m, x.pv) + ' → ' + fv(x.m, x.ev) + ' (' + dTxt(x.m, x.d1) + ')' + (x.lv === 2 ? ', chưa đạt ' + tntHlTg(x.m) : x.lv === 0 ? ', đạt' : '');
-    if (nP > 1 && x.av !== null) t += '; so TB ' + nP + ' kỳ ' + dTxt(x.m, x.d2); if (PE && x.ep !== null) t += '; so Event trước ' + dTxt(x.m, x.d3);
+  const pl = (x, bad) => { let t = '• ' + x.m[1] + ': EVENT ' + fv(x.m, x.ev) + (x.lv === 2 ? ' (chưa đạt ' + tntHlTg(x.m) + ')' : x.lv === 0 ? ' (đạt)' : '');
+    if (PE && x.ep !== null) t += '; so Event trước ' + fv(x.m, x.ep) + ' (' + dTxt(x.m, x.d3) + ')'; t += '; so tuần bình thường ' + fv(x.m, x.pv) + ' (' + dTxt(x.m, x.d1) + ')';
     if (bad) { const w = worst(x.m), wb = worstBc(x.m); if (w) t += '\n   ↳ AM xấu đi nhiều nhất: ' + w.k + ' (' + fv(x.m, w.b) + ' → ' + fv(x.m, w.a) + ')'; if (wb) t += '\n   ↳ Bưu cục xấu đi nhiều nhất: ' + wb.k + (wb.am ? ' (AM ' + wb.am + ')' : '') + ' (' + fv(x.m, wb.b) + ' → ' + fv(x.m, wb.a) + ')'; } return t; };
   const scope = !tntFAny() ? 'Toàn vùng TNT' : tntScopeTxt(true);
-  window.__tntEvTxt = 'BÁO CÁO KỲ EVENT ' + tntDm(E.from) + '–' + tntDm(E.to) + ' · ' + scope + '\nSo với kỳ trước ' + rgP + (part ? ' (Event mới có ' + C.idx.length + '/' + L + ' ngày)' : '') + '\n\n' + verdict + (PE ? '\n' + vs3Txt : '') + '\n' + volTxt +
+  window.__tntEvTxt = 'BÁO CÁO KỲ EVENT ' + tntDm(E.from) + '–' + tntDm(E.to) + ' · ' + scope + '\nSo ' + (PE ? 'Event trước ' + tntRg(PE.idx) + ' và ' : '') + 'tuần bình thường ' + rgP + (part ? ' (Event mới có ' + C.idx.length + '/' + L + ' ngày)' : '') + '\n\n' + (PE ? vs3Txt + '\n' : '') + verdict + '\n' + volTxt +
     '\n\nTốt lên:\n' + (up.length ? up.map((x) => pl(x, false)).join('\n') : '• Không có') + '\n\nTệ đi:\n' + (dn.length ? dn.map((x) => pl(x, true)).join('\n') : '• Không có');
   if (emd !== 'short') h += '<div style="margin-top:10px"><button class="tnt-evbtn" onclick="tntEvCopy(this)">📋 Copy</button></div>';
   return head(h + '</div>');
