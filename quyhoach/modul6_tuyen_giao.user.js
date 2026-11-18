@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.49
+// @version      1.7.50
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -7402,8 +7402,12 @@
         // v1.7.49 — BẢNG 2: nhân viên đang chạy các xã/phường nào (mỗi dòng = ngày × bưu cục × xã/phường × nhân viên; nhiều ngày thì gộp)
         let qhWardTblHtml = '';
         {
+            // v1.7.50 — lọc loại đơn Tất cả / Giao / Lấy / Trả + xếp theo Nhân viên / Xã-phường (chủ dự án: "chỉ chọn đơn giao, xem xã đó NV nào giao")
+            const wtType = state.qhWtType || 'all', wtBy = state.qhWtBy || 'staff';
+            const showP = wtType === 'all' || wtType === 'PICK', showD = wtType === 'all' || wtType === 'DELIVER', showR = wtType === 'all' || wtType === 'RETURN';
             const wm = new Map();
             (state.staffRawRows || []).forEach(r => {
+                if (wtType !== 'all' && r.type !== wtType) return;
                 if (state.staffSelectedStaffKey !== 'all' && r.staffKey !== state.staffSelectedStaffKey) return;
                 if (state.staffSelectedGroup !== 'all' && r.customerGroup !== state.staffSelectedGroup) return;
                 const wc = resolveOldWardCode_(r) || '';
@@ -7415,40 +7419,47 @@
                 else if (r.type === 'DELIVER') { if (r.isUpdated && r.isSucceeded) g.ds++; else if (r.isUpdated) g.df++; else g.dp++; }
                 else if (r.type === 'RETURN') g.rt++;
             });
-            const wl = Array.from(wm.values()).sort((a, b) => b.d.localeCompare(a.d) || String(a.hubId).localeCompare(String(b.hubId)) || a.driverName.localeCompare(b.driverName) || b.tot - a.tot);
+            const wNm = (w) => w.wc ? String((state.wardsByCode && state.wardsByCode[w.wc] && state.wardsByCode[w.wc].name) || w.wc) : '~';
+            const wl = Array.from(wm.values()).sort((a, b) => b.d.localeCompare(a.d) || String(a.hubId).localeCompare(String(b.hubId)) ||
+                (wtBy === 'ward' ? (wNm(a).localeCompare(wNm(b)) || b.tot - a.tot) : (a.driverName.localeCompare(b.driverName) || b.tot - a.tot)));
             const WMAX = 1000, wShown = wl.slice(0, WMAX);
             let lastStaff = '';
             const wRows = wShown.map(w => {
                 const cc = qhCanCells_(w.ps, w.pf, w.pp, w.ds, w.df, w.dp, w.rt);
                 const wName = w.wc ? ((state.wardsByCode && state.wardsByCode[w.wc] && state.wardsByCode[w.wc].name) || w.wc) : '<span style="color:#adb5bd;">(không xác định xã/phường)</span>';
                 const dk = w.wc ? qhKmDist_(w.hubId, 'BC', w.wc) : { km: null };
-                const sk = w.d + '|' + w.hubId + '|' + w.staffKey, first = sk !== lastStaff; lastStaff = sk;
+                const sk = w.d + '|' + w.hubId + '|' + (wtBy === 'ward' ? w.wc : w.staffKey), first = sk !== lastStaff; lastStaff = sk;
                 const dTxt = qhMulti_ ? `${qhDays_[0].slice(5).split('-').reverse().join('/')} → ${qhDays_[qhDays_.length - 1].slice(5).split('-').reverse().join('/')}` : w.d;
                 return `<tr${first ? ' style="border-top:2px solid #ced4da;"' : ''}>
                     <td style="white-space:nowrap;">${first ? dTxt : ''}</td>
                     <td>${first ? hubNameForStaffTable_(w.hubId) : ''}</td>
-                    <td><b>${wName}</b></td>
-                    <td>${first ? '<b>' + w.driverName + '</b>' : '<span style="color:#adb5bd;">〃</span>'}</td>
-                    <td style="text-align:right; color:#28a745;">${w.ps}</td><td style="text-align:right; color:#dc3545;">${w.pf}</td>${cc.lay}
-                    <td style="text-align:right; color:#28a745;">${w.ds}</td><td style="text-align:right; color:#dc3545;">${w.df}</td>${cc.giao}
-                    <td style="text-align:right;">${w.rt}</td>${cc.tra}
+                    <td>${wtBy === 'ward' ? (first ? '<b>' + wName + '</b>' : '<span style="color:#adb5bd;">〃</span>') : '<b>' + wName + '</b>'}</td>
+                    <td>${wtBy === 'ward' ? '<b>' + w.driverName + '</b>' : (first ? '<b>' + w.driverName + '</b>' : '<span style="color:#adb5bd;">〃</span>')}</td>
+                    ${showP ? `<td style="text-align:right; color:#28a745;">${w.ps}</td><td style="text-align:right; color:#dc3545;">${w.pf}</td>${cc.lay}` : ''}
+                    ${showD ? `<td style="text-align:right; color:#28a745;">${w.ds}</td><td style="text-align:right; color:#dc3545;">${w.df}</td>${cc.giao}` : ''}
+                    ${showR ? `<td style="text-align:right;">${w.rt}</td>${cc.tra}` : ''}
                     <td style="text-align:right; font-weight:700;">${w.tot}</td>
                     <td style="text-align:right; color:#1c4f9c; font-weight:700;">${dk.km !== null ? qhKmFmt_(dk.km) + (dk.road ? '' : '<span title="Đường chim bay" style="color:#adb5bd;">*</span>') : '—'}</td>
                 </tr>`;
             }).join('');
-            qhWardTblHtml = wl.length ? `
+            const wBtn = (attr, val, cur, label) => `<button type="button" data-${attr}="${val}" style="border:1px solid ${val === cur ? '#1c4f9c' : '#ced4da'}; background:${val === cur ? '#1c4f9c' : '#fff'}; color:${val === cur ? '#fff' : '#495057'}; border-radius:6px; padding:3px 10px; font-size:12px; font-weight:700; cursor:pointer;">${label}</button>`;
+            const wBar = `<div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:6px; font-size:12px; color:#495057;">
+                <span style="font-weight:700;">Loại đơn:</span>${wBtn('qhwt', 'all', wtType, 'Tất cả')}${wBtn('qhwt', 'DELIVER', wtType, '🚚 Giao')}${wBtn('qhwt', 'PICK', wtType, '📦 Lấy')}${wBtn('qhwt', 'RETURN', wtType, '↩️ Trả')}
+                <span style="font-weight:700; margin-left:12px;">Xếp theo:</span>${wBtn('qhwb', 'staff', wtBy, '👤 Nhân viên')}${wBtn('qhwb', 'ward', wtBy, '📍 Xã/Phường')}</div>`;
+            qhWardTblHtml = `
             <div style="margin-top:18px; font-weight:800; font-size:14px; color:#212529;">📍 Chi tiết xã/phường từng nhân viên đang chạy${qhMulti_ ? ` <span style="font-weight:400; font-size:12px; color:#6c757d;">(gộp ${qhDays_.length} ngày)</span>` : ''}</div>
+            ${wBar}${wl.length ? `
             <div style="max-height:560px; overflow:auto; margin-top:6px; border:1px solid #dee2e6; border-radius:6px;">
             <table class="ghn-tg-staff-table" style="margin:0;">
                 <thead style="position:sticky; top:0; z-index:2; background:#fff;"><tr>
                     <th>Ngày</th><th>Bưu cục</th><th>Xã/Phường</th><th>Nhân viên</th>
-                    <th>Lấy TC</th><th>Lấy thất bại</th><th>Đang lấy</th><th>Cần lấy</th><th>% LTC</th>
-                    <th>Giao TC</th><th>Giao thất bại</th><th>Đang giao</th><th>Cần giao</th><th>% GTC</th>
-                    <th>Trả hàng</th><th>% Trả hàng</th><th>Tổng</th><th title="Khoảng cách đường bộ từ bưu cục tới tâm xã/phường; * = chim bay">Km BC → xã/phường</th>
+                    ${showP ? '<th>Lấy TC</th><th>Lấy thất bại</th><th>Đang lấy</th><th>Cần lấy</th><th>% LTC</th>' : ''}
+                    ${showD ? '<th>Giao TC</th><th>Giao thất bại</th><th>Đang giao</th><th>Cần giao</th><th>% GTC</th>' : ''}
+                    ${showR ? '<th>Trả hàng</th><th>% Trả hàng</th>' : ''}<th>Tổng</th><th title="Khoảng cách đường bộ từ bưu cục tới tâm xã/phường; * = chim bay">Km BC → xã/phường</th>
                 </tr></thead>
                 <tbody>${wRows}</tbody>
             </table></div>
-            ${wl.length > WMAX ? `<div style="font-size:11px; color:#adb5bd; margin-top:6px;">Đang hiển thị ${WMAX}/${wl.length} dòng đầu — thu hẹp bằng bộ lọc nhân viên.</div>` : ''}` : '';
+            ${wl.length > WMAX ? `<div style="font-size:11px; color:#adb5bd; margin-top:6px;">Đang hiển thị ${WMAX}/${wl.length} dòng đầu — thu hẹp bằng bộ lọc nhân viên.</div>` : ''}` : '<div style="font-size:12px; color:#adb5bd; margin-top:6px;">Không có đơn loại này.</div>'}`;
         }
         const ccT = qhCanCells_(totalPickSuccess, totalPickFail, agg.reduce((s, a) => s + a.pickPending, 0), totalDeliverSuccess, totalDeliverFail, agg.reduce((s, a) => s + a.deliverPending, 0), totalReturn, true);
         const totalRowHtml = `
@@ -7501,6 +7512,8 @@
                 btn.textContent = isHidden ? '−' : '+';
             });
         });
+        wrapEl.querySelectorAll('[data-qhwt]').forEach(b => b.addEventListener('click', () => { state.qhWtType = b.getAttribute('data-qhwt'); renderStaffTable_(); }));
+        wrapEl.querySelectorAll('[data-qhwb]').forEach(b => b.addEventListener('click', () => { state.qhWtBy = b.getAttribute('data-qhwb'); renderStaffTable_(); }));
         qhKmPrefetch_();
     }
 

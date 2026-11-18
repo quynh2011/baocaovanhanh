@@ -1,7 +1,7 @@
 # Bàn giao: Bản đồ quy hoạch tuyến giao — "[TNT] - Quy hoạch" + Tampermonkey "Modul 6 - Tuyến Giao"
 
 > Đọc file này + `CLAUDE.md` (gốc repo, mục 0/5/7/8/9) TRƯỚC khi sửa bất cứ gì của phần bản đồ.
-> Cập nhật lần cuối: 18/11/2026 — userscript **v1.7.49**, bản web chống cache **`?v=29`**.
+> Cập nhật lần cuối: 18/11/2026 — userscript **v1.7.50**, bản web chống cache **`?v=30`**.
 > Mọi thay đổi phần bản đồ: ghi Nhật ký ở `CLAUDE.md` mục 7 **và** cập nhật file này (mục 10 trạng thái/kế hoạch) trong cùng commit.
 
 ---
@@ -130,6 +130,7 @@ DBB 59 BC / 771 phường (Thái Nguyên, Hà Giang, Cao Bằng, Tuyên Quang, B
 - v1.7.47: thêm cột Đang lấy / Đang giao (đơn chưa cập nhật kết quả, `pickPending`/`deliverPending`); Cần lấy/Cần giao + % LTC/% GTC tính CẢ đơn đang lấy/đang giao (chủ dự án chốt: đều là đơn chưa thành công). Dòng "Tổng đơn giao" cũng gồm đơn đang giao.
 - v1.7.48: chọn NHIỀU ngày → bảng GỘP mỗi (bưu cục, nhân viên) còn 1 dòng (cộng đơn cả khoảng; cột Ngày ghi khoảng + "làm x/N ngày"; Km giao = TB/ngày các ngày làm; xã xa nhất = xa nhất các ngày; "+" dùng phân bổ xã/phường gộp `buildDotComputationRows_`).
 - v1.7.49: bảng thứ 2 "📍 Chi tiết xã/phường từng nhân viên đang chạy" dưới bảng nhân viên (`qhWardTblHtml` trong `renderStaffTable_`): mỗi dòng = ngày × bưu cục × xã/phường × nhân viên (nhiều ngày thì gộp), xã/phường của MỌI đơn (lấy/giao/trả) theo `resolveOldWardCode_`, đủ cột Lấy/Giao/Trả như bảng trên + Km BC → xã/phường; theo bộ lọc nhân viên/nhóm KH; tối đa 1.000 dòng, khung cuộn + tiêu đề dính. `qhKmPrefetch_` lấy đường bộ cho cả xã/phường có đơn lấy/trả.
+- v1.7.50: bảng 2 có nút lọc Loại đơn Tất cả / Giao / Lấy / Trả (`state.qhWtType`, lọc đơn trước khi gộp, ẩn cột của loại khác) + Xếp theo Nhân viên / Xã-phường (`state.qhWtBy`, xếp theo xã để xem xã đó NV nào chạy).
 - Hạn chế: là ƯỚC TÍNH theo tâm xã/phường, không phải quãng đường GPS thật của shipper (không tính đi lại giữa các điểm giao trong cùng xã).
 
 ## 9. Quy trình sửa → build → test → deploy
