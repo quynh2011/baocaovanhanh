@@ -1,7 +1,7 @@
 # Bàn giao: Bản đồ quy hoạch tuyến giao — "[TNT] - Quy hoạch" + Tampermonkey "Modul 6 - Tuyến Giao"
 
 > Đọc file này + `CLAUDE.md` (gốc repo, mục 0/5/7/8/9) TRƯỚC khi sửa bất cứ gì của phần bản đồ.
-> Cập nhật lần cuối: 18/11/2026 — userscript **v1.7.45**, bản web chống cache **`?v=25`**.
+> Cập nhật lần cuối: 18/11/2026 — userscript **v1.7.46**, bản web chống cache **`?v=26`**.
 > Mọi thay đổi phần bản đồ: ghi Nhật ký ở `CLAUDE.md` mục 7 **và** cập nhật file này (mục 10 trạng thái/kế hoạch) trong cùng commit.
 
 ---
@@ -126,6 +126,7 @@ DBB 59 BC / 771 phường (Thái Nguyên, Hà Giang, Cao Bằng, Tuyên Quang, B
 - Tab Theo Nhân Viên: bảng thêm cột **Km giao (ước tính)** và **BC → xã xa nhất (km)**, hàng TỔNG ghi TB km/NV/ngày; nút "+" ghi khoảng cách BC → từng xã/phường + dòng km giao; popup chấm nhân viên có "cách BC x km" từng xã + Km giao ước tính (gộp nhiều ngày = TB/ngày).
 - Điểm xã/phường = TÂM xã/phường (`centroidForWard_`), điểm BC = lat/lng trong hubs.json. Km giao = BC → lần lượt tâm các xã/phường có đơn giao (gần nhất đi trước, bỏ xã < 3% đơn — `QH_KM_MIN_SHARE_`) → về BC (`qhKmTrip_`).
 - Đường bộ: OSRM công khai `router.project-osrm.org` (CORS `*`, Tampermonkey cần `@connect router.project-osrm.org`), mỗi BC 1 lần gọi `table` (BC + mọi xã có đơn, tối đa 96 điểm) → `state.qhKmRoad[hub]`, gọi lần lượt cách 1,1s (`qhKmPrefetch_`, chạy sau mỗi lần vẽ bảng), xong vẽ lại bảng. Lỗi/không gọi được → đường chim bay (`qhKmHav_`), ghi "*"/"(chim bay)". Chỉ gửi toạ độ BC + tâm xã, không gửi dữ liệu đơn/nhân viên.
+- v1.7.46: bảng còn có Cần lấy (Lấy TC + thất bại) + % LTC, Cần giao (Giao TC + thất bại) + % GTC, % Trả hàng = đơn trả ÷ (Giao TC + đơn trả); hàng TỔNG tính trên tổng (`qhCanCells_` trong `renderStaffTable_`).
 - Hạn chế: là ƯỚC TÍNH theo tâm xã/phường, không phải quãng đường GPS thật của shipper (không tính đi lại giữa các điểm giao trong cùng xã).
 
 ## 9. Quy trình sửa → build → test → deploy
