@@ -2126,7 +2126,9 @@
             const pct = Math.round(w.wardShare * 100);
             const successPct = w.giaoCount > 0 ? Math.round((w.giaoSuccess / w.giaoCount) * 100) : 0;
             const tag = w.isPrimary ? ' 🏆 (chính — đặt chấm/tên tại đây)' : ' (phụ)';
-            return `<div>&nbsp;&nbsp;• <b>${w.wardName}</b>${tag}: ${w.giaoSuccess}/${w.giaoCount} đơn thành công (${successPct}%) · ${pct}% tổng đơn ngày</div>`;
+            const dk = qhKmDist_(props.hubId, 'BC', w.wardCode);
+            const kmTxt = dk.km !== null ? ` · cách BC ${qhKmFmt_(dk.km)} km${dk.road ? '' : ' (chim bay)'}` : '';
+            return `<div>&nbsp;&nbsp;• <b>${w.wardName}</b>${tag}: ${w.giaoSuccess}/${w.giaoCount} đơn thành công (${successPct}%) · ${pct}% tổng đơn ngày${kmTxt}</div>`;
         }).join('');
         // v1.7.4 — khi gộp NHIỀU NGÀY (props.dayCount > 1), hiện THÊM "TB X đơn/ngày (gộp N
         // ngày)" ngay sau tổng số thô — trạng thái quá tải/thiếu đơn ở cuối dòng giờ tính
@@ -2137,6 +2139,8 @@
             ? ` (TB ${props.dayTotalGiaoAvg} đơn/ngày, gộp ${props.dayCount} ngày)`
             : '';
         const giaoLine = `📦 <b>Giao (cả tuyến, ${props.wardCount} xã/phường):</b> ${props.dayTotalGiaoSuccess}/${props.dayTotalGiao} đơn thành công${avgSuffix} → ${STATUS_LABEL_[props.giaoStatus] || props.giaoStatus}`;
+        const kmA = qhKmStaffAvg_(props.staffKey, props.hubId);
+        const kmLine = kmA ? `🛣️ <b>Km giao ước tính:</b> ${qhKmFmt_(kmA.km)} km${kmA.n > 1 ? '/ngày (TB ' + kmA.n + ' ngày)' : ''}${kmA.road ? '' : ' (chim bay)'} — bưu cục → các xã/phường có đơn → về bưu cục` : '';
         const pickLine = props.hasPick
             ? `📫 <b>Lấy:</b> ${props.pickCount}/${props.pickTotal} đơn thành công (${props.pickSuccessPct}%) · chiếm ${props.pickSharePct}% (${props.pickCount}/${props.pickHubTotal}) tổng lấy thành công CẢ bưu cục → ${STATUS_LABEL_[props.pickStatus] || props.pickStatus}`
             : `📫 <b>Lấy:</b> không có đơn lấy thành công nào trong ngày.`;
@@ -2172,6 +2176,7 @@
                 <div style="font-size: 12px; color: #333; line-height: 1.7;">
                     <div>${giaoLine}</div>
                     <div style="font-size:11px; color:#495057;">${wardsLines}</div>
+                    ${kmLine ? `<div style="color:#1c4f9c;">${kmLine}</div>` : ''}
                     <div style="margin-top:4px;">${pickLine}</div>
                     <div>${groupLine}</div>
                     <div>${groupLine2}</div>
@@ -5384,7 +5389,9 @@
             const mark = b.wardCode === primaryWardCode ? ' 🏆 (chính — đặt chấm/tên)'
                 : secondaryWardCodes.has(b.wardCode) ? ' ✅ (phụ — chỉ tô viền)'
                 : '';
-            return `<div>${name}: <b>${b.count}</b> đơn (${pct}%)${mark}</div>`;
+            const dk = qhKmDist_(shared.hubId, 'BC', b.wardCode);
+            const kmTxt = dk.km !== null ? ` · 🛣️ cách BC <b>${qhKmFmt_(dk.km)} km</b>${dk.road ? '' : ' (chim bay)'}` : '';
+            return `<div>${name}: <b>${b.count}</b> đơn (${pct}%)${mark}${kmTxt}</div>`;
         }).join('');
         const unmatchedLine = shared.unmatchedCount > 0
             ? `<div style="color:#dc3545;">Không khớp được xã/phường nào: <b>${shared.unmatchedCount}</b> đơn (${Math.round(shared.unmatchedCount / shared.dayTotalGiao * 100)}%)</div>`
@@ -5402,12 +5409,120 @@
                 ? `<div style="margin-top:4px; color:#28a745;">→ Tuyến giao gồm <b>${names.length}</b> xã/phường (tô viền cả ${names.length}): <b>${names[0]}</b> (chính — đặt chấm/tên) + ${names.slice(1).join(', ')} (phụ)${gpsNote}.</div>`
                 : `<div style="margin-top:4px; color:#28a745;">→ Đặt chấm/tên tại <b>${names[0]}</b>${gpsNote}.</div>`;
         }
-        const sourceLine = `<div style="margin-top:4px; color:#6c757d;">Nguồn xã/phường: ${shared.fromGhnField} đơn lấy trực tiếp từ GHN (wardCode) · ${shared.fromFuzzyMatch} đơn suy luận từ địa chỉ text (dự phòng).</div>`;
+        const kmT = qhKmTrip_(shared.hubId, qhKmWardsOf_(shared));
+        const kmLine = kmT ? `<div style="margin-top:4px; color:#1c4f9c;">🛣️ Km giao ước tính: <b>${qhKmFmt_(kmT.km)} km</b>${kmT.road ? '' : ' (chim bay)'} — bưu cục → ${kmT.n} xã/phường → về bưu cục${kmT.far ? ` · xa nhất: <b>${(state.wardsByCode && state.wardsByCode[kmT.far.wc] ? state.wardsByCode[kmT.far.wc].name : kmT.far.wc)}</b> cách BC ${qhKmFmt_(kmT.far.km)} km` : ''}.</div>` : '';
+        const sourceLine = kmLine + `<div style="margin-top:4px; color:#6c757d;">Nguồn xã/phường: ${shared.fromGhnField} đơn lấy trực tiếp từ GHN (wardCode) · ${shared.fromFuzzyMatch} đơn suy luận từ địa chỉ text (dự phòng).</div>`;
         return `<div style="padding:6px 10px; font-size:11px; line-height:1.7;">${rows}${unmatchedLine}${resultLine}${sourceLine}</div>`;
     }
 
     // Vẽ lại bảng kết quả từ state.staffRawRows + 2 bộ lọc đang chọn (nhân viên/nhóm KH)
     // — KHÔNG gọi lại API, chỉ tính toán lại trong bộ nhớ nên rất nhanh.
+    // ==================== v1.7.45 — KHOẢNG CÁCH BƯU CỤC → XÃ/PHƯỜNG + KM 1 NHÂN VIÊN GIAO ====================
+    // Chủ dự án yêu cầu: "khoảng cách di chuyển từ bưu cục đến trung tâm xã/phường các tuyến giao,
+    // để xem 1 nhân viên giao bao nhiêu km và từ bưu cục đến xã/phường đó bao xa".
+    // - Điểm xã/phường = TÂM xã/phường (centroidForWard_), điểm bưu cục = toạ độ BC (hubs.json).
+    // - Khoảng cách ĐƯỜNG BỘ lấy từ OSRM công khai (router.project-osrm.org, cho phép CORS *):
+    //   MỖI bưu cục 1 lần gọi bảng khoảng cách (table) giữa BC + mọi xã/phường có đơn → dùng chung cho
+    //   mọi nhân viên của BC đó. Gọi lần lượt, cách nhau ~1,1s (giới hạn của máy chủ công khai).
+    //   Không gọi được thì dùng ĐƯỜNG CHIM BAY và ghi rõ "chim bay".
+    // - Km giao 1 nhân viên / ngày (ước tính) = BC → lần lượt tâm các xã/phường có đơn giao (xã gần nhất
+    //   đi trước) → về BC. Bỏ xã/phường lẻ tẻ < 3% đơn giao trong ngày (thường do GPS sai).
+    const QH_KM_MIN_SHARE_ = 0.03;
+    function qhKmHav_(a, b) {
+        const R = 6371, rad = Math.PI / 180, dLat = (b[1] - a[1]) * rad, dLng = (b[0] - a[0]) * rad;
+        const x = Math.sin(dLat / 2) ** 2 + Math.cos(a[1] * rad) * Math.cos(b[1] * rad) * Math.sin(dLng / 2) ** 2;
+        return 2 * R * Math.asin(Math.min(1, Math.sqrt(x)));
+    }
+    function qhKmHubPos_(hubId) {
+        const h = state.hubsByCode ? state.hubsByCode[String(hubId)] : null;
+        const lat = h ? Number(h.lat) : NaN, lng = h ? Number(h.lng) : NaN;
+        return isFinite(lat) && isFinite(lng) && lat && lng ? [lng, lat] : null;
+    }
+    function qhKmWardPos_(wc) { const c = centroidForWard_(String(wc)); return c && isFinite(+c[0]) && isFinite(+c[1]) ? [+c[0], +c[1]] : null; }
+    function qhKmFmt_(km) { return km === null || km === undefined || !isFinite(km) ? '—' : (Math.round(km * 10) / 10).toLocaleString('vi-VN'); }
+    function qhKmHttp_(url) {
+        if (typeof GM_xmlhttpRequest === 'function') {
+            return new Promise((resolve, reject) => {
+                GM_xmlhttpRequest({ method: 'GET', url, timeout: 20000,
+                    onload: (r) => { try { resolve(JSON.parse(r.responseText)); } catch (e) { reject(e); } },
+                    onerror: () => reject(new Error('net')), ontimeout: () => reject(new Error('timeout')) });
+            });
+        }
+        return fetch(url).then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    }
+    // Khoảng cách giữa 2 điểm của 1 bưu cục ('BC' hoặc mã xã/phường) → {km, road}
+    function qhKmDist_(hubId, a, b) {
+        const R = state.qhKmRoad && state.qhKmRoad[String(hubId)];
+        if (R && R.m && R.ix[a] !== undefined && R.ix[b] !== undefined) {
+            const v = R.m[R.ix[a]] && R.m[R.ix[a]][R.ix[b]];
+            if (typeof v === 'number' && isFinite(v)) return { km: v / 1000, road: true };
+        }
+        const pa = a === 'BC' ? qhKmHubPos_(hubId) : qhKmWardPos_(a), pb = b === 'BC' ? qhKmHubPos_(hubId) : qhKmWardPos_(b);
+        if (!pa || !pb) return { km: null, road: false };
+        return { km: qhKmHav_(pa, pb), road: false };
+    }
+    // Danh sách xã/phường tính km của 1 (nhân viên, ngày) — từ wardBreakdown (cả ngày)
+    function qhKmWardsOf_(asg) {
+        if (!asg || !asg.wardBreakdown) return [];
+        const tot = asg.dayTotalGiao || 1;
+        return asg.wardBreakdown.filter((b) => b.count / tot >= QH_KM_MIN_SHARE_ && qhKmWardPos_(b.wardCode)).map((b) => b.wardCode);
+    }
+    // Km giao (ước tính) + xã xa nhất của 1 (nhân viên, ngày)
+    function qhKmTrip_(hubId, wards) {
+        if (!qhKmHubPos_(hubId) || !wards.length) return null;
+        const left = wards.slice(); let cur = 'BC', tot = 0, road = true, far = null;
+        wards.forEach((w) => { const d = qhKmDist_(hubId, 'BC', w); if (d.km !== null && (!far || d.km > far.km)) far = { wc: w, km: d.km, road: d.road }; });
+        while (left.length) {
+            let bi = -1, bd = null;
+            left.forEach((w, i) => { const d = qhKmDist_(hubId, cur, w); if (d.km !== null && (bd === null || d.km < bd.km)) { bd = d; bi = i; } });
+            if (bi < 0) break; tot += bd.km; if (!bd.road) road = false; cur = left[bi]; left.splice(bi, 1);
+        }
+        const back = qhKmDist_(hubId, cur, 'BC'); if (back.km !== null) { tot += back.km; if (!back.road) road = false; }
+        return { km: tot, road, far, n: wards.length };
+    }
+    // Bảng tra (nhân viên, ngày THẬT) → assignment cả ngày (dựng lại khi dữ liệu đổi)
+    function qhKmAsgMap_() {
+        const rows = state.staffRawRows || [];
+        if (state.qhKmAsgRows === rows && state.qhKmAsg) return state.qhKmAsg;
+        buildWardMatchIndex_();
+        const m = new Map();
+        computeStaffWardAssignments_(rows).forEach((a) => { const k = a.staffKey + '\u0001' + a.tripDate; if (!m.has(k)) m.set(k, a); });
+        state.qhKmAsg = m; state.qhKmAsgRows = rows; return m;
+    }
+    function qhKmStaffDay_(staffKey, tripDate, hubId) {
+        const a = qhKmAsgMap_().get(staffKey + '\u0001' + tripDate);
+        if (!a) return null; return qhKmTrip_(hubId || a.hubId, qhKmWardsOf_(a));
+    }
+    // Popup chấm (có thể gộp nhiều ngày) → trung bình km/ngày các ngày của nhân viên đó
+    function qhKmStaffAvg_(staffKey, hubId) {
+        const xs = []; qhKmAsgMap_().forEach((a) => { if (a.staffKey === staffKey && String(a.hubId) === String(hubId)) { const t = qhKmTrip_(a.hubId, qhKmWardsOf_(a)); if (t) xs.push(t); } });
+        if (!xs.length) return null;
+        return { km: xs.reduce((s, t) => s + t.km, 0) / xs.length, road: xs.every((t) => t.road), n: xs.length };
+    }
+    // Lấy khoảng cách đường bộ cho mọi bưu cục đang có dữ liệu (1 lần gọi / BC), xong thì vẽ lại bảng
+    async function qhKmPrefetch_() {
+        if (state.qhKmBusy) return; state.qhKmRoad = state.qhKmRoad || {};
+        const need = {};
+        qhKmAsgMap_().forEach((a) => { const h = String(a.hubId); if (!qhKmHubPos_(h)) return; (need[h] = need[h] || new Set()); (a.wardBreakdown || []).forEach((b) => { if (qhKmWardPos_(b.wardCode)) need[h].add(String(b.wardCode)); }); });
+        const todo = Object.keys(need).filter((h) => { const R = state.qhKmRoad[h]; if (!R) return true; if (R.fail) return false; return Array.from(need[h]).some((w) => R.ix[w] === undefined); });
+        if (!todo.length) return;
+        state.qhKmBusy = true; let changed = false;
+        try {
+            for (let i = 0; i < todo.length; i++) {
+                const h = todo[i], old = state.qhKmRoad[h], ws = Array.from(new Set([].concat(old ? Object.keys(old.ix).filter((k) => k !== 'BC') : [], Array.from(need[h])))).slice(0, 95);
+                const keys = ['BC'].concat(ws), pts = keys.map((k) => k === 'BC' ? qhKmHubPos_(h) : qhKmWardPos_(k));
+                const url = 'https://router.project-osrm.org/table/v1/driving/' + pts.map((p) => p[0].toFixed(5) + ',' + p[1].toFixed(5)).join(';') + '?annotations=distance';
+                try {
+                    const j = await qhKmHttp_(url);
+                    if (j && j.code === 'Ok' && Array.isArray(j.distances)) { const ix = {}; keys.forEach((k, n) => { ix[k] = n; }); state.qhKmRoad[h] = { ix, m: j.distances }; changed = true; }
+                    else state.qhKmRoad[h] = { ix: {}, m: null, fail: true };
+                } catch (e) { state.qhKmRoad[h] = { ix: {}, m: null, fail: true }; }
+                if (i < todo.length - 1) await new Promise((r) => setTimeout(r, 1100));
+            }
+        } finally { state.qhKmBusy = false; }
+        if (changed) try { renderStaffTable_(); } catch (e) {}
+    }
+
     function renderStaffTable_() {
         const summaryEl = document.getElementById('ghn-tg-staff-summary');
         const wrapEl = document.getElementById('ghn-tg-staff-table-wrap');
@@ -5489,12 +5604,17 @@
 
         const MAX_ROWS = 500;
         const shown = agg.slice(0, MAX_ROWS);
+        let kmSum = 0, kmN = 0, kmAir = false;
         const rowsHtml = shown.map((a, i) => {
             const debug = wardDebugMap.get(`${a.staffKey}${a.tripDate}`) || null; // v1.7.6 fix: dkey xay dung o tren dung dung ky tu phan cach rieng, khong phai chuoi thuong, cho nay truoc day thieu -> luon mismatch -> debug luon null
             // v1.7.5 -- them cot "Trang thai NV" (doc tu sheet HRM qua driverId) theo dung yeu
             // cau "Trong thong tin khi tai du lieu chuyen o muc Theo nhan vien cung can bo
             // sung trang thai lam viec cua nhan vien" -- dung chung resolveHrmDisplay_() voi
             // popup ban do, tranh lech logic mau sac/nhan giua 2 noi.
+            const kmT = qhKmTrip_(a.hubId, qhKmWardsOf_(debug && debug[0]));
+            const kmCell = kmT ? `<b>${qhKmFmt_(kmT.km)}</b>${kmT.road ? '' : '<span title="Đường chim bay — chưa lấy được khoảng cách đường bộ" style="color:#adb5bd;">*</span>'}` : '<span style="color:#adb5bd;">—</span>';
+            const farCell = kmT && kmT.far ? `<b>${qhKmFmt_(kmT.far.km)}</b><div style="font-size:10px; color:#6c757d; white-space:nowrap;">${(state.wardsByCode && state.wardsByCode[kmT.far.wc] ? state.wardsByCode[kmT.far.wc].name : kmT.far.wc)}</div>` : '<span style="color:#adb5bd;">—</span>';
+            if (kmT) { kmSum += kmT.km; kmN += 1; if (!kmT.road) kmAir = true; }
             const hrm = resolveHrmDisplay_(a.driverId);
             const hrmCellHtml = hrm.found
                 ? `<span style="color:${hrm.color}; font-weight:700;">${hrm.dotIcon} ${hrm.label}</span>`
@@ -5512,9 +5632,11 @@
                 <td style="text-align:right; color:#dc3545;">${a.deliverFail}</td>
                 <td style="text-align:right;">${a.returnCount}</td>
                 <td style="text-align:right; font-weight:700;">${a.total}</td>
+                <td style="text-align:right; color:#1c4f9c;">${kmCell}</td>
+                <td style="text-align:right; color:#1c4f9c;">${farCell}</td>
             </tr>
             <tr class="ghn-tg-ward-detail" data-idx="${i}" style="display:none;">
-                <td colspan="11" style="background:#f8f9fa; border-top:none;">${wardDebugHtml_(debug)}</td>
+                <td colspan="13" style="background:#f8f9fa; border-top:none;">${wardDebugHtml_(debug)}</td>
             </tr>
         `;
         }).join('');
@@ -5531,6 +5653,8 @@
                 <td style="text-align:right; color:#dc3545;">${totalDeliverFail.toLocaleString('vi-VN')}</td>
                 <td style="text-align:right;">${totalReturn.toLocaleString('vi-VN')}</td>
                 <td style="text-align:right;">${totalOrders.toLocaleString('vi-VN')}</td>
+                <td style="text-align:right; color:#1c4f9c;" title="Trung bình km giao / nhân viên / ngày">${kmN ? 'TB ' + qhKmFmt_(kmSum / kmN) : '—'}</td>
+                <td></td>
             </tr>
         `;
         wrapEl.innerHTML = `
@@ -5542,11 +5666,14 @@
                         <th>Lấy TC</th><th>Lấy thất bại</th>
                         <th>Giao TC</th><th>Giao thất bại</th>
                         <th>Trả hàng</th><th>Tổng</th>
+                        <th title="Ước tính quãng đường giao trong ngày: bưu cục → lần lượt tâm các xã/phường có đơn giao (gần nhất đi trước) → về bưu cục. Đường bộ; * = đường chim bay">Km giao (ước tính)</th>
+                        <th title="Khoảng cách từ bưu cục tới tâm xã/phường xa nhất nhân viên giao trong ngày">BC → xã xa nhất (km)</th>
                     </tr>
                 </thead>
                 <tbody>${rowsHtml}</tbody>
                 <tfoot>${totalRowHtml}</tfoot>
             </table>
+            <div style="font-size:11px; color:#6c757d; margin-top:6px;">🛣️ Km giao (ước tính) = bưu cục → tâm từng xã/phường có đơn giao (xã gần nhất đi trước, bỏ xã &lt; 3% đơn) → về bưu cục${kmAir ? ' · <b>*</b> = đường chim bay (chưa lấy được đường bộ)' : ' · khoảng cách đường bộ'}${state.qhKmBusy ? ' · <i>đang tính đường bộ…</i>' : ''}. Bấm "+" để xem khoảng cách bưu cục → từng xã/phường.</div>
             ${agg.length > MAX_ROWS ? `<div style="font-size:11px; color:#adb5bd; margin-top:6px;">Đang hiển thị ${MAX_ROWS}/${agg.length} dòng đầu (hàng TỔNG vẫn tính từ TOÀN BỘ ${agg.length} dòng) — thu hẹp bằng bộ lọc nhân viên/nhóm khách hàng hoặc khoảng ngày để xem hết.</div>` : ''}
         `;
         wrapEl.querySelectorAll('.ghn-tg-ward-toggle').forEach(btn => {
@@ -5559,6 +5686,7 @@
                 btn.textContent = isHidden ? '−' : '+';
             });
         });
+        qhKmPrefetch_();
     }
 
     async function loadStaffVolume_() {
