@@ -5589,7 +5589,7 @@
         // trải nhiều bưu cục/ngày khác nhau (sẽ phải chọn hiện số của combo nào, dễ gây hiểu lầm)
         // — trường hợp đó ẩn hẳn phần này (vẫn xem được TỪNG bưu cục ở popup bản đồ, nút "+" "Xem
         // chi tiết cách tính Định biên").
-        const totalDeliverAll = totalDeliverSuccess + totalDeliverFail;
+        const totalDeliverAll = totalDeliverSuccess + totalDeliverFail + agg.reduce((s, a) => s + a.deliverPending, 0); // v1.7.47 gồm cả đơn đang giao
         const distinctHubDateCombos = new Set(agg.map(a => perfByHubDateKey_(a.hubId, a.tripDate)));
         let perfSummaryNote = '';
         if (distinctHubDateCombos.size === 1) {
@@ -5607,11 +5607,12 @@
         let kmSum = 0, kmN = 0, kmAir = false;
         // v1.7.46 — cần lấy / cần giao + % LTC, % GTC, % Trả hàng (= trả ÷ (giao TC + trả))
         const qhPct_ = (a, b) => b > 0 ? (Math.round(a / b * 1000) / 10).toLocaleString('vi-VN') + '%' : '—';
-        const qhCanCells_ = (ps, pf, ds, df, rt, bold) => {
+        // v1.7.47 — chủ dự án: cần giao/cần lấy phải gồm CẢ đơn đang giao/đang lấy (chưa cập nhật kết quả) — đều là đơn chưa thành công
+        const qhCanCells_ = (ps, pf, pp, ds, df, dp, rt, bold) => {
             const b = bold ? 'font-weight:700;' : '';
             return {
-                lay: `<td style="text-align:right; ${b}">${(ps + pf).toLocaleString('vi-VN')}</td><td style="text-align:right; font-weight:700; color:#1c4f9c;">${qhPct_(ps, ps + pf)}</td>`,
-                giao: `<td style="text-align:right; ${b}">${(ds + df).toLocaleString('vi-VN')}</td><td style="text-align:right; font-weight:700; color:#1c4f9c;">${qhPct_(ds, ds + df)}</td>`,
+                lay: `<td style="text-align:right; color:#e67700;">${pp.toLocaleString('vi-VN')}</td><td style="text-align:right; ${b}">${(ps + pf + pp).toLocaleString('vi-VN')}</td><td style="text-align:right; font-weight:700; color:#1c4f9c;">${qhPct_(ps, ps + pf + pp)}</td>`,
+                giao: `<td style="text-align:right; color:#e67700;">${dp.toLocaleString('vi-VN')}</td><td style="text-align:right; ${b}">${(ds + df + dp).toLocaleString('vi-VN')}</td><td style="text-align:right; font-weight:700; color:#1c4f9c;">${qhPct_(ds, ds + df + dp)}</td>`,
                 tra: `<td style="text-align:right; font-weight:700; color:#c0392b;">${qhPct_(rt, ds + rt)}</td>`
             };
         };
@@ -5621,7 +5622,7 @@
             // cau "Trong thong tin khi tai du lieu chuyen o muc Theo nhan vien cung can bo
             // sung trang thai lam viec cua nhan vien" -- dung chung resolveHrmDisplay_() voi
             // popup ban do, tranh lech logic mau sac/nhan giua 2 noi.
-            const cc = qhCanCells_(a.pickSuccess, a.pickFail, a.deliverSuccess, a.deliverFail, a.returnCount);
+            const cc = qhCanCells_(a.pickSuccess, a.pickFail, a.pickPending, a.deliverSuccess, a.deliverFail, a.deliverPending, a.returnCount);
             const kmT = qhKmTrip_(a.hubId, qhKmWardsOf_(debug && debug[0]));
             const kmCell = kmT ? `<b>${qhKmFmt_(kmT.km)}</b>${kmT.road ? '' : '<span title="Đường chim bay — chưa lấy được khoảng cách đường bộ" style="color:#adb5bd;">*</span>'}` : '<span style="color:#adb5bd;">—</span>';
             const farCell = kmT && kmT.far ? `<b>${qhKmFmt_(kmT.far.km)}</b><div style="font-size:10px; color:#6c757d; white-space:nowrap;">${(state.wardsByCode && state.wardsByCode[kmT.far.wc] ? state.wardsByCode[kmT.far.wc].name : kmT.far.wc)}</div>` : '<span style="color:#adb5bd;">—</span>';
@@ -5650,14 +5651,14 @@
                 <td style="text-align:right; color:#1c4f9c;">${farCell}</td>
             </tr>
             <tr class="ghn-tg-ward-detail" data-idx="${i}" style="display:none;">
-                <td colspan="18" style="background:#f8f9fa; border-top:none;">${wardDebugHtml_(debug)}</td>
+                <td colspan="20" style="background:#f8f9fa; border-top:none;">${wardDebugHtml_(debug)}</td>
             </tr>
         `;
         }).join('');
         // v1.7.22 — hàng TỔNG cuối bảng (phản hồi thật: "thêm số tổng vào").
         // v1.7.23 — 3 cột Performance (Volume/% Gán/% GTC) KHÔNG còn ở đây nữa (đã dời lên dòng
         // tóm tắt phía trên bảng, xem perfSummaryNote) nên hàng TỔNG trở lại đúng 11 cột như cũ.
-        const ccT = qhCanCells_(totalPickSuccess, totalPickFail, totalDeliverSuccess, totalDeliverFail, totalReturn, true);
+        const ccT = qhCanCells_(totalPickSuccess, totalPickFail, agg.reduce((s, a) => s + a.pickPending, 0), totalDeliverSuccess, totalDeliverFail, agg.reduce((s, a) => s + a.deliverPending, 0), totalReturn, true);
         const totalRowHtml = `
             <tr style="font-weight:700; background:#f1f3f5; border-top:2px solid #ced4da;">
                 <td></td>
@@ -5682,9 +5683,9 @@
                         <th title="Bấm để xem chi tiết xã/phường (MỚI) đã khớp được từ địa chỉ đơn giao — đúng dữ liệu dùng để đặt chấm trên bản đồ">+</th>
                         <th>Ngày</th><th>Bưu cục</th><th>Nhân viên</th><th>Trạng thái NV</th>
                         <th>Lấy TC</th><th>Lấy thất bại</th>
-                        <th title="Cần lấy = Lấy TC + Lấy thất bại">Cần lấy</th><th title="% LTC = Lấy TC ÷ Cần lấy">% LTC</th>
+                        <th title="Đơn lấy chưa cập nhật kết quả (đang đi lấy)">Đang lấy</th><th title="Cần lấy = Lấy TC + Lấy thất bại + Đang lấy">Cần lấy</th><th title="% LTC = Lấy TC ÷ Cần lấy">% LTC</th>
                         <th>Giao TC</th><th>Giao thất bại</th>
-                        <th title="Cần giao = Giao TC + Giao thất bại">Cần giao</th><th title="% GTC = Giao TC ÷ Cần giao">% GTC</th>
+                        <th title="Đơn giao chưa cập nhật kết quả (đang đi giao)">Đang giao</th><th title="Cần giao = Giao TC + Giao thất bại + Đang giao">Cần giao</th><th title="% GTC = Giao TC ÷ Cần giao">% GTC</th>
                         <th>Trả hàng</th><th title="% Trả hàng = Đơn trả ÷ (Giao TC + Đơn trả)">% Trả hàng</th><th>Tổng</th>
                         <th title="Ước tính quãng đường giao trong ngày: bưu cục → lần lượt tâm các xã/phường có đơn giao (gần nhất đi trước) → về bưu cục. Đường bộ; * = đường chim bay">Km giao (ước tính)</th>
                         <th title="Khoảng cách từ bưu cục tới tâm xã/phường xa nhất nhân viên giao trong ngày">BC → xã xa nhất (km)</th>
