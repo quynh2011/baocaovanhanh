@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.50
+// @version      1.7.51
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -7419,6 +7419,29 @@
                 else if (r.type === 'DELIVER') { if (r.isUpdated && r.isSucceeded) g.ds++; else if (r.isUpdated) g.df++; else g.dp++; }
                 else if (r.type === 'RETURN') g.rt++;
             });
+            // v1.7.51 — XÃ/PHƯỜNG CHÍNH của mỗi nhân viên: xếp xã theo số đơn GTC của nhân viên đó (cao → thấp), cộng dồn tới khi đạt ngưỡng
+            // (mặc định 80%) → các xã đó là xã chính. Vd 1 xã chiếm ≥ 80% → 1 xã chính; 2 xã mỗi xã 40% → 2 xã chính.
+            const wtThr = state.qhWtThr || 0.8, wtMain = !!state.qhWtMain;
+            const gtcBy = new Map(), gtcTot = new Map();
+            (state.staffRawRows || []).forEach(r => {
+                if (r.type !== 'DELIVER' || !(r.isUpdated && r.isSucceeded)) return;
+                if (state.staffSelectedStaffKey !== 'all' && r.staffKey !== state.staffSelectedStaffKey) return;
+                if (state.staffSelectedGroup !== 'all' && r.customerGroup !== state.staffSelectedGroup) return;
+                const d = qhMulti_ ? qhRangeLabel_ : r.tripDate, sk = d + '|' + r.hubId + '|' + r.staffKey, wc = resolveOldWardCode_(r) || '';
+                gtcTot.set(sk, (gtcTot.get(sk) || 0) + 1);
+                if (wc) { const m = gtcBy.get(sk) || new Map(); m.set(wc, (m.get(wc) || 0) + 1); gtcBy.set(sk, m); }
+            });
+            const mainSet = new Set(), shareOf = new Map();
+            gtcBy.forEach((m, sk) => {
+                const tot = gtcTot.get(sk) || 0; let cum = 0;
+                Array.from(m.entries()).sort((a, b) => b[1] - a[1]).forEach(([wc, n]) => {
+                    shareOf.set(sk + '|' + wc, tot ? n / tot : 0);
+                    if (cum < wtThr) mainSet.add(sk + '|' + wc);
+                    cum += tot ? n / tot : 0;
+                });
+            });
+            const isMain = (w) => mainSet.has(w.d + '|' + w.hubId + '|' + w.staffKey + '|' + w.wc);
+            if (wtMain) Array.from(wm.keys()).forEach(k => { if (!isMain(wm.get(k))) wm.delete(k); });
             const wNm = (w) => w.wc ? String((state.wardsByCode && state.wardsByCode[w.wc] && state.wardsByCode[w.wc].name) || w.wc) : '~';
             const wl = Array.from(wm.values()).sort((a, b) => b.d.localeCompare(a.d) || String(a.hubId).localeCompare(String(b.hubId)) ||
                 (wtBy === 'ward' ? (wNm(a).localeCompare(wNm(b)) || b.tot - a.tot) : (a.driverName.localeCompare(b.driverName) || b.tot - a.tot)));
@@ -7439,13 +7462,17 @@
                     ${showD ? `<td style="text-align:right; color:#28a745;">${w.ds}</td><td style="text-align:right; color:#dc3545;">${w.df}</td>${cc.giao}` : ''}
                     ${showR ? `<td style="text-align:right;">${w.rt}</td>${cc.tra}` : ''}
                     <td style="text-align:right; font-weight:700;">${w.tot}</td>
+                    <td style="text-align:right; white-space:nowrap;">${(() => { const sh = shareOf.get(w.d + '|' + w.hubId + '|' + w.staffKey + '|' + w.wc); return sh === undefined ? '<span style="color:#adb5bd;">—</span>' : (isMain(w) ? '<b style="color:#b8860b;">⭐ ' : '<span style="color:#6c757d;">') + (Math.round(sh * 1000) / 10).toLocaleString('vi-VN') + '%' + (isMain(w) ? '</b>' : '</span>'); })()}</td>
                     <td style="text-align:right; color:#1c4f9c; font-weight:700;">${dk.km !== null ? qhKmFmt_(dk.km) + (dk.road ? '' : '<span title="Đường chim bay" style="color:#adb5bd;">*</span>') : '—'}</td>
                 </tr>`;
             }).join('');
             const wBtn = (attr, val, cur, label) => `<button type="button" data-${attr}="${val}" style="border:1px solid ${val === cur ? '#1c4f9c' : '#ced4da'}; background:${val === cur ? '#1c4f9c' : '#fff'}; color:${val === cur ? '#fff' : '#495057'}; border-radius:6px; padding:3px 10px; font-size:12px; font-weight:700; cursor:pointer;">${label}</button>`;
             const wBar = `<div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:6px; font-size:12px; color:#495057;">
                 <span style="font-weight:700;">Loại đơn:</span>${wBtn('qhwt', 'all', wtType, 'Tất cả')}${wBtn('qhwt', 'DELIVER', wtType, '🚚 Giao')}${wBtn('qhwt', 'PICK', wtType, '📦 Lấy')}${wBtn('qhwt', 'RETURN', wtType, '↩️ Trả')}
-                <span style="font-weight:700; margin-left:12px;">Xếp theo:</span>${wBtn('qhwb', 'staff', wtBy, '👤 Nhân viên')}${wBtn('qhwb', 'ward', wtBy, '📍 Xã/Phường')}</div>`;
+                <span style="font-weight:700; margin-left:12px;">Xếp theo:</span>${wBtn('qhwb', 'staff', wtBy, '👤 Nhân viên')}${wBtn('qhwb', 'ward', wtBy, '📍 Xã/Phường')}
+                <span style="font-weight:700; margin-left:12px;">Xã/phường:</span>${wBtn('qhwm', '0', wtMain ? '1' : '0', 'Tất cả')}${wBtn('qhwm', '1', wtMain ? '1' : '0', '⭐ Chỉ xã/phường chính')}
+                <span style="margin-left:4px;">ngưỡng</span><select data-qhwthr="1" style="font-size:12px; padding:2px 4px; border:1px solid #ced4da; border-radius:6px;">${[0.6, 0.7, 0.8, 0.9].map(v => `<option value="${v}"${v === wtThr ? ' selected' : ''}>${Math.round(v * 100)}% đơn GTC</option>`).join('')}</select>
+                <span style="color:#6c757d;" title="Xếp xã của mỗi nhân viên theo số đơn GTC từ cao xuống, cộng dồn tới khi đạt ngưỡng → các xã đó là xã chính">(⭐ = các xã cộng lại đạt ngưỡng đơn GTC của nhân viên)</span></div>`;
             qhWardTblHtml = `
             <div style="margin-top:18px; font-weight:800; font-size:14px; color:#212529;">📍 Chi tiết xã/phường từng nhân viên đang chạy${qhMulti_ ? ` <span style="font-weight:400; font-size:12px; color:#6c757d;">(gộp ${qhDays_.length} ngày)</span>` : ''}</div>
             ${wBar}${wl.length ? `
@@ -7455,7 +7482,7 @@
                     <th>Ngày</th><th>Bưu cục</th><th>Xã/Phường</th><th>Nhân viên</th>
                     ${showP ? '<th>Lấy TC</th><th>Lấy thất bại</th><th>Đang lấy</th><th>Cần lấy</th><th>% LTC</th>' : ''}
                     ${showD ? '<th>Giao TC</th><th>Giao thất bại</th><th>Đang giao</th><th>Cần giao</th><th>% GTC</th>' : ''}
-                    ${showR ? '<th>Trả hàng</th><th>% Trả hàng</th>' : ''}<th>Tổng</th><th title="Khoảng cách đường bộ từ bưu cục tới tâm xã/phường; * = chim bay">Km BC → xã/phường</th>
+                    ${showR ? '<th>Trả hàng</th><th>% Trả hàng</th>' : ''}<th>Tổng</th><th title="Số đơn giao thành công của nhân viên ở xã/phường này ÷ tổng đơn GTC của nhân viên. ⭐ = xã/phường chính (cộng dồn từ xã nhiều đơn nhất tới khi đạt ngưỡng)">% GTC của NV</th><th title="Khoảng cách đường bộ từ bưu cục tới tâm xã/phường; * = chim bay">Km BC → xã/phường</th>
                 </tr></thead>
                 <tbody>${wRows}</tbody>
             </table></div>
@@ -7513,6 +7540,8 @@
             });
         });
         wrapEl.querySelectorAll('[data-qhwt]').forEach(b => b.addEventListener('click', () => { state.qhWtType = b.getAttribute('data-qhwt'); renderStaffTable_(); }));
+        wrapEl.querySelectorAll('[data-qhwm]').forEach(b => b.addEventListener('click', () => { state.qhWtMain = b.getAttribute('data-qhwm') === '1'; renderStaffTable_(); }));
+        wrapEl.querySelectorAll('[data-qhwthr]').forEach(sel => sel.addEventListener('change', () => { state.qhWtThr = parseFloat(sel.value) || 0.8; renderStaffTable_(); }));
         wrapEl.querySelectorAll('[data-qhwb]').forEach(b => b.addEventListener('click', () => { state.qhWtBy = b.getAttribute('data-qhwb'); renderStaffTable_(); }));
         qhKmPrefetch_();
     }
