@@ -11855,7 +11855,7 @@ function cttTable(rs, D) {
 }
 function cttRender() {
   [['cttBody', ''], ['tntTatBody', 'T']].forEach((x) => { const el = document.getElementById(x[0]); if (el) el.innerHTML = cttColl(cttHtml(x[1])); });
-  cttViApply();
+  cttAllLbl(); cttViApply();
 }
 // Thu gọn / mở rộng từng mục (nhận xét, bảng…) — MẶC ĐỊNH THU GỌN, trạng thái dùng chung cho tab Capacity và [TNT]-Report mục VI
 function cttColl(html) {
@@ -11868,8 +11868,12 @@ function cttColl(html) {
 function cttSecSet(k, op) {
   CTT.open = CTT.open || {}; CTT.open[k] = op;
   document.querySelectorAll('.ctt-root .ctt-sec[data-k]').forEach((e) => { if (e.getAttribute('data-k') !== k) return; e.classList.toggle('ctt-shut', !op); const b = e.querySelector('h3 > .ctt-colb'); if (b) b.textContent = op ? '▴ Thu gọn' : '▾ Mở rộng'; });
+  cttAllLbl();
 }
 function cttTog(h) { const e = h.closest('.ctt-sec'); if (e) cttSecSet(e.getAttribute('data-k'), e.classList.contains('ctt-shut')); }
+// 1 nút: còn mục nào đang thu → mở hết; tất cả đang mở → thu hết
+function cttAllLbl() { document.querySelectorAll('.ctt-root').forEach((r) => { const b = r.querySelector('.ctt-allb button'); if (b) b.textContent = r.querySelector('.ctt-sec.ctt-shut[data-k]') || !r.querySelector('.ctt-sec[data-k]') ? '▾ Mở rộng tất cả' : '▴ Thu gọn tất cả'; }); }
+function cttAllTog(btn) { const r = btn.closest('.ctt-root'); cttAll(!!r.querySelector('.ctt-sec.ctt-shut[data-k]'), btn); }
 function cttAll(op, btn) { const r = btn ? btn.closest('.ctt-root') : document; const ks = new Set(); r.querySelectorAll('.ctt-sec[data-k]').forEach((e) => ks.add(e.getAttribute('data-k'))); ks.forEach((k) => cttSecSet(k, op)); }
 // cả mục VI trong [TNT]-Report (mặc định mở, nhớ ở máy người xem)
 function cttViShut() { try { return localStorage.getItem('tnt_tat_shut') === '1'; } catch (e) { return false; } }
@@ -11895,7 +11899,7 @@ function cttHtml(sx) {
   if (age >= 3 * 3600e3) { const hh = Math.floor(age / 3600e3); h += '<div class="ctt-stale"><div class="ic">⚠️</div><div><b>Dữ liệu đã cũ ' + hh + ' giờ</b> (lấy lúc ' + esc(tLuc) + ') — số trên capacity có thể đã thay đổi, nên cập nhật lại.</div><button class="ctt-btn pri" onclick="cttConnect()">🔗 Cập nhật</button></div>'; }
   const kn = CTT.kenh || 'sp', ttsN = D.tts && D.tts.rows ? D.tts.rows.length : null;
   h += '<div class="ctt-kenh">' + [['sp', '🛍️ Shopee', D.rows.filter((r) => r.trang_thai !== 'da_mo').length], ['tts', '🎵 TikTok Shop', ttsN], ['th', '📊 Tổng hợp vùng', null]].map((x) => '<button class="' + (kn === x[0] ? 'on' : '') + '" onclick="cttKenhSet(\'' + x[0] + '\')">' + x[1] + (x[2] != null ? ' <span>' + x[2] + '</span>' : '') + '</button>').join('') + '</div>';
-  h += '<div class="ctt-allb"><button class="ctt-btn sm" onclick="cttAll(true,this)">▾ Mở rộng tất cả</button><button class="ctt-btn sm" onclick="cttAll(false,this)">▴ Thu gọn tất cả</button></div>';
+  h += '<div class="ctt-allb"><button class="ctt-btn sm" onclick="cttAllTog(this)">▾ Mở rộng tất cả</button></div>';
   if (kn === 'tts') return h + cttTtsHtml(D, sx);
   if (kn === 'th') return h + cttThHtml(D);
   const rows = D.rows, cnt = {}; rows.forEach((r) => { const k = cttKey(r); cnt[k] = (cnt[k] || 0) + 1; });
