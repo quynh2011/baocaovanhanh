@@ -1318,7 +1318,7 @@ td.dn-keycol{background:#FBF7EE}
       <div id="tntRet"></div>
       <div id="tntGh"></div>
       <div id="tntCap"></div>
-      <div id="tntTat"><div class="tnt-h" style="margin-top:28px"><h2>VI · Tắt tuyến</h2><span>tắt tuyến Shopee vùng TNT — số liệu từ trang Capacity (bản chụp mới nhất)</span></div><div id="tntTatBody" class="ctt-root"></div></div>
+      <div id="tntTat"><div class="tnt-h ctt-vih" style="margin-top:28px" onclick="cttViTog()"><h2>VI · Tắt tuyến</h2><span>tắt tuyến Shopee · TikTok Shop · tổng hợp vùng — số liệu từ trang Capacity (bản chụp mới nhất)</span><button class="ctt-colb" id="tntTatBtn">▴ Thu gọn</button></div><div id="tntTatBody" class="ctt-root"></div></div>
       <div class="tnt-foot">Modify by - Pham Van Quynh - TNT Live Report</div>
     </div>
   </div>
@@ -1742,6 +1742,15 @@ td.dn-keycol{background:#FBF7EE}
 .ctt-root .ctt-gl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748B;margin:0 0 6px 2px}
 .ctt-root .ctt-gl small{text-transform:none;font-weight:500;letter-spacing:0}
 .ctt-root .ctt-card .l small{font-weight:500;opacity:.85}
+.ctt-root .ctt-sec h3.ctt-clk{cursor:pointer;user-select:none;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.ctt-root .ctt-sec h3.ctt-clk:hover{color:#F26522}
+.ctt-root .ctt-colb,.ctt-vih .ctt-colb{margin-left:auto;border:1px solid #CBD5E1;background:#fff;color:#0F2B5B;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.ctt-root .ctt-sec.ctt-shut{padding-bottom:12px}
+.ctt-root .ctt-sec.ctt-shut > :not(h3){display:none!important}
+.ctt-root .ctt-sec.ctt-shut h3{margin-bottom:0}
+.ctt-root .ctt-allb{display:flex;gap:6px;justify-content:flex-end;margin:-6px 0 10px}
+.ctt-vih{cursor:pointer;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ctt-vishut #tntTatBody{display:none}
 .ctt-root .ctt-kenh{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px;border-bottom:2px solid #E5E7EB}
 .ctt-root .ctt-kenh button{border:0;background:none;padding:9px 16px;font-weight:700;font-size:14px;color:#64748B;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
 .ctt-root .ctt-kenh button.on{color:#0F2B5B;border-bottom-color:#F26522}
@@ -11845,8 +11854,27 @@ function cttTable(rs, D) {
   return h + '</tbody></table></div>';
 }
 function cttRender() {
-  [['cttBody', ''], ['tntTatBody', 'T']].forEach((x) => { const el = document.getElementById(x[0]); if (el) el.innerHTML = cttHtml(x[1]); });
+  [['cttBody', ''], ['tntTatBody', 'T']].forEach((x) => { const el = document.getElementById(x[0]); if (el) el.innerHTML = cttColl(cttHtml(x[1])); });
+  cttViApply();
 }
+// Thu gọn / mở rộng từng mục (nhận xét, bảng…) — MẶC ĐỊNH THU GỌN, trạng thái dùng chung cho tab Capacity và [TNT]-Report mục VI
+function cttColl(html) {
+  CTT.open = CTT.open || {};
+  return html.replace(/<div class="ctt-sec"( id="[^"]*")?><h3>([\s\S]*?)<\/h3>/g, (m, id, t) => {
+    const k = (CTT.kenh || 'sp') + ':' + t.replace(/<span[\s\S]*$/, '').replace(/<[^>]+>/g, '').trim(), op = !!CTT.open[k];
+    return '<div class="ctt-sec' + (op ? '' : ' ctt-shut') + '"' + (id || '') + ' data-k="' + esc(k) + '"><h3 class="ctt-clk" onclick="cttTog(this)">' + t + '<button class="ctt-colb">' + (op ? '▴ Thu gọn' : '▾ Mở rộng') + '</button></h3>';
+  });
+}
+function cttSecSet(k, op) {
+  CTT.open = CTT.open || {}; CTT.open[k] = op;
+  document.querySelectorAll('.ctt-root .ctt-sec[data-k]').forEach((e) => { if (e.getAttribute('data-k') !== k) return; e.classList.toggle('ctt-shut', !op); const b = e.querySelector('h3 > .ctt-colb'); if (b) b.textContent = op ? '▴ Thu gọn' : '▾ Mở rộng'; });
+}
+function cttTog(h) { const e = h.closest('.ctt-sec'); if (e) cttSecSet(e.getAttribute('data-k'), e.classList.contains('ctt-shut')); }
+function cttAll(op, btn) { const r = btn ? btn.closest('.ctt-root') : document; const ks = new Set(); r.querySelectorAll('.ctt-sec[data-k]').forEach((e) => ks.add(e.getAttribute('data-k'))); ks.forEach((k) => cttSecSet(k, op)); }
+// cả mục VI trong [TNT]-Report (mặc định mở, nhớ ở máy người xem)
+function cttViShut() { try { return localStorage.getItem('tnt_tat_shut') === '1'; } catch (e) { return false; } }
+function cttViApply() { const w = document.getElementById('tntTat'), b = document.getElementById('tntTatBtn'); if (!w) return; const sh = cttViShut(); w.classList.toggle('ctt-vishut', sh); if (b) b.textContent = sh ? '▾ Mở rộng' : '▴ Thu gọn'; }
+function cttViTog() { try { localStorage.setItem('tnt_tat_shut', cttViShut() ? '0' : '1'); } catch (e) {} cttViApply(); }
 function cttHtml(sx) {
   const D = CTT.data, N = cttNhan();
   let h = '<div class="ctt-head"><div><h2>📦 Capacity · Tắt tuyến — Vùng TNT</h2><div class="ctt-meta">';
@@ -11867,6 +11895,7 @@ function cttHtml(sx) {
   if (age >= 3 * 3600e3) { const hh = Math.floor(age / 3600e3); h += '<div class="ctt-stale"><div class="ic">⚠️</div><div><b>Dữ liệu đã cũ ' + hh + ' giờ</b> (lấy lúc ' + esc(tLuc) + ') — số trên capacity có thể đã thay đổi, nên cập nhật lại.</div><button class="ctt-btn pri" onclick="cttConnect()">🔗 Cập nhật</button></div>'; }
   const kn = CTT.kenh || 'sp', ttsN = D.tts && D.tts.rows ? D.tts.rows.length : null;
   h += '<div class="ctt-kenh">' + [['sp', '🛍️ Shopee', D.rows.filter((r) => r.trang_thai !== 'da_mo').length], ['tts', '🎵 TikTok Shop', ttsN], ['th', '📊 Tổng hợp vùng', null]].map((x) => '<button class="' + (kn === x[0] ? 'on' : '') + '" onclick="cttKenhSet(\'' + x[0] + '\')">' + x[1] + (x[2] != null ? ' <span>' + x[2] + '</span>' : '') + '</button>').join('') + '</div>';
+  h += '<div class="ctt-allb"><button class="ctt-btn sm" onclick="cttAll(true,this)">▾ Mở rộng tất cả</button><button class="ctt-btn sm" onclick="cttAll(false,this)">▴ Thu gọn tất cả</button></div>';
   if (kn === 'tts') return h + cttTtsHtml(D, sx);
   if (kn === 'th') return h + cttThHtml(D);
   const rows = D.rows, cnt = {}; rows.forEach((r) => { const k = cttKey(r); cnt[k] = (cnt[k] || 0) + 1; });
@@ -11900,7 +11929,7 @@ function cttTblOnly(src) { if (!CTT.data) return; const html = cttTable(cttRows(
 // để trang mở qua giờ/qua ngày vẫn tự đổi cảnh báo
 function cttAgeKey() { if (!CTT.data) return ''; const at = CTT.luc ? new Date(CTT.luc).getTime() : CTT.data.at || 0, v = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10); return !at || v(at) < v(Date.now()) ? 'x' : String(Math.floor((Date.now() - at) / 3600e3) >= 3 ? Math.floor((Date.now() - at) / 3600e3) : 0); }
 setInterval(function () { try { const k = cttAgeKey(); if (k !== CTT.ageKey) { CTT.ageKey = k; cttRender(); } } catch (e) {} }, 60000);
-function cttMoGo(sx) { const e = document.getElementById('cttMo' + (sx || '')); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+function cttMoGo(sx) { const e = document.getElementById('cttMo' + (sx || '')); if (e && e.getAttribute('data-k')) cttSecSet(e.getAttribute('data-k'), true); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function cttKenhSet(k) { CTT.kenh = k; cttRender(); }
 function cttTtsSet(k, v) { CTT.ft = CTT.ft || { nhom: '', tinh: '', q: '' }; CTT.ft[k] = CTT.ft[k] === v && k === 'nhom' ? '' : v; cttRender(); }
 function cttTtsNhom() { return { 'Tắt mới': ['#1E40AF', '#DBEAFE'], 'Tắt lại': ['#B4231A', '#FDECEA'], 'Gia hạn': ['#92400E', '#FEF3C7'], 'Gửi lại': ['#6D28D9', '#EDE9FE'] }; }
