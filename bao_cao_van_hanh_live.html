@@ -1318,6 +1318,7 @@ td.dn-keycol{background:#FBF7EE}
       <div id="tntRet"></div>
       <div id="tntGh"></div>
       <div id="tntCap"></div>
+      <div id="tntTat"><div class="tnt-h" style="margin-top:28px"><h2>VI · Tắt tuyến</h2><span>tắt tuyến Shopee vùng TNT — số liệu từ trang Capacity (bản chụp mới nhất)</span></div><div id="tntTatBody" class="ctt-root"></div></div>
       <div class="tnt-foot">Modify by - Pham Van Quynh - TNT Live Report</div>
     </div>
   </div>
@@ -1687,51 +1688,54 @@ td.dn-keycol{background:#FBF7EE}
 <div id="sectionCapacity" class="app-section">
 <style id="cttCss">
 #cttBody{max-width:1500px;margin:0 auto;padding:18px clamp(12px,3vw,40px) 40px;color:#1F2937;font-size:14px}
-#cttBody .ctt-head{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
-#cttBody h2{margin:0;font-size:22px;color:#0F2B5B}
-#cttBody .ctt-meta{color:#64748B;font-size:13px;margin-top:4px;line-height:1.6}
-#cttBody .ctt-acts{display:flex;gap:8px;flex-wrap:wrap}
-#cttBody .ctt-btn{border:1px solid #CBD5E1;background:#fff;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;font-size:13px}
-#cttBody .ctt-btn.pri{background:#F26522;border-color:#F26522;color:#fff}
-#cttBody .ctt-btn.sm{padding:3px 8px;font-size:12px}
-#cttBody .ctt-guide{background:#FFF8F1;border:1px solid #FED7AA;border-radius:10px;padding:10px 14px;margin-bottom:14px}
-#cttBody .ctt-guide summary{cursor:pointer;font-weight:700;color:#9A3412}
-#cttBody .ctt-guide ol{margin:8px 0 6px 18px;line-height:1.8}
-#cttBody .ctt-bm{display:inline-block;background:#F26522;color:#fff;padding:3px 10px;border-radius:6px;font-weight:700;text-decoration:none;cursor:grab}
-#cttBody .ctt-note{font-size:12px;color:#78716C}
-#cttBody .ctt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;margin-bottom:16px}
-#cttBody .ctt-card{--c:#0F2B5B;--b:#EEF2FF;background:var(--b);border:2px solid transparent;border-radius:12px;padding:10px 12px;cursor:pointer;color:var(--c)}
-#cttBody .ctt-card.on{border-color:var(--c);box-shadow:0 2px 10px rgba(0,0,0,.08)}
-#cttBody .ctt-card .v{font-size:26px;font-weight:800;line-height:1.1}
-#cttBody .ctt-card .l{font-size:12.5px;font-weight:600}
-#cttBody .ctt-sec{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:14px 16px;margin-bottom:16px}
-#cttBody h3{margin:0 0 10px;font-size:16px;color:#0F2B5B}
-#cttBody h3 span{font-weight:400;color:#64748B;font-size:13px}
-#cttBody .ctt-ins{margin:0;padding-left:18px;line-height:1.75}
-#cttBody .ctt-fl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
-#cttBody .ctt-fl select,#cttBody .ctt-fl input{border:1px solid #CBD5E1;border-radius:8px;padding:6px 10px;font-size:13px}
-#cttBody .ctt-fl input{min-width:240px}
-#cttBody .ctt-tw{max-height:560px;overflow:auto;border:1px solid #E5E7EB;border-radius:10px}
-#cttBody .ctt-t{border-collapse:collapse;width:100%;font-size:13px}
-#cttBody .ctt-t th{position:sticky;top:0;z-index:1;background:#0F2B5B;color:#fff;text-align:left;padding:8px 10px;font-weight:600;white-space:nowrap}
-#cttBody .ctt-t th small{font-weight:400;opacity:.8}
-#cttBody .ctt-t td{padding:7px 10px;border-top:1px solid #EEF0F3;vertical-align:top;white-space:nowrap}
-#cttBody .ctt-t tr:hover td{background:#FAFBFF}
-#cttBody .ctt-t td.b{font-weight:600}
-#cttBody .ctt-t th,#cttBody .ctt-t td{text-align:left!important;font-family:inherit!important;letter-spacing:normal!important;border-left:0!important;border-right:0!important}
-#cttBody .ctt-t td{background:#fff}
-#cttBody .ctt-t small{color:#64748B}
-#cttBody .ctt-tag{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:12px}
-#cttBody .ctt-flag{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:6px;font-size:11px;background:#FEF3C7;color:#92400E}
-#cttBody .ctt-wk span{display:inline-block;margin-right:6px;font-size:12px;color:#334155}
-#cttBody .g,#cttBody .ctt-d.g,#cttBody .ctt-wk span.g{color:#15803D;font-weight:700}
-#cttBody .r,#cttBody .ctt-d.r,#cttBody .ctt-wk span.r,#cttBody small.r{color:#B91C1C;font-weight:700}
-#cttBody .ctt-d.n{color:#64748B}
-#cttBody .ctt-d{font-size:12px;white-space:nowrap}
-#cttBody .ctt-empty{text-align:center;color:#94A3B8;padding:20px}
-#cttBody .ctt-foot{font-size:12px;color:#64748B;margin-top:8px}
+.ctt-root .ctt-head{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.ctt-root h2{margin:0;font-size:22px;color:#0F2B5B}
+.ctt-root .ctt-meta{color:#64748B;font-size:13px;margin-top:4px;line-height:1.6}
+.ctt-root .ctt-acts{display:flex;gap:8px;flex-wrap:wrap}
+.ctt-root .ctt-btn{border:1px solid #CBD5E1;background:#fff;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;font-size:13px}
+.ctt-root .ctt-btn.pri{background:#F26522;border-color:#F26522;color:#fff}
+.ctt-root .ctt-btn.sm{padding:3px 8px;font-size:12px}
+.ctt-root .ctt-guide{background:#FFF8F1;border:1px solid #FED7AA;border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.ctt-root .ctt-guide summary{cursor:pointer;font-weight:700;color:#9A3412}
+.ctt-root .ctt-guide ol{margin:8px 0 6px 18px;line-height:1.8}
+.ctt-root .ctt-bm{display:inline-block;background:#F26522;color:#fff;padding:3px 10px;border-radius:6px;font-weight:700;text-decoration:none;cursor:grab}
+.ctt-root .ctt-note{font-size:12px;color:#78716C}
+.ctt-root .ctt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;margin-bottom:16px}
+.ctt-root .ctt-card{--c:#0F2B5B;--b:#EEF2FF;background:var(--b);border:2px solid transparent;border-radius:12px;padding:10px 12px;cursor:pointer;color:var(--c)}
+.ctt-root .ctt-card.on{border-color:var(--c);box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.ctt-root .ctt-card .v{font-size:26px;font-weight:800;line-height:1.1}
+.ctt-root .ctt-card .l{font-size:12.5px;font-weight:600}
+.ctt-root .ctt-sec{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:14px 16px;margin-bottom:16px}
+.ctt-root h3{margin:0 0 10px;font-size:16px;color:#0F2B5B}
+.ctt-root h3 span{font-weight:400;color:#64748B;font-size:13px}
+.ctt-root .ctt-ins{margin:0;padding-left:18px;line-height:1.75}
+.ctt-root .ctt-fl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.ctt-root .ctt-fl select,.ctt-root .ctt-fl input{border:1px solid #CBD5E1;border-radius:8px;padding:6px 10px;font-size:13px}
+.ctt-root .ctt-fl input{min-width:240px}
+.ctt-root .ctt-tw{max-height:560px;overflow:auto;border:1px solid #E5E7EB;border-radius:10px}
+.ctt-root .ctt-t{border-collapse:collapse;width:100%;font-size:13px}
+.ctt-root .ctt-t th{position:sticky;top:0;z-index:1;background:#0F2B5B;color:#fff;text-align:left;padding:8px 10px;font-weight:600;white-space:nowrap}
+.ctt-root .ctt-t th small{font-weight:400;opacity:.8}
+.ctt-root .ctt-t td{padding:7px 10px;border-top:1px solid #EEF0F3;vertical-align:top;white-space:nowrap}
+.ctt-root .ctt-t tr:hover td{background:#FAFBFF}
+.ctt-root .ctt-t td.b{font-weight:600}
+.ctt-root .ctt-t th,.ctt-root .ctt-t td{text-align:left!important;font-family:inherit!important;letter-spacing:normal!important;border-left:0!important;border-right:0!important}
+.ctt-root .ctt-t td{background:#fff}
+.ctt-root .ctt-t small{color:#64748B}
+.ctt-root .ctt-tag{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:12px}
+.ctt-root .ctt-flag{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:6px;font-size:11px;background:#FEF3C7;color:#92400E}
+.ctt-root .ctt-wk span{display:inline-block;margin-right:6px;font-size:12px;color:#334155}
+.ctt-root .g,.ctt-root .ctt-d.g,.ctt-root .ctt-wk span.g{color:#15803D;font-weight:700}
+.ctt-root .r,.ctt-root .ctt-d.r,.ctt-root .ctt-wk span.r,.ctt-root small.r{color:#B91C1C;font-weight:700}
+.ctt-root .ctt-d.n{color:#64748B}
+.ctt-root .ctt-d{font-size:12px;white-space:nowrap}
+.ctt-root .ctt-empty{text-align:center;color:#94A3B8;padding:20px}
+.ctt-root .ctt-foot{font-size:12px;color:#64748B;margin-top:8px}
+
+#tntTatBody .ctt-head h2{display:none}
+#tntTatBody.ctt-root{font-size:14px;color:#1F2937}
 </style>
-<div id="cttBody"></div>
+<div id="cttBody" class="ctt-root"></div>
 </div>
 <div id="sectionNhanSu" class="app-section">
   <div class="section-placeholder">
@@ -9976,6 +9980,7 @@ function tntRender() {
   { const rb = document.getElementById('tntRet'); if (rb) rb.innerHTML = tntRetHtml(); }
   tntGhRender();
   tntCapRender();
+  if (typeof cttRender === 'function') { cttRender(); if (!CTT.loaded && !CTT.loading && typeof loadCapacity === 'function' && typeof AUTH !== 'undefined' && AUTH.session) loadCapacity(); }
   tntHlRender();
   { const eb = document.getElementById('tntEv'); if (eb) eb.innerHTML = tntEvOn() ? tntEvHtml() : ''; }
   tntTocInit(); if (TNT.side) { tntSideOpen(TNT.side); tntSideOpen(TNT.side); }
@@ -11715,7 +11720,7 @@ function cttCopyBm(btn) {
   const t = cttBookmarklet(), ok = () => { if (btn) { const o = btn.textContent; btn.textContent = '✓ Đã copy'; setTimeout(() => { btn.textContent = o; }, 1800); } };
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, () => window.prompt('Copy mã nút:', t)); else window.prompt('Copy mã nút:', t);
 }
-function cttConnect() { try { window.open(CTT_URL, 'tntCapacity'); } catch (e) {} const g = document.getElementById('cttGuide'); if (g) g.open = true; }
+function cttConnect() { try { window.open(CTT_URL, 'tntCapacity'); } catch (e) {} ['cttGuide', 'cttGuideT'].forEach((id) => { const g = document.getElementById(id); if (g) g.open = true; }); }
 
 // ---- nhận dữ liệu ----
 async function cttReceive(p, src) {
@@ -11819,19 +11824,21 @@ function cttTable(rs, D) {
   return h + '</tbody></table></div>';
 }
 function cttRender() {
-  const el = document.getElementById('cttBody'); if (!el) return;
+  [['cttBody', ''], ['tntTatBody', 'T']].forEach((x) => { const el = document.getElementById(x[0]); if (el) el.innerHTML = cttHtml(x[1]); });
+}
+function cttHtml(sx) {
   const D = CTT.data, N = cttNhan();
   let h = '<div class="ctt-head"><div><h2>📦 Capacity · Tắt tuyến Shopee — Vùng TNT</h2><div class="ctt-meta">';
   if (D) h += 'Số liệu chấm ngày <b>' + cttDm(D.lop && D.lop.ngay_cham) + '</b> (bản ngày ' + cttDm(D.lop && D.lop.ban_ngay) + ')' + (D.dem && D.dem.dot_id_mo ? ' · đợt mở ' + esc(D.dem.dot_id_mo) : '') + (CTT.luc ? ' · gửi về lúc ' + esc(new Date(CTT.luc).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })) + (CTT.boi ? ' bởi ' + esc(CTT.boi) : '') : '');
   else h += CTT.loading ? 'Đang tải bản chụp mới nhất…' : CTT.err ? '⚠️ ' + esc(CTT.err) : 'Chưa có bản chụp nào — bấm "Kết nối Capacity" để lấy số.';
   if (CTT.saveMsg) h += '<br>' + CTT.saveMsg;
   h += '</div></div><div class="ctt-acts"><button class="ctt-btn pri" onclick="cttConnect()">🔗 Kết nối Capacity (lấy số mới)</button><button class="ctt-btn" onclick="loadCapacity(true)">🔄 Tải lại</button></div></div>';
-  h += '<details class="ctt-guide" id="cttGuide"' + (D ? '' : ' open') + '><summary>Cách lấy số từ capacity.ghn.vn (làm 1 lần: tạo nút dấu trang)</summary><ol>'
+  h += '<details class="ctt-guide" id="cttGuide' + sx + '"' + (D ? '' : ' open') + '><summary>Cách lấy số từ capacity.ghn.vn (làm 1 lần: tạo nút dấu trang)</summary><ol>'
     + '<li>Kéo nút này lên thanh dấu trang: <a class="ctt-bm" href="' + esc(cttBookmarklet()) + '" onclick="event.preventDefault();return false;" title="Kéo lên thanh dấu trang">📦 Gửi Capacity về báo cáo TNT</a> — không kéo được thì bấm <button class="ctt-btn sm" onclick="cttCopyBm(this)">📋 Copy mã nút</button>, rồi Ctrl+Shift+B (Mac: Cmd+Shift+B) → chuột phải thanh dấu trang → Thêm trang → dán vào ô URL.</li>'
     + '<li>Bấm <b>🔗 Kết nối Capacity</b> ở trên → trang capacity.ghn.vn mở ra (chưa đăng nhập thì đăng nhập SSO).</li>'
     + '<li>Trên trang đó bấm nút dấu trang <b>📦 Gửi Capacity về báo cáo TNT</b> → số tắt tuyến vùng TNT tự về đây và được lưu cho mọi người xem.</li></ol>'
     + '<div class="ctt-note">Web báo cáo không giữ phiên đăng nhập capacity của mày: nút chỉ đọc bảng tắt tuyến ngay trên trang đó rồi chuyển số liệu (riêng vùng TNT) về đây.</div></details>';
-  if (!D) { el.innerHTML = h; return; }
+  if (!D) return h;
   const rows = D.rows, cnt = {}; rows.forEach((r) => { const k = cttKey(r); cnt[k] = (cnt[k] || 0) + 1; });
   const moTre = rows.filter((r) => (r.co || []).indexOf('mo_tre') >= 0).length, on = rows.filter((r) => r.trang_thai !== 'da_mo').length;
   h += '<div class="ctt-cards"><div class="ctt-card all' + (CTT.f.nhan ? '' : ' on') + '" onclick="cttSet(\'nhan\',\'\')"><div class="v">' + on + '</div><div class="l">Đang tắt</div></div>';
@@ -11842,13 +11849,14 @@ function cttRender() {
   const rs = cttRows();
   h += '<div class="ctt-sec"><h3>Danh sách xã/phường tắt tuyến <span>· ' + rs.length + '/' + rows.length + ' dòng' + (CTT.f.nhan ? ' · đang lọc: ' + esc((N[CTT.f.nhan] || ['Mở trễ'])[0]) : '') + '</span></h3>'
     + '<div class="ctt-fl"><select onchange="cttSet(\'tinh\',this.value)"><option value="">Tất cả tỉnh</option>' + tinhs.map((t) => '<option' + (CTT.f.tinh === t ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>'
-    + '<input id="cttQ" placeholder="Tìm bưu cục / xã / phường…" value="' + esc(CTT.f.q) + '" oninput="CTT.f.q=this.value;cttTblOnly()">'
+    + '<input id="cttQ' + sx + '" placeholder="Tìm bưu cục / xã / phường…" value="' + esc(CTT.f.q) + '" oninput="CTT.f.q=this.value;cttTblOnly(this.id)">'
     + '<label>Sắp theo <select onchange="cttSet(\'sort\',this.value)">' + [['xau', 'Đánh giá xấu trước'], ['gtc', '% GTC nay thấp → cao'], ['mo', 'Ngày mở gần nhất'], ['bc', 'Bưu cục A → Z']].map((o) => '<option value="' + o[0] + '"' + (CTT.f.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label></div>'
-    + '<div id="cttTbl">' + cttTable(rs, D) + '</div>'
+    + '<div id="cttTbl' + sx + '">' + cttTable(rs, D) + '</div>'
     + '<div class="ctt-foot">▲ tăng / ▼ giảm · <span class="g">xanh = tốt</span>, <span class="r">đỏ = xấu</span> · % GTC là của bưu cục chính · "trước" = 7 ngày trước khi tắt, "nay" = 7 ngày gần nhất · số liệu theo trang Capacity, chỉ vùng TNT.</div></div>';
-  el.innerHTML = h;
+  return h;
 }
-function cttTblOnly() { const t = document.getElementById('cttTbl'); if (t && CTT.data) t.innerHTML = cttTable(cttRows(), CTT.data); }
+// gõ tìm: chỉ vẽ lại bảng (giữ con trỏ ô đang gõ), đồng bộ ô tìm của chỗ còn lại
+function cttTblOnly(src) { if (!CTT.data) return; const html = cttTable(cttRows(), CTT.data); ['', 'T'].forEach((sx) => { const t = document.getElementById('cttTbl' + sx); if (t) t.innerHTML = html; const q = document.getElementById('cttQ' + sx); if (q && q.id !== src) q.value = CTT.f.q; }); }
 </script>
 </body>
 </html>
