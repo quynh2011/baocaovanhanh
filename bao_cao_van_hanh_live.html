@@ -1685,11 +1685,53 @@ td.dn-keycol{background:#FBF7EE}
   </div>
 </div>
 <div id="sectionCapacity" class="app-section">
-  <div class="section-placeholder">
-    <div class="sp-icon">📦</div>
-    <h2>Capacity — sắp ra mắt</h2>
-    <p>Đang chờ cấu trúc dữ liệu cụ thể để triển khai.</p>
-  </div>
+<style id="cttCss">
+#cttBody{max-width:1500px;margin:0 auto;padding:18px clamp(12px,3vw,40px) 40px;color:#1F2937;font-size:14px}
+#cttBody .ctt-head{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+#cttBody h2{margin:0;font-size:22px;color:#0F2B5B}
+#cttBody .ctt-meta{color:#64748B;font-size:13px;margin-top:4px;line-height:1.6}
+#cttBody .ctt-acts{display:flex;gap:8px;flex-wrap:wrap}
+#cttBody .ctt-btn{border:1px solid #CBD5E1;background:#fff;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;font-size:13px}
+#cttBody .ctt-btn.pri{background:#F26522;border-color:#F26522;color:#fff}
+#cttBody .ctt-btn.sm{padding:3px 8px;font-size:12px}
+#cttBody .ctt-guide{background:#FFF8F1;border:1px solid #FED7AA;border-radius:10px;padding:10px 14px;margin-bottom:14px}
+#cttBody .ctt-guide summary{cursor:pointer;font-weight:700;color:#9A3412}
+#cttBody .ctt-guide ol{margin:8px 0 6px 18px;line-height:1.8}
+#cttBody .ctt-bm{display:inline-block;background:#F26522;color:#fff;padding:3px 10px;border-radius:6px;font-weight:700;text-decoration:none;cursor:grab}
+#cttBody .ctt-note{font-size:12px;color:#78716C}
+#cttBody .ctt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;margin-bottom:16px}
+#cttBody .ctt-card{--c:#0F2B5B;--b:#EEF2FF;background:var(--b);border:2px solid transparent;border-radius:12px;padding:10px 12px;cursor:pointer;color:var(--c)}
+#cttBody .ctt-card.on{border-color:var(--c);box-shadow:0 2px 10px rgba(0,0,0,.08)}
+#cttBody .ctt-card .v{font-size:26px;font-weight:800;line-height:1.1}
+#cttBody .ctt-card .l{font-size:12.5px;font-weight:600}
+#cttBody .ctt-sec{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:14px 16px;margin-bottom:16px}
+#cttBody h3{margin:0 0 10px;font-size:16px;color:#0F2B5B}
+#cttBody h3 span{font-weight:400;color:#64748B;font-size:13px}
+#cttBody .ctt-ins{margin:0;padding-left:18px;line-height:1.75}
+#cttBody .ctt-fl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+#cttBody .ctt-fl select,#cttBody .ctt-fl input{border:1px solid #CBD5E1;border-radius:8px;padding:6px 10px;font-size:13px}
+#cttBody .ctt-fl input{min-width:240px}
+#cttBody .ctt-tw{max-height:560px;overflow:auto;border:1px solid #E5E7EB;border-radius:10px}
+#cttBody .ctt-t{border-collapse:collapse;width:100%;font-size:13px}
+#cttBody .ctt-t th{position:sticky;top:0;z-index:1;background:#0F2B5B;color:#fff;text-align:left;padding:8px 10px;font-weight:600;white-space:nowrap}
+#cttBody .ctt-t th small{font-weight:400;opacity:.8}
+#cttBody .ctt-t td{padding:7px 10px;border-top:1px solid #EEF0F3;vertical-align:top;white-space:nowrap}
+#cttBody .ctt-t tr:hover td{background:#FAFBFF}
+#cttBody .ctt-t td.b{font-weight:600}
+#cttBody .ctt-t th,#cttBody .ctt-t td{text-align:left!important;font-family:inherit!important;letter-spacing:normal!important;border-left:0!important;border-right:0!important}
+#cttBody .ctt-t td{background:#fff}
+#cttBody .ctt-t small{color:#64748B}
+#cttBody .ctt-tag{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:12px}
+#cttBody .ctt-flag{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:6px;font-size:11px;background:#FEF3C7;color:#92400E}
+#cttBody .ctt-wk span{display:inline-block;margin-right:6px;font-size:12px;color:#334155}
+#cttBody .g,#cttBody .ctt-d.g,#cttBody .ctt-wk span.g{color:#15803D;font-weight:700}
+#cttBody .r,#cttBody .ctt-d.r,#cttBody .ctt-wk span.r,#cttBody small.r{color:#B91C1C;font-weight:700}
+#cttBody .ctt-d.n{color:#64748B}
+#cttBody .ctt-d{font-size:12px;white-space:nowrap}
+#cttBody .ctt-empty{text-align:center;color:#94A3B8;padding:20px}
+#cttBody .ctt-foot{font-size:12px;color:#64748B;margin-top:8px}
+</style>
+<div id="cttBody"></div>
 </div>
 <div id="sectionNhanSu" class="app-section">
   <div class="section-placeholder">
@@ -2574,6 +2616,8 @@ function enterApp(user){
   // mở web (F5) → Vận hành vào thẳng [TNT]-Report (nếu người dùng có quyền xem mục này)
   // [TNT] - Quy hoạch: nút "Kết nối báo cáo TNT" trên nhanh.ghn.vn mở web kèm #qhGhnToken=… → lưu token GHN vào máy, mở tab Quy hoạch
   try { const mm = /[#&]qhGhnToken=([^&]+)/.exec(location.hash || ''); if (mm) { localStorage.setItem('qh_ghn_token', decodeURIComponent(mm[1])); history.replaceState(null, '', location.pathname + location.search); window.__vhDefaultTab = 1; if (typeof modVisible !== 'function' || modVisible('vh_quyhoach')) switchVanHanhTab('quyhoach'); } } catch (e) {}
+  // Capacity: nút dấu trang trên capacity.ghn.vn mở web kèm #capData=… → nhận số tắt tuyến TNT, lưu + mở tab Capacity
+  try { if (/[#&]capData=/.test(location.hash || '') && (typeof modVisible !== 'function' || modVisible('capacity'))) { window.__vhDefaultTab = 1; setTimeout(cttFromHash, 0); } } catch (e) {}
   if (!window.__vhDefaultTab) { window.__vhDefaultTab = 1; try { if (typeof modVisible !== 'function' || modVisible('vh_tnt')) switchVanHanhTab('tnt'); } catch (e) {} }
   main().catch(e => { document.getElementById('loadingNote').style.display='none'; showError('Lỗi tổng thể: '+e.message); });
   startPresenceTracking();
@@ -5493,6 +5537,7 @@ function loadDoiSoatVanTai(){var frame=document.getElementById('dsvtFrame');if(!
   if (menu) menu.classList.remove('open');
   if (fab) fab.classList.remove('open');
   if (id === 'sectionKinhDoanh') loadKinhDoanh();
+  if (id === 'sectionCapacity' && typeof loadCapacity === 'function') loadCapacity();
   if (id === 'sectionKeHoachEvent') loadKeHoachEvent();
     if (id === 'sectionTyLeLapDay') loadTyLeLapDay(); if (id === 'sectionDoiSoatVanTai') loadDoiSoatVanTai();
   if (id === 'sectionLichLamViec') loadLichLamViec();
@@ -11617,6 +11662,193 @@ if (window.__STATIC_SNAPSHOT__) {
     if (lastEmail) showOtpReloginStep(lastEmail);
   }
 }
+
+// ================= CAPACITY · TẮT TUYẾN SHOPEE — VÙNG TNT (2026-11-21) =================
+// Nguồn: capacity.ghn.vn (tab Tắt tuyến · Đang tắt, kênh Shopee). Trang đó nằm sau phiên SSO của người dùng nên web
+// KHÔNG tự gọi được: nút dấu trang "📦 Gửi Capacity về báo cáo TNT" (cttBmFn) chạy ngay trên capacity.ghn.vn, lấy bảng,
+// chỉ giữ dòng vùng TNT rồi gửi về tab báo cáo (postMessage → cttOnMsg; không có tab báo cáo thì mở web kèm #capData=).
+// Web lưu bản chụp lên máy chủ (action capSave) → ai mở tab Capacity cũng thấy bản mới nhất (capGet).
+var CTT = { data: null, luc: '', boi: '', loading: false, loaded: false, f: { nhan: '', tinh: '', q: '', sort: 'xau' }, err: '' };
+const CTT_URL = 'https://capacity.ghn.vn/vung/?tab=tat-tuyen&man=dang-tat';
+function cttNhan() { return {
+  te_di: ['Tệ đi', '#B4231A', '#FDECEA', 0], don_bat_lai: ['Đơn bật lại', '#9A3412', '#FFEDD5', 1], chua_cai_thien: ['Chưa cải thiện', '#92400E', '#FEF3C7', 2],
+  moi_tat: ['Mới tắt', '#1E40AF', '#DBEAFE', 3], chua_cham: ['Chưa chấm', '#475569', '#F1F5F9', 4], cai_thien: ['Cải thiện', '#166534', '#DCFCE7', 5], da_mo: ['Đã mở', '#334155', '#E2E8F0', 6] }; }
+function cttCo() { return { chua_thay_giam: 'Chưa thấy đơn giảm', ka_them: 'KA thêm', mo_tre: 'Mở trễ' }; }
+function cttNguon() { return { event: 'Event', vung: 'Vùng tắt', shopee_tu_tat: 'Shopee tự tắt' }; }
+function cttKey(r) { return r.trang_thai === 'da_mo' ? 'da_mo' : (r.nhan || 'chua_cham'); }
+function cttPct(g) { return g && g.mau ? g.tu / g.mau : null; }
+function cttP(x) { return x == null ? '—' : (x * 100).toFixed(1).replace('.', ',') + '%'; }
+function cttN(x) { return x == null ? '—' : Math.round(x).toLocaleString('vi-VN'); }
+function cttDm(s) { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(s || ''); return m ? m[3] + '/' + m[2] : (s || '—'); }
+function cttDays(a, b) { const x = Date.parse(a + 'T00:00:00Z'), y = Date.parse(b + 'T00:00:00Z'); return isFinite(x) && isFinite(y) ? Math.round((y - x) / 864e5) : null; }
+function cttTinh(s) { return String(s || '').replace(/^(Tỉnh|Thành phố|TP\.?)\s+/i, ''); }
+function cttNorm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase(); }
+// mũi tên theo CHIỀU số, màu theo TỐT/XẤU (good = 1: tăng là tốt, -1: giảm là tốt, 0: trung tính)
+function cttDelta(d, good, pct) {
+  if (d == null || !isFinite(d)) return '';
+  const z = pct ? Math.abs(d) < 0.0005 : Math.abs(d) < 0.5;
+  const cls = z || !good ? 'n' : (d > 0) === (good > 0) ? 'g' : 'r';
+  const t = pct ? (d > 0 ? '+' : d < 0 ? '−' : '') + (Math.abs(d) * 100).toFixed(1).replace('.', ',') + '%' : (d > 0 ? '+' : d < 0 ? '−' : '') + cttN(Math.abs(d));
+  return '<span class="ctt-d ' + cls + '">' + (z ? '■' : d > 0 ? '▲' : '▼') + ' ' + t + '</span>';
+}
+
+// ---- nút dấu trang (chạy trên capacity.ghn.vn) ----
+function cttBmFn() {
+  var W = '__W__';
+  var toast = function (m, ok) { var d = document.createElement('div'); d.textContent = m; d.style.cssText = 'position:fixed;z-index:2147483647;top:16px;right:16px;max-width:380px;background:' + (ok ? '#14532D' : '#7F1D1D') + ';color:#fff;padding:12px 16px;border-radius:10px;font:14px/1.5 system-ui,sans-serif;box-shadow:0 8px 28px rgba(0,0,0,.35)'; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 7000); };
+  if (location.hostname !== 'capacity.ghn.vn') { location.href = 'https://capacity.ghn.vn/vung/?tab=tat-tuyen&man=dang-tat'; return; }
+  var g = function (u) { return fetch(u, { credentials: 'include', headers: { 'X-Requested-With': 'XMLHttpRequest', accept: 'application/json' } }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); };
+  g('/vung/api/v1/tat-tuyen/dang-tat?kenh=shopee').then(function (a) {
+    if (!a || a.errorCode !== 'success' || !a.data) throw new Error((a && a.errorMessage) || 'không đọc được bảng tắt tuyến');
+    return g('/vung/api/v1/tat-tuyen/dem?kenh=shopee').then(function (x) { return x && x.data; }, function () { return null; }).then(function (dm) {
+      var rows = (a.data.dong || []).filter(function (r) { return r.vung === 'TNT'; });
+      var p = { v: 1, kenh: 'shopee', vung: 'TNT', at: Date.now(), lop: a.data.lop, dem: dm, rows: rows };
+      var done = false, o = window.opener;
+      var fallback = function () { if (done) return; done = true; window.open(W + '/#capData=' + encodeURIComponent(JSON.stringify(p)), '_blank'); toast('✅ Đã mở báo cáo TNT kèm ' + rows.length + ' xã/phường đang tắt tuyến.', 1); };
+      window.addEventListener('message', function (e) { if (e.origin === W && e.data && e.data.type === 'tntCapAck' && !done) { done = true; toast('✅ Đã gửi ' + rows.length + ' xã/phường TNT về báo cáo — quay lại tab báo cáo để xem.', 1); } });
+      if (o && !o.closed) { try { o.postMessage({ type: 'tntCapData', data: p }, W); } catch (e) {} setTimeout(fallback, 2000); } else fallback();
+    });
+  }).catch(function (e) { toast('⚠️ Chưa lấy được dữ liệu: ' + (e && e.message) + '. Hãy đăng nhập capacity.ghn.vn rồi bấm lại nút này.'); });
+}
+function cttBookmarklet() { return 'javascript:' + encodeURIComponent('(' + cttBmFn.toString().replace('__W__', location.origin) + ')()'); }
+function cttCopyBm(btn) {
+  const t = cttBookmarklet(), ok = () => { if (btn) { const o = btn.textContent; btn.textContent = '✓ Đã copy'; setTimeout(() => { btn.textContent = o; }, 1800); } };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, () => window.prompt('Copy mã nút:', t)); else window.prompt('Copy mã nút:', t);
+}
+function cttConnect() { try { window.open(CTT_URL, 'tntCapacity'); } catch (e) {} const g = document.getElementById('cttGuide'); if (g) g.open = true; }
+
+// ---- nhận dữ liệu ----
+async function cttReceive(p, src) {
+  if (!p || !Array.isArray(p.rows)) return;
+  CTT.data = p; CTT.luc = new Date().toISOString(); CTT.boi = (AUTH && AUTH.session && AUTH.session.name) || ''; CTT.loaded = true; CTT.err = '';
+  CTT.saveMsg = 'Đang lưu bản chụp cho mọi người xem…';
+  try { switchSection('sectionCapacity'); } catch (e) {}
+  cttRender();
+  try {
+    const r = await callBackend('capSave', { token: AUTH.session.token, data: p });
+    CTT.saveMsg = r && r.ok ? '✅ Đã lưu — ai mở tab Capacity cũng thấy bản này.' : '⚠️ Chưa lưu được lên máy chủ (' + ((r && r.error) || 'lỗi') + ') — chỉ máy này đang thấy.';
+    if (r && r.ok) { CTT.luc = r.luc; CTT.boi = r.boi; }
+  } catch (e) { CTT.saveMsg = '⚠️ Chưa lưu được lên máy chủ — chỉ máy này đang thấy.'; }
+  cttRender();
+}
+function cttOnMsg(e) {
+  if (e.origin !== 'https://capacity.ghn.vn' || !e.data || e.data.type !== 'tntCapData') return;
+  try { e.source && e.source.postMessage({ type: 'tntCapAck' }, e.origin); } catch (x) {}
+  cttReceive(e.data.data);
+}
+window.addEventListener('message', cttOnMsg);
+function cttFromHash() {
+  const m = /[#&]capData=([^&]+)/.exec(location.hash || '');
+  if (!m) return false;
+  history.replaceState(null, '', location.pathname + location.search);
+  try { cttReceive(JSON.parse(decodeURIComponent(m[1]))); return true; } catch (e) { return false; }
+}
+async function loadCapacity(force) {
+  if (CTT.loading || (CTT.loaded && !force)) { cttRender(); return; }
+  CTT.loading = true; cttRender();
+  try {
+    const r = await callBackend('capGet', { token: AUTH.session.token });
+    if (r && r.ok) { if (r.data) { CTT.data = r.data; CTT.luc = r.luc; CTT.boi = r.boi; } CTT.loaded = true; CTT.err = ''; }
+    else CTT.err = (r && r.error) || 'lỗi';
+  } catch (e) { CTT.err = e.message; }
+  CTT.loading = false; cttRender();
+}
+
+// ---- hiển thị ----
+function cttSet(k, v) { CTT.f[k] = CTT.f[k] === v && k === 'nhan' ? '' : v; cttRender(); }
+function cttRows() {
+  const D = CTT.data; if (!D) return [];
+  const f = CTT.f, q = cttNorm(f.q), N = cttNhan();
+  let rs = D.rows.filter((r) => (!f.nhan || (f.nhan === 'mo_tre' ? (r.co || []).indexOf('mo_tre') >= 0 : cttKey(r) === f.nhan)) && (!f.tinh || cttTinh(r.tinh_ten) === f.tinh)
+    && (!q || cttNorm(r.bc_chinh_ten + ' ' + r.phuong_ten + ' ' + r.tinh_ten).indexOf(q) >= 0));
+  const gN = (r) => (cttPct(r.gtc_nay) || 0);
+  if (f.sort === 'gtc') rs.sort((a, b) => gN(a) - gN(b));
+  else if (f.sort === 'mo') rs.sort((a, b) => String(a.ngay_mo).localeCompare(String(b.ngay_mo)));
+  else if (f.sort === 'bc') rs.sort((a, b) => String(a.bc_chinh_ten).localeCompare(String(b.bc_chinh_ten), 'vi'));
+  else rs.sort((a, b) => ((N[cttKey(a)] || [0, 0, 0, 9])[3] - (N[cttKey(b)] || [0, 0, 0, 9])[3]) || (cttPct(a.gtc_nay) || 0) - (cttPct(b.gtc_nay) || 0));
+  return rs;
+}
+function cttInsight(D) {
+  const rows = D.rows, on = rows.filter((r) => r.trang_thai !== 'da_mo'), N = cttNhan(), today = (D.lop && D.lop.ngay_cham) || new Date().toISOString().slice(0, 10);
+  const bcs = {}; on.forEach((r) => { (bcs[r.bc_chinh_ten] = bcs[r.bc_chinh_ten] || []).push(r); });
+  const tinh = new Set(on.map((r) => cttTinh(r.tinh_ten)));
+  const out = [];
+  out.push('Vùng TNT đang tắt tuyến Shopee <b>' + on.length + ' xã/phường</b> ở <b>' + Object.keys(bcs).length + ' bưu cục</b> (' + tinh.size + ' tỉnh)' + (rows.length > on.length ? ', ' + (rows.length - on.length) + ' xã/phường đã mở lại' : '') + '.');
+  // GTC từng BC (mỗi BC 1 lần)
+  const bcRow = Object.keys(bcs).map((b) => ({ b, r: bcs[b][0], n: bcs[b].length }));
+  const fmtBc = (o) => '<b>' + esc(o.b) + '</b> ' + cttP(cttPct(o.r.gtc_truoc)) + ' → ' + cttP(cttPct(o.r.gtc_nay)) + ' (' + cttDelta(cttPct(o.r.gtc_nay) - cttPct(o.r.gtc_truoc), 1, 1) + ', ' + o.n + ' xã)';
+  const bad = bcRow.filter((o) => cttPct(o.r.gtc_truoc) != null && cttPct(o.r.gtc_nay) != null && cttPct(o.r.gtc_nay) < cttPct(o.r.gtc_truoc) - 0.0005).sort((a, b) => (cttPct(a.r.gtc_nay) - cttPct(a.r.gtc_truoc)) - (cttPct(b.r.gtc_nay) - cttPct(b.r.gtc_truoc)));
+  const good = bcRow.filter((o) => cttPct(o.r.gtc_truoc) != null && cttPct(o.r.gtc_nay) != null && cttPct(o.r.gtc_nay) > cttPct(o.r.gtc_truoc) + 0.0005).sort((a, b) => (cttPct(b.r.gtc_nay) - cttPct(b.r.gtc_truoc)) - (cttPct(a.r.gtc_nay) - cttPct(a.r.gtc_truoc)));
+  if (bad.length) out.push('🔴 Tắt tuyến nhưng % GTC bưu cục vẫn <b>giảm</b> (' + bad.length + ' BC): ' + bad.slice(0, 10).map(fmtBc).join(' · ') + (bad.length > 10 ? ' · …' : '') + '.');
+  if (good.length) out.push('🟢 % GTC bưu cục <b>tốt lên</b> sau khi tắt (' + good.length + ' BC): ' + good.slice(0, 10).map(fmtBc).join(' · ') + (good.length > 10 ? ' · …' : '') + '.');
+  const tonUp = bcRow.filter((o) => o.r.ton_nay != null && o.r.cap && o.r.ton_nay > o.r.cap);
+  if (tonUp.length) out.push('📦 Tồn TB/ngày vẫn <b>vượt cap</b>: ' + tonUp.slice(0, 10).map((o) => '<b>' + esc(o.b) + '</b> ' + cttN(o.r.ton_nay) + '/' + cttN(o.r.cap) + ' (' + Math.round(o.r.ton_nay / o.r.cap * 100) + '% cap)').join(' · ') + '.');
+  const noDrop = on.filter((r) => (r.co || []).indexOf('chua_thay_giam') >= 0);
+  if (noDrop.length) out.push('⚠️ <b>' + noDrop.length + ' xã/phường chưa thấy đơn giảm</b> dù đã tắt: ' + noDrop.slice(0, 10).map((r) => esc(r.phuong_ten) + ' — ' + esc(r.bc_chinh_ten) + ': ' + cttN(r.don_truoc) + ' → ' + cttN(r.don_nay) + ' đơn/ngày').join(' · ') + '.');
+  const soon = on.filter((r) => { const d = cttDays(today, r.ngay_mo); return d != null && d >= 0 && d <= 3; }).sort((a, b) => String(a.ngay_mo).localeCompare(String(b.ngay_mo)));
+  if (soon.length) out.push('🗓️ Sắp đến hạn mở (≤ 3 ngày): ' + soon.slice(0, 10).map((r) => esc(r.phuong_ten) + ' — ' + esc(r.bc_chinh_ten) + ', ngày ' + cttDm(r.ngay_mo)).join(' · ') + '.');
+  const late = rows.filter((r) => (r.co || []).indexOf('mo_tre') >= 0);
+  if (late.length) out.push('⏰ <b>' + late.length + ' xã/phường mở trễ</b>: ' + late.slice(0, 10).map((r) => esc(r.phuong_ten) + ' — ' + esc(r.bc_chinh_ten) + ', hạn ' + cttDm(r.ngay_mo)).join(' · ') + '.');
+  return '<ul class="ctt-ins">' + out.map((x) => '<li>' + x + '</li>').join('') + '</ul>';
+}
+function cttWeeks(r) {
+  const w = r.gtc_tuan || []; if (!w.length) return '—';
+  const p0 = cttPct(r.gtc_truoc);
+  return '<div class="ctt-wk">' + w.map((g, i) => { const p = cttPct(g); const c = p == null || p0 == null ? '' : p > p0 + 0.0005 ? 'g' : p < p0 - 0.0005 ? 'r' : ''; return '<span class="' + c + '" title="Tuần ' + (i + 1) + ' sau khi tắt: ' + cttN(g.tu) + '/' + cttN(g.mau) + ' đơn, ' + g.so_ngay + ' ngày">T' + (i + 1) + ' ' + cttP(p) + (g.so_ngay < 7 ? '*' : '') + '</span>'; }).join('') + '</div>';
+}
+function cttTable(rs, D) {
+  const N = cttNhan(), C = cttCo(), G = cttNguon(), today = (D.lop && D.lop.ngay_cham) || new Date().toISOString().slice(0, 10);
+  let h = '<div class="ctt-tw"><table class="ctt-t"><thead><tr><th>Tỉnh</th><th>Bưu cục chính</th><th>Xã/Phường tắt</th><th>Đánh giá</th><th>Nguồn · mức tắt</th><th>Tắt → mở</th>'
+    + '<th title="% GTC của bưu cục chính: 7 ngày trước khi tắt → 7 ngày gần nhất">% GTC bưu cục<br><small>trước tắt → nay</small></th><th title="% GTC bưu cục từng tuần sau khi tắt; * = tuần chưa đủ 7 ngày; xanh/đỏ = cao/thấp hơn trước tắt">% GTC từng tuần sau tắt</th>'
+    + '<th title="Tồn trung bình/ngày của bưu cục so với capacity">Tồn TB/ngày · cap<br><small>trước → nay</small></th><th title="Đơn Shopee/ngày vào xã/phường này: trước khi tắt → nay">Đơn vào xã/ngày<br><small>trước → nay</small></th></tr></thead><tbody>';
+  if (!rs.length) h += '<tr><td colspan="10" class="ctt-empty">Không có xã/phường nào khớp bộ lọc.</td></tr>';
+  rs.forEach((r) => {
+    const k = cttKey(r), nn = N[k] || [k, '#334155', '#F1F5F9'];
+    const p0 = cttPct(r.gtc_truoc), p1 = cttPct(r.gtc_nay), dm = cttDays(today, r.ngay_mo), dt = cttDays(r.ngay_tat, today);
+    const flags = (r.co || []).map((c) => '<span class="ctt-flag">' + esc(C[c] || c) + '</span>').join('');
+    const capP = r.cap ? r.ton_nay / r.cap : null;
+    h += '<tr><td>' + esc(cttTinh(r.tinh_ten)) + '</td><td class="b">' + esc(r.bc_chinh_ten) + '</td><td>' + esc(r.phuong_ten) + '</td>'
+      + '<td><span class="ctt-tag" style="color:' + nn[1] + ';background:' + nn[2] + '">' + nn[0] + '</span>' + flags + '</td>'
+      + '<td>' + esc(G[r.nguon_tat] || r.nguon_tat) + '<br><small>tắt ' + (r.muc == null ? '—' : r.muc + '%') + '</small></td>'
+      + '<td>' + cttDm(r.ngay_tat) + ' → ' + cttDm(r.ngay_mo) + '<br><small>' + (r.trang_thai === 'da_mo' ? 'đã mở' : dm == null ? '' : dm < 0 ? '<span class="r">quá hạn ' + (-dm) + ' ngày</span>' : dm === 0 ? 'mở hôm nay' : 'còn ' + dm + ' ngày') + (dt != null && r.trang_thai !== 'da_mo' ? ' · đã tắt ' + dt + ' ngày' : '') + '</small></td>'
+      + '<td><b>' + cttP(p0) + ' → ' + cttP(p1) + '</b> ' + cttDelta(p0 == null || p1 == null ? null : p1 - p0, 1, 1) + '<br><small>' + cttN(r.gtc_nay && r.gtc_nay.tu) + '/' + cttN(r.gtc_nay && r.gtc_nay.mau) + ' đơn · ' + ((r.gtc_nay && r.gtc_nay.so_ngay) || 0) + ' ngày</small></td>'
+      + '<td>' + cttWeeks(r) + '</td>'
+      + '<td><b>' + cttN(r.ton_truoc) + ' → ' + cttN(r.ton_nay) + '</b> ' + cttDelta(r.ton_nay == null || r.ton_truoc == null ? null : r.ton_nay - r.ton_truoc, -1) + '<br><small class="' + (capP != null && capP > 1 ? 'r' : '') + '">cap ' + cttN(r.cap) + (capP != null ? ' · ' + Math.round(capP * 100) + '% cap' : '') + '</small></td>'
+      + '<td><b>' + cttN(r.don_truoc) + ' → ' + cttN(r.don_nay) + '</b><br><small>' + (r.don_truoc ? (r.don_nay <= r.don_truoc ? 'giảm ' : 'tăng ') + Math.round(Math.abs(1 - (r.don_nay || 0) / r.don_truoc) * 100) + '%' : '') + '</small></td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+function cttRender() {
+  const el = document.getElementById('cttBody'); if (!el) return;
+  const D = CTT.data, N = cttNhan();
+  let h = '<div class="ctt-head"><div><h2>📦 Capacity · Tắt tuyến Shopee — Vùng TNT</h2><div class="ctt-meta">';
+  if (D) h += 'Số liệu chấm ngày <b>' + cttDm(D.lop && D.lop.ngay_cham) + '</b> (bản ngày ' + cttDm(D.lop && D.lop.ban_ngay) + ')' + (D.dem && D.dem.dot_id_mo ? ' · đợt mở ' + esc(D.dem.dot_id_mo) : '') + (CTT.luc ? ' · gửi về lúc ' + esc(new Date(CTT.luc).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })) + (CTT.boi ? ' bởi ' + esc(CTT.boi) : '') : '');
+  else h += CTT.loading ? 'Đang tải bản chụp mới nhất…' : CTT.err ? '⚠️ ' + esc(CTT.err) : 'Chưa có bản chụp nào — bấm "Kết nối Capacity" để lấy số.';
+  if (CTT.saveMsg) h += '<br>' + CTT.saveMsg;
+  h += '</div></div><div class="ctt-acts"><button class="ctt-btn pri" onclick="cttConnect()">🔗 Kết nối Capacity (lấy số mới)</button><button class="ctt-btn" onclick="loadCapacity(true)">🔄 Tải lại</button></div></div>';
+  h += '<details class="ctt-guide" id="cttGuide"' + (D ? '' : ' open') + '><summary>Cách lấy số từ capacity.ghn.vn (làm 1 lần: tạo nút dấu trang)</summary><ol>'
+    + '<li>Kéo nút này lên thanh dấu trang: <a class="ctt-bm" href="' + esc(cttBookmarklet()) + '" onclick="event.preventDefault();return false;" title="Kéo lên thanh dấu trang">📦 Gửi Capacity về báo cáo TNT</a> — không kéo được thì bấm <button class="ctt-btn sm" onclick="cttCopyBm(this)">📋 Copy mã nút</button>, rồi Ctrl+Shift+B (Mac: Cmd+Shift+B) → chuột phải thanh dấu trang → Thêm trang → dán vào ô URL.</li>'
+    + '<li>Bấm <b>🔗 Kết nối Capacity</b> ở trên → trang capacity.ghn.vn mở ra (chưa đăng nhập thì đăng nhập SSO).</li>'
+    + '<li>Trên trang đó bấm nút dấu trang <b>📦 Gửi Capacity về báo cáo TNT</b> → số tắt tuyến vùng TNT tự về đây và được lưu cho mọi người xem.</li></ol>'
+    + '<div class="ctt-note">Web báo cáo không giữ phiên đăng nhập capacity của mày: nút chỉ đọc bảng tắt tuyến ngay trên trang đó rồi chuyển số liệu (riêng vùng TNT) về đây.</div></details>';
+  if (!D) { el.innerHTML = h; return; }
+  const rows = D.rows, cnt = {}; rows.forEach((r) => { const k = cttKey(r); cnt[k] = (cnt[k] || 0) + 1; });
+  const moTre = rows.filter((r) => (r.co || []).indexOf('mo_tre') >= 0).length, on = rows.filter((r) => r.trang_thai !== 'da_mo').length;
+  h += '<div class="ctt-cards"><div class="ctt-card all' + (CTT.f.nhan ? '' : ' on') + '" onclick="cttSet(\'nhan\',\'\')"><div class="v">' + on + '</div><div class="l">Đang tắt</div></div>';
+  ['te_di', 'don_bat_lai', 'chua_cai_thien', 'moi_tat', 'chua_cham', 'cai_thien', 'da_mo'].forEach((k) => { const n = N[k]; h += '<div class="ctt-card' + (CTT.f.nhan === k ? ' on' : '') + '" style="--c:' + n[1] + ';--b:' + n[2] + '" onclick="cttSet(\'nhan\',\'' + k + '\')"><div class="v">' + (cnt[k] || 0) + '</div><div class="l">' + n[0] + '</div></div>'; });
+  h += '<div class="ctt-card' + (CTT.f.nhan === 'mo_tre' ? ' on' : '') + '" style="--c:#B45309;--b:#FEF3C7" onclick="cttSet(\'nhan\',\'mo_tre\')"><div class="v">' + moTre + '</div><div class="l">Mở trễ</div></div></div>';
+  h += '<div class="ctt-sec"><h3>Nhận xét nhanh</h3>' + cttInsight(D) + '</div>';
+  const tinhs = Array.from(new Set(rows.map((r) => cttTinh(r.tinh_ten)))).sort((a, b) => a.localeCompare(b, 'vi'));
+  const rs = cttRows();
+  h += '<div class="ctt-sec"><h3>Danh sách xã/phường tắt tuyến <span>· ' + rs.length + '/' + rows.length + ' dòng' + (CTT.f.nhan ? ' · đang lọc: ' + esc((N[CTT.f.nhan] || ['Mở trễ'])[0]) : '') + '</span></h3>'
+    + '<div class="ctt-fl"><select onchange="cttSet(\'tinh\',this.value)"><option value="">Tất cả tỉnh</option>' + tinhs.map((t) => '<option' + (CTT.f.tinh === t ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>'
+    + '<input id="cttQ" placeholder="Tìm bưu cục / xã / phường…" value="' + esc(CTT.f.q) + '" oninput="CTT.f.q=this.value;cttTblOnly()">'
+    + '<label>Sắp theo <select onchange="cttSet(\'sort\',this.value)">' + [['xau', 'Đánh giá xấu trước'], ['gtc', '% GTC nay thấp → cao'], ['mo', 'Ngày mở gần nhất'], ['bc', 'Bưu cục A → Z']].map((o) => '<option value="' + o[0] + '"' + (CTT.f.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label></div>'
+    + '<div id="cttTbl">' + cttTable(rs, D) + '</div>'
+    + '<div class="ctt-foot">▲ tăng / ▼ giảm · <span class="g">xanh = tốt</span>, <span class="r">đỏ = xấu</span> · % GTC là của bưu cục chính · "trước" = 7 ngày trước khi tắt, "nay" = 7 ngày gần nhất · số liệu theo trang Capacity, chỉ vùng TNT.</div></div>';
+  el.innerHTML = h;
+}
+function cttTblOnly() { const t = document.getElementById('cttTbl'); if (t && CTT.data) t.innerHTML = cttTable(cttRows(), CTT.data); }
 </script>
 </body>
 </html>

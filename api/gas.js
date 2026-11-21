@@ -49,9 +49,13 @@
 const sheetsClient = require('./_sheetsClient.js');
 const reconClient = require('./_reconClient.js');
 const qhSync = require('./_qhSync.js');
+const capSync = require('./_capSync.js');
 
 // Các action đã port sang gọi thẳng Sheets API — xử lý tại đây, KHÔNG rơi xvống Apps Script.
 const LOCAL_ACTIONS = {
+  // Capacity · Tắt tuyến Shopee (bản chụp gửi về từ capacity.ghn.vn) — 2026-11-21
+  capSave: capSync.handleCapSave,
+  capGet: capSync.handleCapGet,
   login: sheetsClient.handleLogin,
   validateSession: sheetsClient.handleValidateSession,
   getReportData: sheetsClient.handleGetReportData,
