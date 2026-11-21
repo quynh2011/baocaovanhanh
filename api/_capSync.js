@@ -40,7 +40,30 @@ function capClean(d) {
   }));
   const lop = d.lop && typeof d.lop === 'object' ? { ngay_cham: txt(d.lop.ngay_cham, 10), ban_ngay: txt(d.lop.ban_ngay, 10), sinh_luc: num(d.lop.sinh_luc) } : null;
   const dem = d.dem && typeof d.dem === 'object' ? { dot_id_mo: txt(d.dem.dot_id_mo, 20) } : null;
-  return { v: 1, kenh: txt(d.kenh || 'shopee', 20), vung: txt(d.vung || 'TNT', 10), at: num(d.at) || Date.now(), lop, dem, rows };
+  let tts = null;
+  if (d.tts && typeof d.tts === 'object' && Array.isArray(d.tts.rows)) {
+    tts = {
+      ban_ngay: txt(d.tts.ban_ngay, 10), sinh_luc: num(d.tts.sinh_luc),
+      rows: d.tts.rows.slice(0, 2000).map((r) => ({
+        dong_id: txt(r.dong_id, 40), vung: txt(r.vung, 10), tinh_ten: txt(r.tinh_ten), phuong_ten: txt(r.phuong_ten), bc_chinh_ten: txt(r.bc_chinh_ten),
+        bc_ten: Array.isArray(r.bc_ten) ? r.bc_ten.slice(0, 10).map((x) => txt(x)) : [], vat: !!r.vat, muc: num(r.muc),
+        ngay_tat: r.ngay_tat ? txt(r.ngay_tat, 10) : null, dot: txt(r.dot, 80), nhom: txt(r.nhom, 40), ly_do: txt(r.ly_do, 200), ghi_chu: txt(r.ghi_chu, 200),
+        don_truoc: num(r.don_truoc), don_truoc_ky: txt(r.don_truoc_ky, 30)
+      })),
+      mo_lai: Array.isArray(d.tts.mo_lai) ? d.tts.mo_lai.slice(0, 1000).map((r) => ({ dong_id: txt(r.dong_id, 40), vung: txt(r.vung, 10), tinh_ten: txt(r.tinh_ten), phuong_ten: txt(r.phuong_ten), bc_chinh_ten: txt(r.bc_chinh_ten), ngay_tat: txt(r.ngay_tat, 10), mo_ngay: txt(r.mo_ngay, 10) })) : []
+    };
+  }
+  let tonghop = null;
+  const G = d.tonghop;
+  if (G && typeof G === 'object' && Array.isArray(G.hang)) {
+    const k3 = (o) => (o && typeof o === 'object' ? { tat_han: num(o.tat_han) || 0, giam: num(o.giam) || 0, giam_muc: o.giam_muc && typeof o.giam_muc === 'object' ? Object.fromEntries(Object.keys(o.giam_muc).slice(0, 10).map((m) => [txt(m, 10), num(o.giam_muc[m]) || 0])) : {} } : { tat_han: 0, giam: 0, giam_muc: {} });
+    tonghop = {
+      kenh: Array.isArray(G.kenh) ? G.kenh.slice(0, 10).map((k) => ({ ma: txt(k.ma, 10), co_nguon: !!k.co_nguon, ban_ngay: k.ban_ngay ? txt(k.ban_ngay, 10) : null, sinh_luc: num(k.sinh_luc) })) : [],
+      hang: G.hang.slice(0, 50).map((x) => ({ vung: txt(x.vung, 10), sp: k3(x.sp), tts: k3(x.tts), tong: k3(x.tong) })),
+      tong: G.tong ? { sp: k3(G.tong.sp), tts: k3(G.tong.tts), tong: k3(G.tong.tong) } : null
+    };
+  }
+  return { v: 2, kenh: txt(d.kenh || 'shopee', 20), vung: txt(d.vung || 'TNT', 10), at: num(d.at) || Date.now(), lop, dem, rows, tts, tonghop };
 }
 
 async function handleCapSave(body) {
