@@ -12056,7 +12056,7 @@ function cttThHtml(D, sx) {
   h += '<div class="ctt-grp"><div class="ctt-gl">Toàn vùng TNT · bấm để lọc bảng</div><div class="ctt-cards">'
     + [['', L.length, 'Xã/phường đang tắt', '#0F2B5B', '#EEF2FF'], ['sp', nSp, 'Tắt Shopee' + (nGiam ? ' <small>· ' + nGiam + ' giảm</small>' : ''), '#C2410C', '#FFEDD5'], ['tt', nTt, 'Tắt TikTok Shop', '#0F172A', '#E2E8F0'], ['ca2', n2, 'Tắt cả 2 kênh', '#B4231A', '#FDECEA']]
       .map((x) => '<div class="ctt-card' + (CTT.fh.kenh === x[0] ? ' on' : '') + '" style="--c:' + x[3] + ';--b:' + x[4] + '" onclick="cttThSet(\'kenh\',\'' + x[0] + '\',\'' + sx + '\')"><div class="v">' + x[1] + '</div><div class="l">' + x[2] + '</div></div>').join('')
-    + '<div class="ctt-card" style="--c:#334155;--b:#F1F5F9;cursor:default"><div class="v">' + BL.length + '</div><div class="l">Bưu cục bị tắt</div></div>'
+    + '<div class="ctt-card" style="--c:#334155;--b:#F1F5F9" onclick="cttCard(\'cttThB\',\'' + sx + '\')"><div class="v">' + BL.length + '</div><div class="l">Bưu cục bị tắt</div></div>'
     + '<div class="ctt-card" style="--c:#166534;--b:#DCFCE7" onclick="cttCard(\'cttThM\',\'' + sx + '\')"><div class="v">' + B.mo.length + '</div><div class="l">Đã mở lại</div></div></div></div>';
   const ins = [];
   ins.push('Vùng TNT đang tắt tuyến <b>' + L.length + ' xã/phường</b> ở <b>' + BL.length + ' bưu cục</b> (' + TL.length + ' tỉnh): Shopee ' + nSp + ' xã' + (nGiam ? ' (' + (nSp - nGiam) + ' tắt hẳn, ' + nGiam + ' giảm)' : '') + ', TikTok Shop ' + nTt + ' xã' + (n2 ? ', trong đó <b>' + n2 + ' xã bị tắt cả 2 kênh</b>' : '') + '.');
@@ -12068,7 +12068,7 @@ function cttThHtml(D, sx) {
   if (over.length) ins.push('⏰ Shopee quá hạn mở mà vẫn tắt: ' + over.slice(0, 10).map((o) => esc(o.xa) + ' — ' + esc(o.bc) + ' (hạn ' + cttDm(o.sp.ngay_mo) + ')').join(' · ') + '.');
   if (B.mo.length) ins.push('🟢 Đã mở lại ' + B.mo.length + ' xã/phường: ' + B.mo.slice(0, 10).map((m) => esc(m.r.phuong_ten) + ' — ' + esc(m.r.bc_chinh_ten) + ' (' + m.kenh + (m.late ? ', mở trễ' : '') + ')').join(' · ') + '.');
   h += '<div class="ctt-sec"><h3>Nhận xét nhanh</h3><ul class="ctt-ins">' + ins.map((x) => '<li>' + x + '</li>').join('') + '</ul></div>';
-  h += '<div class="ctt-sec"><h3>Theo bưu cục <span>· ' + BL.length + ' bưu cục có xã bị tắt</span></h3><div class="ctt-tw"><table class="ctt-t"><thead><tr><th>Tỉnh</th><th>Bưu cục</th><th>Xã bị tắt</th><th>Shopee</th><th>TikTok Shop</th><th>Cả 2 kênh</th><th>Đơn/ngày trước tắt<br><small>Shopee | TikTok Shop</small></th><th>Các xã/phường</th></tr></thead><tbody>'
+  h += '<div class="ctt-sec" id="cttThB' + sx + '"><h3>Theo bưu cục <span>· ' + BL.length + ' bưu cục có xã bị tắt</span></h3><div class="ctt-tw"><table class="ctt-t"><thead><tr><th>Tỉnh</th><th>Bưu cục</th><th>Xã bị tắt</th><th>Shopee</th><th>TikTok Shop</th><th>Cả 2 kênh</th><th>Đơn/ngày trước tắt<br><small>Shopee | TikTok Shop</small></th><th>Các xã/phường</th></tr></thead><tbody>'
     + BL.map((b) => '<tr><td>' + esc(b.tinh) + '</td><td class="b">' + esc(b.bc) + '</td><td><b>' + b.n + '</b></td><td>' + (b.sp || '—') + '</td><td>' + (b.tt || '—') + '</td><td>' + (b.c2 ? '<b class="r">' + b.c2 + '</b>' : '—') + '</td><td>' + cttN(b.dSp) + ' | ' + cttN(b.dTt) + '</td><td class="wrap"><small>' + esc(b.xa.join(', ')) + '</small></td></tr>').join('') + '</tbody></table></div></div>';
   const rs = cttThRows(L);
   h += '<div class="ctt-sec" id="cttThL' + sx + '"><h3>Toàn bộ xã/phường đang tắt <span>· ' + rs.length + '/' + L.length + ' dòng' + (CTT.fh.kenh ? ' · đang lọc' : '') + '</span></h3>'
