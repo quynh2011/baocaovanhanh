@@ -1732,6 +1732,10 @@ td.dn-keycol{background:#FBF7EE}
 .ctt-root .ctt-empty{text-align:center;color:#94A3B8;padding:20px}
 .ctt-root .ctt-foot{font-size:12px;color:#64748B;margin-top:8px}
 
+.ctt-root .ctt-stale{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:12px 16px;border-radius:10px;background:#FFFBEB;border:1px solid #FCD34D;color:#78350F;font-size:14px;line-height:1.55}
+.ctt-root .ctt-stale.x{background:#FEF2F2;border-color:#FCA5A5;color:#7F1D1D;padding:18px 20px}
+.ctt-root .ctt-stale .ic{font-size:24px}
+.ctt-root .ctt-stale>div:nth-child(2){flex:1}
 .ctt-root .ctt-kenh{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px;border-bottom:2px solid #E5E7EB}
 .ctt-root .ctt-kenh button{border:0;background:none;padding:9px 16px;font-weight:700;font-size:14px;color:#64748B;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
 .ctt-root .ctt-kenh button.on{color:#0F2B5B;border-bottom-color:#F26522}
@@ -11850,6 +11854,11 @@ function cttHtml(sx) {
     + '<li>Trên trang đó bấm nút dấu trang <b>📦 Gửi Capacity về báo cáo TNT</b> → số tắt tuyến vùng TNT tự về đây và được lưu cho mọi người xem.</li></ol>'
     + '<div class="ctt-note">Web báo cáo không giữ phiên đăng nhập capacity của mày: nút chỉ đọc bảng tắt tuyến ngay trên trang đó rồi chuyển số liệu (riêng vùng TNT) về đây.</div></details>';
   if (!D) return h;
+  // Hạn dữ liệu: khác ngày (giờ VN) → bắt cập nhật, không hiện số; cùng ngày nhưng ≥ 3 giờ → cảnh báo
+  const at = CTT.luc ? new Date(CTT.luc).getTime() : D.at || 0, vnD = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10), age = Date.now() - at;
+  const tLuc = at ? new Date(at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : 'không rõ';
+  if (!at || vnD(at) < vnD(Date.now())) return h + '<div class="ctt-stale x"><div class="ic">⛔</div><div><b>Số tắt tuyến đã sang ngày mới, chưa được cập nhật</b> — bản đang lưu lấy lúc ' + esc(tLuc) + '. Để tránh xem số cũ, báo cáo tạm ẩn cho tới khi có người cập nhật.<br>Bấm <b>🔗 Kết nối Capacity</b> ở trên → trên trang capacity.ghn.vn bấm nút dấu trang <b>📦 Gửi Capacity về báo cáo TNT</b> (chưa có nút thì mở mục hướng dẫn phía trên).</div><button class="ctt-btn pri" onclick="cttConnect()">🔗 Cập nhật ngay</button></div>';
+  if (age >= 3 * 3600e3) { const hh = Math.floor(age / 3600e3); h += '<div class="ctt-stale"><div class="ic">⚠️</div><div><b>Dữ liệu đã cũ ' + hh + ' giờ</b> (lấy lúc ' + esc(tLuc) + ') — số trên capacity có thể đã thay đổi, nên cập nhật lại.</div><button class="ctt-btn pri" onclick="cttConnect()">🔗 Cập nhật</button></div>'; }
   const kn = CTT.kenh || 'sp', ttsN = D.tts && D.tts.rows ? D.tts.rows.length : null;
   h += '<div class="ctt-kenh">' + [['sp', '🛍️ Shopee', D.rows.filter((r) => r.trang_thai !== 'da_mo').length], ['tts', '🎵 TikTok Shop', ttsN], ['th', '📊 Tổng hợp vùng', null]].map((x) => '<button class="' + (kn === x[0] ? 'on' : '') + '" onclick="cttKenhSet(\'' + x[0] + '\')">' + x[1] + (x[2] != null ? ' <span>' + x[2] + '</span>' : '') + '</button>').join('') + '</div>';
   if (kn === 'tts') return h + cttTtsHtml(D, sx);
@@ -11874,6 +11883,9 @@ function cttHtml(sx) {
 function cttTblOnly(src) { if (!CTT.data) return; const html = cttTable(cttRows(), CTT.data); ['', 'T'].forEach((sx) => { const t = document.getElementById('cttTbl' + sx); if (t) t.innerHTML = html; const q = document.getElementById('cttQ' + sx); if (q && q.id !== src) q.value = CTT.f.q; }); }
 
 // ---- Capacity: TikTok Shop + Tổng hợp vùng (2026-11-21) — vẽ chung qua cttHtml nên tab Capacity và [TNT]-Report mục VI luôn giống nhau ----
+// để trang mở qua giờ/qua ngày vẫn tự đổi cảnh báo
+function cttAgeKey() { if (!CTT.data) return ''; const at = CTT.luc ? new Date(CTT.luc).getTime() : CTT.data.at || 0, v = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10); return !at || v(at) < v(Date.now()) ? 'x' : String(Math.floor((Date.now() - at) / 3600e3) >= 3 ? Math.floor((Date.now() - at) / 3600e3) : 0); }
+setInterval(function () { try { const k = cttAgeKey(); if (k !== CTT.ageKey) { CTT.ageKey = k; cttRender(); } } catch (e) {} }, 60000);
 function cttKenhSet(k) { CTT.kenh = k; cttRender(); }
 function cttTtsSet(k, v) { CTT.ft = CTT.ft || { nhom: '', tinh: '', q: '' }; CTT.ft[k] = CTT.ft[k] === v && k === 'nhom' ? '' : v; cttRender(); }
 function cttTtsNhom() { return { 'Tắt mới': ['#1E40AF', '#DBEAFE'], 'Tắt lại': ['#B4231A', '#FDECEA'], 'Gia hạn': ['#92400E', '#FEF3C7'], 'Gửi lại': ['#6D28D9', '#EDE9FE'] }; }
