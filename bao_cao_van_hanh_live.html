@@ -11906,15 +11906,15 @@ function cttHtml(sx) {
   const moTre = rows.filter((r) => (r.co || []).indexOf('mo_tre') >= 0).length, on = rows.filter((r) => r.trang_thai !== 'da_mo').length;
   const moN = cnt.da_mo || 0;
   h += '<div class="ctt-grp"><div class="ctt-gl">Trạng thái tuyến</div><div class="ctt-cards">'
-    + '<div class="ctt-card all' + (CTT.f.nhan ? '' : ' on') + '" onclick="cttSet(\'nhan\',\'\')"><div class="v">' + on + '</div><div class="l">Đang tắt</div></div>'
-    + '<div class="ctt-card" style="--c:#166534;--b:#DCFCE7" onclick="cttMoGo(\'' + sx + '\')"><div class="v">' + moN + '</div><div class="l">Đã mở lại' + (moTre ? ' <small>· ' + moTre + ' mở trễ</small>' : '') + '</div></div></div></div>';
+    + '<div class="ctt-card all' + (CTT.f.nhan ? '' : ' on') + '" onclick="cttCard(\'cttOn\',\'' + sx + '\',\'nhan\')"><div class="v">' + on + '</div><div class="l">Đang tắt</div></div>'
+    + '<div class="ctt-card" style="--c:#166534;--b:#DCFCE7" onclick="cttCard(\'cttMo\',\'' + sx + '\')"><div class="v">' + moN + '</div><div class="l">Đã mở lại' + (moTre ? ' <small>· ' + moTre + ' mở trễ</small>' : '') + '</div></div></div></div>';
   h += '<div class="ctt-grp"><div class="ctt-gl">Đánh giá ' + on + ' xã/phường đang tắt <small>· bấm để lọc</small></div><div class="ctt-cards">';
-  ['te_di', 'don_bat_lai', 'chua_cai_thien', 'cai_thien', 'moi_tat', 'chua_cham'].forEach((k) => { const n = N[k]; h += '<div class="ctt-card' + (CTT.f.nhan === k ? ' on' : '') + '" style="--c:' + n[1] + ';--b:' + n[2] + '" onclick="cttSet(\'nhan\',\'' + k + '\')"><div class="v">' + (cnt[k] || 0) + '</div><div class="l">' + n[0] + '</div></div>'; });
+  ['te_di', 'don_bat_lai', 'chua_cai_thien', 'cai_thien', 'moi_tat', 'chua_cham'].forEach((k) => { const n = N[k]; h += '<div class="ctt-card' + (CTT.f.nhan === k ? ' on' : '') + '" style="--c:' + n[1] + ';--b:' + n[2] + '" onclick="cttSet(\'nhan\',\'' + k + '\');cttOpen(\'cttOn' + sx + '\')"><div class="v">' + (cnt[k] || 0) + '</div><div class="l">' + n[0] + '</div></div>'; });
   h += '</div></div>';
   h += '<div class="ctt-sec"><h3>Nhận xét nhanh</h3>' + cttInsight(D) + '</div>';
   const tinhs = Array.from(new Set(rows.map((r) => cttTinh(r.tinh_ten)))).sort((a, b) => a.localeCompare(b, 'vi'));
   const rs = cttRows();
-  h += '<div class="ctt-sec"><h3>Danh sách xã/phường ĐANG TẮT tuyến Shopee <span>· ' + rs.length + '/' + on + ' dòng' + (CTT.f.nhan ? ' · đang lọc: ' + esc((N[CTT.f.nhan] || ['Mở trễ'])[0]) : '') + '</span></h3>'
+  h += '<div class="ctt-sec" id="cttOn' + sx + '"><h3>Danh sách xã/phường ĐANG TẮT tuyến Shopee <span>· ' + rs.length + '/' + on + ' dòng' + (CTT.f.nhan ? ' · đang lọc: ' + esc((N[CTT.f.nhan] || ['Mở trễ'])[0]) : '') + '</span></h3>'
     + '<div class="ctt-fl"><select onchange="cttSet(\'tinh\',this.value)"><option value="">Tất cả tỉnh</option>' + tinhs.map((t) => '<option' + (CTT.f.tinh === t ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>'
     + '<input id="cttQ' + sx + '" placeholder="Tìm bưu cục / xã / phường…" value="' + esc(CTT.f.q) + '" oninput="CTT.f.q=this.value;cttTblOnly(this.id)">'
     + '<label>Sắp theo <select onchange="cttSet(\'sort\',this.value)">' + [['xau', 'Đánh giá xấu trước'], ['gtc', '% GTC nay thấp → cao'], ['mo', 'Ngày mở gần nhất'], ['bc', 'Bưu cục A → Z']].map((o) => '<option value="' + o[0] + '"' + (CTT.f.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label></div>'
@@ -11933,6 +11933,15 @@ function cttTblOnly(src) { if (!CTT.data) return; const html = cttTable(cttRows(
 // để trang mở qua giờ/qua ngày vẫn tự đổi cảnh báo
 function cttAgeKey() { if (!CTT.data) return ''; const at = CTT.luc ? new Date(CTT.luc).getTime() : CTT.data.at || 0, v = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10); return !at || v(at) < v(Date.now()) ? 'x' : String(Math.floor((Date.now() - at) / 3600e3) >= 3 ? Math.floor((Date.now() - at) / 3600e3) : 0); }
 setInterval(function () { try { const k = cttAgeKey(); if (k !== CTT.ageKey) { CTT.ageKey = k; cttRender(); } } catch (e) {} }, 60000);
+// bấm thẻ trạng thái = mở/thu bảng tương ứng (bấm lại là thu); thẻ Đang tắt khi đang lọc đánh giá thì bỏ lọc + mở bảng
+function cttOpen(id) { const e = document.getElementById(id); if (!e || !e.getAttribute('data-k')) return; cttSecSet(e.getAttribute('data-k'), true); e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+function cttCard(base, sx, fk) {
+  const id = base + (sx || '');
+  if (fk === 'nhan' && CTT.f.nhan) { CTT.f.nhan = ''; cttRender(); return cttOpen(id); }
+  if (fk === 'nhom' && CTT.ft && CTT.ft.nhom) { CTT.ft.nhom = ''; cttRender(); return cttOpen(id); }
+  const e = document.getElementById(id); if (!e || !e.getAttribute('data-k')) return;
+  if (e.classList.contains('ctt-shut')) cttOpen(id); else cttSecSet(e.getAttribute('data-k'), false);
+}
 function cttMoGo(sx) { const e = document.getElementById('cttMo' + (sx || '')); if (e && e.getAttribute('data-k')) cttSecSet(e.getAttribute('data-k'), true); if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function cttKenhSet(k) { CTT.kenh = k; cttRender(); }
 function cttTtsSet(k, v) { CTT.ft = CTT.ft || { nhom: '', tinh: '', q: '' }; CTT.ft[k] = CTT.ft[k] === v && k === 'nhom' ? '' : v; cttRender(); }
@@ -11967,10 +11976,10 @@ function cttTtsHtml(D, sx) {
   rows.forEach((r) => { cnt[r.nhom] = (cnt[r.nhom] || 0) + 1; });
   let h = '<div class="ctt-meta" style="margin:-4px 0 10px">TikTok Shop · bản ngày <b>' + cttDm(T.ban_ngay) + '</b> · ' + rows.length + ' xã/phường vùng TNT đang tắt' + (T.mo_lai && T.mo_lai.length ? ' · ' + T.mo_lai.length + ' xã/phường mở lại' : '') + '</div>';
   const moL = (T.mo_lai || []).length;
-  h += '<div class="ctt-grp"><div class="ctt-gl">Trạng thái tuyến</div><div class="ctt-cards"><div class="ctt-card all' + (CTT.ft.nhom ? '' : ' on') + '" onclick="cttTtsSet(\'nhom\',\'\')"><div class="v">' + rows.length + '</div><div class="l">Đang tắt</div></div>'
-    + '<div class="ctt-card" style="--c:#166534;--b:#DCFCE7" onclick="cttMoGo(\'T' + sx + '\')"><div class="v">' + moL + '</div><div class="l">Đã mở lại</div></div></div></div>';
+  h += '<div class="ctt-grp"><div class="ctt-gl">Trạng thái tuyến</div><div class="ctt-cards"><div class="ctt-card all' + (CTT.ft.nhom ? '' : ' on') + '" onclick="cttCard(\'cttOnT\',\'' + sx + '\',\'nhom\')"><div class="v">' + rows.length + '</div><div class="l">Đang tắt</div></div>'
+    + '<div class="ctt-card" style="--c:#166534;--b:#DCFCE7" onclick="cttCard(\'cttMoT\',\'' + sx + '\')"><div class="v">' + moL + '</div><div class="l">Đã mở lại</div></div></div></div>';
   h += '<div class="ctt-grp"><div class="ctt-gl">Loại tắt của ' + rows.length + ' xã/phường đang tắt <small>· bấm để lọc</small></div><div class="ctt-cards">';
-  Object.keys(NC).forEach((k) => { h += '<div class="ctt-card' + (CTT.ft.nhom === k ? ' on' : '') + '" style="--c:' + NC[k][0] + ';--b:' + NC[k][1] + '" onclick="cttTtsSet(\'nhom\',\'' + k + '\')"><div class="v">' + (cnt[k] || 0) + '</div><div class="l">' + k + '</div></div>'; });
+  Object.keys(NC).forEach((k) => { h += '<div class="ctt-card' + (CTT.ft.nhom === k ? ' on' : '') + '" style="--c:' + NC[k][0] + ';--b:' + NC[k][1] + '" onclick="cttTtsSet(\'nhom\',\'' + k + '\');cttOpen(\'cttOnT' + sx + '\')"><div class="v">' + (cnt[k] || 0) + '</div><div class="l">' + k + '</div></div>'; });
   h += '</div></div>';
   // nhận xét có số
   const bcs = {}; rows.forEach((r) => { (bcs[r.bc_chinh_ten] = bcs[r.bc_chinh_ten] || []).push(r); });
@@ -11990,7 +11999,7 @@ function cttTtsHtml(D, sx) {
   h += '<div class="ctt-sec"><h3>Nhận xét nhanh</h3><ul class="ctt-ins">' + ins.map((x) => '<li>' + x + '</li>').join('') + '</ul></div>';
   const tinhs = Array.from(new Set(rows.map((r) => cttTinh(r.tinh_ten)))).sort((a, b) => a.localeCompare(b, 'vi'));
   const rs = cttTtsRows(T);
-  h += '<div class="ctt-sec"><h3>Danh sách xã/phường ĐANG TẮT tuyến TikTok Shop <span>· ' + rs.length + '/' + rows.length + ' dòng</span></h3>'
+  h += '<div class="ctt-sec" id="cttOnT' + sx + '"><h3>Danh sách xã/phường ĐANG TẮT tuyến TikTok Shop <span>· ' + rs.length + '/' + rows.length + ' dòng</span></h3>'
     + '<div class="ctt-fl"><select onchange="cttTtsSet(\'tinh\',this.value)"><option value="">Tất cả tỉnh</option>' + tinhs.map((t) => '<option' + (CTT.ft.tinh === t ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>'
     + '<input id="cttTQ' + sx + '" placeholder="Tìm bưu cục / xã / lý do…" value="' + esc(CTT.ft.q) + '" oninput="CTT.ft.q=this.value;cttTtsTblOnly(this.id)"></div>'
     + '<div id="cttTT' + sx + '">' + cttTtsTable(rs, today) + '</div></div>';
