@@ -12026,7 +12026,9 @@ function cttThRows(L) {
 }
 function cttThTable(rs) {
   const N = cttNhan(), NC = cttTtsNhom(), today = new Date().toISOString().slice(0, 10), f1 = (x) => (x == null ? '—' : String(Math.round(x * 10) / 10).replace('.', ','));
-  let h = '<div class="ctt-tw"><table class="ctt-t"><thead><tr><th>Tỉnh</th><th>Bưu cục chính</th><th>Xã/Phường</th><th>Kênh bị tắt</th><th>Shopee<br><small>mức tắt · đánh giá · tắt → hạn mở</small></th><th>TikTok Shop<br><small>loại · đợt · lý do</small></th><th>Đơn vào xã/ngày trước tắt<br><small>Shopee | TikTok Shop</small></th></tr></thead><tbody>';
+  // lọc 1 kênh thì chỉ hiện cột của kênh đó (chủ dự án chốt 21/11)
+  const kf = (CTT.fh && CTT.fh.kenh) || '', oSp = kf === 'sp' || kf === 'giam', oTt = kf === 'tt', showSp = !oTt, showTt = !oSp, showK = !oSp && !oTt;
+  let h = '<div class="ctt-tw"><table class="ctt-t"><thead><tr><th>Tỉnh</th><th>Bưu cục chính</th><th>Xã/Phường</th>' + (showK ? '<th>Kênh bị tắt</th>' : '') + (showSp ? '<th>Shopee<br><small>mức tắt · đánh giá · tắt → hạn mở</small></th>' : '') + (showTt ? '<th>TikTok Shop<br><small>loại · đợt · lý do</small></th>' : '') + '<th>Đơn vào xã/ngày trước tắt' + (showSp && showTt ? '<br><small>Shopee | TikTok Shop</small>' : '') + '</th></tr></thead><tbody>';
   if (!rs.length) h += '<tr><td colspan="7" class="ctt-empty">Không có xã/phường nào khớp bộ lọc.</td></tr>';
   rs.forEach((o) => {
     const s = o.sp, t = o.tt, ca2 = s && t;
@@ -12035,7 +12037,8 @@ function cttThTable(rs) {
     if (s) { const n = N[cttKey(s)] || ['—', '#334155', '#F1F5F9'], dm = cttDays(today, s.ngay_mo); sc = (s.muc != null ? '<b>' + (s.muc >= 100 ? 'Tắt hẳn' : 'Giảm ' + s.muc + '%') + '</b> ' : '') + '<span class="ctt-tag" style="color:' + n[1] + ';background:' + n[2] + '">' + n[0] + '</span><br><small>' + cttDm(s.ngay_tat) + ' → ' + cttDm(s.ngay_mo) + (dm == null ? '' : dm < 0 ? ' · <span class="r">quá hạn ' + (-dm) + ' ngày</span>' : ' · còn ' + dm + ' ngày') + '</small>'; }
     let tc = '<span class="ctt-mute">—</span>';
     if (t) { const c = NC[t.nhom] || ['#334155', '#F1F5F9']; tc = '<span class="ctt-tag" style="color:' + c[0] + ';background:' + c[1] + '">' + esc(t.nhom || '—') + '</span> <small>' + esc(t.dot || '') + (t.ngay_tat ? ' · tắt ' + cttDm(t.ngay_tat) : '') + '</small><br><small>' + esc(t.ly_do || '') + '</small>'; }
-    h += '<tr' + (ca2 ? ' class="ctt-me"' : '') + '><td>' + esc(o.tinh) + '</td><td class="b">' + esc(o.bc) + '</td><td>' + esc(o.xa) + '</td><td>' + kn + '</td><td class="wrap">' + sc + '</td><td class="wrap">' + tc + '</td><td><b>' + f1(s && s.don_truoc) + '</b> | <b>' + f1(t && t.don_truoc) + '</b></td></tr>';
+    const dn = showSp && showTt ? '<b>' + f1(s && s.don_truoc) + '</b> | <b>' + f1(t && t.don_truoc) + '</b>' : '<b>' + f1(showSp ? s && s.don_truoc : t && t.don_truoc) + '</b>';
+    h += '<tr' + (ca2 && showK ? ' class="ctt-me"' : '') + '><td>' + esc(o.tinh) + '</td><td class="b">' + esc(o.bc) + '</td><td>' + esc(o.xa) + '</td>' + (showK ? '<td>' + kn + '</td>' : '') + (showSp ? '<td class="wrap">' + sc + '</td>' : '') + (showTt ? '<td class="wrap">' + tc + '</td>' : '') + '<td>' + dn + '</td></tr>';
   });
   return h + '</tbody></table></div>';
 }
