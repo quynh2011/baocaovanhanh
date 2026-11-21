@@ -1751,6 +1751,7 @@ td.dn-keycol{background:#FBF7EE}
 .ctt-root .ctt-allb{display:flex;gap:6px;justify-content:flex-end;margin:-6px 0 10px}
 .ctt-vih{cursor:pointer;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .ctt-vishut #tntTatBody{display:none}
+.ctt-root .ctt-mute{color:#94A3B8}
 .ctt-root .ctt-kenh{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px;border-bottom:2px solid #E5E7EB}
 .ctt-root .ctt-kenh button{border:0;background:none;padding:9px 16px;font-weight:700;font-size:14px;color:#64748B;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
 .ctt-root .ctt-kenh button.on{color:#0F2B5B;border-bottom-color:#F26522}
@@ -11898,10 +11899,10 @@ function cttHtml(sx) {
   if (!at || vnD(at) < vnD(Date.now())) return h + '<div class="ctt-stale x"><div class="ic">⛔</div><div><b>Số tắt tuyến đã sang ngày mới, chưa được cập nhật</b> — bản đang lưu lấy lúc ' + esc(tLuc) + '. Để tránh xem số cũ, báo cáo tạm ẩn cho tới khi có người cập nhật.<br>Bấm <b>🔗 Kết nối Capacity</b> ở trên → trên trang capacity.ghn.vn bấm nút dấu trang <b>📦 Gửi Capacity về báo cáo TNT</b> (chưa có nút thì mở mục hướng dẫn phía trên).</div><button class="ctt-btn pri" onclick="cttConnect()">🔗 Cập nhật ngay</button></div>';
   if (age >= 3 * 3600e3) { const hh = Math.floor(age / 3600e3); h += '<div class="ctt-stale"><div class="ic">⚠️</div><div><b>Dữ liệu đã cũ ' + hh + ' giờ</b> (lấy lúc ' + esc(tLuc) + ') — số trên capacity có thể đã thay đổi, nên cập nhật lại.</div><button class="ctt-btn pri" onclick="cttConnect()">🔗 Cập nhật</button></div>'; }
   const kn = CTT.kenh || 'sp', ttsN = D.tts && D.tts.rows ? D.tts.rows.length : null;
-  h += '<div class="ctt-kenh">' + [['sp', '🛍️ Shopee', D.rows.filter((r) => r.trang_thai !== 'da_mo').length], ['tts', '🎵 TikTok Shop', ttsN], ['th', '📊 Tổng hợp vùng', null]].map((x) => '<button class="' + (kn === x[0] ? 'on' : '') + '" onclick="cttKenhSet(\'' + x[0] + '\')">' + x[1] + (x[2] != null ? ' <span>' + x[2] + '</span>' : '') + '</button>').join('') + '</div>';
+  h += '<div class="ctt-kenh">' + [['sp', '🛍️ Shopee', D.rows.filter((r) => r.trang_thai !== 'da_mo').length], ['tts', '🎵 TikTok Shop', ttsN], ['th', '📊 Tổng hợp TNT', cttThBuild(D).list.length]].map((x) => '<button class="' + (kn === x[0] ? 'on' : '') + '" onclick="cttKenhSet(\'' + x[0] + '\')">' + x[1] + (x[2] != null ? ' <span>' + x[2] + '</span>' : '') + '</button>').join('') + '</div>';
   h += '<div class="ctt-allb"><button class="ctt-btn sm" onclick="cttAllTog(this)">▾ Mở rộng tất cả</button></div>';
   if (kn === 'tts') return h + cttTtsHtml(D, sx);
-  if (kn === 'th') return h + cttThHtml(D);
+  if (kn === 'th') return h + cttThHtml(D, sx);
   const rows = D.rows, cnt = {}; rows.forEach((r) => { const k = cttKey(r); cnt[k] = (cnt[k] || 0) + 1; });
   const moTre = rows.filter((r) => (r.co || []).indexOf('mo_tre') >= 0).length, on = rows.filter((r) => r.trang_thai !== 'da_mo').length;
   const moN = cnt.da_mo || 0;
@@ -12007,28 +12008,76 @@ function cttTtsHtml(D, sx) {
     + T.mo_lai.map((r) => '<tr><td>' + esc(cttTinh(r.tinh_ten)) + '</td><td class="b">' + esc(r.bc_chinh_ten) + '</td><td>' + esc(r.phuong_ten) + '</td><td>' + cttDm(r.ngay_tat) + '</td><td>' + cttDm(r.mo_ngay) + '</td><td>' + (cttDays(r.ngay_tat, r.mo_ngay) == null ? '—' : cttDays(r.ngay_tat, r.mo_ngay)) + '</td></tr>').join('') + '</tbody></table></div></div>';
   return h;
 }
-function cttThHtml(D) {
-  const G = D.tonghop;
-  if (!G || !Array.isArray(G.hang)) return '<div class="ctt-sec"><div class="ctt-empty">Bản chụp hiện tại chưa có bảng tổng hợp vùng — bấm <b>🔗 Kết nối Capacity</b> rồi bấm lại nút dấu trang để lấy số mới (nút dấu trang cũ cần tạo lại).</div></div>';
-  const V = (o, k) => (o && o[k] ? o[k] : { tat_han: 0, giam: 0 }), tot = (o) => (o.tat_han || 0) + (o.giam || 0);
-  const H = G.hang.slice().sort((a, b) => tot(V(b, 'tong')) - tot(V(a, 'tong')));
-  const rk = H.findIndex((x) => x.vung === 'TNT') + 1, me = H.find((x) => x.vung === 'TNT'), T = G.tong || {};
-  const rkOf = (k) => H.slice().sort((a, b) => tot(V(b, k)) - tot(V(a, k))).findIndex((x) => x.vung === 'TNT') + 1;
-  const kn = (G.kenh || []).map((k) => (k.ma === 'sp' ? 'Shopee' : k.ma === 'tts' ? 'TikTok Shop' : k.ma.toUpperCase()) + (k.co_nguon ? (k.ban_ngay ? ' bản ngày ' + cttDm(k.ban_ngay) : ' (số trực tiếp)') : ' chưa có nguồn')).join(' · ');
-  const cell = (o) => '<td><b>' + (o.tat_han || 0) + '</b>' + (o.giam ? '<br><small>giảm ' + o.giam + (o.giam_muc ? ' (' + Object.keys(o.giam_muc).map((m) => 'mức ' + m + '%' + (Object.keys(o.giam_muc).length > 1 ? ': ' + o.giam_muc[m] : '')).join(', ') + ')' : '') + '</small>' : '') + '</td>';
-  let h = '<div class="ctt-meta" style="margin:-4px 0 10px">Tổng hợp xã/phường đang tắt của mọi vùng · ' + esc(kn) + '</div>';
-  if (me) {
-    const sp = V(me, 'sp'), tt = V(me, 'tts'), tg = V(me, 'tong');
-    const pct = (a, b) => (b ? (a / b * 100).toFixed(1).replace('.', ',') + '%' : '—');
-    h += '<div class="ctt-sec"><h3>Nhận xét nhanh</h3><ul class="ctt-ins">'
-      + '<li>Vùng TNT đang tắt <b>' + tot(tg) + ' xã/phường</b> (' + tg.tat_han + ' tắt hẳn' + (tg.giam ? ', ' + tg.giam + ' giảm' : '') + ') — đứng <b>thứ ' + rk + '/' + H.length + ' vùng</b>, chiếm ' + pct(tot(tg), tot(V(T, 'tong'))) + ' tổng toàn quốc (' + tot(V(T, 'tong')) + ').</li>'
-      + '<li>Shopee: ' + sp.tat_han + ' tắt hẳn' + (sp.giam ? ' + ' + sp.giam + ' giảm' : '') + ' (thứ ' + rkOf('sp') + '/' + H.length + ', ' + pct(tot(sp), tot(V(T, 'sp'))) + ' toàn quốc) · TikTok Shop: ' + tt.tat_han + ' tắt hẳn' + (tt.giam ? ' + ' + tt.giam + ' giảm' : '') + ' (thứ ' + rkOf('tts') + '/' + H.length + ', ' + pct(tot(tt), tot(V(T, 'tts'))) + ' toàn quốc).</li>'
-      + '<li>Vùng tắt nhiều nhất: ' + H.slice(0, 3).map((x) => '<b>' + esc(x.vung) + '</b> ' + tot(V(x, 'tong'))).join(' · ') + '.</li></ul></div>';
-  }
-  h += '<div class="ctt-sec"><h3>Số xã/phường đang tắt theo vùng <span>· số to = tắt hẳn, dòng nhỏ = giảm (tắt 1 phần)</span></h3><div class="ctt-tw"><table class="ctt-t"><thead><tr><th>#</th><th>Vùng</th><th>Shopee</th><th>TikTok Shop</th><th>Tổng</th><th>% toàn quốc</th></tr></thead><tbody>';
-  const all = tot(V(T, 'tong'));
-  H.forEach((x, i) => { h += '<tr' + (x.vung === 'TNT' ? ' style="--hl:1" class="ctt-me"' : '') + '><td>' + (i + 1) + '</td><td class="b">' + esc(x.vung) + '</td>' + cell(V(x, 'sp')) + cell(V(x, 'tts')) + cell(V(x, 'tong')) + '<td>' + (all ? (tot(V(x, 'tong')) / all * 100).toFixed(1).replace('.', ',') + '%' : '—') + '</td></tr>'; });
-  h += '<tr class="ctt-tot"><td></td><td class="b">Toàn quốc</td>' + cell(V(T, 'sp')) + cell(V(T, 'tts')) + cell(V(T, 'tong')) + '<td>100%</td></tr></tbody></table></div></div>';
+function cttThBuild(D) {
+  const kw = (r) => cttNorm(cttTinh(r.tinh_ten) + '|' + String(r.phuong_ten || '').trim());
+  const M = {}, get = (r) => { const k = kw(r); return M[k] || (M[k] = { k, tinh: cttTinh(r.tinh_ten), xa: r.phuong_ten, bc: r.bc_chinh_ten, sp: null, tt: null }); };
+  (D.rows || []).filter((r) => r.trang_thai !== 'da_mo').forEach((r) => { get(r).sp = r; });
+  ((D.tts && D.tts.rows) || []).forEach((r) => { const o = get(r); o.tt = r; if (!o.sp) o.bc = r.bc_chinh_ten; });
+  const mo = (D.rows || []).filter((r) => r.trang_thai === 'da_mo').map((r) => ({ kenh: 'Shopee', r, late: (r.co || []).indexOf('mo_tre') >= 0, mo: r.ngay_mo }))
+    .concat(((D.tts && D.tts.mo_lai) || []).map((r) => ({ kenh: 'TikTok Shop', r, late: false, mo: r.mo_ngay })));
+  return { list: Object.values(M), mo };
+}
+function cttThSet(k, v, sx) { CTT.fh = CTT.fh || { tinh: '', q: '', kenh: '' }; CTT.fh[k] = v; cttRender(); cttOpen('cttThL' + (sx || '')); }
+function cttThRows(L) {
+  const f = CTT.fh || {}, q = cttNorm(f.q);
+  return L.filter((o) => (!f.tinh || o.tinh === f.tinh) && (!f.kenh || (f.kenh === 'sp' ? o.sp && !o.tt : f.kenh === 'tt' ? o.tt && !o.sp : f.kenh === 'ca2' ? o.sp && o.tt : f.kenh === 'giam' ? o.sp && o.sp.muc != null && o.sp.muc < 100 : true))
+    && (!q || cttNorm(o.bc + ' ' + o.xa + ' ' + o.tinh).indexOf(q) >= 0))
+    .sort((a, b) => a.tinh.localeCompare(b.tinh, 'vi') || String(a.bc).localeCompare(String(b.bc), 'vi') || String(a.xa).localeCompare(String(b.xa), 'vi'));
+}
+function cttThTable(rs) {
+  const N = cttNhan(), NC = cttTtsNhom(), today = new Date().toISOString().slice(0, 10), f1 = (x) => (x == null ? '—' : String(Math.round(x * 10) / 10).replace('.', ','));
+  let h = '<div class="ctt-tw"><table class="ctt-t"><thead><tr><th>Tỉnh</th><th>Bưu cục chính</th><th>Xã/Phường</th><th>Kênh bị tắt</th><th>Shopee<br><small>mức tắt · đánh giá · tắt → hạn mở</small></th><th>TikTok Shop<br><small>loại · đợt · lý do</small></th><th>Đơn vào xã/ngày trước tắt<br><small>Shopee | TikTok Shop</small></th></tr></thead><tbody>';
+  if (!rs.length) h += '<tr><td colspan="7" class="ctt-empty">Không có xã/phường nào khớp bộ lọc.</td></tr>';
+  rs.forEach((o) => {
+    const s = o.sp, t = o.tt, ca2 = s && t;
+    const kn = ca2 ? '<span class="ctt-tag" style="color:#fff;background:#B4231A">Cả 2 kênh</span>' : s ? '<span class="ctt-tag" style="color:#C2410C;background:#FFEDD5">Shopee</span>' : '<span class="ctt-tag" style="color:#0F172A;background:#E2E8F0">TikTok Shop</span>';
+    let sc = '<span class="ctt-mute">—</span>';
+    if (s) { const n = N[cttKey(s)] || ['—', '#334155', '#F1F5F9'], dm = cttDays(today, s.ngay_mo); sc = (s.muc != null ? '<b>' + (s.muc >= 100 ? 'Tắt hẳn' : 'Giảm ' + s.muc + '%') + '</b> ' : '') + '<span class="ctt-tag" style="color:' + n[1] + ';background:' + n[2] + '">' + n[0] + '</span><br><small>' + cttDm(s.ngay_tat) + ' → ' + cttDm(s.ngay_mo) + (dm == null ? '' : dm < 0 ? ' · <span class="r">quá hạn ' + (-dm) + ' ngày</span>' : ' · còn ' + dm + ' ngày') + '</small>'; }
+    let tc = '<span class="ctt-mute">—</span>';
+    if (t) { const c = NC[t.nhom] || ['#334155', '#F1F5F9']; tc = '<span class="ctt-tag" style="color:' + c[0] + ';background:' + c[1] + '">' + esc(t.nhom || '—') + '</span> <small>' + esc(t.dot || '') + (t.ngay_tat ? ' · tắt ' + cttDm(t.ngay_tat) : '') + '</small><br><small>' + esc(t.ly_do || '') + '</small>'; }
+    h += '<tr' + (ca2 ? ' class="ctt-me"' : '') + '><td>' + esc(o.tinh) + '</td><td class="b">' + esc(o.bc) + '</td><td>' + esc(o.xa) + '</td><td>' + kn + '</td><td class="wrap">' + sc + '</td><td class="wrap">' + tc + '</td><td><b>' + f1(s && s.don_truoc) + '</b> | <b>' + f1(t && t.don_truoc) + '</b></td></tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+function cttThTblOnly(src) { if (!CTT.data) return; const B = cttThBuild(CTT.data), html = cttThTable(cttThRows(B.list)); ['', 'T'].forEach((sx) => { const t = document.getElementById('cttThT' + sx); if (t) t.innerHTML = html; const q = document.getElementById('cttThQ' + sx); if (q && q.id !== src) q.value = (CTT.fh && CTT.fh.q) || ''; }); }
+function cttThHtml(D, sx) {
+  sx = sx || ''; CTT.fh = CTT.fh || { tinh: '', q: '', kenh: '' };
+  const B = cttThBuild(D), L = B.list, hasT = !!(D.tts && D.tts.rows);
+  const nSp = L.filter((o) => o.sp).length, nTt = L.filter((o) => o.tt).length, n2 = L.filter((o) => o.sp && o.tt).length;
+  const nGiam = L.filter((o) => o.sp && o.sp.muc != null && o.sp.muc < 100).length;
+  const sum = (a, f) => a.reduce((s, o) => s + (f(o) || 0), 0);
+  const dSp = sum(L, (o) => o.sp && o.sp.don_truoc), dTt = sum(L, (o) => o.tt && o.tt.don_truoc);
+  const bcs = {}, tis = {};
+  L.forEach((o) => { const b = bcs[o.bc] || (bcs[o.bc] = { bc: o.bc, tinh: o.tinh, sp: 0, tt: 0, c2: 0, n: 0, dSp: 0, dTt: 0, xa: [] }); b.n++; b.xa.push(o.xa); if (o.sp) { b.sp++; b.dSp += o.sp.don_truoc || 0; } if (o.tt) { b.tt++; b.dTt += o.tt.don_truoc || 0; } if (o.sp && o.tt) b.c2++;
+    const t = tis[o.tinh] || (tis[o.tinh] = { n: 0, sp: 0, tt: 0 }); t.n++; if (o.sp) t.sp++; if (o.tt) t.tt++; });
+  const BL = Object.values(bcs).sort((a, b) => b.n - a.n || (b.dSp + b.dTt) - (a.dSp + a.dTt));
+  const TL = Object.keys(tis).sort((a, b) => tis[b].n - tis[a].n);
+  let h = '<div class="ctt-meta" style="margin:-4px 0 10px">Tổng hợp mọi xã/phường vùng TNT đang bị tắt tuyến — gộp Shopee' + (hasT ? ' + TikTok Shop (bản ngày ' + cttDm(D.tts.ban_ngay) + ')' : ' (chưa có số TikTok Shop — cần lấy số mới)') + '</div>';
+  h += '<div class="ctt-grp"><div class="ctt-gl">Toàn vùng TNT · bấm để lọc bảng</div><div class="ctt-cards">'
+    + [['', L.length, 'Xã/phường đang tắt', '#0F2B5B', '#EEF2FF'], ['sp', nSp, 'Tắt Shopee' + (nGiam ? ' <small>· ' + nGiam + ' giảm</small>' : ''), '#C2410C', '#FFEDD5'], ['tt', nTt, 'Tắt TikTok Shop', '#0F172A', '#E2E8F0'], ['ca2', n2, 'Tắt cả 2 kênh', '#B4231A', '#FDECEA']]
+      .map((x) => '<div class="ctt-card' + (CTT.fh.kenh === x[0] ? ' on' : '') + '" style="--c:' + x[3] + ';--b:' + x[4] + '" onclick="cttThSet(\'kenh\',\'' + x[0] + '\',\'' + sx + '\')"><div class="v">' + x[1] + '</div><div class="l">' + x[2] + '</div></div>').join('')
+    + '<div class="ctt-card" style="--c:#334155;--b:#F1F5F9;cursor:default"><div class="v">' + BL.length + '</div><div class="l">Bưu cục bị tắt</div></div>'
+    + '<div class="ctt-card" style="--c:#166534;--b:#DCFCE7" onclick="cttCard(\'cttThM\',\'' + sx + '\')"><div class="v">' + B.mo.length + '</div><div class="l">Đã mở lại</div></div></div></div>';
+  const ins = [];
+  ins.push('Vùng TNT đang tắt tuyến <b>' + L.length + ' xã/phường</b> ở <b>' + BL.length + ' bưu cục</b> (' + TL.length + ' tỉnh): Shopee ' + nSp + ' xã' + (nGiam ? ' (' + (nSp - nGiam) + ' tắt hẳn, ' + nGiam + ' giảm)' : '') + ', TikTok Shop ' + nTt + ' xã' + (n2 ? ', trong đó <b>' + n2 + ' xã bị tắt cả 2 kênh</b>' : '') + '.');
+  ins.push('Trước khi tắt các xã này nhận khoảng <b>' + cttN(dSp) + ' đơn Shopee/ngày</b> và <b>' + cttN(dTt) + ' đơn TikTok Shop/ngày</b> — lượng đơn đang bị chặn vào bưu cục.');
+  ins.push('Theo tỉnh: ' + TL.map((t) => '<b>' + esc(t) + '</b> ' + tis[t].n + ' xã (Shopee ' + tis[t].sp + ', TikTok Shop ' + tis[t].tt + ')').join(' · ') + '.');
+  ins.push('Bưu cục bị tắt nhiều xã nhất: ' + BL.slice(0, 10).map((b) => '<b>' + esc(b.bc) + '</b> ' + b.n + ' xã (' + [b.sp ? 'Shopee ' + b.sp : '', b.tt ? 'TikTok Shop ' + b.tt : ''].filter(Boolean).join(', ') + ')').join(' · ') + '.');
+  if (n2) ins.push('🔴 Tắt cả 2 kênh: ' + L.filter((o) => o.sp && o.tt).slice(0, 10).map((o) => esc(o.xa) + ' — ' + esc(o.bc)).join(' · ') + '.');
+  const over = L.filter((o) => o.sp && cttDays(new Date().toISOString().slice(0, 10), o.sp.ngay_mo) < 0);
+  if (over.length) ins.push('⏰ Shopee quá hạn mở mà vẫn tắt: ' + over.slice(0, 10).map((o) => esc(o.xa) + ' — ' + esc(o.bc) + ' (hạn ' + cttDm(o.sp.ngay_mo) + ')').join(' · ') + '.');
+  if (B.mo.length) ins.push('🟢 Đã mở lại ' + B.mo.length + ' xã/phường: ' + B.mo.slice(0, 10).map((m) => esc(m.r.phuong_ten) + ' — ' + esc(m.r.bc_chinh_ten) + ' (' + m.kenh + (m.late ? ', mở trễ' : '') + ')').join(' · ') + '.');
+  h += '<div class="ctt-sec"><h3>Nhận xét nhanh</h3><ul class="ctt-ins">' + ins.map((x) => '<li>' + x + '</li>').join('') + '</ul></div>';
+  h += '<div class="ctt-sec"><h3>Theo bưu cục <span>· ' + BL.length + ' bưu cục có xã bị tắt</span></h3><div class="ctt-tw"><table class="ctt-t"><thead><tr><th>Tỉnh</th><th>Bưu cục</th><th>Xã bị tắt</th><th>Shopee</th><th>TikTok Shop</th><th>Cả 2 kênh</th><th>Đơn/ngày trước tắt<br><small>Shopee | TikTok Shop</small></th><th>Các xã/phường</th></tr></thead><tbody>'
+    + BL.map((b) => '<tr><td>' + esc(b.tinh) + '</td><td class="b">' + esc(b.bc) + '</td><td><b>' + b.n + '</b></td><td>' + (b.sp || '—') + '</td><td>' + (b.tt || '—') + '</td><td>' + (b.c2 ? '<b class="r">' + b.c2 + '</b>' : '—') + '</td><td>' + cttN(b.dSp) + ' | ' + cttN(b.dTt) + '</td><td class="wrap"><small>' + esc(b.xa.join(', ')) + '</small></td></tr>').join('') + '</tbody></table></div></div>';
+  const rs = cttThRows(L);
+  h += '<div class="ctt-sec" id="cttThL' + sx + '"><h3>Toàn bộ xã/phường đang tắt <span>· ' + rs.length + '/' + L.length + ' dòng' + (CTT.fh.kenh ? ' · đang lọc' : '') + '</span></h3>'
+    + '<div class="ctt-fl"><select onchange="cttThSet(\'tinh\',this.value,\'' + sx + '\')"><option value="">Tất cả tỉnh</option>' + TL.slice().sort((a, b) => a.localeCompare(b, 'vi')).map((t) => '<option' + (CTT.fh.tinh === t ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>'
+    + '<select onchange="cttThSet(\'kenh\',this.value,\'' + sx + '\')">' + [['', 'Mọi kênh'], ['sp', 'Chỉ Shopee'], ['tt', 'Chỉ TikTok Shop'], ['ca2', 'Cả 2 kênh'], ['giam', 'Shopee giảm (tắt 1 phần)']].map((o) => '<option value="' + o[0] + '"' + (CTT.fh.kenh === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>'
+    + '<input id="cttThQ' + sx + '" placeholder="Tìm bưu cục / xã / phường…" value="' + esc(CTT.fh.q) + '" oninput="CTT.fh.q=this.value;cttThTblOnly(this.id)"></div>'
+    + '<div id="cttThT' + sx + '">' + cttThTable(rs) + '</div><div class="ctt-foot">Dòng tô cam = xã bị tắt cả Shopee và TikTok Shop · Shopee "Tắt hẳn" = mức 100%, "Giảm 50%" = tắt 1 phần · số liệu theo trang Capacity, chỉ vùng TNT.</div></div>';
+  if (B.mo.length) h += '<div class="ctt-sec" id="cttThM' + sx + '"><h3>Xã/phường đã mở lại <span>· ' + B.mo.length + ' · không còn tính là đang tắt</span></h3><div class="ctt-tw"><table class="ctt-t"><thead><tr><th>Kênh</th><th>Tỉnh</th><th>Bưu cục chính</th><th>Xã/Phường</th><th>Ngày tắt</th><th>Ngày mở</th><th>Số ngày tắt</th><th>Ghi chú</th></tr></thead><tbody>'
+    + B.mo.sort((a, b) => String(b.mo).localeCompare(String(a.mo))).map((m) => '<tr><td>' + m.kenh + '</td><td>' + esc(cttTinh(m.r.tinh_ten)) + '</td><td class="b">' + esc(m.r.bc_chinh_ten) + '</td><td>' + esc(m.r.phuong_ten) + '</td><td>' + cttDm(m.r.ngay_tat) + '</td><td>' + cttDm(m.mo) + '</td><td>' + (cttDays(m.r.ngay_tat, m.mo) == null ? '—' : cttDays(m.r.ngay_tat, m.mo)) + '</td><td>' + (m.late ? '<span class="ctt-tag" style="color:#B45309;background:#FEF3C7">Mở trễ</span>' : '') + '</td></tr>').join('') + '</tbody></table></div></div>';
   return h;
 }
 </script>
