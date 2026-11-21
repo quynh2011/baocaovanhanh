@@ -12074,7 +12074,14 @@ function cttThBcDet(D, b, amOf, L) {
 }
 function cttThPick(k, a) { CTT.fh = CTT.fh || {}; CTT.fh[k] = a; if (k === 'tinh') { CTT.fh.am = []; CTT.fh.bc = []; } if (k === 'am') CTT.fh.bc = []; cttRender(); }
 function cttThPickT(a) { cttThPick('tinh', a); } function cttThPickA(a) { cttThPick('am', a); } function cttThPickB(a) { cttThPick('bc', a); }
-function cttThSet(k, v, sx) { CTT.fh = CTT.fh || { tinh: '', q: '', kenh: '' }; CTT.fh[k] = v; cttRender(); cttOpen('cttThL' + (sx || '')); }
+// Thẻ Tổng hợp TNT: viền đậm = thẻ vừa bấm (CTT.fh.card). Thẻ kênh = lọc bảng xã + mở bảng; thẻ Bưu cục / Đã mở lại = bỏ lọc kênh + mở/thu bảng tương ứng
+function cttThCard(k, sx) {
+  CTT.fh = CTT.fh || {}; const id = { bc: 'cttThB', mo: 'cttThM' }[k] || 'cttThL', el = document.getElementById(id + (sx || ''));
+  const again = (CTT.fh.card || '') === k && k !== '';
+  if (k === 'bc' || k === 'mo') { CTT.fh.kenh = ''; CTT.fh.card = again ? '' : k; cttRender(); if (again) { const e = document.getElementById(id + (sx || '')); if (e) cttSecSet(e.getAttribute('data-k'), false); } else cttOpen(id + (sx || '')); return; }
+  CTT.fh.kenh = again ? '' : k; CTT.fh.card = again ? '' : k; cttRender(); cttOpen('cttThL' + (sx || ''));
+}
+function cttThSet(k, v, sx) { CTT.fh = CTT.fh || { tinh: '', q: '', kenh: '' }; CTT.fh[k] = v; if (k === 'kenh') CTT.fh.card = v; cttRender(); cttOpen('cttThL' + (sx || '')); }
 function cttThRows(L) {
   const f = CTT.fh || {}, q = cttNorm(f.q);
   return L.filter((o) => (!f.kenh || (f.kenh === 'sp' ? o.sp && !o.tt : f.kenh === 'tt' ? o.tt && !o.sp : f.kenh === 'ca2' ? o.sp && o.tt : f.kenh === 'giam' ? o.sp && o.sp.muc != null && o.sp.muc < 100 : true))
@@ -12116,9 +12123,9 @@ function cttThHtml(D, sx) {
   let h = '<div class="ctt-meta" style="margin:-4px 0 10px">Tổng hợp mọi xã/phường vùng TNT đang bị tắt tuyến — gộp Shopee' + (hasT ? ' + TikTok Shop (bản ngày ' + cttDm(D.tts.ban_ngay) + ')' : ' (chưa có số TikTok Shop — cần lấy số mới)') + '</div>';
   h += '<div class="ctt-grp"><div class="ctt-gl">' + esc(scopeTxt) + ' · bấm để lọc bảng</div><div class="ctt-cards">'
     + [['', L.length, 'Xã/phường đang tắt', '#0F2B5B', '#EEF2FF'], ['sp', nSp, 'Tắt Shopee' + (nGiam ? ' <small>· ' + nGiam + ' giảm</small>' : ''), '#C2410C', '#FFEDD5'], ['tt', nTt, 'Tắt TikTok Shop', '#0F172A', '#E2E8F0'], ['ca2', n2, 'Tắt cả 2 kênh', '#B4231A', '#FDECEA']]
-      .map((x) => '<div class="ctt-card' + (CTT.fh.kenh === x[0] ? ' on' : '') + '" style="--c:' + x[3] + ';--b:' + x[4] + '" onclick="cttThSet(\'kenh\',\'' + x[0] + '\',\'' + sx + '\')"><div class="v">' + x[1] + '</div><div class="l">' + x[2] + '</div></div>').join('')
-    + '<div class="ctt-card" style="--c:#334155;--b:#F1F5F9" onclick="cttCard(\'cttThB\',\'' + sx + '\')"><div class="v">' + BL.length + '</div><div class="l">Bưu cục bị tắt</div></div>'
-    + '<div class="ctt-card" style="--c:#166534;--b:#DCFCE7" onclick="cttCard(\'cttThM\',\'' + sx + '\')"><div class="v">' + B.mo.length + '</div><div class="l">Đã mở lại</div></div></div></div>';
+      .map((x) => '<div class="ctt-card' + ((CTT.fh.card || '') === x[0] ? ' on' : '') + '" style="--c:' + x[3] + ';--b:' + x[4] + '" onclick="cttThCard(\'' + x[0] + '\',\'' + sx + '\')"><div class="v">' + x[1] + '</div><div class="l">' + x[2] + '</div></div>').join('')
+    + '<div class="ctt-card' + (CTT.fh.card === 'bc' ? ' on' : '') + '" style="--c:#334155;--b:#F1F5F9" onclick="cttThCard(\'bc\',\'' + sx + '\')"><div class="v">' + BL.length + '</div><div class="l">Bưu cục bị tắt</div></div>'
+    + '<div class="ctt-card' + (CTT.fh.card === 'mo' ? ' on' : '') + '" style="--c:#166534;--b:#DCFCE7" onclick="cttThCard(\'mo\',\'' + sx + '\')"><div class="v">' + B.mo.length + '</div><div class="l">Đã mở lại</div></div></div></div>';
   const ins = [];
   ins.push((scoped ? esc(scopeTxt) + ': đang tắt tuyến <b>' : 'Vùng TNT đang tắt tuyến <b>') + L.length + ' xã/phường</b> ở <b>' + BL.length + ' bưu cục</b> (' + TL.length + ' tỉnh): Shopee ' + nSp + ' xã' + (nGiam ? ' (' + (nSp - nGiam) + ' tắt hẳn, ' + nGiam + ' giảm)' : '') + ', TikTok Shop ' + nTt + ' xã' + (n2 ? ', trong đó <b>' + n2 + ' xã bị tắt cả 2 kênh</b>' : '') + '.');
   ins.push('Trước khi tắt các xã này nhận khoảng <b>' + cttN(dSp) + ' đơn Shopee/ngày</b> và <b>' + cttN(dTt) + ' đơn TikTok Shop/ngày</b> — lượng đơn đang bị chặn vào bưu cục.');
