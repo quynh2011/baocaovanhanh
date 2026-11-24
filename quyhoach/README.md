@@ -136,6 +136,13 @@ DBB 59 BC / 771 phường (Thái Nguyên, Hà Giang, Cao Bằng, Tuyên Quang, B
 - v1.7.53: FIX km lộ trình bị cộng dồn sai khi gộp nhiều ngày (chủ dự án báo: Nam Hòa → Cây Thị ra 41,1 km): v1.7.52 dựng 1 lộ trình trên MỌI xã của NV trong cả khoảng ngày. Nay `qhKmWardCum_` dựng lộ trình theo TỪNG NGÀY THẬT (các xã ≥ 3% đơn của ngày đó + chính xã đang xét), nhiều ngày = trung bình km các ngày NV giao xã đó (ghi "TB n ngày"), 1 ngày thì ghi #thứ tự.
 - Hạn chế: là ƯỚC TÍNH theo tâm xã/phường, không phải quãng đường GPS thật của shipper (không tính đi lại giữa các điểm giao trong cùng xã).
 
+## 8d. Kết nối GHN có chữ ký X-Sig (v1.7.54–55, từ 24/11/2026)
+- GHN bắt buộc X-Sig cho `/api/lastmile/*` → gọi thẳng kèm Bearer bị 401. Luồng: `qhGhnFetch_` gọi thẳng → 401/403 (HTTP hoặc `code` trong body) → Tampermonkey trên nhanh.ghn.vn: `qhViaPage_` (client trang `/nhanh-static/lastmile/<ver>/js/index.js`, export `In` / hàm có "X-WarehouseId"); web: `window.qhGhnBridgeCall_` qua tab nhanh.ghn.vn (bookmarklet mới gắn listener `qhGhnCall`, trả `qhGhnResp`, ping `qhGhnPing/Pong`, timeout 90s).
+- Lỗi tìm chuyến từng BC gom ở `state.ghnLoadErrs` → dòng trạng thái cuối "⚠️ KHÔNG lấy được chuyến đi (N bưu cục) — <lỗi>" (trước bị nuốt → "Đã tải xong 0 dòng").
+- **Hướng dẫn người dùng (web)**: Ctrl+F5 → XOÁ nút dấu trang "🔗 Kết nối báo cáo TNT" cũ, tạo lại từ "📋 Copy mã nút" → "↻ Kết nối lại" → bấm nút dấu trang trên tab nhanh vừa mở (phải thấy "🔗 Đang nối với báo cáo TNT — giữ tab này mở") → GIỮ tab nhanh mở → "Tải sản lượng".
+- **Chẩn đoán khi còn lỗi** (theo dòng ⚠️): "chưa có cầu nối" = chưa bấm nút mới / đã đóng tab nhanh; hết thời gian chờ = tab nhanh ngủ/bị chặn; lỗi nạp client trang = GHN đổi tên file/hàm export (`In`) hoặc CSP chặn `<script type=module>` → mở index.js mới trên nhanh.ghn.vn, tìm hàm có "X-WarehouseId", sửa `qhPageApi_` (userscript) + bookmarklet (`qhBookmarklet_`, qh_addon.js).
+- Trạng thái 24/11: mới thử bằng trang nhanh GIẢ (Playwright) — CHƯA xác nhận với GHN thật, đang chờ chủ dự án chạy lại.
+
 ## 9. Quy trình sửa → build → test → deploy
 1. Sửa `modul6_tuyen_giao.user.js` (tăng `@version` + ghi changelog đầu file theo kiểu các bản trước) và/hoặc `qh_addon.js` / `build.py` / `api/_qhSync.js`.
 2. Build: `python3 quyhoach/build.py` (patch nào không khớp đúng 1 lần là `assert` báo lỗi → sửa chuỗi patch theo code mới).
