@@ -248,8 +248,22 @@
             + "document.querySelectorAll('script').forEach(function(s){f(s.textContent)});"
             + "[localStorage,sessionStorage].forEach(function(st){try{for(var i=0;i<st.length&&!T;i++)f(st.getItem(st.key(i)))}catch(e){}});f(document.cookie);"
             + "if(!T){M('Chưa thấy phiên đăng nhập GHN. Đăng nhập nhanh.ghn.vn, mở 1 trang bất kỳ rồi bấm lại.');return}"
-            + "var W='" + W + "';try{if(window.opener&&!window.opener.closed){window.opener.postMessage({type:'qhGhnToken',token:T},W);M('✅ Đã kết nối GHN với web báo cáo TNT. Quay lại tab báo cáo để tải sản lượng.');return}}catch(e){}"
-            + "window.open(W+'/#qhGhnToken='+encodeURIComponent(T),'_blank')})()";
+            + "var W='" + W + "';"
+            // Cầu nối (v1.7.54): GHN bắt buộc chữ ký X-Sig do client của trang ký → web nhờ tab này gọi API qua client trang
+            + "if(!window.__qhBridge){window.__qhBridge=1;var L=null,Q=Promise.resolve();"
+            + "var api=function(){if(L)return L;L=new Promise(function(res,rej){var dl=Date.now()+15000;(function tk(){if(typeof window.__GHN_PAGE_API__==='function')return res(window.__GHN_PAGE_API__);var src=[].map.call(document.querySelectorAll('script[src]'),function(x){return x.src}).filter(function(x){return /\\/nhanh-static\\/lastmile\\/[^\\/]+\\/js\\/index\\.js(\\?|$)/.test(x)})[0];"
+            + "if(src&&!window.__GHN_PAGE_API_LOADING__){window.__GHN_PAGE_API_LOADING__=true;var el=document.createElement('script');el.type='module';el.textContent='import * as mod from '+JSON.stringify(src)+';const fn=(typeof mod.In===\"function\")?mod.In:Object.values(mod).find(v=>typeof v===\"function\"&&/X-WarehouseId/.test(Function.prototype.toString.call(v)));window.__GHN_PAGE_API__=fn||null;';(document.head||document.documentElement).appendChild(el)}"
+            + "if(Date.now()>dl){L=null;return rej(new Error('Không tải được client Lastmile của trang'))}setTimeout(tk,200)})()});return L};"
+            + "var run=function(d){var u=new URL(d.url,location.origin),path=u.pathname+u.search,data=d.body?JSON.parse(d.body):undefined,hub=(data&&(data.hubId||data.hub_id||data.warehouseId))||'';"
+            + "var p=Q.then(function(){return api().then(function(fn){var st=localStorage,og=st.getItem.bind(st),once=false;if(hub)st.getItem=function(k){if(k==='CURRENT_HUB'&&!once){once=true;return String(hub)}return og(k)};var cap=0,os=XMLHttpRequest.prototype.send;"
+            + "XMLHttpRequest.prototype.send=function(){var x=this;x.addEventListener('loadend',function(){if(String(x.responseURL||'').indexOf(u.pathname)>=0&&x.status)cap=x.status});return os.apply(this,arguments)};"
+            + "var done=function(){XMLHttpRequest.prototype.send=os;st.getItem=og};"
+            + "return Promise.resolve(fn({url:path,method:d.method||'post',data:data,serviceName:'NHANH_API'})).then(function(b){done();var c=b&&typeof b==='object'?Number(b.code!=null?b.code:b.status):0;return{status:cap||((c===401||c===403||c===429)?c:200),body:b}},function(e){done();return{status:(e&&e.response&&e.response.status)||0,body:e&&e.response?e.response.data:null,err:String((e&&e.message)||e)}})})},function(){});Q=p.then(function(){},function(){});return p};"
+            + "window.addEventListener('message',function(ev){if(ev.origin!==W)return;var d=ev.data||{};if(d.type==='qhGhnPing'){ev.source.postMessage({type:'qhGhnPong'},W);return}if(d.type!=='qhGhnCall')return;"
+            + "run(d).then(function(r){r=r||{status:0,err:'lỗi cầu nối'};ev.source.postMessage({type:'qhGhnResp',id:d.id,status:r.status,body:r.body,err:r.err},W)},function(e){ev.source.postMessage({type:'qhGhnResp',id:d.id,status:0,err:String((e&&e.message)||e)},W)})});"
+            + "api().catch(function(){});var bd=document.createElement('div');bd.style.cssText='position:fixed;bottom:14px;right:14px;z-index:2147483647;background:#0F2B5B;color:#fff;border-radius:10px;padding:8px 14px;font:13px -apple-system,Segoe UI,Roboto,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3)';bd.textContent='🔗 Đang nối với báo cáo TNT — giữ tab này mở';document.body.appendChild(bd)}"
+            + "try{if(window.opener&&!window.opener.closed){window.opener.postMessage({type:'qhGhnToken',token:T,bridge:1},W);M('✅ Đã kết nối GHN với web báo cáo TNT. GIỮ tab này mở (web gọi GHN qua tab này), quay lại tab báo cáo để tải sản lượng.');return}}catch(e){}"
+            + "M('Hãy mở tab này bằng nút \"🔗 Kết nối GHN\" trên web báo cáo TNT rồi bấm lại nút này.')})()";
         return 'javascript:' + encodeURIComponent(js);
     }
     function qhGhnUi_() {
@@ -289,8 +303,46 @@
         const d = ev.data || {};
         if (d.type === 'qhGhnToken' && typeof d.token === 'string' && d.token.length > 100) {
             qhSetGhnToken_(d.token);
-            qhSetStatusHint_('✅ Đã kết nối GHN — chọn bưu cục, ngày rồi bấm "Tải sản lượng".');
-            try { if (window.__qhGhnWin && !window.__qhGhnWin.closed) window.__qhGhnWin.close(); } catch (e) { /* bỏ qua */ }
+            if (d.bridge && ev.source) window.__qhGhnBridge = ev.source;
+            qhSetStatusHint_('✅ Đã kết nối GHN — GIỮ tab nhanh.ghn.vn mở (GHN bắt buộc ký từ trang của họ), chọn bưu cục, ngày rồi bấm "Tải sản lượng".');
         }
+        if (d.type === 'qhGhnPong') window.__qhGhnPong = Date.now();
+        if (d.type === 'qhGhnResp' && window.__qhGhnWait && window.__qhGhnWait[d.id]) { const w = window.__qhGhnWait[d.id]; delete window.__qhGhnWait[d.id]; w(d); }
     });
+    // Cầu nối gọi API GHN qua tab nhanh.ghn.vn (v1.7.54): GHN nay bắt buộc chữ ký X-Sig do client của trang ký,
+    // web báo cáo không tự ký được → gửi yêu cầu sang tab nhanh.ghn.vn (đã bấm nút dấu trang), tab đó gọi qua client
+    // của trang rồi trả kết quả về. Mất tham chiếu (F5 web) thì thử lấy lại tab theo tên 'qhGhnConnect'.
+    function qhBridgeAlive_(w) {
+        return new Promise((res) => {
+            if (!w || w.closed) return res(false);
+            const t0 = Date.now(); window.__qhGhnPong = 0;
+            try { w.postMessage({ type: 'qhGhnPing' }, 'https://nhanh.ghn.vn'); } catch (e) { return res(false); }
+            (function wait() { if (window.__qhGhnPong >= t0) return res(true); if (Date.now() - t0 > 1500) return res(false); setTimeout(wait, 100); })();
+        });
+    }
+    async function qhGetBridge_() {
+        let w = window.__qhGhnBridge || window.__qhGhnWin;
+        if (await qhBridgeAlive_(w)) return (window.__qhGhnBridge = w);
+        try {
+            const g = window.open('', 'qhGhnConnect');
+            if (g) {
+                let blank = false; try { blank = g.location.href === 'about:blank'; } catch (e) { blank = false; }
+                if (blank) g.close(); else if (await qhBridgeAlive_(g)) return (window.__qhGhnBridge = g);
+            }
+        } catch (e) { /* bỏ qua */ }
+        return null;
+    }
+    window.qhGhnBridgeCall_ = async function (url, init) {
+        const w = await qhGetBridge_();
+        if (!w) throw new Error('GHN nay bắt buộc chữ ký từ trang nhanh.ghn.vn: bấm "🔗 Kết nối GHN" (hoặc "Kết nối lại") → trên tab nhanh.ghn.vn vừa mở bấm nút dấu trang "🔗 Kết nối báo cáo TNT" (nút đã cập nhật — tạo lại nút nếu tạo trước 24/11) → GIỮ tab đó mở rồi bấm "Tải sản lượng".');
+        const id = 'q' + Date.now() + Math.random().toString(36).slice(2, 8);
+        window.__qhGhnWait = window.__qhGhnWait || {};
+        const r = await new Promise((res) => {
+            const to = setTimeout(() => { delete window.__qhGhnWait[id]; res({ status: 0, err: 'Hết 90 giây chờ tab nhanh.ghn.vn trả lời' }); }, 90000);
+            window.__qhGhnWait[id] = (d) => { clearTimeout(to); res(d); };
+            w.postMessage({ type: 'qhGhnCall', id, url: String(url), method: (init && init.method) || 'post', body: init && typeof init.body === 'string' ? init.body : (init && init.body ? JSON.stringify(init.body) : '') }, 'https://nhanh.ghn.vn');
+        });
+        if (!r.status) throw new Error('Cầu nối nhanh.ghn.vn lỗi: ' + (r.err || 'không rõ'));
+        return { ok: r.status >= 200 && r.status < 300, status: r.status, json: async () => r.body, text: async () => JSON.stringify(r.body) };
+    };
     window.addEventListener('storage', (ev) => { if (ev.key === QH_TOKEN_KEY) { state.ghnToken = ev.newValue || null; qhGhnUi_(); } });

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.53
+// @version      1.7.54
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -1757,6 +1757,70 @@
     // nhân viên/bưu cục cho tab "Theo Nhân Viên", mirror đúng cách ghn-baocao-gtc.user.js
     // đang gọi (xem changelog v1.4.0).
     const GHN_API_BASE = 'https://fe-nhanh-api.ghn.vn';
+
+    // v1.7.54 — GHN (~11/2026) bắt buộc request /api/lastmile/* có chữ ký X-Sig (X-Sig-TS, X-Sig-Nonce,
+    // X-Sig-Body, X-Sig) do CHÍNH client của trang nhanh.ghn.vn ký; tự fetch kèm Bearer bị HTTP 401.
+    // Cách làm học từ Modul 5 v5.13.2 ("Đâu ai biết gì đâu" 4.8.3, đang chạy được): gọi thẳng trước,
+    // gặp 401/403 thì gọi lại QUA client của trang (hàm export `In` / hàm có chữ X-WarehouseId trong
+    // /nhanh-static/lastmile/<ver>/js/index.js). Chạy trên nhanh.ghn.vn (Tampermonkey) → dùng client trang
+    // ngay tại chỗ; chạy trên web báo cáo → nhờ "cầu nối" là tab nhanh.ghn.vn đã bấm nút dấu trang
+    // (window.qhGhnBridgeCall_ trong qh_addon.js).
+    let qhPageApiLoad_ = null;
+    function qhPageApi_() {
+        if (qhPageApiLoad_) return qhPageApiLoad_;
+        qhPageApiLoad_ = new Promise((resolve, reject) => {
+            const deadline = Date.now() + 15000;
+            const pick = (m) => m && (typeof m.In === 'function' ? m.In : Object.values(m).find(v => typeof v === 'function' && /X-WarehouseId/.test(Function.prototype.toString.call(v))));
+            const tick = () => {
+                if (typeof window.__GHN_PAGE_API__ === 'function') return resolve(window.__GHN_PAGE_API__);
+                const src = [...document.querySelectorAll('script[src]')].map(x => x.src).find(x => /\/nhanh-static\/lastmile\/[^/]+\/js\/index\.js(?:\?|$)/.test(x)) || '';
+                if (src && !window.__GHN_PAGE_API_LOADING__) {
+                    window.__GHN_PAGE_API_LOADING__ = true;
+                    const el = document.createElement('script'); el.type = 'module';
+                    el.textContent = 'import * as mod from ' + JSON.stringify(src) + ';\nconst fn = (typeof mod.In === "function") ? mod.In : Object.values(mod).find(v => typeof v === "function" && /X-WarehouseId/.test(Function.prototype.toString.call(v)));\nwindow.__GHN_PAGE_API__ = fn || null;';
+                    (document.head || document.documentElement).appendChild(el);
+                    import(src).then(m => { const fn = pick(m); if (fn && typeof window.__GHN_PAGE_API__ !== 'function') window.__GHN_PAGE_API__ = fn; }).catch(() => {});
+                }
+                if (Date.now() > deadline) { qhPageApiLoad_ = null; return reject(new Error('Không tải được client Lastmile của trang nhanh.ghn.vn')); }
+                setTimeout(tick, 200);
+            };
+            tick();
+        });
+        return qhPageApiLoad_;
+    }
+    let qhPageQ_ = Promise.resolve();
+    function qhViaPage_(url, init) {
+        const u = new URL(url, location.origin), path = u.pathname + u.search;
+        const raw = init && init.body; const data = raw == null || raw === '' ? undefined : (typeof raw === 'string' ? JSON.parse(raw) : raw);
+        const hub = (data && (data.hubId || data.hub_id || data.warehouseId || data.warehouse_id)) || '';
+        const run = qhPageQ_.then(() => qhPageApi_().then(async (request) => {
+            const st = window.localStorage, og = st.getItem.bind(st); let once = false;
+            if (hub) st.getItem = function (k) { if (k === 'CURRENT_HUB' && !once) { once = true; return String(hub); } return og(k); };
+            let cap = 0; const os = XMLHttpRequest.prototype.send;
+            XMLHttpRequest.prototype.send = function () { this.addEventListener('loadend', () => { if (String(this.responseURL || '').indexOf(u.pathname) >= 0 && this.status) cap = this.status; }); return os.apply(this, arguments); };
+            try {
+                const body = await request({ url: path, method: (init && init.method) || 'post', data, serviceName: 'NHANH_API' });
+                let status = cap || 200; const c = body && typeof body === 'object' ? Number(body.code != null ? body.code : body.status) : 0;
+                if (!cap && (c === 401 || c === 403 || c === 429)) status = c;
+                return qhResp_(status, body);
+            } catch (err) {
+                const sc = err && err.response && err.response.status; if (!sc) throw err;
+                return qhResp_(sc, err.response.data);
+            } finally { XMLHttpRequest.prototype.send = os; st.getItem = og; }
+        }));
+        qhPageQ_ = run.then(() => {}, () => {});
+        return run;
+    }
+    function qhResp_(status, body) { return { ok: status >= 200 && status < 300, status, json: async () => body, text: async () => JSON.stringify(body) }; }
+    async function qhGhnFetch_(url, init) {
+        let direct = null;
+        try { direct = await fetch(url, init); } catch (e) { direct = null; }
+        if (direct && direct.status !== 401 && direct.status !== 403) return direct;
+        if (/(^|\.)nhanh\.ghn\.vn$/.test(location.hostname)) return qhViaPage_(url, init);
+        if (typeof window.qhGhnBridgeCall_ === 'function') return window.qhGhnBridgeCall_(url, init);
+        if (direct) return direct;
+        throw new Error('Không gọi được API GHN');
+    }
 
     // Bảng màu cố định để tô theo bưu cục (mỗi bưu cục luôn ra đúng 1 màu, không
     // đổi màu lung tung mỗi lần load lại trang) — hash tên/mã BC ra 1 hue cố định.
@@ -4539,7 +4603,7 @@
         const timeoutId = setTimeout(() => controller.abort(), 15000);
         let response;
         try {
-            response = await fetch('https://nhanh-api.ghn.vn/api/lastmile/user/my-profile', {
+            response = await qhGhnFetch_('https://nhanh-api.ghn.vn/api/lastmile/user/my-profile', {
                 method: 'POST',
                 headers: {
                     'accept': 'application/json, text/plain, */*',
@@ -4571,7 +4635,7 @@
 
     async function ghnApiPost_(path, body) {
         const token = getGhnBearerToken_();
-        const res = await fetch(`${GHN_API_BASE}${path}`, {
+        const res = await qhGhnFetch_(`${GHN_API_BASE}${path}`, {
             method: 'POST',
             headers: {
                 'accept': 'application/json, text/plain, */*',

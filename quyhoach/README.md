@@ -38,7 +38,7 @@
                       │   → quyhoach_view.html?v=13 → quyhoach/qh_web.js     │
                       │   + file tĩnh quyhoach/data/tnt_*.json (bù vùng TNT) │
                       └─────────────────────────────────────────────────────┘
-   Tab "Theo Nhân Viên": trình duyệt gọi THẲNG API chuyến đi GHN (fe-nhanh-api / nhanh-api, CORS *).
+   Tab "Theo Nhân Viên": trình duyệt gọi THẲNG API chuyến đi GHN (fe-nhanh-api / nhanh-api, CORS *). **Từ ~24/11/2026 GHN bắt buộc chữ ký X-Sig** (X-Sig-TS/Nonce/Body/X-Sig do client của trang nhanh.ghn.vn ký) cho mọi `/api/lastmile/*` → gọi thẳng kèm Bearer bị 401. Userscript v1.7.54: `qhGhnFetch_` (dùng trong `fetchGhnProfile_`, `ghnApiPost_`) gọi thẳng trước, 401/403 thì: trên nhanh.ghn.vn → `qhViaPage_` gọi QUA client của trang (hàm export `In` / hàm có chữ X-WarehouseId trong `/nhanh-static/lastmile/<ver>/js/index.js`, nạp bằng `<script type=module>`, mượn `localStorage.CURRENT_HUB` 1 lần để đặt X-WarehouseId — học từ Modul 5 v5.13.2); trên web → `window.qhGhnBridgeCall_` (qh_addon.js): CẦU NỐI là tab nhanh.ghn.vn đã bấm nút dấu trang (bookmarklet mới gắn listener `qhGhnCall` → gọi qua client trang → trả `qhGhnResp`; `qhGhnPing/Pong` kiểm tab còn sống; web F5 thì lấy lại tab theo tên `qhGhnConnect` bằng `window.open('', name)`). Người dùng PHẢI giữ tab nhanh.ghn.vn mở và TẠO LẠI nút dấu trang (mã nút đổi).
 ```
 
 ## 3. Các file
