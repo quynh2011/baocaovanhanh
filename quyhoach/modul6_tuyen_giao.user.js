@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Modul 6 - Tuyến Giao (bản đồ ranh giới phường + sản lượng BC)
 // @namespace    http://tampermonkey.net/
-// @version      1.7.54
+// @version      1.7.55
 // @description  Bản đồ ranh giới xã/phường CŨ + MỚI (sau sáp nhập 2025), tô màu theo bưu cục / theo sản lượng, ranh giới lãnh thổ bưu cục, nhãn tên bật/tắt, panel thông tin cố định góc bản đồ, bấm phường MỚI xem gộp dữ liệu phường cũ, tab Theo Nhân Viên lấy sản lượng trực tiếp từ GHN (lọc ngày/bưu cục/nhân viên/nhóm khách hàng, tìm bưu cục, nút Dừng), chấm cảnh báo nhân viên nhấp nháy trên bản đồ (quá tải lấy/giao, không đủ đơn — tính trên TỔNG đơn giao cả tuyến), tự động tải trực tiếp từ quyhoachbuucuc.info có dự phòng offline, phân quyền 3 cấp ADMIN/Quản lý/Nhân viên xử lý theo bưu cục — modul HOÀN TOÀN ĐỘC LẬP, chưa gộp vào Báo cáo GTC.
 // @author       Enhanced Team
 // @match        https://nhanh.ghn.vn/lastmile*
@@ -1815,7 +1815,10 @@
     async function qhGhnFetch_(url, init) {
         let direct = null;
         try { direct = await fetch(url, init); } catch (e) { direct = null; }
-        if (direct && direct.status !== 401 && direct.status !== 403) return direct;
+        if (direct && direct.status !== 401 && direct.status !== 403) {
+            let code = 0; try { const b = await direct.clone().json(); code = b && typeof b === 'object' ? Number(b.code != null ? b.code : b.status) : 0; } catch (e) { code = 0; }
+            if (code !== 401 && code !== 403) return direct;
+        }
         if (/(^|\.)nhanh\.ghn\.vn$/.test(location.hostname)) return qhViaPage_(url, init);
         if (typeof window.qhGhnBridgeCall_ === 'function') return window.qhGhnBridgeCall_(url, init);
         if (direct) return direct;
@@ -4651,7 +4654,10 @@
             throw new Error(`Chưa đăng nhập / hết phiên GHN (HTTP ${res.status}) khi gọi ${path}`);
         }
         if (!res.ok) throw new Error(`HTTP ${res.status} khi gọi ${path}`);
-        return res.json();
+        const out = await res.json();
+        const bc = out && typeof out === 'object' ? Number(out.code) : 0;
+        if (bc >= 400) throw new Error(`GHN trả lỗi ${bc}${out.message ? ': ' + out.message : ''} khi gọi ${path}`);
+        return out;
     }
 
     // Đổi khoảng ngày UI (giờ VN) sang UTC ISO đúng cách GTC đang làm: lùi 1 ngày, bắt
@@ -4889,6 +4895,7 @@
                 tripCodes = await searchTripPaged_(hubId, fromDateStr, toDateStr);
             } catch (err) {
                 console.warn(`[Tuyến Giao] Lỗi tìm chuyến đi bưu cục ${hubId}:`, err);
+                (state.ghnLoadErrs = state.ghnLoadErrs || []).push(`BC ${hubId}: ${err.message}`);
                 onProgress && onProgress(`⚠️ Bưu cục ${hubId}: lỗi tìm chuyến đi (${err.message}) — bỏ qua.`);
                 continue;
             }
@@ -7646,6 +7653,7 @@
         if (loadBtn) loadBtn.disabled = true;
         if (stopBtn) stopBtn.style.display = '';
         try {
+            state.ghnLoadErrs = [];
             setStaffStatus_('Đang tải sản lượng từ GHN...');
             // v1.7.17 — tải SONG SONG dữ liệu Performance (sản lượng CẦN GIAO + đơn ĐÃ GÁN thật
             // theo ngày/bưu cục, sheet "Performance") CÙNG khoảng ngày — không chờ tuần tự,
@@ -7697,7 +7705,8 @@
                 : perfRows.length === 0
                     ? ' · 📊 Performance: chưa có dòng nào trong khoảng ngày này.'
                     : ` · 📊 Performance: ${perfRows.length.toLocaleString()} dòng${perfUnmatchedHubNames.size > 0 ? ` (⚠️ ${perfUnmatchedHubNames.size} tên bưu cục KHÔNG khớp được mã, xem console)` : ''}.`;
-            setStaffStatus_(`${staffDotDiagText_()} — ${label} lúc ${state.staffLastLoadedAt.toLocaleTimeString('vi-VN')}: ${rows.length.toLocaleString()} dòng đơn (${fromDate} → ${toDate}, ${hubIds.length} bưu cục) · ${dotCount} chấm nhân viên đã đặt lên bản đồ (tab Bản Đồ).${unmatchedNote}${cancelledNote}${unassignedNote}${perfNote}`);
+            const ghnErrNote = (state.ghnLoadErrs && state.ghnLoadErrs.length) ? `⚠️ KHÔNG lấy được chuyến đi (${state.ghnLoadErrs.length} bưu cục) — ${state.ghnLoadErrs[0]} — ` : '';
+            setStaffStatus_(`${ghnErrNote}${staffDotDiagText_()} — ${label} lúc ${state.staffLastLoadedAt.toLocaleTimeString('vi-VN')}: ${rows.length.toLocaleString()} dòng đơn (${fromDate} → ${toDate}, ${hubIds.length} bưu cục) · ${dotCount} chấm nhân viên đã đặt lên bản đồ (tab Bản Đồ).${unmatchedNote}${cancelledNote}${unassignedNote}${perfNote}`);
         } catch (err) {
             console.error('[Tuyến Giao] Lỗi tải sản lượng nhân viên:', err);
             setStaffStatus_(`❌ Lỗi: ${err.message || err}`);

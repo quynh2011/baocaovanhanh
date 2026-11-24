@@ -274,7 +274,8 @@
         box.innerHTML = t
             ? `<span class="qh-ghn-ok">● Đã kết nối GHN${who ? ' (' + who + ')' : ''}</span>
                <button type="button" id="qh-ghn-btn" class="qh-ghn-btn2">↻ Kết nối lại</button>
-               <button type="button" id="qh-ghn-off" class="qh-ghn-btn2">Ngắt</button>`
+               <button type="button" id="qh-ghn-off" class="qh-ghn-btn2">Ngắt</button>
+               <span class="qh-ghn-help">GHN nay bắt buộc chữ ký từ trang nhanh: bấm <b>Kết nối lại</b> → trên tab nhanh.ghn.vn bấm nút <a class="qh-bm" href="${qhBookmarklet_()}" title="Kéo nút này lên thanh dấu trang">🔗 Kết nối báo cáo TNT</a> (bản mới — nút tạo trước 24/11 phải tạo lại, <button type="button" id="qh-bm-copy" class="qh-ghn-btn2">📋 Copy mã nút</button>) → <b>giữ tab nhanh mở</b>.</span>`
             : `<span class="qh-ghn-no">● Chưa kết nối GHN</span>
                <button type="button" id="qh-ghn-btn" class="qh-ghn-btn">🔗 Kết nối GHN</button>
                <span class="qh-ghn-help">Bấm → mở trang nhanh.ghn.vn → bấm nút <a class="qh-bm" href="${qhBookmarklet_()}" title="Kéo nút này lên thanh dấu trang (làm 1 lần)">🔗 Kết nối báo cáo TNT</a> trên thanh dấu trang.

@@ -79,7 +79,10 @@
     async function qhGhnFetch_(url, init) {
         let direct = null;
         try { direct = await fetch(url, init); } catch (e) { direct = null; }
-        if (direct && direct.status !== 401 && direct.status !== 403) return direct;
+        if (direct && direct.status !== 401 && direct.status !== 403) {
+            let code = 0; try { const b = await direct.clone().json(); code = b && typeof b === 'object' ? Number(b.code != null ? b.code : b.status) : 0; } catch (e) { code = 0; }
+            if (code !== 401 && code !== 403) return direct;
+        }
         if (/(^|\.)nhanh\.ghn\.vn$/.test(location.hostname)) return qhViaPage_(url, init);
         if (typeof window.qhGhnBridgeCall_ === 'function') return window.qhGhnBridgeCall_(url, init);
         if (direct) return direct;
@@ -2922,7 +2925,10 @@
             throw new Error(`Phiên GHN đã hết hạn (HTTP ${res.status}) — bấm "🔗 Kết nối GHN" để kết nối lại.`);
         }
         if (!res.ok) throw new Error(`HTTP ${res.status} khi gọi ${path}`);
-        return res.json();
+        const out = await res.json();
+        const bc = out && typeof out === 'object' ? Number(out.code) : 0;
+        if (bc >= 400) throw new Error(`GHN trả lỗi ${bc}${out.message ? ': ' + out.message : ''} khi gọi ${path}`);
+        return out;
     }
 
     // Đổi khoảng ngày UI (giờ VN) sang UTC ISO đúng cách GTC đang làm: lùi 1 ngày, bắt
@@ -3160,6 +3166,7 @@
                 tripCodes = await searchTripPaged_(hubId, fromDateStr, toDateStr);
             } catch (err) {
                 console.warn(`[Tuyến Giao] Lỗi tìm chuyến đi bưu cục ${hubId}:`, err);
+                (state.ghnLoadErrs = state.ghnLoadErrs || []).push(`BC ${hubId}: ${err.message}`);
                 onProgress && onProgress(`⚠️ Bưu cục ${hubId}: lỗi tìm chuyến đi (${err.message}) — bỏ qua.`);
                 continue;
             }
@@ -5925,6 +5932,7 @@
         if (loadBtn) loadBtn.disabled = true;
         if (stopBtn) stopBtn.style.display = '';
         try {
+            state.ghnLoadErrs = [];
             setStaffStatus_('Đang tải sản lượng từ GHN...');
             // v1.7.17 — tải SONG SONG dữ liệu Performance (sản lượng CẦN GIAO + đơn ĐÃ GÁN thật
             // theo ngày/bưu cục, sheet "Performance") CÙNG khoảng ngày — không chờ tuần tự,
@@ -5976,7 +5984,8 @@
                 : perfRows.length === 0
                     ? ' · 📊 Performance: chưa có dòng nào trong khoảng ngày này.'
                     : ` · 📊 Performance: ${perfRows.length.toLocaleString()} dòng${perfUnmatchedHubNames.size > 0 ? ` (⚠️ ${perfUnmatchedHubNames.size} tên bưu cục KHÔNG khớp được mã, xem console)` : ''}.`;
-            setStaffStatus_(`${staffDotDiagText_()} — ${label} lúc ${state.staffLastLoadedAt.toLocaleTimeString('vi-VN')}: ${rows.length.toLocaleString()} dòng đơn (${fromDate} → ${toDate}, ${hubIds.length} bưu cục) · ${dotCount} chấm nhân viên đã đặt lên bản đồ (tab Bản Đồ).${unmatchedNote}${cancelledNote}${unassignedNote}${perfNote}`);
+            const ghnErrNote = (state.ghnLoadErrs && state.ghnLoadErrs.length) ? `⚠️ KHÔNG lấy được chuyến đi (${state.ghnLoadErrs.length} bưu cục) — ${state.ghnLoadErrs[0]} — ` : '';
+            setStaffStatus_(`${ghnErrNote}${staffDotDiagText_()} — ${label} lúc ${state.staffLastLoadedAt.toLocaleTimeString('vi-VN')}: ${rows.length.toLocaleString()} dòng đơn (${fromDate} → ${toDate}, ${hubIds.length} bưu cục) · ${dotCount} chấm nhân viên đã đặt lên bản đồ (tab Bản Đồ).${unmatchedNote}${cancelledNote}${unassignedNote}${perfNote}`);
         } catch (err) {
             console.error('[Tuyến Giao] Lỗi tải sản lượng nhân viên:', err);
             setStaffStatus_(`❌ Lỗi: ${err.message || err}`);
@@ -7806,7 +7815,8 @@
         box.innerHTML = t
             ? `<span class="qh-ghn-ok">● Đã kết nối GHN${who ? ' (' + who + ')' : ''}</span>
                <button type="button" id="qh-ghn-btn" class="qh-ghn-btn2">↻ Kết nối lại</button>
-               <button type="button" id="qh-ghn-off" class="qh-ghn-btn2">Ngắt</button>`
+               <button type="button" id="qh-ghn-off" class="qh-ghn-btn2">Ngắt</button>
+               <span class="qh-ghn-help">GHN nay bắt buộc chữ ký từ trang nhanh: bấm <b>Kết nối lại</b> → trên tab nhanh.ghn.vn bấm nút <a class="qh-bm" href="${qhBookmarklet_()}" title="Kéo nút này lên thanh dấu trang">🔗 Kết nối báo cáo TNT</a> (bản mới — nút tạo trước 24/11 phải tạo lại, <button type="button" id="qh-bm-copy" class="qh-ghn-btn2">📋 Copy mã nút</button>) → <b>giữ tab nhanh mở</b>.</span>`
             : `<span class="qh-ghn-no">● Chưa kết nối GHN</span>
                <button type="button" id="qh-ghn-btn" class="qh-ghn-btn">🔗 Kết nối GHN</button>
                <span class="qh-ghn-help">Bấm → mở trang nhanh.ghn.vn → bấm nút <a class="qh-bm" href="${qhBookmarklet_()}" title="Kéo nút này lên thanh dấu trang (làm 1 lần)">🔗 Kết nối báo cáo TNT</a> trên thanh dấu trang.
